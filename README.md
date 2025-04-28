@@ -1,4 +1,8 @@
-# 🖼️ AI Labeling Studio
+   
+<h1 align="center">Vision AI Label Studio</h1>
+<p align="center">
+  <img src="/public/logo.png" alt="Logo" width="200">
+</p>
 
 A powerful, modern **image labeling tool** built with **Next.js**, **TypeScript**, **TailwindCSS**, **Framer Motion**, and **Dexie.js**, designed for creating high-quality datasets for machine learning models.  
 Supports manual annotation, free drawing, and **AI-assisted labeling** using **YOLOv8** models.
@@ -20,7 +24,7 @@ Supports manual annotation, free drawing, and **AI-assisted labeling** using **Y
 
 ## 📸 Demo Screenshots
 
-<!-- Add screenshots/gif later when you build -->
+![Studio](/docs/screens/studio.png)
 
 ---
 
@@ -35,10 +39,10 @@ Supports manual annotation, free drawing, and **AI-assisted labeling** using **Y
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/ai-labeling-studio.git
+git clone https://github.com/vailabel/vailabel-studio.git
 
 # Go into the project directory
-cd ai-labeling-studio
+cd vailabel-studio
 
 # Install dependencies
 pnpm install
@@ -50,33 +54,6 @@ pnpm dev
 Then open [http://localhost:3000](http://localhost:3000) 🚀
 
 ---
-
-## 🛠️ Project Structure
-
-```bash
-src/
-  ├── components/
-  │    ├── CanvasArea.tsx
-  │    ├── FreeDrawTool.tsx
-  │    ├── RightClickContextMenu.tsx
-  │    ├── ResizableDivider.tsx
-  │    ├── LabelSidebar.tsx
-  │    └── ExportModal.tsx
-  ├── services/
-  │    ├── DexieStorageService.ts
-  │    ├── AIModelService.ts
-  │    └── ExportService.ts
-  ├── utils/
-  │    └── dataConverters.ts
-  ├── hooks/
-  │    └── useCanvasTools.ts
-  └── pages/
-       ├── index.tsx
-       └── _app.tsx
-```
-
----
-
 ## 📦 Export Formats
 
 - **COCO JSON**: Object detection format used in MS COCO dataset.
@@ -100,8 +77,8 @@ src/
 - [x] Free Drawing (Lasso Tool)
 - [x] Offline Project Storage
 - [x] Multi-Image Labeling Projects
-- [x] AI YOLOv8 Auto-Detection
-- [x] Export Multiple Formats
+- [ ] AI YOLOv8 Auto-Detection
+- [ ] Export Multiple Formats
 - [ ] Multi-Class Annotation (Class Picker)
 - [ ] Video Frame-by-Frame Annotation
 - [ ] Collaborative Labeling (Team mode)
