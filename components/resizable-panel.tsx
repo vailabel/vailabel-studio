@@ -1,20 +1,20 @@
-"use client";
+"use client"
 
-import type React from "react";
+import type React from "react"
 
-import { useState, useEffect, useRef } from "react";
-import { cn } from "@/lib/utils";
+import { useState, useEffect, useRef } from "react"
+import { cn } from "@/lib/utils"
 
 interface ResizablePanelProps {
-  direction: "horizontal" | "vertical";
-  controlPosition?: "left" | "right" | "top" | "bottom";
-  defaultSize: number;
-  minSize?: number;
-  maxSize?: number;
-  className?: string;
-  handleClassName?: string;
-  children: React.ReactNode;
-  onResize?: (size: number) => void;
+  direction: "horizontal" | "vertical"
+  controlPosition?: "left" | "right" | "top" | "bottom"
+  defaultSize: number
+  minSize?: number
+  maxSize?: number
+  className?: string
+  handleClassName?: string
+  children: React.ReactNode
+  onResize?: (size: number) => void
 }
 
 export function ResizablePanel({
@@ -28,54 +28,52 @@ export function ResizablePanel({
   children,
   onResize,
 }: ResizablePanelProps) {
-  const [size, setSize] = useState(defaultSize);
-  const [isResizing, setIsResizing] = useState(false);
-  const startPosRef = useRef(0);
-  const startSizeRef = useRef(size);
-  const panelRef = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState(defaultSize)
+  const [isResizing, setIsResizing] = useState(false)
+  const startPosRef = useRef(0)
+  const startSizeRef = useRef(size)
+  const panelRef = useRef<HTMLDivElement>(null)
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsResizing(true);
-    startPosRef.current = direction === "horizontal" ? e.clientX : e.clientY;
-    startSizeRef.current = size;
-  };
+    e.preventDefault()
+    setIsResizing(true)
+    startPosRef.current = direction === "horizontal" ? e.clientX : e.clientY
+    startSizeRef.current = size
+  }
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (!isResizing) return;
+      if (!isResizing) return
 
-      const currentPos = direction === "horizontal" ? e.clientX : e.clientY;
-      const delta = currentPos - startPosRef.current;
+      const currentPos = direction === "horizontal" ? e.clientX : e.clientY
+      const delta = currentPos - startPosRef.current
 
       const adjustedDelta =
-        controlPosition === "left" || controlPosition === "top"
-          ? -delta
-          : delta;
+        controlPosition === "left" || controlPosition === "top" ? -delta : delta
 
       const newSize = Math.max(
         minSize,
         Math.min(maxSize, startSizeRef.current + adjustedDelta)
-      );
+      )
 
-      setSize(newSize);
-      if (onResize) onResize(newSize);
-    };
+      setSize(newSize)
+      if (onResize) onResize(newSize)
+    }
 
     const handleMouseUp = () => {
-      setIsResizing(false);
-    };
+      setIsResizing(false)
+    }
 
     if (isResizing) {
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
+      document.addEventListener("mousemove", handleMouseMove)
+      document.addEventListener("mouseup", handleMouseUp)
     }
 
     return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [isResizing, minSize, maxSize, direction, controlPosition, onResize]);
+      document.removeEventListener("mousemove", handleMouseMove)
+      document.removeEventListener("mouseup", handleMouseUp)
+    }
+  }, [isResizing, minSize, maxSize, direction, controlPosition, onResize])
 
   return (
     <div
@@ -104,5 +102,5 @@ export function ResizablePanel({
         onMouseDown={handleMouseDown}
       />
     </div>
-  );
+  )
 }

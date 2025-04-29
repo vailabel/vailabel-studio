@@ -1,7 +1,7 @@
-"use client";
+"use client"
 
-import { useRef, useEffect } from "react";
-import { motion } from "framer-motion";
+import { useRef, useEffect } from "react"
+import { motion } from "framer-motion"
 import {
   Square,
   OctagonIcon as Polygon,
@@ -9,15 +9,15 @@ import {
   Trash2,
   ZoomIn,
   Pencil,
-} from "lucide-react";
-import { useSettingsStore } from "@/lib/settings-store";
-import { cn } from "@/lib/utils";
+} from "lucide-react"
+import { useSettingsStore } from "@/lib/settings-store"
+import { cn } from "@/lib/utils"
 
 interface ContextMenuProps {
-  x: number;
-  y: number;
-  containerRect: DOMRect | null;
-  onClose: () => void;
+  x: number
+  y: number
+  containerRect: DOMRect | null
+  onClose: () => void
 }
 
 export function ContextMenu({
@@ -26,39 +26,39 @@ export function ContextMenu({
   containerRect,
   onClose,
 }: ContextMenuProps) {
-  const menuRef = useRef<HTMLDivElement>(null);
-  const { setSelectedTool, darkMode } = useSettingsStore();
+  const menuRef = useRef<HTMLDivElement>(null)
+  const { setSelectedTool, darkMode } = useSettingsStore()
 
   // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        onClose();
+        onClose()
       }
-    };
+    }
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [onClose]);
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [onClose])
 
   const handleToolSelect = (tool: string) => {
-    setSelectedTool(tool);
-    onClose();
-  };
+    setSelectedTool(tool)
+    onClose()
+  }
 
   // Calculate position relative to the container
-  const menuX = containerRect ? x - containerRect.left : x;
-  const menuY = containerRect ? y - containerRect.top : y;
+  const menuX = containerRect ? x - containerRect.left : x
+  const menuY = containerRect ? y - containerRect.top : y
 
   // Adjust position to ensure menu stays within viewport
   const adjustedX = Math.min(
     menuX,
     (containerRect?.width || window.innerWidth) - 200
-  );
+  )
   const adjustedY = Math.min(
     menuY,
     (containerRect?.height || window.innerHeight) - 250
-  );
+  )
 
   return (
     <motion.div
@@ -148,9 +148,9 @@ export function ContextMenu({
           )}
           onClick={() => {
             // Trigger zoom reset
-            const resetEvent = new CustomEvent("reset-canvas-view");
-            window.dispatchEvent(resetEvent);
-            onClose();
+            const resetEvent = new CustomEvent("reset-canvas-view")
+            window.dispatchEvent(resetEvent)
+            onClose()
           }}
         >
           <ZoomIn className="mr-2 h-4 w-4" />
@@ -158,5 +158,5 @@ export function ContextMenu({
         </button>
       </div>
     </motion.div>
-  );
+  )
 }

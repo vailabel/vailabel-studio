@@ -1,25 +1,25 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { X, Trash2, Moon, Sun } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Slider } from "@/components/ui/slider";
-import { useSettingsStore } from "@/lib/settings-store";
-import { db } from "@/lib/db";
-import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { useState } from "react"
+import { motion } from "framer-motion"
+import { X, Trash2, Moon, Sun } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Slider } from "@/components/ui/slider"
+import { useSettingsStore } from "@/lib/settings-store"
+import { db } from "@/lib/db"
+import { useToast } from "@/hooks/use-toast"
+import { cn } from "@/lib/utils"
 
 interface SettingsModalProps {
-  onClose: () => void;
+  onClose: () => void
 }
 
 export function SettingsModal({ onClose }: SettingsModalProps) {
-  const { toast } = useToast();
-  const [isClearing, setIsClearing] = useState(false);
+  const { toast } = useToast()
+  const [isClearing, setIsClearing] = useState(false)
 
   const {
     darkMode,
@@ -34,7 +34,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
     setBrightness,
     contrast,
     setContrast,
-  } = useSettingsStore();
+  } = useSettingsStore()
 
   const handleClearAllData = async () => {
     if (
@@ -42,33 +42,33 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
         "Are you sure you want to clear all data? This action cannot be undone."
       )
     ) {
-      return;
+      return
     }
 
-    setIsClearing(true);
+    setIsClearing(true)
 
     try {
-      await db.delete();
-      await db.open();
+      await db.delete()
+      await db.open()
 
       toast({
         title: "Success",
         description: "All data has been cleared",
-      });
+      })
 
       // Reload the page to reset the app state
-      window.location.reload();
+      window.location.reload()
     } catch (error) {
-      console.error("Failed to clear data:", error);
+      console.error("Failed to clear data:", error)
       toast({
         title: "Error",
         description: "Failed to clear data",
         variant: "destructive",
-      });
+      })
     } finally {
-      setIsClearing(false);
+      setIsClearing(false)
     }
-  };
+  }
 
   return (
     <motion.div
@@ -305,5 +305,5 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
         </Tabs>
       </motion.div>
     </motion.div>
-  );
+  )
 }

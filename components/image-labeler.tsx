@@ -1,9 +1,9 @@
-"use client";
+"use client"
 
-import type React from "react";
+import type React from "react"
 
-import { useState, useEffect, useRef } from "react";
-import { AnimatePresence } from "framer-motion";
+import { useState, useEffect, useRef } from "react"
+import { AnimatePresence } from "framer-motion"
 import {
   ArrowLeft,
   Save,
@@ -13,248 +13,248 @@ import {
   ChevronRight,
   Moon,
   Sun,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Progress } from "@/components/ui/progress"
+import { Separator } from "@/components/ui/separator"
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Canvas } from "@/components/canvas";
-import { Toolbar } from "@/components/toolbar";
-import { ImageList } from "@/components/image-list";
-import { LabelListPanel } from "@/components/label-list-panel";
-import { ResizablePanel } from "@/components/resizable-panel";
-import { LabelEditor } from "@/components/label-editor";
-import { SettingsModal } from "@/components/settings-modal";
-import { ExportModal } from "@/components/export-modal";
-import { AIModelModal } from "@/components/ai-model-modal";
-import { ContextMenu } from "@/components/context-menu";
-import { db } from "@/lib/db";
-import { useToast } from "@/hooks/use-toast";
-import { useLabelStore } from "@/lib/store";
-import { useSettingsStore } from "@/lib/settings-store";
-import type { Project, Label } from "@/lib/types";
+} from "@/components/ui/tooltip"
+import { Canvas } from "@/components/canvas"
+import { Toolbar } from "@/components/toolbar"
+import { ImageList } from "@/components/image-list"
+import { LabelListPanel } from "@/components/label-list-panel"
+import { ResizablePanel } from "@/components/resizable-panel"
+import { LabelEditor } from "@/components/label-editor"
+import { SettingsModal } from "@/components/settings-modal"
+import { ExportModal } from "@/components/export-modal"
+import { AIModelModal } from "@/components/ai-model-modal"
+import { ContextMenu } from "@/components/context-menu"
+import { db } from "@/lib/db"
+import { useToast } from "@/hooks/use-toast"
+import { useLabelStore } from "@/lib/store"
+import { useSettingsStore } from "@/lib/settings-store"
+import type { Project, Label } from "@/lib/types"
 
 interface ImageLabelerProps {
-  project: Project;
-  onClose: () => void;
+  project: Project
+  onClose: () => void
 }
 
 export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
-  const { toast } = useToast();
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [showSettings, setShowSettings] = useState(false);
-  const [showExport, setShowExport] = useState(false);
-  const [showAISettings, setShowAISettings] = useState(false);
-  const [showLabelEditor, setShowLabelEditor] = useState(false);
-  const [selectedLabel, setSelectedLabel] = useState<Label | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [labeledCount, setLabeledCount] = useState(0);
+  const { toast } = useToast()
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [showSettings, setShowSettings] = useState(false)
+  const [showExport, setShowExport] = useState(false)
+  const [showAISettings, setShowAISettings] = useState(false)
+  const [showLabelEditor, setShowLabelEditor] = useState(false)
+  const [selectedLabel, setSelectedLabel] = useState<Label | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
+  const [labeledCount, setLabeledCount] = useState(0)
   const [contextMenuProps, setContextMenuProps] = useState({
     isOpen: false,
     x: 0,
     y: 0,
-  });
+  })
 
-  const canvasContainerRef = useRef<HTMLDivElement>(null);
-  const [containerRect, setContainerRect] = useState<DOMRect | null>(null);
+  const canvasContainerRef = useRef<HTMLDivElement>(null)
+  const [containerRect, setContainerRect] = useState<DOMRect | null>(null)
 
-  const { labels, setLabels, clearLabels } = useLabelStore();
-  const { darkMode, setDarkMode } = useSettingsStore();
+  const { labels, setLabels, clearLabels } = useLabelStore()
+  const { darkMode, setDarkMode } = useSettingsStore()
 
   // Calculate how many images have labels
   useEffect(() => {
     const countLabeledImages = async () => {
       try {
-        const imageIds = project.images.map((img) => img.id);
+        const imageIds = project.images.map((img) => img.id)
         const labeledImages = await db.labels
           .where("imageId")
           .anyOf(imageIds)
-          .toArray();
+          .toArray()
 
         // Count unique imageIds that have labels
         const uniqueImageIds = new Set(
           labeledImages.map((label) => label.imageId)
-        );
-        setLabeledCount(uniqueImageIds.size);
+        )
+        setLabeledCount(uniqueImageIds.size)
       } catch (error) {
-        console.error("Failed to count labeled images:", error);
+        console.error("Failed to count labeled images:", error)
       }
-    };
+    }
 
-    countLabeledImages();
-  }, [project.images, labels]);
+    countLabeledImages()
+  }, [project.images, labels])
 
   // Load labels for the current image
   useEffect(() => {
     const loadLabels = async () => {
-      if (!project.images.length) return;
+      if (!project.images.length) return
 
       try {
-        const currentImage = project.images[currentImageIndex];
+        const currentImage = project.images[currentImageIndex]
         const imageLabels = await db.labels
           .where("imageId")
           .equals(currentImage.id)
-          .toArray();
+          .toArray()
 
-        setLabels(imageLabels);
+        setLabels(imageLabels)
       } catch (error) {
-        console.error("Failed to load labels:", error);
+        console.error("Failed to load labels:", error)
         toast({
           title: "Error",
           description: "Failed to load image labels",
           variant: "destructive",
-        });
+        })
       }
-    };
+    }
 
-    loadLabels();
-  }, [project.images, currentImageIndex, setLabels, toast]);
+    loadLabels()
+  }, [project.images, currentImageIndex, setLabels, toast])
 
   // Apply dark mode class to document
   useEffect(() => {
     if (darkMode) {
-      document.documentElement.classList.add("dark");
+      document.documentElement.classList.add("dark")
     } else {
-      document.documentElement.classList.remove("dark");
+      document.documentElement.classList.remove("dark")
     }
-  }, [darkMode]);
+  }, [darkMode])
 
   const handleSaveProject = async () => {
-    setIsSaving(true);
+    setIsSaving(true)
 
     try {
       // Update project's lastModified date
       await db.projects.update(project.id, {
         lastModified: new Date(),
-      });
+      })
 
       toast({
         title: "Success",
         description: "Project saved successfully",
-      });
+      })
     } catch (error) {
-      console.error("Failed to save project:", error);
+      console.error("Failed to save project:", error)
       toast({
         title: "Error",
         description: "Failed to save project",
         variant: "destructive",
-      });
+      })
     } finally {
-      setIsSaving(false);
+      setIsSaving(false)
     }
-  };
+  }
 
   const handleExportProject = () => {
-    setShowExport(true);
-  };
+    setShowExport(true)
+  }
 
   // Update the handleNextImage and handlePrevImage functions to properly save labels before changing images
   const handleNextImage = async () => {
     if (currentImageIndex < project.images.length - 1) {
       // Save current labels to database before changing images
       try {
-        const currentImage = project.images[currentImageIndex];
-        const nextImage = project.images[currentImageIndex + 1];
+        const currentImage = project.images[currentImageIndex]
+        const nextImage = project.images[currentImageIndex + 1]
 
         // Update project's lastModified date
         await db.projects.update(project.id, {
           lastModified: new Date(),
-        });
+        })
 
         // Clear labels and load the next image's labels
-        clearLabels();
-        setCurrentImageIndex(currentImageIndex + 1);
+        clearLabels()
+        setCurrentImageIndex(currentImageIndex + 1)
       } catch (error) {
-        console.error("Failed to save labels before changing image:", error);
+        console.error("Failed to save labels before changing image:", error)
         toast({
           title: "Error",
           description: "Failed to save labels",
           variant: "destructive",
-        });
+        })
       }
     }
-  };
+  }
 
   const handlePrevImage = async () => {
     if (currentImageIndex > 0) {
       // Save current labels to database before changing images
       try {
-        const currentImage = project.images[currentImageIndex];
-        const prevImage = project.images[currentImageIndex - 1];
+        const currentImage = project.images[currentImageIndex]
+        const prevImage = project.images[currentImageIndex - 1]
 
         // Update project's lastModified date
         await db.projects.update(project.id, {
           lastModified: new Date(),
-        });
+        })
 
         // Clear labels and load the previous image's labels
-        clearLabels();
-        setCurrentImageIndex(currentImageIndex - 1);
+        clearLabels()
+        setCurrentImageIndex(currentImageIndex - 1)
       } catch (error) {
-        console.error("Failed to save labels before changing image:", error);
+        console.error("Failed to save labels before changing image:", error)
         toast({
           title: "Error",
           description: "Failed to save labels",
           variant: "destructive",
-        });
+        })
       }
     }
-  };
+  }
 
   const handleLabelSelect = (label: Label) => {
-    setSelectedLabel(label);
-    setShowLabelEditor(true);
-  };
+    setSelectedLabel(label)
+    setShowLabelEditor(true)
+  }
 
   const handleLabelEditorClose = () => {
-    setShowLabelEditor(false);
-    setSelectedLabel(null);
-  };
+    setShowLabelEditor(false)
+    setSelectedLabel(null)
+  }
 
   // Handle right-click for context menu
   const handleContextMenu = (e: React.MouseEvent) => {
-    e.preventDefault();
+    e.preventDefault()
 
     // Update container rect for accurate positioning
     if (canvasContainerRef.current) {
-      setContainerRect(canvasContainerRef.current.getBoundingClientRect());
+      setContainerRect(canvasContainerRef.current.getBoundingClientRect())
     }
 
     setContextMenuProps({
       isOpen: true,
       x: e.clientX,
       y: e.clientY,
-    });
+    })
 
-    return false;
-  };
+    return false
+  }
 
   // Close context menu when clicking elsewhere
   const handleCloseContextMenu = () => {
-    setContextMenuProps((prev) => ({ ...prev, isOpen: false }));
-  };
+    setContextMenuProps((prev) => ({ ...prev, isOpen: false }))
+  }
 
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Only process if no modals are open
       if (showSettings || showLabelEditor || showExport || showAISettings)
-        return;
+        return
 
       if (e.key === "n" || e.key === "N") {
-        handleNextImage();
+        handleNextImage()
       } else if (e.key === "p" || e.key === "P") {
-        handlePrevImage();
+        handlePrevImage()
       }
-    };
+    }
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
   }, [
     currentImageIndex,
     project.images.length,
@@ -262,13 +262,13 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
     showLabelEditor,
     showExport,
     showAISettings,
-  ]);
+  ])
 
-  const currentImage = project.images[currentImageIndex];
+  const currentImage = project.images[currentImageIndex]
   const progress =
     project.images.length > 0
       ? Math.round((labeledCount / project.images.length) * 100)
-      : 0;
+      : 0
 
   return (
     <div className="flex flex-col h-screen w-full overflow-hidden bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
@@ -491,5 +491,5 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
         )}
       </AnimatePresence>
     </div>
-  );
+  )
 }

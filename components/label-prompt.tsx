@@ -1,28 +1,28 @@
-"use client";
+"use client"
 
-import type React from "react";
+import type React from "react"
 
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useEffect, useState } from "react"
+import { motion } from "framer-motion"
+import { X } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useLabelStore } from "@/lib/store";
+} from "@/components/ui/select"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { useLabelStore } from "@/lib/store"
 
 export function LabelPrompt() {
-  const { labelPrompt, setLabelPrompt } = useLabelStore();
-  const [labelName, setLabelName] = useState("");
-  const [category, setCategory] = useState("uncategorized");
-  const [labelColor, setLabelColor] = useState("blue-500");
+  const { labelPrompt, setLabelPrompt } = useLabelStore()
+  const [labelName, setLabelName] = useState("")
+  const [category, setCategory] = useState("uncategorized")
+  const [labelColor, setLabelColor] = useState("blue-500")
 
   const categories = [
     "Person",
@@ -32,7 +32,7 @@ export function LabelPrompt() {
     "Building",
     "Plant",
     "Other",
-  ];
+  ]
   const colorOptions = [
     { value: "blue-500", label: "Blue" },
     { value: "green-500", label: "Green" },
@@ -42,30 +42,30 @@ export function LabelPrompt() {
     { value: "pink-500", label: "Pink" },
     { value: "orange-500", label: "Orange" },
     { value: "teal-500", label: "Teal" },
-  ];
+  ]
 
   useEffect(() => {
     if (labelPrompt?.isOpen) {
-      setLabelName("");
-      setCategory("uncategorized");
-      setLabelColor("blue-500");
+      setLabelName("")
+      setCategory("uncategorized")
+      setLabelColor("blue-500")
     }
-  }, [labelPrompt?.isOpen]);
+  }, [labelPrompt?.isOpen])
 
-  if (!labelPrompt?.isOpen) return null;
+  if (!labelPrompt?.isOpen) return null
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
     if (labelName.trim()) {
-      labelPrompt.onSubmit(labelName.trim(), category, labelColor);
-      setLabelPrompt(null);
+      labelPrompt.onSubmit(labelName.trim(), category, labelColor)
+      setLabelPrompt(null)
     }
-  };
+  }
 
   const handleCancel = () => {
-    labelPrompt.onCancel();
-    setLabelPrompt(null);
-  };
+    labelPrompt.onCancel()
+    setLabelPrompt(null)
+  }
 
   return (
     <motion.div
@@ -166,5 +166,5 @@ export function LabelPrompt() {
         </form>
       </motion.div>
     </motion.div>
-  );
+  )
 }

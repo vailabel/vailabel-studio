@@ -1,34 +1,34 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useState } from "react"
+import { motion } from "framer-motion"
+import { X } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { useLabelStore } from "@/lib/store";
-import { db } from "@/lib/db";
-import { useToast } from "@/hooks/use-toast";
-import type { Label as LabelType } from "@/lib/types";
+} from "@/components/ui/select"
+import { useLabelStore } from "@/lib/store"
+import { db } from "@/lib/db"
+import { useToast } from "@/hooks/use-toast"
+import type { Label as LabelType } from "@/lib/types"
 
 interface LabelEditorProps {
-  label: LabelType;
-  onClose: () => void;
+  label: LabelType
+  onClose: () => void
 }
 
 export function LabelEditor({ label, onClose }: LabelEditorProps) {
-  const { toast } = useToast();
-  const { updateLabel, removeLabel } = useLabelStore();
+  const { toast } = useToast()
+  const { updateLabel, removeLabel } = useLabelStore()
 
-  const [name, setName] = useState(label.name);
-  const [category, setCategory] = useState(label.category || "");
+  const [name, setName] = useState(label.name)
+  const [category, setCategory] = useState(label.category || "")
 
   const categories = [
     "Person",
@@ -38,7 +38,7 @@ export function LabelEditor({ label, onClose }: LabelEditorProps) {
     "Building",
     "Plant",
     "Other",
-  ];
+  ]
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -46,8 +46,8 @@ export function LabelEditor({ label, onClose }: LabelEditorProps) {
         title: "Name required",
         description: "Please enter a name for this label",
         variant: "destructive",
-      });
-      return;
+      })
+      return
     }
 
     try {
@@ -56,55 +56,55 @@ export function LabelEditor({ label, onClose }: LabelEditorProps) {
         name: name.trim(),
         category: category || undefined,
         updatedAt: new Date(),
-      };
+      }
 
       // Update in store
-      updateLabel(label.id, updatedLabel);
+      updateLabel(label.id, updatedLabel)
 
       // Update in database
-      await db.labels.update(label.id, updatedLabel);
+      await db.labels.update(label.id, updatedLabel)
 
       toast({
         title: "Label updated",
         description: "Label has been updated successfully",
-      });
+      })
 
-      onClose();
+      onClose()
     } catch (error) {
-      console.error("Error updating label:", error);
+      console.error("Error updating label:", error)
       toast({
         title: "Error",
         description: "Failed to update label",
         variant: "destructive",
-      });
+      })
     }
-  };
+  }
 
   const handleDelete = async () => {
     if (confirm("Are you sure you want to delete this label?")) {
       try {
         // Remove from store
-        removeLabel(label.id);
+        removeLabel(label.id)
 
         // Remove from database
-        await db.labels.delete(label.id);
+        await db.labels.delete(label.id)
 
         toast({
           title: "Label deleted",
           description: "Label has been deleted successfully",
-        });
+        })
 
-        onClose();
+        onClose()
       } catch (error) {
-        console.error("Error deleting label:", error);
+        console.error("Error deleting label:", error)
         toast({
           title: "Error",
           description: "Failed to delete label",
           variant: "destructive",
-        });
+        })
       }
     }
-  };
+  }
 
   return (
     <motion.div
@@ -191,5 +191,5 @@ export function LabelEditor({ label, onClose }: LabelEditorProps) {
         </div>
       </motion.div>
     </motion.div>
-  );
+  )
 }
