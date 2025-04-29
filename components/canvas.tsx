@@ -46,6 +46,7 @@ export function Canvas({ image, labels }: CanvasProps) {
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      console.log(e.key)
       // Cancel operations with Escape
       if (e.key === "Escape") {
         setPolygonPoints([])
@@ -561,37 +562,41 @@ export function Canvas({ image, labels }: CanvasProps) {
     }
   }, [])
 
-  const [canvasWidthHeight, setCanvasWidthHeight] = useState({ width: 0, height: 0 })
+  const [canvasWidthHeight, setCanvasWidthHeight] = useState({
+    width: 0,
+    height: 0,
+  })
 
   useEffect(() => {
-    setCanvasWidthHeight({ width: canvasRef.current?.offsetWidth || 0, height: canvasRef.current?.offsetHeight || 0 })
+    setCanvasWidthHeight({
+      width: canvasRef.current?.offsetWidth || 0,
+      height: canvasRef.current?.offsetHeight || 0,
+    })
   }, [canvasRef.current])
 
   // Draw rulers
   const drawRulers = () => {
-    if (!showRulers || !cursorPosition) return null;
+    if (!showRulers || !cursorPosition) return null
 
-    const tickInterval = 50; // pixels
+    const tickInterval = 50 // pixels
 
     return (
       <>
         {/* Horizontal ruler */}
-        <div
-          className="absolute top-0 left-0 h-5 w-full border-b bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 z-10"
-        >
-          {Array.from({ length: Math.ceil(canvasWidthHeight.width / tickInterval) }).map(
-            (_, i) => (
-              <div
-                key={`h-${i}`}
-                className="absolute bottom-0 border-l h-1 border-gray-400 dark:border-gray-600"
-                style={{ left: `${i * tickInterval}px` }}
-              >
-                <div className="absolute -left-3 -top-4 text-[10px] text-gray-600 dark:text-gray-400">
-                  {i * tickInterval}
-                </div>
+        <div className="absolute top-0 left-0 h-5 w-full border-b bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 z-10">
+          {Array.from({
+            length: Math.ceil(canvasWidthHeight.width / tickInterval),
+          }).map((_, i) => (
+            <div
+              key={`h-${i}`}
+              className="absolute bottom-0 border-l h-1 border-gray-400 dark:border-gray-600"
+              style={{ left: `${i * tickInterval}px` }}
+            >
+              <div className="absolute -left-3 -top-4 text-[10px] text-gray-600 dark:text-gray-400">
+                {i * tickInterval}
               </div>
-            )
-          )}
+            </div>
+          ))}
           {cursorPosition && (
             <div
               className="absolute bottom-0 border-l border-red-500 h-full"
@@ -603,22 +608,20 @@ export function Canvas({ image, labels }: CanvasProps) {
         </div>
 
         {/* Vertical ruler */}
-        <div
-          className="absolute top-0 left-0 w-5 h-full border-r bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 z-10"
-        >
-          {Array.from({ length: Math.ceil(canvasWidthHeight.height || 0 / tickInterval) }).map(
-            (_, i) => (
-              <div
-                key={`v-${i}`}
-                className="absolute right-0 border-t w-1 border-gray-400 dark:border-gray-600"
-                style={{ top: `${i * tickInterval}px` }}
-              >
-                <div className="absolute -top-2 -left-0 text-[10px] rotate-90 origin-top-left text-gray-600 dark:text-gray-400">
-                  {i * tickInterval}
-                </div>
+        <div className="absolute top-0 left-0 w-5 h-full border-r bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 z-10">
+          {Array.from({
+            length: Math.ceil(canvasWidthHeight.height || 0 / tickInterval),
+          }).map((_, i) => (
+            <div
+              key={`v-${i}`}
+              className="absolute right-0 border-t w-1 border-gray-400 dark:border-gray-600"
+              style={{ top: `${i * tickInterval}px` }}
+            >
+              <div className="absolute -top-2 -left-0 text-[10px] rotate-90 origin-top-left text-gray-600 dark:text-gray-400">
+                {i * tickInterval}
               </div>
-            )
-          )}
+            </div>
+          ))}
           {cursorPosition && (
             <div
               className="absolute right-0 border-t border-red-500 w-full"
@@ -632,8 +635,8 @@ export function Canvas({ image, labels }: CanvasProps) {
         {/* Ruler corner */}
         <div className="absolute top-0 left-0 w-5 h-5 border-r border-b bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 z-20" />
       </>
-    );
-  };
+    )
+  }
 
   // Draw crosshairs
   const drawCrosshairs = () => {
