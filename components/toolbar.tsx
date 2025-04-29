@@ -10,10 +10,13 @@ import {
   Trash2,
   MousePointer,
   RotateCcw,
-  Ruler,
+  RotateCw,
   Crosshair,
   Pencil,
   Settings,
+  Plus,
+  Minus,
+  RefreshCcw,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -27,6 +30,7 @@ import { Separator } from "@/components/ui/separator"
 import { useSettingsStore } from "@/lib/settings-store"
 import { AIDetectionButton } from "@/components/ai-detection-button"
 import type { ImageData } from "@/lib/types"
+import { Input } from "./ui/input"
 
 interface ToolbarProps {
   currentImage: ImageData | null
@@ -41,6 +45,14 @@ interface Tool {
   shortcut: string
 }
 
+interface AdditionalTool {
+  id: string
+  name: string
+  icon: React.ElementType
+  shortcut: string
+  action: () => void
+}
+
 export function Toolbar({
   currentImage,
   onOpenSettings,
@@ -49,7 +61,7 @@ export function Toolbar({
   const {
     selectedTool,
     setSelectedTool,
-    showRulers,
+    zoom,
     setShowRulers,
     showCrosshairs,
     setShowCrosshairs,
@@ -64,13 +76,26 @@ export function Toolbar({
     { id: "polygon", name: "Draw Polygon", icon: Polygon, shortcut: "P" },
     { id: "freeDraw", name: "Free Draw", icon: Pencil, shortcut: "F" },
     { id: "delete", name: "Delete", icon: Trash2, shortcut: "D" },
+    { id: "undo", name: "Undo", icon: RotateCcw, shortcut: "Cmd+Z" },
+    { id: "redo", name: "Redo", icon: RotateCw, shortcut: "Cmd+Shift+Z" },
   ]
 
-  const handleResetView = () => {
-    // This will be handled by the Canvas component
-    const resetEvent = new CustomEvent("reset-canvas-view")
-    window.dispatchEvent(resetEvent)
-  }
+  const additionalTool: AdditionalTool[] = [
+    {
+      id: "crosshair",
+      name: "Crosshair",
+      icon: Crosshair,
+      shortcut: "C",
+      action: () => setShowCrosshairs(!showCrosshairs),
+    },
+    {
+      id: "coordinates",
+      name: "Coordinates",
+      icon: MousePointer,
+      shortcut: "Alt+Shift+C",
+      action: () => setShowCoordinates(!showCoordinates),
+    },
+  ]
 
   return (
     <div
@@ -140,6 +165,7 @@ export function Toolbar({
       />
 
       <div className="flex items-center space-x-1">
+        {/* Zoom and Reset Buttons */}
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -147,12 +173,32 @@ export function Toolbar({
                 variant="ghost"
                 size="sm"
                 className="h-8 w-8"
-                onClick={handleResetView}
+                onClick={() => {
+                  const zoomInEvent = new CustomEvent("zoom-in")
+                  window.dispatchEvent(zoomInEvent)
+                }}
               >
-                <RotateCcw className="h-4 w-4" />
+                <Plus className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom">Reset View (0)</TooltipContent>
+            <TooltipContent side="bottom">Zoom In</TooltipContent>
+          </Tooltip>
+          <p className="text-sm text-gray-500">{(zoom * 100).toFixed(0)}%</p>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8"
+                onClick={() => {
+                  const zoomOutEvent = new CustomEvent("zoom-out")
+                  window.dispatchEvent(zoomOutEvent)
+                }}
+              >
+                <Minus className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Zoom Out</TooltipContent>
           </Tooltip>
         </TooltipProvider>
 
@@ -162,64 +208,63 @@ export function Toolbar({
               <Button
                 variant="ghost"
                 size="sm"
-                className={cn(
-                  "h-8 w-8",
-                  showRulers &&
-                    (darkMode
-                      ? "bg-blue-900 text-blue-300"
-                      : "bg-blue-50 text-blue-500")
-                )}
-                onClick={() => setShowRulers(!showRulers)}
+                className="h-8 w-8"
+                onClick={() => {
+                  const resetZoomEvent = new CustomEvent("reset-zoom")
+                  window.dispatchEvent(resetZoomEvent)
+                }}
               >
-                <Ruler className="h-4 w-4" />
+                <RefreshCcw className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom">Toggle Rulers (R)</TooltipContent>
+            <TooltipContent side="bottom">Reset Zoom</TooltipContent>
           </Tooltip>
         </TooltipProvider>
 
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className={cn(
-                  "h-8 w-8",
-                  showCrosshairs &&
-                    (darkMode
-                      ? "bg-blue-900 text-blue-300"
-                      : "bg-blue-50 text-blue-500")
-                )}
-                onClick={() => setShowCrosshairs(!showCrosshairs)}
-              >
-                <Crosshair className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">Toggle Crosshairs (C)</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <Separator
+          orientation="vertical"
+          className={cn("mx-2 h-6", darkMode ? "bg-gray-700" : "")}
+        />
 
+        {/* Additional Tools */}
         <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className={cn(
-                  "h-8 w-8",
-                  showCoordinates &&
-                    (darkMode
-                      ? "bg-blue-900 text-blue-300"
-                      : "bg-blue-50 text-blue-500")
-                )}
-                onClick={() => setShowCoordinates(!showCoordinates)}
-              >
-                <MousePointer className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">Toggle Coordinates</TooltipContent>
-          </Tooltip>
+          {additionalTool.map((tool) => (
+            <Tooltip key={tool.id}>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    "h-8 w-8",
+                    (tool.id === "crosshair" && showCrosshairs) ||
+                      (tool.id === "coordinates" && showCoordinates)
+                      ? darkMode
+                        ? "bg-blue-900 text-blue-300"
+                        : "bg-blue-50 text-blue-500"
+                      : ""
+                  )}
+                  onClick={tool.action}
+                >
+                  <tool.icon className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <div className="flex items-center">
+                  <span>{tool.name}</span>
+                  <kbd
+                    className={cn(
+                      "ml-2 rounded border px-1.5 text-xs",
+                      darkMode
+                        ? "border-gray-700 bg-gray-800"
+                        : "border-gray-200 bg-gray-100"
+                    )}
+                  >
+                    {tool.shortcut}
+                  </kbd>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          ))}
         </TooltipProvider>
 
         <Separator
