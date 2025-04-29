@@ -1,4 +1,3 @@
-   
 <h1 align="center">Vision AI Label Studio</h1>
 <p align="center">
   <img src="/public/logo.png" alt="Logo" width="200">
@@ -54,6 +53,7 @@ pnpm dev
 Then open [http://localhost:3000](http://localhost:3000) 🚀
 
 ---
+
 ## 📦 Export Formats
 
 - **COCO JSON**: Object detection format used in MS COCO dataset.
@@ -106,4 +106,3 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 - [Framer Motion](https://www.framer.com/motion/)
 - [Dexie.js](https://dexie.org/)
 - Inspiration: Roboflow, Label Studio, CVAT
-

@@ -1,26 +1,30 @@
-"use client"
+"use client";
 
-import { motion, AnimatePresence } from "framer-motion"
-import { Trash2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { useLabelStore } from "@/lib/store"
-import { cn } from "@/lib/utils"
-import type { Label } from "@/lib/types"
+import { motion, AnimatePresence } from "framer-motion";
+import { Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useLabelStore } from "@/lib/store";
+import { cn } from "@/lib/utils";
+import type { Label } from "@/lib/types";
 
 interface LabelListProps {
-  labels: Label[]
+  labels: Label[];
 }
 
 export function LabelList({ labels }: LabelListProps) {
-  const { removeLabel } = useLabelStore()
+  const { removeLabel } = useLabelStore();
 
   if (labels.length === 0) {
     return (
       <div className="rounded-md border border-dashed border-gray-300 dark:border-gray-700 p-4 text-center">
-        <p className="text-sm text-gray-500 dark:text-gray-400">No labels created yet</p>
-        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Use the drawing tools to create labels</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          No labels created yet
+        </p>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+          Use the drawing tools to create labels
+        </p>
       </div>
-    )
+    );
   }
 
   return (
@@ -36,8 +40,15 @@ export function LabelList({ labels }: LabelListProps) {
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <div className={cn("h-3 w-3 rounded-full", `bg-${label.color || "blue-500"}`)} />
-                <span className="font-medium dark:text-gray-100">{label.name}</span>
+                <div
+                  className={cn(
+                    "h-3 w-3 rounded-full",
+                    `bg-${label.color || "blue-500"}`
+                  )}
+                />
+                <span className="font-medium dark:text-gray-100">
+                  {label.name}
+                </span>
               </div>
               <Button
                 variant="ghost"
@@ -57,8 +68,10 @@ export function LabelList({ labels }: LabelListProps) {
               <div className="mt-1 truncate">
                 {label.type === "box" ? (
                   <span>
-                    {Math.round(label.coordinates[0].x)},{Math.round(label.coordinates[0].y)} to{" "}
-                    {Math.round(label.coordinates[1].x)},{Math.round(label.coordinates[1].y)}
+                    {Math.round(label.coordinates[0].x)},
+                    {Math.round(label.coordinates[0].y)} to{" "}
+                    {Math.round(label.coordinates[1].x)},
+                    {Math.round(label.coordinates[1].y)}
                   </span>
                 ) : (
                   <span>{label.coordinates.length} vertices</span>
@@ -69,5 +82,5 @@ export function LabelList({ labels }: LabelListProps) {
         ))}
       </AnimatePresence>
     </div>
-  )
+  );
 }

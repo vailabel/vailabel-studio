@@ -1,28 +1,28 @@
-import { create } from "zustand"
-import { persist } from "zustand/middleware"
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 interface SettingsState {
   // Tool selection
-  selectedTool: string
-  setSelectedTool: (tool: string) => void
+  selectedTool: string;
+  setSelectedTool: (tool: string) => void;
 
   // Display options
-  showRulers: boolean
-  setShowRulers: (show: boolean) => void
-  showCrosshairs: boolean
-  setShowCrosshairs: (show: boolean) => void
-  showCoordinates: boolean
-  setShowCoordinates: (show: boolean) => void
+  showRulers: boolean;
+  setShowRulers: (show: boolean) => void;
+  showCrosshairs: boolean;
+  setShowCrosshairs: (show: boolean) => void;
+  showCoordinates: boolean;
+  setShowCoordinates: (show: boolean) => void;
 
   // Theme
-  darkMode: boolean
-  setDarkMode: (dark: boolean) => void
+  darkMode: boolean;
+  setDarkMode: (dark: boolean) => void;
 
   // Image adjustments
-  brightness: number
-  setBrightness: (value: number) => void
-  contrast: number
-  setContrast: (value: number) => void
+  brightness: number;
+  setBrightness: (value: number) => void;
+  contrast: number;
+  setContrast: (value: number) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -52,6 +52,6 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: "image-labeler-settings", // unique name for localStorage
-    },
-  ),
-)
+    }
+  )
+);

@@ -1,4 +1,4 @@
-import type { Config } from "tailwindcss"
+import type { Config } from "tailwindcss";
 
 const config = {
   darkMode: ["class"],
@@ -136,6 +136,6 @@ const config = {
     "text-orange-500",
     "text-teal-500",
   ],
-} satisfies Config
+} satisfies Config;
 
-export default config
+export default config;

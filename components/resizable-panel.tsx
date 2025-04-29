@@ -37,10 +37,7 @@ export function ResizablePanel({
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     setIsResizing(true);
-    startPosRef.current =
-      direction === "horizontal"
-        ? e.clientX
-        : e.clientY;
+    startPosRef.current = direction === "horizontal" ? e.clientX : e.clientY;
     startSizeRef.current = size;
   };
 
@@ -93,10 +90,14 @@ export function ResizablePanel({
       <div
         className={cn(
           "absolute z-10",
-          controlPosition === "left" && "cursor-col-resize left-0 top-0 bottom-0 w-1",
-          controlPosition === "right" && "cursor-col-resize right-0 top-0 bottom-0 w-1",
-          controlPosition === "top" && "cursor-row-resize top-0 left-0 right-0 h-1",
-          controlPosition === "bottom" && "cursor-row-resize bottom-0 left-0 right-0 h-1",
+          controlPosition === "left" &&
+            "cursor-col-resize left-0 top-0 bottom-0 w-1",
+          controlPosition === "right" &&
+            "cursor-col-resize right-0 top-0 bottom-0 w-1",
+          controlPosition === "top" &&
+            "cursor-row-resize top-0 left-0 right-0 h-1",
+          controlPosition === "bottom" &&
+            "cursor-row-resize bottom-0 left-0 right-0 h-1",
           isResizing && "bg-blue-500",
           handleClassName || "hover:bg-blue-500/50"
         )}
