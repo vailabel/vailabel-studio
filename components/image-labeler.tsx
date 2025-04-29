@@ -116,15 +116,6 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
     loadLabels()
   }, [project.images, currentImageIndex, setLabels, toast])
 
-  // Apply dark mode class to document
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add("dark")
-    } else {
-      document.documentElement.classList.remove("dark")
-    }
-  }, [darkMode])
-
   const handleSaveProject = async () => {
     setIsSaving(true)
 
@@ -406,6 +397,14 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
                 />
               )}
             </AnimatePresence>
+            <AnimatePresence>
+              {showLabelEditor && selectedLabel && (
+                <LabelEditor
+                  label={selectedLabel}
+                  onClose={handleLabelEditorClose}
+                />
+              )}
+            </AnimatePresence>
           </div>
 
           <div className="border-t p-4 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
@@ -425,14 +424,7 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
                     </TooltipTrigger>
                     <TooltipContent>
                       Previous image
-                      <kbd
-                        className={cn(
-                          "ml-2 rounded border px-1.5 text-xs",
-                          darkMode
-                            ? "border-gray-700 bg-gray-800"
-                            : "border-gray-200 bg-gray-100"
-                        )}
-                      >
+                      <kbd className="ml-2 rounded border px-1.5 text-xs dark:border-gray-700 dark:bg-gray-800 border-gray-200 bg-gray-100">
                         Left Arrow
                       </kbd>
                     </TooltipContent>
@@ -452,14 +444,7 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
                     </TooltipTrigger>
                     <TooltipContent>
                       Next image
-                      <kbd
-                        className={cn(
-                          "ml-2 rounded border px-1.5 text-xs",
-                          darkMode
-                            ? "border-gray-700 bg-gray-800"
-                            : "border-gray-200 bg-gray-100"
-                        )}
-                      >
+                      <kbd className="ml-2 rounded border px-1.5 text-xs dark:border-gray-700 dark:bg-gray-800 border-gray-200 bg-gray-100">
                         Right Arrow
                       </kbd>
                     </TooltipContent>
@@ -519,12 +504,6 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
       <AnimatePresence>
         {showAISettings && (
           <AIModelModal onClose={() => setShowAISettings(false)} />
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {showLabelEditor && selectedLabel && (
-          <LabelEditor label={selectedLabel} onClose={handleLabelEditorClose} />
         )}
       </AnimatePresence>
     </div>

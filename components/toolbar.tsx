@@ -98,12 +98,7 @@ export function Toolbar({
   ]
 
   return (
-    <div
-      className={cn(
-        "flex items-center justify-between border-b p-2",
-        darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
-      )}
-    >
+    <div className="flex items-center justify-between border-b p-2 dark:bg-gray-800 dark:border-gray-700 bg-white border-gray-200">
       <div className="flex items-center space-x-1">
         <TooltipProvider>
           {tools.map((tool) => (
@@ -159,10 +154,7 @@ export function Toolbar({
         </TooltipProvider>
       </div>
 
-      <Separator
-        orientation="vertical"
-        className={cn("mx-2 h-6", darkMode ? "bg-gray-700" : "")}
-      />
+      <Separator orientation="vertical" className="mx-2 h-6 dark:bg-gray-700" />
 
       <div className="flex items-center space-x-1">
         {/* Zoom and Reset Buttons */}
@@ -223,7 +215,7 @@ export function Toolbar({
 
         <Separator
           orientation="vertical"
-          className={cn("mx-2 h-6", darkMode ? "bg-gray-700" : "")}
+          className="mx-2 h-6 dark:bg-gray-700"
         />
 
         {/* Additional Tools */}
@@ -269,7 +261,7 @@ export function Toolbar({
 
         <Separator
           orientation="vertical"
-          className={cn("mx-2 h-6", darkMode ? "bg-gray-700" : "")}
+          className="mx-2 h-6 dark:bg-gray-700"
         />
 
         {/* AI Detection Button */}
