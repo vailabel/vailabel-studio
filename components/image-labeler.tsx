@@ -38,6 +38,7 @@ import { useToast } from "@/hooks/use-toast"
 import { useLabelStore } from "@/lib/store"
 import { useSettingsStore } from "@/lib/settings-store"
 import type { Project, Label } from "@/lib/types"
+import { cn } from "@/lib/utils"
 
 interface ImageLabelerProps {
   project: Project
@@ -246,9 +247,9 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
       if (showSettings || showLabelEditor || showExport || showAISettings)
         return
 
-      if (e.key === "n" || e.key === "N") {
+      if (e.key === "ArrowRight" || e.code === "ArrowRight") {
         handleNextImage()
-      } else if (e.key === "p" || e.key === "P") {
+      } else if (e.key === "ArrowLeft" || e.code === "ArrowLeft") {
         handlePrevImage()
       }
     }
@@ -410,24 +411,60 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
           <div className="border-t p-4 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handlePrevImage}
-                  disabled={currentImageIndex === 0}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleNextImage}
-                  disabled={currentImageIndex === project.images.length - 1}
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handlePrevImage}
+                        disabled={currentImageIndex === 0}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Previous image
+                      <kbd
+                        className={cn(
+                          "ml-2 rounded border px-1.5 text-xs",
+                          darkMode
+                            ? "border-gray-700 bg-gray-800"
+                            : "border-gray-200 bg-gray-100"
+                        )}
+                      >
+                        Left Arrow
+                      </kbd>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleNextImage}
+                        disabled={
+                          currentImageIndex === project.images.length - 1
+                        }
+                      >
+                        <ChevronRight className="h-4 w-4 ml-1" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Next image
+                      <kbd
+                        className={cn(
+                          "ml-2 rounded border px-1.5 text-xs",
+                          darkMode
+                            ? "border-gray-700 bg-gray-800"
+                            : "border-gray-200 bg-gray-100"
+                        )}
+                      >
+                        Right Arrow
+                      </kbd>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
 
               <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
