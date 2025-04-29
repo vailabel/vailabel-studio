@@ -22,7 +22,6 @@ interface LabelListPanelProps {
 export function LabelListPanel({ onLabelSelect }: LabelListPanelProps) {
   const [labelsOpen, setLabelsOpen] = useState(true)
   const { labels } = useLabelStore()
-  const { darkMode } = useSettingsStore()
 
   // Group labels by category
   const labelsByCategory: Record<string, Label[]> = {}
@@ -38,24 +37,19 @@ export function LabelListPanel({ onLabelSelect }: LabelListPanelProps) {
     <div
       className={cn(
         "h-full border-l",
-        darkMode
-          ? "bg-gray-800 border-gray-700 text-gray-100"
-          : "bg-white border-gray-200"
+        "dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100",
+        "bg-white border-gray-200"
       )}
     >
       <div
         className={cn(
           "p-4 border-b",
-          darkMode ? "border-gray-700" : "border-gray-200"
+          "dark:border-gray-700",
+          "border-gray-200"
         )}
       >
         <h2 className="text-lg font-semibold">Labels</h2>
-        <p
-          className={cn(
-            "text-sm",
-            darkMode ? "text-gray-400" : "text-gray-500"
-          )}
-        >
+        <p className={cn("text-sm", "dark:text-gray-400", "text-gray-500")}>
           {labels.length} total
         </p>
       </div>
@@ -86,7 +80,8 @@ export function LabelListPanel({ onLabelSelect }: LabelListPanelProps) {
                     <h3
                       className={cn(
                         "mb-2 text-xs font-medium",
-                        darkMode ? "text-gray-400" : "text-gray-500"
+                        "dark:text-gray-400",
+                        "text-gray-500"
                       )}
                     >
                       {category}
@@ -97,22 +92,18 @@ export function LabelListPanel({ onLabelSelect }: LabelListPanelProps) {
                           key={label.id}
                           initial={{ opacity: 0, y: 5 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className={cn(
-                            "rounded-md border p-2 cursor-pointer",
-                            darkMode
-                              ? "border-gray-700 hover:bg-gray-700"
-                              : "border-gray-200 hover:bg-gray-50"
-                          )}
+                          className="rounded-md border p-2 cursor-pointer dark:border-gray-700 dark:hover:bg-gray-700 border-gray-200 hover:bg-gray-50"
                           onClick={() => onLabelSelect(label)}
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center">
                               <div
+                                style={{
+                                  backgroundColor: label.color,
+                                }}
                                 className={cn(
                                   "mr-2 h-3 w-3 rounded-full",
-                                  label.isAIGenerated
-                                    ? "bg-green-500"
-                                    : `bg-${label.color || "blue-500"}`
+                                  label.isAIGenerated ? "bg-green-500" : ``
                                 )}
                               />
                               <span className="text-sm font-medium">
@@ -122,7 +113,8 @@ export function LabelListPanel({ onLabelSelect }: LabelListPanelProps) {
                             <span
                               className={cn(
                                 "text-xs",
-                                darkMode ? "text-gray-400" : "text-gray-500"
+                                "dark:text-gray-400",
+                                "text-gray-500"
                               )}
                             >
                               {label.type}
@@ -131,7 +123,8 @@ export function LabelListPanel({ onLabelSelect }: LabelListPanelProps) {
                           <p
                             className={cn(
                               "mt-1 text-xs truncate",
-                              darkMode ? "text-gray-400" : "text-gray-500"
+                              "dark:text-gray-400",
+                              "text-gray-500"
                             )}
                           >
                             {label.isAIGenerated && "🤖 "}
@@ -148,13 +141,15 @@ export function LabelListPanel({ onLabelSelect }: LabelListPanelProps) {
                 <div
                   className={cn(
                     "mt-2 rounded-md border border-dashed p-4 text-center",
-                    darkMode ? "border-gray-700" : "border-gray-300"
+                    "dark:border-gray-700",
+                    "border-gray-300"
                   )}
                 >
                   <p
                     className={cn(
                       "text-sm",
-                      darkMode ? "text-gray-400" : "text-gray-500"
+                      "dark:text-gray-400",
+                      "text-gray-500"
                     )}
                   >
                     No labels created yet
@@ -162,7 +157,8 @@ export function LabelListPanel({ onLabelSelect }: LabelListPanelProps) {
                   <p
                     className={cn(
                       "text-xs",
-                      darkMode ? "text-gray-500" : "text-gray-400"
+                      "dark:text-gray-500",
+                      "text-gray-400"
                     )}
                   >
                     Use the drawing tools to create labels

@@ -22,7 +22,6 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   const [isClearing, setIsClearing] = useState(false)
 
   const {
-    darkMode,
     setDarkMode,
     showRulers,
     setShowRulers,
