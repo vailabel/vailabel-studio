@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -25,7 +25,7 @@ interface LabelEditorProps {
 
 export function LabelEditor({ label, onClose }: LabelEditorProps) {
   const { toast } = useToast()
-  const { updateLabel, removeLabel } = useLabelStore()
+  const { updateLabel, removeLabel, labels, getLabels} = useLabelStore()
 
   const [name, setName] = useState(label.name)
   const [category, setCategory] = useState(label.category || "")
@@ -105,6 +105,11 @@ export function LabelEditor({ label, onClose }: LabelEditorProps) {
       }
     }
   }
+  useEffect(() => {
+    getLabels()
+  }, [])
+
+  console.log("LabelEditor rendered with label:", labels)
 
   return (
     <motion.div
