@@ -67,7 +67,6 @@ export function Toolbar({
     setShowCrosshairs,
     showCoordinates,
     setShowCoordinates,
-    darkMode,
   } = useSettingsStore()
 
   const tools: Tool[] = [
@@ -110,9 +109,7 @@ export function Toolbar({
                   className={cn(
                     "relative h-8 w-8",
                     selectedTool === tool.id &&
-                      (darkMode
-                        ? "bg-blue-900 text-blue-300"
-                        : "bg-blue-50 text-blue-500")
+                      "bg-blue-50 text-blue-500 dark:bg-blue-900 dark:text-blue-300"
                   )}
                   onClick={() => setSelectedTool(tool.id)}
                 >
@@ -122,7 +119,7 @@ export function Toolbar({
                       layoutId="active-tool"
                       className={cn(
                         "absolute inset-0 rounded-md border-2",
-                        darkMode ? "border-blue-400" : "border-blue-500"
+                        "border-blue-500 dark:border-blue-400"
                       )}
                       initial={false}
                       transition={{
@@ -140,9 +137,7 @@ export function Toolbar({
                   <kbd
                     className={cn(
                       "ml-2 rounded border px-1.5 text-xs",
-                      darkMode
-                        ? "border-gray-700 bg-gray-800"
-                        : "border-gray-200 bg-gray-100"
+                      "border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-800"
                     )}
                   >
                     {tool.shortcut}
@@ -230,9 +225,7 @@ export function Toolbar({
                     "h-8 w-8",
                     (tool.id === "crosshair" && showCrosshairs) ||
                       (tool.id === "coordinates" && showCoordinates)
-                      ? darkMode
-                        ? "bg-blue-900 text-blue-300"
-                        : "bg-blue-50 text-blue-500"
+                      ? "bg-blue-50 text-blue-500 dark:bg-blue-900 dark:text-blue-300"
                       : ""
                   )}
                   onClick={tool.action}
@@ -246,9 +239,7 @@ export function Toolbar({
                   <kbd
                     className={cn(
                       "ml-2 rounded border px-1.5 text-xs",
-                      darkMode
-                        ? "border-gray-700 bg-gray-800"
-                        : "border-gray-200 bg-gray-100"
+                      "border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-800"
                     )}
                   >
                     {tool.shortcut}

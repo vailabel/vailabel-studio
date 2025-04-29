@@ -34,17 +34,9 @@ export function ImageList({
         "h-full border-r bg-white border-gray-200 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
       )}
     >
-      <div
-        className={cn(
-          "p-4 border-b border-gray-200 dark:border-gray-700"
-        )}
-      >
+      <div className={cn("p-4 border-b border-gray-200 dark:border-gray-700")}>
         <h2 className="text-lg font-semibold">Images</h2>
-        <p
-          className={cn(
-            "text-sm text-gray-500 dark:text-gray-400"
-          )}
-        >
+        <p className={cn("text-sm text-gray-500 dark:text-gray-400")}>
           {project.images.length} total
         </p>
       </div>
