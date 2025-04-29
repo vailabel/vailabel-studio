@@ -561,28 +561,30 @@ export function Canvas({ image, labels }: CanvasProps) {
     }
   }, [])
 
+  const [canvasWidthHeight, setCanvasWidthHeight] = useState({ width: 0, height: 0 })
+
+  useEffect(() => {
+    setCanvasWidthHeight({ width: canvasRef.current?.offsetWidth || 0, height: canvasRef.current?.offsetHeight || 0 })
+  }, [canvasRef.current])
+
   // Draw rulers
   const drawRulers = () => {
-    if (!showRulers || !cursorPosition) return null
+    if (!showRulers || !cursorPosition) return null;
 
-    const rulerSize = 20
-    const tickInterval = 50 // pixels
-    const imageWidth = image.width * zoom
-    const imageHeight = image.height * zoom
+    const tickInterval = 50; // pixels
 
     return (
       <>
         {/* Horizontal ruler */}
         <div
-          className="absolute top-0 left-0 h-5 border-b bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 z-10"
-          style={{ width: `${imageWidth + rulerSize}px` }}
+          className="absolute top-0 left-0 h-5 w-full border-b bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 z-10"
         >
-          {Array.from({ length: Math.ceil(imageWidth / tickInterval) }).map(
+          {Array.from({ length: Math.ceil(canvasWidthHeight.width / tickInterval) }).map(
             (_, i) => (
               <div
                 key={`h-${i}`}
-                className="absolute bottom-0 border-l h-2 border-gray-400 dark:border-gray-600"
-                style={{ left: `${i * tickInterval + rulerSize}px` }}
+                className="absolute bottom-0 border-l h-1 border-gray-400 dark:border-gray-600"
+                style={{ left: `${i * tickInterval}px` }}
               >
                 <div className="absolute -left-3 -top-4 text-[10px] text-gray-600 dark:text-gray-400">
                   {i * tickInterval}
@@ -594,7 +596,7 @@ export function Canvas({ image, labels }: CanvasProps) {
             <div
               className="absolute bottom-0 border-l border-red-500 h-full"
               style={{
-                left: `${cursorPosition.x * zoom + panOffset.x + rulerSize}px`,
+                left: `${cursorPosition.x * zoom + panOffset.x}px`,
               }}
             />
           )}
@@ -602,17 +604,16 @@ export function Canvas({ image, labels }: CanvasProps) {
 
         {/* Vertical ruler */}
         <div
-          className="absolute top-0 left-0 w-5 border-r bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 z-10"
-          style={{ height: `${imageHeight + rulerSize}px` }}
+          className="absolute top-0 left-0 w-5 h-full border-r bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 z-10"
         >
-          {Array.from({ length: Math.ceil(imageHeight / tickInterval) }).map(
+          {Array.from({ length: Math.ceil(canvasWidthHeight.height || 0 / tickInterval) }).map(
             (_, i) => (
               <div
                 key={`v-${i}`}
-                className="absolute right-0 border-t w-2 border-gray-400 dark:border-gray-600"
-                style={{ top: `${i * tickInterval + rulerSize}px` }}
+                className="absolute right-0 border-t w-1 border-gray-400 dark:border-gray-600"
+                style={{ top: `${i * tickInterval}px` }}
               >
-                <div className="absolute -top-3 -left-4 text-[10px] rotate-90 origin-top-left text-gray-600 dark:text-gray-400">
+                <div className="absolute -top-2 -left-0 text-[10px] rotate-90 origin-top-left text-gray-600 dark:text-gray-400">
                   {i * tickInterval}
                 </div>
               </div>
@@ -622,7 +623,7 @@ export function Canvas({ image, labels }: CanvasProps) {
             <div
               className="absolute right-0 border-t border-red-500 w-full"
               style={{
-                top: `${cursorPosition.y * zoom + panOffset.y + rulerSize}px`,
+                top: `${cursorPosition.y * zoom + panOffset.y}px`,
               }}
             />
           )}
@@ -631,8 +632,8 @@ export function Canvas({ image, labels }: CanvasProps) {
         {/* Ruler corner */}
         <div className="absolute top-0 left-0 w-5 h-5 border-r border-b bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 z-20" />
       </>
-    )
-  }
+    );
+  };
 
   // Draw crosshairs
   const drawCrosshairs = () => {
