@@ -35,7 +35,7 @@ export function Sidebar({ project, currentImageIndex, onImageSelect, onLabelSele
   })
 
   return (
-    <div className="w-64 border-r border-gray-200 bg-white">
+    <div className="w-64 border-l border-gray-200 bg-white">
       <div className="p-4">
         <h2 className="text-lg font-semibold">{project.name}</h2>
         <p className="text-sm text-gray-500">{project.images.length} images</p>

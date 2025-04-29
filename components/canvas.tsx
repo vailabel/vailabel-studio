@@ -35,7 +35,7 @@ export function Canvas({ image, labels }: CanvasProps) {
 
   const { addLabel, updateLabel, removeLabel, setLabelPrompt } = useLabelStore()
 
-  const { showRulers, showCrosshairs, showCoordinates, selectedTool } = useSettingsStore()
+  const { showRulers, showCrosshairs, showCoordinates, selectedTool, darkMode } = useSettingsStore()
 
   // Handle keyboard shortcuts
   useEffect(() => {
@@ -123,7 +123,7 @@ export function Canvas({ image, labels }: CanvasProps) {
       }
 
       // Start panning if not on a label and middle mouse button or space+left click
-      if (e.button === 1 || (e.button === 0 && e.getModifierState("Alt"))) {
+      if (e.button === 1 || (e.button === 0 && e.getModifierState("Space"))) {
         setIsPanning(true)
         setLastPanPoint({ x: e.clientX, y: e.clientY })
         return
@@ -336,12 +336,13 @@ export function Canvas({ image, labels }: CanvasProps) {
   }
 
   // Handle label input submission
-  const handleLabelSubmit = (name: string, category: string) => {
+  const handleLabelSubmit = (name: string, category: string, color: string) => {
     if (tempLabel) {
       const newLabel: Label = {
-        id: `label-${Date.now()}`,
+        id: `label-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
         name,
         category,
+        color,
         type: tempLabel.type as "box" | "polygon",
         coordinates: tempLabel.coordinates || [],
         imageId: image.id,
@@ -349,6 +350,7 @@ export function Canvas({ image, labels }: CanvasProps) {
         updatedAt: new Date(),
       }
 
+      // Add label to store (which now also saves to database)
       addLabel(newLabel)
       setTempLabel(null)
       setShowLabelInput(false)
@@ -504,16 +506,18 @@ export function Canvas({ image, labels }: CanvasProps) {
       <>
         {/* Horizontal ruler */}
         <div
-          className="absolute top-0 left-0 h-5 bg-white border-b border-gray-300 z-10"
+          className="absolute top-0 left-0 h-5 border-b bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 z-10"
           style={{ width: `${imageWidth + rulerSize}px` }}
         >
           {Array.from({ length: Math.ceil(imageWidth / tickInterval) }).map((_, i) => (
             <div
               key={`h-${i}`}
-              className="absolute bottom-0 border-l border-gray-400 h-2"
+              className="absolute bottom-0 border-l h-2 border-gray-400 dark:border-gray-600"
               style={{ left: `${i * tickInterval + rulerSize}px` }}
             >
-              <div className="absolute -left-3 -top-4 text-[10px] text-gray-600">{i * tickInterval}</div>
+              <div className="absolute -left-3 -top-4 text-[10px] text-gray-600 dark:text-gray-400">
+                {i * tickInterval}
+              </div>
             </div>
           ))}
           {cursorPosition && (
@@ -526,16 +530,16 @@ export function Canvas({ image, labels }: CanvasProps) {
 
         {/* Vertical ruler */}
         <div
-          className="absolute top-0 left-0 w-5 bg-white border-r border-gray-300 z-10"
+          className="absolute top-0 left-0 w-5 border-r bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 z-10"
           style={{ height: `${imageHeight + rulerSize}px` }}
         >
           {Array.from({ length: Math.ceil(imageHeight / tickInterval) }).map((_, i) => (
             <div
               key={`v-${i}`}
-              className="absolute right-0 border-t border-gray-400 w-2"
+              className="absolute right-0 border-t w-2 border-gray-400 dark:border-gray-600"
               style={{ top: `${i * tickInterval + rulerSize}px` }}
             >
-              <div className="absolute -top-3 -left-4 text-[10px] text-gray-600 rotate-90 origin-top-left">
+              <div className="absolute -top-3 -left-4 text-[10px] rotate-90 origin-top-left text-gray-600 dark:text-gray-400">
                 {i * tickInterval}
               </div>
             </div>
@@ -549,7 +553,7 @@ export function Canvas({ image, labels }: CanvasProps) {
         </div>
 
         {/* Ruler corner */}
-        <div className="absolute top-0 left-0 w-5 h-5 bg-white border-r border-b border-gray-300 z-20" />
+        <div className="absolute top-0 left-0 w-5 h-5 border-r border-b bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 z-20" />
       </>
     )
   }
@@ -609,13 +613,18 @@ export function Canvas({ image, labels }: CanvasProps) {
     }
   }, [showLabelInput, tempLabel, setLabelPrompt])
 
+  // Get color class for a label
+  const getLabelColorClass = (label: Label) => {
+    return label.color || "blue-500"
+  }
+
   return (
-    <div className="relative h-full w-full overflow-hidden bg-gray-100" onWheel={handleWheel}>
+    <div className="relative h-full w-full overflow-hidden bg-gray-100 dark:bg-gray-900" onWheel={handleWheel}>
       {!image ? (
         <div className="flex h-full items-center justify-center">
           <div className="text-center">
-            <p className="text-lg font-medium text-gray-500">No image loaded</p>
-            <p className="text-sm text-gray-400">Select an image to start labeling</p>
+            <p className="text-lg font-medium text-gray-500 dark:text-gray-300">No image loaded</p>
+            <p className="text-sm text-gray-400 dark:text-gray-400">Select an image to start labeling</p>
           </div>
         </div>
       ) : (
@@ -663,8 +672,11 @@ export function Canvas({ image, labels }: CanvasProps) {
                   <motion.div
                     className={cn(
                       "absolute border-2 bg-opacity-20",
-                      selectedLabelId === label.id ? "border-yellow-500" : "border-blue-500",
-                      selectedLabelId === label.id ? "bg-yellow-500" : "bg-blue-500",
+                      selectedLabelId === label.id
+                        ? "border-yellow-500 bg-yellow-500"
+                        : label.isAIGenerated
+                          ? "border-green-500 bg-green-500"
+                          : `border-${label.color || "blue-500"} bg-${label.color || "blue-500"}`,
                     )}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -678,10 +690,15 @@ export function Canvas({ image, labels }: CanvasProps) {
                     <div
                       className={cn(
                         "absolute -top-6 left-0 px-2 py-0.5 text-xs text-white",
-                        selectedLabelId === label.id ? "bg-yellow-500" : "bg-blue-500",
+                        selectedLabelId === label.id
+                          ? "bg-yellow-500"
+                          : label.isAIGenerated
+                            ? "bg-green-500"
+                            : `bg-${label.color || "blue-500"}`,
                       )}
                     >
                       {label.name} {label.category && `(${label.category})`}
+                      {label.isAIGenerated && " 🤖"}
                     </div>
 
                     {/* Render resize handles when selected */}
@@ -710,13 +727,22 @@ export function Canvas({ image, labels }: CanvasProps) {
                         "fill-opacity-20 stroke-2",
                         selectedLabelId === label.id
                           ? "fill-yellow-500 stroke-yellow-500"
-                          : "fill-blue-500 stroke-blue-500",
+                          : label.isAIGenerated
+                            ? "fill-green-500 stroke-green-500"
+                            : `fill-${label.color || "blue-500"} stroke-${label.color || "blue-500"}`,
                       )}
                     />
                     <text
                       x={label.coordinates[0].x}
                       y={label.coordinates[0].y - 10}
-                      className={cn("text-xs", selectedLabelId === label.id ? "fill-yellow-500" : "fill-blue-500")}
+                      className={cn(
+                        "text-xs",
+                        selectedLabelId === label.id
+                          ? "fill-yellow-500"
+                          : label.isAIGenerated
+                            ? "fill-green-500"
+                            : `fill-${label.color || "blue-500"}`,
+                      )}
                     >
                       {label.name} {label.category && `(${label.category})`}
                     </text>

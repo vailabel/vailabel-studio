@@ -16,9 +16,9 @@ export function LabelList({ labels }: LabelListProps) {
 
   if (labels.length === 0) {
     return (
-      <div className="rounded-md border border-dashed border-gray-300 p-4 text-center">
-        <p className="text-sm text-gray-500">No labels created yet</p>
-        <p className="text-xs text-gray-400 mt-1">Use the drawing tools to create labels</p>
+      <div className="rounded-md border border-dashed border-gray-300 dark:border-gray-700 p-4 text-center">
+        <p className="text-sm text-gray-500 dark:text-gray-400">No labels created yet</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Use the drawing tools to create labels</p>
       </div>
     )
   }
@@ -32,12 +32,12 @@ export function LabelList({ labels }: LabelListProps) {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-            className="group rounded-md border border-gray-200 bg-white p-3 shadow-sm"
+            className="group rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3 shadow-sm"
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <div className={cn("h-3 w-3 rounded-full", `bg-blue-500`)} />
-                <span className="font-medium">{label.name}</span>
+                <div className={cn("h-3 w-3 rounded-full", `bg-${label.color || "blue-500"}`)} />
+                <span className="font-medium dark:text-gray-100">{label.name}</span>
               </div>
               <Button
                 variant="ghost"
@@ -49,7 +49,7 @@ export function LabelList({ labels }: LabelListProps) {
                 <span className="sr-only">Delete</span>
               </Button>
             </div>
-            <div className="mt-2 text-xs text-gray-500">
+            <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
               <div className="flex items-center justify-between">
                 <span>Type: {label.type}</span>
                 <span>Points: {label.coordinates.length}</span>
