@@ -21,7 +21,7 @@ export function Canvas({ image, labels }: CanvasProps) {
   const [currentPoint, setCurrentPoint] = useState<Point | null>(null)
   const [polygonPoints, setPolygonPoints] = useState<Point[]>([])
   const [panOffset, setPanOffset] = useState<Point>({ x: 0, y: 0 })
-  const [zoom, setZoom] = useState(1)
+  // const [zoom, setZoom] = useState(1)
   const [isPanning, setIsPanning] = useState(false)
   const [lastPanPoint, setLastPanPoint] = useState<Point | null>(null)
   const [selectedLabelId, setSelectedLabelId] = useState<string | null>(null)
@@ -41,12 +41,13 @@ export function Canvas({ image, labels }: CanvasProps) {
     showCoordinates,
     selectedTool,
     darkMode,
+    zoom,
+    setZoom,
   } = useSettingsStore()
 
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      console.log(e.key)
       // Cancel operations with Escape
       if (e.key === "Escape") {
         setPolygonPoints([])
@@ -68,9 +69,9 @@ export function Canvas({ image, labels }: CanvasProps) {
 
       // Zoom shortcuts
       if (e.key === "=" || e.key === "+") {
-        setZoom((prev) => Math.min(prev + 0.1, 5))
+        setZoom(Math.min(zoom + 0.1, 5))
       } else if (e.key === "-" || e.key === "_") {
-        setZoom((prev) => Math.max(prev - 0.1, 0.1))
+        setZoom(Math.max(zoom - 0.1, 0.1))
       } else if (e.key === "0") {
         setZoom(1)
         setPanOffset({ x: 0, y: 0 })
@@ -130,7 +131,7 @@ export function Canvas({ image, labels }: CanvasProps) {
       }
 
       // Start panning if not on a label and middle mouse button or space+left click
-      if (e.button === 1 || (e.button === 0 && e.altKey)) {
+      if (e.button === 0 && e.altKey) {
         setIsPanning(true)
         setLastPanPoint({ x: e.clientX, y: e.clientY })
         return
@@ -555,10 +556,9 @@ export function Canvas({ image, labels }: CanvasProps) {
       resetView()
     }
 
-    window.addEventListener("reset-canvas-view", handleResetCanvasView)
-
+    window.addEventListener("reset-zoom", handleResetCanvasView)
     return () => {
-      window.removeEventListener("reset-canvas-view", handleResetCanvasView)
+      window.removeEventListener("reset-zoom", handleResetCanvasView)
     }
   }, [])
 
@@ -732,7 +732,8 @@ export function Canvas({ image, labels }: CanvasProps) {
           onMouseUp={handleMouseUp}
           onDoubleClick={handleDoubleClick}
         >
-          {drawRulers()}
+          {/* Rulers Disabled for now due to performance issues  and overlapping */}
+          {/* {drawRulers()} */}
 
           <div
             className="absolute"

@@ -23,6 +23,8 @@ interface SettingsState {
   setBrightness: (value: number) => void
   contrast: number
   setContrast: (value: number) => void
+  zoom: number
+  setZoom: (value: number) => void
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -49,6 +51,8 @@ export const useSettingsStore = create<SettingsState>()(
       setBrightness: (value) => set({ brightness: value }),
       contrast: 100,
       setContrast: (value) => set({ contrast: value }),
+      zoom: 1,
+      setZoom: (value) => set({ zoom: value }),
     }),
     {
       name: "image-labeler-settings", // unique name for localStorage
