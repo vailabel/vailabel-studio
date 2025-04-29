@@ -6,6 +6,7 @@ import { ProjectDashboard } from "@/components/project-dashboard"
 import { LabelPrompt } from "@/components/label-prompt"
 import { db } from "@/lib/db"
 import { useToast } from "@/hooks/use-toast"
+import { useSettingsStore } from "@/lib/settings-store"
 import type { Project } from "@/lib/types"
 
 export default function ImageLabelingApp() {
@@ -13,6 +14,16 @@ export default function ImageLabelingApp() {
   const [activeProject, setActiveProject] = useState<Project | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [projects, setProjects] = useState<Project[]>([])
+  const { darkMode } = useSettingsStore()
+
+  // Apply dark mode class to document
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add("dark")
+    } else {
+      document.documentElement.classList.remove("dark")
+    }
+  }, [darkMode])
 
   // Load projects on initial render
   useEffect(() => {
@@ -82,7 +93,7 @@ export default function ImageLabelingApp() {
   }
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-hidden bg-gray-50">
+    <div className={`flex h-screen w-full flex-col overflow-hidden ${darkMode ? "dark bg-gray-900" : "bg-gray-50"}`}>
       {activeProject ? (
         <ImageLabeler project={activeProject} onClose={handleProjectClose} />
       ) : (

@@ -11,6 +11,7 @@ import { Slider } from "@/components/ui/slider"
 import { useSettingsStore } from "@/lib/settings-store"
 import { db } from "@/lib/db"
 import { useToast } from "@/hooks/use-toast"
+import { cn } from "@/lib/utils"
 
 interface SettingsModalProps {
   onClose: () => void
@@ -67,14 +68,14 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
 
   return (
     <motion.div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 dark:bg-black/70"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       onClick={onClose}
     >
       <motion.div
-        className="w-full max-w-lg rounded-lg bg-white p-6 shadow-xl"
+        className={cn("w-full max-w-lg rounded-lg p-6 shadow-xl", darkMode ? "bg-gray-800 text-gray-100" : "bg-white")}
         initial={{ scale: 0.9, y: 20 }}
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.9, y: 20 }}
@@ -101,7 +102,9 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                 <Label htmlFor="dark-mode" className="text-base">
                   Dark Mode
                 </Label>
-                <p className="text-sm text-gray-500">Use dark theme for the application</p>
+                <p className={cn("text-sm", darkMode ? "text-gray-400" : "text-gray-500")}>
+                  Use dark theme for the application
+                </p>
               </div>
               <Switch id="dark-mode" checked={darkMode} onCheckedChange={setDarkMode} />
             </div>
@@ -111,7 +114,9 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                 <Label htmlFor="keyboard-shortcuts" className="text-base">
                   Keyboard Shortcuts
                 </Label>
-                <p className="text-sm text-gray-500">Enable keyboard shortcuts for tools</p>
+                <p className={cn("text-sm", darkMode ? "text-gray-400" : "text-gray-500")}>
+                  Enable keyboard shortcuts for tools
+                </p>
               </div>
               <Switch id="keyboard-shortcuts" defaultChecked />
             </div>
@@ -123,7 +128,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                 <Label htmlFor="show-rulers" className="text-base">
                   Show Rulers
                 </Label>
-                <p className="text-sm text-gray-500">Show rulers on the canvas</p>
+                <p className={cn("text-sm", darkMode ? "text-gray-400" : "text-gray-500")}>Show rulers on the canvas</p>
               </div>
               <Switch id="show-rulers" checked={showRulers} onCheckedChange={setShowRulers} />
             </div>
@@ -133,7 +138,9 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                 <Label htmlFor="show-crosshairs" className="text-base">
                   Show Crosshairs
                 </Label>
-                <p className="text-sm text-gray-500">Show crosshairs when drawing</p>
+                <p className={cn("text-sm", darkMode ? "text-gray-400" : "text-gray-500")}>
+                  Show crosshairs when drawing
+                </p>
               </div>
               <Switch id="show-crosshairs" checked={showCrosshairs} onCheckedChange={setShowCrosshairs} />
             </div>
@@ -143,7 +150,9 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                 <Label htmlFor="show-coordinates" className="text-base">
                   Show Coordinates
                 </Label>
-                <p className="text-sm text-gray-500">Show cursor coordinates on canvas</p>
+                <p className={cn("text-sm", darkMode ? "text-gray-400" : "text-gray-500")}>
+                  Show cursor coordinates on canvas
+                </p>
               </div>
               <Switch id="show-coordinates" checked={showCoordinates} onCheckedChange={setShowCoordinates} />
             </div>
@@ -153,7 +162,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                 Brightness
               </Label>
               <div className="flex items-center gap-2">
-                <Sun className="h-4 w-4 text-gray-500" />
+                <Sun className={cn("h-4 w-4", darkMode ? "text-gray-400" : "text-gray-500")} />
                 <Slider
                   id="brightness"
                   min={50}
@@ -172,7 +181,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                 Contrast
               </Label>
               <div className="flex items-center gap-2">
-                <Moon className="h-4 w-4 text-gray-500" />
+                <Moon className={cn("h-4 w-4", darkMode ? "text-gray-400" : "text-gray-500")} />
                 <Slider
                   id="contrast"
                   min={50}
@@ -188,9 +197,9 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
           </TabsContent>
 
           <TabsContent value="data" className="space-y-4 pt-4">
-            <div className="rounded-md border border-gray-200 p-4">
+            <div className={cn("rounded-md border p-4", darkMode ? "border-gray-700" : "border-gray-200")}>
               <h4 className="font-medium">Clear All Data</h4>
-              <p className="mt-1 text-sm text-gray-500">
+              <p className={cn("mt-1 text-sm", darkMode ? "text-gray-400" : "text-gray-500")}>
                 This will delete all projects, images, and labels from your browser's local storage. This action cannot
                 be undone.
               </p>
@@ -200,9 +209,11 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
               </Button>
             </div>
 
-            <div className="rounded-md border border-gray-200 p-4">
+            <div className={cn("rounded-md border p-4", darkMode ? "border-gray-700" : "border-gray-200")}>
               <h4 className="font-medium">Export All Data</h4>
-              <p className="mt-1 text-sm text-gray-500">Export all your projects, images, and labels as a JSON file.</p>
+              <p className={cn("mt-1 text-sm", darkMode ? "text-gray-400" : "text-gray-500")}>
+                Export all your projects, images, and labels as a JSON file.
+              </p>
               <Button className="mt-4">Export Data</Button>
             </div>
           </TabsContent>

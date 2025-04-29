@@ -7,11 +7,13 @@ export interface Label {
   id: string
   name: string
   category?: string
-  type: "box" | "polygon"
+  type: "box" | "polygon" | "freeDraw"
   coordinates: Point[]
   imageId: string
   createdAt: Date
   updatedAt: Date
+  isAIGenerated?: boolean
+  color?: string
 }
 
 export interface ImageData {
@@ -30,4 +32,18 @@ export interface Project {
   images: ImageData[]
   createdAt: Date
   lastModified: Date
+}
+
+export interface ExportFormat {
+  id: string
+  name: string
+  description: string
+  extension: string
+}
+
+export interface AIModel {
+  id: string
+  name: string
+  description: string
+  isCustom: boolean
 }
