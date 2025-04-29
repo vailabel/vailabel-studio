@@ -13,6 +13,7 @@ interface LabelState {
   history: Label[][]
   historyIndex: number
   labelPrompt: LabelPrompt | null
+  getLabels: () => Promise<void>
   setLabels: (labels: Label[]) => void
   addLabel: (label: Label) => void
   updateLabel: (id: string, updatedLabel: Label) => void
@@ -41,6 +42,16 @@ export const useLabelStore = create<LabelState>((set, get) => ({
       canUndo: false,
       canRedo: false,
     })
+  },
+
+  getLabels: async () => {
+    // Fetch labels from the database
+    try {
+      const labels = await db.labels.toArray()
+      set({ labels })
+    } catch (error) {
+      console.error("Failed to fetch labels from database:", error)
+    }
   },
 
   addLabel: async (label) => {

@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo, useCallback } from "react"
 import { motion } from "framer-motion"
 import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -19,30 +18,41 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useLabelStore } from "@/lib/store"
 
 export function LabelPrompt() {
-  const { labelPrompt, setLabelPrompt } = useLabelStore()
+  const { labelPrompt, setLabelPrompt, labels, getLabels } = useLabelStore()
   const [labelName, setLabelName] = useState("")
   const [category, setCategory] = useState("uncategorized")
   const [labelColor, setLabelColor] = useState("blue-500")
 
-  const categories = [
-    "Person",
-    "Vehicle",
-    "Animal",
-    "Object",
-    "Building",
-    "Plant",
-    "Other",
-  ]
-  const colorOptions = [
-    { value: "blue-500", label: "Blue" },
-    { value: "green-500", label: "Green" },
-    { value: "red-500", label: "Red" },
-    { value: "yellow-500", label: "Yellow" },
-    { value: "purple-500", label: "Purple" },
-    { value: "pink-500", label: "Pink" },
-    { value: "orange-500", label: "Orange" },
-    { value: "teal-500", label: "Teal" },
-  ]
+  const categories = useMemo(
+    () => [
+      "Person",
+      "Vehicle",
+      "Animal",
+      "Object",
+      "Building",
+      "Plant",
+      "Other",
+    ],
+    []
+  )
+
+  const colorOptions = useMemo(
+    () => [
+      { value: "blue-500", label: "Blue" },
+      { value: "green-500", label: "Green" },
+      { value: "red-500", label: "Red" },
+      { value: "yellow-500", label: "Yellow" },
+      { value: "purple-500", label: "Purple" },
+      { value: "pink-500", label: "Pink" },
+      { value: "orange-500", label: "Orange" },
+      { value: "teal-500", label: "Teal" },
+    ],
+    []
+  )
+
+  useEffect(() => {
+    getLabels()
+  }, [getLabels])
 
   useEffect(() => {
     if (labelPrompt?.isOpen) {
@@ -52,20 +62,23 @@ export function LabelPrompt() {
     }
   }, [labelPrompt?.isOpen])
 
-  if (!labelPrompt?.isOpen) return null
+  const handleSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault()
+      if (labelName.trim()) {
+        labelPrompt?.onSubmit(labelName.trim(), category, labelColor)
+        setLabelPrompt(null)
+      }
+    },
+    [labelName, category, labelColor, labelPrompt, setLabelPrompt]
+  )
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (labelName.trim()) {
-      labelPrompt.onSubmit(labelName.trim(), category, labelColor)
-      setLabelPrompt(null)
-    }
-  }
-
-  const handleCancel = () => {
-    labelPrompt.onCancel()
+  const handleCancel = useCallback(() => {
+    labelPrompt?.onCancel()
     setLabelPrompt(null)
-  }
+  }, [labelPrompt, setLabelPrompt])
+
+  if (!labelPrompt?.isOpen) return null
 
   return (
     <motion.div
