@@ -72,16 +72,28 @@ export function LabelPopup({ onSave, onCancel }: LabelPopupProps) {
 
             <div className="space-y-2">
               <Label>Label Color</Label>
-              <RadioGroup value={labelColor} onValueChange={setLabelColor} className="flex flex-wrap gap-2">
+              <RadioGroup
+                value={labelColor}
+                onValueChange={setLabelColor}
+                className="flex flex-wrap gap-2"
+              >
                 {colorOptions.map((color) => (
-                  <div key={color.value} className="flex items-center space-x-2">
+                  <div
+                    key={color.value}
+                    className="flex items-center space-x-2"
+                  >
                     <RadioGroupItem
                       value={color.value}
                       id={`color-${color.value}`}
                       className={`border-${color.value}`}
                     />
-                    <Label htmlFor={`color-${color.value}`} className="flex items-center gap-1.5">
-                      <div className={`h-3 w-3 rounded-full bg-${color.value}`} />
+                    <Label
+                      htmlFor={`color-${color.value}`}
+                      className="flex items-center gap-1.5"
+                    >
+                      <div
+                        className={`h-3 w-3 rounded-full bg-${color.value}`}
+                      />
                       {color.label}
                     </Label>
                   </div>

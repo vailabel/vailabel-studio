@@ -8,7 +8,13 @@ import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useLabelStore } from "@/lib/store"
 
@@ -18,7 +24,15 @@ export function LabelPrompt() {
   const [category, setCategory] = useState("uncategorized")
   const [labelColor, setLabelColor] = useState("blue-500")
 
-  const categories = ["Person", "Vehicle", "Animal", "Object", "Building", "Plant", "Other"]
+  const categories = [
+    "Person",
+    "Vehicle",
+    "Animal",
+    "Object",
+    "Building",
+    "Plant",
+    "Other",
+  ]
   const colorOptions = [
     { value: "blue-500", label: "Blue" },
     { value: "green-500", label: "Green" },
@@ -93,7 +107,10 @@ export function LabelPrompt() {
             <div className="space-y-2">
               <Label htmlFor="label-category">Category</Label>
               <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger id="label-category" className="dark:bg-gray-700 dark:border-gray-600">
+                <SelectTrigger
+                  id="label-category"
+                  className="dark:bg-gray-700 dark:border-gray-600"
+                >
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent className="dark:bg-gray-800">
@@ -109,12 +126,27 @@ export function LabelPrompt() {
 
             <div className="space-y-2">
               <Label>Label Color</Label>
-              <RadioGroup value={labelColor} onValueChange={setLabelColor} className="flex flex-wrap gap-2">
+              <RadioGroup
+                value={labelColor}
+                onValueChange={setLabelColor}
+                className="flex flex-wrap gap-2"
+              >
                 {colorOptions.map((color) => (
-                  <div key={color.value} className="flex items-center space-x-2">
-                    <RadioGroupItem value={color.value} id={`color-${color.value}`} />
-                    <Label htmlFor={`color-${color.value}`} className="flex items-center gap-1.5">
-                      <div className={`h-3 w-3 rounded-full bg-${color.value}`} />
+                  <div
+                    key={color.value}
+                    className="flex items-center space-x-2"
+                  >
+                    <RadioGroupItem
+                      value={color.value}
+                      id={`color-${color.value}`}
+                    />
+                    <Label
+                      htmlFor={`color-${color.value}`}
+                      className="flex items-center gap-1.5"
+                    >
+                      <div
+                        className={`h-3 w-3 rounded-full bg-${color.value}`}
+                      />
                       {color.label}
                     </Label>
                   </div>

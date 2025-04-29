@@ -52,6 +52,6 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: "image-labeler-settings", // unique name for localStorage
-    },
-  ),
+    }
+  )
 )

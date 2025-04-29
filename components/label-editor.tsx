@@ -6,7 +6,13 @@ import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { useLabelStore } from "@/lib/store"
 import { db } from "@/lib/db"
 import { useToast } from "@/hooks/use-toast"
@@ -24,7 +30,15 @@ export function LabelEditor({ label, onClose }: LabelEditorProps) {
   const [name, setName] = useState(label.name)
   const [category, setCategory] = useState(label.category || "")
 
-  const categories = ["Person", "Vehicle", "Animal", "Object", "Building", "Plant", "Other"]
+  const categories = [
+    "Person",
+    "Vehicle",
+    "Animal",
+    "Object",
+    "Building",
+    "Plant",
+    "Other",
+  ]
 
   const handleSave = async () => {
     if (!name.trim()) {

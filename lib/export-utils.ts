@@ -1,7 +1,11 @@
 import type { Project, Label } from "@/lib/types"
 
 // Simple JSON export
-export function exportToJson(project: Project, labels: Label[], filename: string) {
+export function exportToJson(
+  project: Project,
+  labels: Label[],
+  filename: string
+) {
   // Group labels by imageId
   const labelsByImage: Record<string, Label[]> = {}
   labels.forEach((label) => {
@@ -44,7 +48,11 @@ export function exportToJson(project: Project, labels: Label[], filename: string
 }
 
 // COCO JSON export
-export function exportToCoco(project: Project, labels: Label[], filename: string) {
+export function exportToCoco(
+  project: Project,
+  labels: Label[],
+  filename: string
+) {
   // COCO format structure
   const cocoData = {
     info: {
@@ -144,7 +152,11 @@ export function exportToCoco(project: Project, labels: Label[], filename: string
 }
 
 // Pascal VOC XML export
-export function exportToPascalVoc(project: Project, labels: Label[], filenamePrefix: string) {
+export function exportToPascalVoc(
+  project: Project,
+  labels: Label[],
+  filenamePrefix: string
+) {
   // Create a zip file with all XML files
   const zip = new JSZip()
 
@@ -217,7 +229,11 @@ export function exportToPascalVoc(project: Project, labels: Label[], filenamePre
 }
 
 // YOLO TXT export
-export function exportToYolo(project: Project, labels: Label[], filenamePrefix: string) {
+export function exportToYolo(
+  project: Project,
+  labels: Label[],
+  filenamePrefix: string
+) {
   // Create a zip file with all TXT files and classes.txt
   const zip = new JSZip()
 
@@ -273,7 +289,7 @@ export function exportToYolo(project: Project, labels: Label[], filenamePrefix: 
         const classId = categories.get(category)
 
         lines.push(
-          `${classId} ${x_center.toFixed(6)} ${y_center.toFixed(6)} ${norm_width.toFixed(6)} ${norm_height.toFixed(6)}`,
+          `${classId} ${x_center.toFixed(6)} ${y_center.toFixed(6)} ${norm_width.toFixed(6)} ${norm_height.toFixed(6)}`
         )
       }
       // YOLO doesn't support polygons natively

@@ -102,14 +102,26 @@ export function ImageUploader({ onUpload, onClose }: ImageUploaderProps) {
               onClick={() => fileInputRef.current?.click()}
             >
               <ImageIcon className="mb-2 h-10 w-10 text-gray-400" />
-              <p className="mb-2 text-sm font-medium text-gray-700">Drag and drop an image, or click to browse</p>
+              <p className="mb-2 text-sm font-medium text-gray-700">
+                Drag and drop an image, or click to browse
+              </p>
               <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
-              <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                accept="image/*"
+                onChange={handleFileChange}
+              />
             </div>
           ) : (
             <div className="space-y-4">
               <div className="relative h-64 w-full overflow-hidden rounded-lg border border-gray-200">
-                <img src={preview || "/placeholder.svg"} alt="Preview" className="h-full w-full object-contain" />
+                <img
+                  src={preview || "/placeholder.svg"}
+                  alt="Preview"
+                  className="h-full w-full object-contain"
+                />
                 <Button
                   variant="outline"
                   size="icon"

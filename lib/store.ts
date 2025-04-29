@@ -68,7 +68,9 @@ export const useLabelStore = create<LabelState>((set, get) => ({
 
   updateLabel: async (id, updatedLabel) => {
     const { labels, history, historyIndex } = get()
-    const newLabels = labels.map((label) => (label.id === id ? updatedLabel : label))
+    const newLabels = labels.map((label) =>
+      label.id === id ? updatedLabel : label
+    )
 
     // Add to history
     const newHistory = [...history.slice(0, historyIndex + 1), newLabels]
@@ -136,7 +138,9 @@ export const useLabelStore = create<LabelState>((set, get) => ({
       const currentLabels = history[historyIndex]
 
       // Find labels that were removed in the previous state
-      const removedLabels = currentLabels.filter((current) => !previousLabels.some((prev) => prev.id === current.id))
+      const removedLabels = currentLabels.filter(
+        (current) => !previousLabels.some((prev) => prev.id === current.id)
+      )
 
       // Delete removed labels from database
       try {
@@ -174,7 +178,9 @@ export const useLabelStore = create<LabelState>((set, get) => ({
       const currentLabels = history[historyIndex]
 
       // Find labels that were added in the next state
-      const addedLabels = nextLabels.filter((next) => !currentLabels.some((current) => current.id === next.id))
+      const addedLabels = nextLabels.filter(
+        (next) => !currentLabels.some((current) => current.id === next.id)
+      )
 
       // Add new labels to database
       try {
