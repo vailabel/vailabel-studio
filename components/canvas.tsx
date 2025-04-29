@@ -21,7 +21,7 @@ export function Canvas({ image, labels }: CanvasProps) {
   const [currentPoint, setCurrentPoint] = useState<Point | null>(null)
   const [polygonPoints, setPolygonPoints] = useState<Point[]>([])
   const [panOffset, setPanOffset] = useState<Point>({ x: 0, y: 0 })
-  const [zoom, setZoom] = useState(1)
+  // const [zoom, setZoom] = useState(1)
   const [isPanning, setIsPanning] = useState(false)
   const [lastPanPoint, setLastPanPoint] = useState<Point | null>(null)
   const [selectedLabelId, setSelectedLabelId] = useState<string | null>(null)
@@ -41,6 +41,8 @@ export function Canvas({ image, labels }: CanvasProps) {
     showCoordinates,
     selectedTool,
     darkMode,
+    zoom,
+    setZoom,
   } = useSettingsStore()
 
   // Handle keyboard shortcuts
@@ -67,9 +69,9 @@ export function Canvas({ image, labels }: CanvasProps) {
 
       // Zoom shortcuts
       if (e.key === "=" || e.key === "+") {
-        setZoom((prev) => Math.min(prev + 0.1, 5))
+        setZoom(Math.min(zoom + 0.1, 5))
       } else if (e.key === "-" || e.key === "_") {
-        setZoom((prev) => Math.max(prev - 0.1, 0.1))
+        setZoom(Math.max(zoom - 0.1, 0.1))
       } else if (e.key === "0") {
         setZoom(1)
         setPanOffset({ x: 0, y: 0 })
@@ -129,7 +131,7 @@ export function Canvas({ image, labels }: CanvasProps) {
       }
 
       // Start panning if not on a label and middle mouse button or space+left click
-      if (e.button === 1 || (e.button === 0 && e.altKey)) {
+      if (e.button === 0 && e.altKey) {
         setIsPanning(true)
         setLastPanPoint({ x: e.clientX, y: e.clientY })
         return
@@ -549,49 +551,60 @@ export function Canvas({ image, labels }: CanvasProps) {
     setPanOffset({ x: 0, y: 0 })
   }
 
+  const zoomIn = () => {
+    setZoom(Math.min(zoom + 0.1, 5))
+  }
+  const zoomOut = () => {
+    setZoom(Math.max(zoom - 0.1, 0.1))
+  }
+
+
   useEffect(() => {
-    const handleResetCanvasView = () => {
-      resetView()
-    }
-
-    window.addEventListener("reset-canvas-view", handleResetCanvasView)
-
+    window.addEventListener("reset-zoom", resetView)
+    window.addEventListener("zoom-in", zoomIn)
+    window.addEventListener("zoom-out", zoomOut)
     return () => {
-      window.removeEventListener("reset-canvas-view", handleResetCanvasView)
+      window.removeEventListener("reset-zoom", resetView)
+      window.removeEventListener("zoom-in", zoomIn)
+      window.removeEventListener("zoom-out", zoomOut)
     }
   }, [])
 
-  const [canvasWidthHeight, setCanvasWidthHeight] = useState({ width: 0, height: 0 })
+  const [canvasWidthHeight, setCanvasWidthHeight] = useState({
+    width: 0,
+    height: 0,
+  })
 
   useEffect(() => {
-    setCanvasWidthHeight({ width: canvasRef.current?.offsetWidth || 0, height: canvasRef.current?.offsetHeight || 0 })
+    setCanvasWidthHeight({
+      width: canvasRef.current?.offsetWidth || 0,
+      height: canvasRef.current?.offsetHeight || 0,
+    })
   }, [canvasRef.current])
 
   // Draw rulers
   const drawRulers = () => {
-    if (!showRulers || !cursorPosition) return null;
+    if (!showRulers || !cursorPosition) return null
 
-    const tickInterval = 50; // pixels
+    const tickInterval = 50 // pixels
 
     return (
       <>
         {/* Horizontal ruler */}
-        <div
-          className="absolute top-0 left-0 h-5 w-full border-b bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 z-10"
-        >
-          {Array.from({ length: Math.ceil(canvasWidthHeight.width / tickInterval) }).map(
-            (_, i) => (
-              <div
-                key={`h-${i}`}
-                className="absolute bottom-0 border-l h-1 border-gray-400 dark:border-gray-600"
-                style={{ left: `${i * tickInterval}px` }}
-              >
-                <div className="absolute -left-3 -top-4 text-[10px] text-gray-600 dark:text-gray-400">
-                  {i * tickInterval}
-                </div>
+        <div className="absolute top-0 left-0 h-5 w-full border-b bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 z-10">
+          {Array.from({
+            length: Math.ceil(canvasWidthHeight.width / tickInterval),
+          }).map((_, i) => (
+            <div
+              key={`h-${i}`}
+              className="absolute bottom-0 border-l h-1 border-gray-400 dark:border-gray-600"
+              style={{ left: `${i * tickInterval}px` }}
+            >
+              <div className="absolute -left-3 -top-4 text-[10px] text-gray-600 dark:text-gray-400">
+                {i * tickInterval}
               </div>
-            )
-          )}
+            </div>
+          ))}
           {cursorPosition && (
             <div
               className="absolute bottom-0 border-l border-red-500 h-full"
@@ -603,22 +616,20 @@ export function Canvas({ image, labels }: CanvasProps) {
         </div>
 
         {/* Vertical ruler */}
-        <div
-          className="absolute top-0 left-0 w-5 h-full border-r bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 z-10"
-        >
-          {Array.from({ length: Math.ceil(canvasWidthHeight.height || 0 / tickInterval) }).map(
-            (_, i) => (
-              <div
-                key={`v-${i}`}
-                className="absolute right-0 border-t w-1 border-gray-400 dark:border-gray-600"
-                style={{ top: `${i * tickInterval}px` }}
-              >
-                <div className="absolute -top-2 -left-0 text-[10px] rotate-90 origin-top-left text-gray-600 dark:text-gray-400">
-                  {i * tickInterval}
-                </div>
+        <div className="absolute top-0 left-0 w-5 h-full border-r bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 z-10">
+          {Array.from({
+            length: Math.ceil(canvasWidthHeight.height || 0 / tickInterval),
+          }).map((_, i) => (
+            <div
+              key={`v-${i}`}
+              className="absolute right-0 border-t w-1 border-gray-400 dark:border-gray-600"
+              style={{ top: `${i * tickInterval}px` }}
+            >
+              <div className="absolute -top-2 -left-0 text-[10px] rotate-90 origin-top-left text-gray-600 dark:text-gray-400">
+                {i * tickInterval}
               </div>
-            )
-          )}
+            </div>
+          ))}
           {cursorPosition && (
             <div
               className="absolute right-0 border-t border-red-500 w-full"
@@ -632,8 +643,8 @@ export function Canvas({ image, labels }: CanvasProps) {
         {/* Ruler corner */}
         <div className="absolute top-0 left-0 w-5 h-5 border-r border-b bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 z-20" />
       </>
-    );
-  };
+    )
+  }
 
   // Draw crosshairs
   const drawCrosshairs = () => {
@@ -729,7 +740,8 @@ export function Canvas({ image, labels }: CanvasProps) {
           onMouseUp={handleMouseUp}
           onDoubleClick={handleDoubleClick}
         >
-          {drawRulers()}
+          {/* Rulers Disabled for now due to performance issues  and overlapping */}
+          {/* {drawRulers()} */}
 
           <div
             className="absolute"
