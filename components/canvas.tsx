@@ -551,14 +551,22 @@ export function Canvas({ image, labels }: CanvasProps) {
     setPanOffset({ x: 0, y: 0 })
   }
 
-  useEffect(() => {
-    const handleResetCanvasView = () => {
-      resetView()
-    }
+  const zoomIn = () => {
+    setZoom(Math.min(zoom + 0.1, 5))
+  }
+  const zoomOut = () => {
+    setZoom(Math.max(zoom - 0.1, 0.1))
+  }
 
-    window.addEventListener("reset-zoom", handleResetCanvasView)
+
+  useEffect(() => {
+    window.addEventListener("reset-zoom", resetView)
+    window.addEventListener("zoom-in", zoomIn)
+    window.addEventListener("zoom-out", zoomOut)
     return () => {
-      window.removeEventListener("reset-zoom", handleResetCanvasView)
+      window.removeEventListener("reset-zoom", resetView)
+      window.removeEventListener("zoom-in", zoomIn)
+      window.removeEventListener("zoom-out", zoomOut)
     }
   }, [])
 
