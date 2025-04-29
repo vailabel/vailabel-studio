@@ -1,18 +1,18 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import { motion } from "framer-motion"
-import { X } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface LabelPopupProps {
-  onSave: (labelName: string, labelColor: string) => void
-  onCancel: () => void
+  onSave: (labelName: string, labelColor: string) => void;
+  onCancel: () => void;
 }
 
 const colorOptions = [
@@ -21,18 +21,18 @@ const colorOptions = [
   { value: "red-500", label: "Red" },
   { value: "yellow-500", label: "Yellow" },
   { value: "purple-500", label: "Purple" },
-]
+];
 
 export function LabelPopup({ onSave, onCancel }: LabelPopupProps) {
-  const [labelName, setLabelName] = useState("")
-  const [labelColor, setLabelColor] = useState("blue-500")
+  const [labelName, setLabelName] = useState("");
+  const [labelColor, setLabelColor] = useState("blue-500");
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     if (labelName.trim()) {
-      onSave(labelName.trim(), labelColor)
+      onSave(labelName.trim(), labelColor);
     }
-  }
+  };
 
   return (
     <motion.div
@@ -72,16 +72,28 @@ export function LabelPopup({ onSave, onCancel }: LabelPopupProps) {
 
             <div className="space-y-2">
               <Label>Label Color</Label>
-              <RadioGroup value={labelColor} onValueChange={setLabelColor} className="flex flex-wrap gap-2">
+              <RadioGroup
+                value={labelColor}
+                onValueChange={setLabelColor}
+                className="flex flex-wrap gap-2"
+              >
                 {colorOptions.map((color) => (
-                  <div key={color.value} className="flex items-center space-x-2">
+                  <div
+                    key={color.value}
+                    className="flex items-center space-x-2"
+                  >
                     <RadioGroupItem
                       value={color.value}
                       id={`color-${color.value}`}
                       className={`border-${color.value}`}
                     />
-                    <Label htmlFor={`color-${color.value}`} className="flex items-center gap-1.5">
-                      <div className={`h-3 w-3 rounded-full bg-${color.value}`} />
+                    <Label
+                      htmlFor={`color-${color.value}`}
+                      className="flex items-center gap-1.5"
+                    >
+                      <div
+                        className={`h-3 w-3 rounded-full bg-${color.value}`}
+                      />
                       {color.label}
                     </Label>
                   </div>
@@ -101,5 +113,5 @@ export function LabelPopup({ onSave, onCancel }: LabelPopupProps) {
         </form>
       </motion.div>
     </motion.div>
-  )
+  );
 }
