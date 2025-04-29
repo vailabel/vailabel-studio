@@ -303,7 +303,7 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
 
       <div className="flex flex-1 overflow-hidden">
         {/* Left panel - Image list */}
-        <ResizablePanel direction="horizontal" defaultSize={250} minSize={180} maxSize={350} className="h-full">
+        <ResizablePanel direction="horizontal" controlPosition="right" defaultSize={280} minSize={200} maxSize={400} className="h-full">
           <ImageList project={project} currentImageIndex={currentImageIndex} onImageSelect={setCurrentImageIndex} />
         </ResizablePanel>
 
@@ -377,7 +377,7 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
         </div>
 
         {/* Right panel - Label list */}
-        <ResizablePanel direction="horizontal" defaultSize={280} minSize={200} maxSize={400} className="h-full">
+        <ResizablePanel direction="horizontal" controlPosition="left" defaultSize={280} minSize={200} maxSize={400} className="h-full">
           <LabelListPanel onLabelSelect={handleLabelSelect} />
         </ResizablePanel>
       </div>
