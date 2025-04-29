@@ -12,7 +12,6 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { useLabelStore } from "@/lib/store"
-import { useSettingsStore } from "@/lib/settings-store"
 import type { Label } from "@/lib/types"
 
 interface LabelListPanelProps {

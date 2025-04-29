@@ -39,6 +39,8 @@ import { useLabelStore } from "@/lib/store"
 import { useSettingsStore } from "@/lib/settings-store"
 import type { Project, Label } from "@/lib/types"
 import { cn } from "@/lib/utils"
+import { useTheme } from "next-themes"
+import { LabelPrompt } from "./label-prompt"
 
 interface ImageLabelerProps {
   project: Project
@@ -65,7 +67,7 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
   const [containerRect, setContainerRect] = useState<DOMRect | null>(null)
 
   const { labels, setLabels, clearLabels } = useLabelStore()
-  const { darkMode, setDarkMode } = useSettingsStore()
+  const { theme, setTheme } = useTheme()
 
   // Calculate how many images have labels
   useEffect(() => {
@@ -286,17 +288,13 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={() => setDarkMode(!darkMode)}
+                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                 >
-                  {darkMode ? (
-                    <Sun className="h-4 w-4" />
-                  ) : (
-                    <Moon className="h-4 w-4" />
-                  )}
+                  {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                {darkMode ? "Light mode" : "Dark mode"}
+                {theme ? "Light mode" : "Dark mode"}
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -470,6 +468,8 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
               />
             </div>
           </div>
+          <LabelPrompt />
+
         </div>
 
         {/* Right panel - Label list */}

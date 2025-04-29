@@ -1,44 +1,23 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ImageLabeler } from "@/components/image-labeler"
 import { ProjectDashboard } from "@/components/project-dashboard"
-import { LabelPrompt } from "@/components/label-prompt"
 import { db } from "@/lib/db"
 import { useToast } from "@/hooks/use-toast"
-import { useSettingsStore } from "@/lib/settings-store"
 import type { Project } from "@/lib/types"
 
 export default function ImageLabelingApp() {
   const { toast } = useToast()
-  const [activeProject, setActiveProject] = useState<Project | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [projects, setProjects] = useState<Project[]>([])
-  const { darkMode } = useSettingsStore()
 
-  // Apply dark mode class to document
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add("dark")
-    } else {
-      document.documentElement.classList.remove("dark")
-    }
-  }, [darkMode])
-
+  
   // Load projects and active project on initial render
   useEffect(() => {
-    const loadProjectsAndActiveProject = async () => {
+    const loadProjects = async () => {
       try {
         const allProjects = await db.projects.toArray()
         setProjects(allProjects)
-
-        const storedActiveProjectId = await db.settings.get("activeProjectId")
-        if (storedActiveProjectId) {
-          const activeProject = allProjects.find(
-            (p) => p.id === storedActiveProjectId?.value
-          )
-          setActiveProject(activeProject || null)
-        }
       } catch (error) {
         console.error("Failed to load projects or active project:", error)
         toast({
@@ -52,30 +31,12 @@ export default function ImageLabelingApp() {
       }
     }
 
-    loadProjectsAndActiveProject()
+    loadProjects()
   }, [toast])
 
-  const handleProjectSelect = async (project: Project) => {
-    setActiveProject(project)
-    try {
-      await db.settings.put({ key: "activeProjectId", value: project.id })
-    } catch (error) {
-      console.error("Failed to store active project:", error)
-    }
-  }
-
-  const handleProjectClose = async () => {
-    setActiveProject(null)
-    try {
-      await db.settings.delete("activeProjectId")
-    } catch (error) {
-      console.error("Failed to clear active project:", error)
-    }
-  }
 
   const handleProjectCreate = (project: Project) => {
     setProjects([...projects, project])
-    setActiveProject(project)
   }
 
   const handleProjectDelete = async (projectId: string) => {
@@ -99,13 +60,6 @@ export default function ImageLabelingApp() {
           await db.projects.delete(projectId)
         }
       )
-
-      // Update state
-      setProjects(projects.filter((p) => p.id !== projectId))
-      if (activeProject?.id === projectId) {
-        setActiveProject(null)
-      }
-
       toast({
         title: "Success",
         description: "Project deleted successfully",
@@ -121,23 +75,13 @@ export default function ImageLabelingApp() {
   }
 
   return (
-    <div
-      className={`flex h-screen w-full flex-col overflow-hidden ${
-        darkMode ? "dark bg-gray-900" : "bg-gray-50"
-      }`}
-    >
-      {activeProject ? (
-        <ImageLabeler project={activeProject} onClose={handleProjectClose} />
-      ) : (
-        <ProjectDashboard
-          projects={projects}
-          isLoading={isLoading}
-          onProjectSelect={handleProjectSelect}
-          onProjectCreate={handleProjectCreate}
-          onProjectDelete={handleProjectDelete}
-        />
-      )}
-      <LabelPrompt />
+    <div className="flex h-screen w-full flex-col overflow-hidden bg-gray-50 dark:bg-gray-900">
+      <ProjectDashboard
+        projects={projects}
+        isLoading={isLoading}
+        onProjectCreate={handleProjectCreate}
+        onProjectDelete={handleProjectDelete}
+      />
     </div>
   )
 }
