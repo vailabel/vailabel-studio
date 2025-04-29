@@ -69,12 +69,12 @@ export function ExportModal({ project, labels, onClose }: ExportModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 dark:bg-black/70">
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.9 }}
-        className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg"
+        className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg dark:bg-gray-800 dark:text-gray-100"
       >
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold">Export Project</h2>
@@ -84,7 +84,7 @@ export function ExportModal({ project, labels, onClose }: ExportModalProps) {
         </div>
 
         <div className="mt-4">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             Choose a format to export your project data
           </p>
 
@@ -100,7 +100,7 @@ export function ExportModal({ project, labels, onClose }: ExportModalProps) {
                   <FileJson className="mr-2 h-4 w-4" />
                   Simple JSON
                 </Label>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   Export as a simple JSON file with all project data
                 </p>
               </div>
@@ -113,7 +113,7 @@ export function ExportModal({ project, labels, onClose }: ExportModalProps) {
                   <FileJson className="mr-2 h-4 w-4" />
                   COCO JSON
                 </Label>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   MS COCO format, compatible with many computer vision
                   frameworks
                 </p>
@@ -127,7 +127,7 @@ export function ExportModal({ project, labels, onClose }: ExportModalProps) {
                   <FileCode className="mr-2 h-4 w-4" />
                   Pascal VOC XML
                 </Label>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   XML format used by Pascal VOC dataset, one file per image
                 </p>
               </div>
@@ -140,7 +140,7 @@ export function ExportModal({ project, labels, onClose }: ExportModalProps) {
                   <FileText className="mr-2 h-4 w-4" />
                   YOLO TXT
                 </Label>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   Darknet YOLO format, one text file per image with normalized
                   coordinates
                 </p>

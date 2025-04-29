@@ -60,7 +60,10 @@ export function ProjectDashboard({
 
   return (
     <div
-      className={cn("container mx-auto p-6", darkMode ? "text-gray-100" : "")}
+      className={cn(
+        "container mx-auto p-6",
+        darkMode ? "dark text-gray-100" : ""
+      )}
     >
       <div className="mb-8 flex items-center justify-between">
         <div>
@@ -222,6 +225,7 @@ export function ProjectDashboard({
           <ProjectManager
             onClose={() => setShowNewProject(false)}
             onProjectCreate={handleProjectCreate}
+            darkMode={darkMode}
           />
         )}
       </AnimatePresence>
