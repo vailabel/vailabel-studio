@@ -117,24 +117,24 @@ export function AIModelModal({ onClose }: AIModelModalProps) {
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.9 }}
-        className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg"
+        className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg dark:bg-gray-800 dark:text-white"
       >
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold">AI Detection Models</h2>
           <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4 dark:text-gray-300" />
           </Button>
         </div>
 
         <div className="mt-4">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             Select a pre-trained model or upload your own custom YOLOv8 model
             (.pt file)
           </p>
 
           {isLoading ? (
             <div className="my-8 flex justify-center">
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"></div>
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600 dark:border-gray-600 dark:border-t-blue-400"></div>
             </div>
           ) : (
             <RadioGroup
@@ -145,14 +145,18 @@ export function AIModelModal({ onClose }: AIModelModalProps) {
               {availableModels.map((model) => (
                 <div key={model} className="flex items-center space-x-2">
                   <RadioGroupItem value={model} id={model} />
-                  <Label htmlFor={model}>{model}</Label>
+                  <Label htmlFor={model} className="dark:text-gray-300">
+                    {model}
+                  </Label>
                 </div>
               ))}
             </RadioGroup>
           )}
 
           <div className="mt-6">
-            <Label htmlFor="model-upload">Upload custom model</Label>
+            <Label htmlFor="model-upload" className="dark:text-gray-300">
+              Upload custom model
+            </Label>
             <div className="mt-1 flex">
               <Input
                 id="model-upload"
@@ -160,25 +164,29 @@ export function AIModelModal({ onClose }: AIModelModalProps) {
                 accept=".pt"
                 onChange={handleModelUpload}
                 disabled={isUploading}
-                className="flex-1"
+                className="flex-1 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
               />
               {isUploading && (
                 <div className="ml-2 flex h-10 w-10 items-center justify-center">
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"></div>
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600 dark:border-gray-600 dark:border-t-blue-400"></div>
                 </div>
               )}
             </div>
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               Only YOLOv8 PyTorch models (.pt) are supported
             </p>
           </div>
 
           <div className="mt-6 flex justify-end space-x-2">
-            <Button variant="outline" onClick={onClose}>
+            <Button
+              variant="outline"
+              onClick={onClose}
+              className="dark:border-gray-600 dark:text-gray-300"
+            >
               Cancel
             </Button>
             <Button onClick={handleModelSelect} disabled={!selectedModel}>
-              <Check className="mr-2 h-4 w-4" />
+              <Check className="mr-2 h-4 w-4 dark:text-gray-300" />
               Use Selected Model
             </Button>
           </div>

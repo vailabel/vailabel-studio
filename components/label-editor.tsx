@@ -25,7 +25,7 @@ interface LabelEditorProps {
 
 export function LabelEditor({ label, onClose }: LabelEditorProps) {
   const { toast } = useToast()
-  const { updateLabel, removeLabel, labels, getLabels} = useLabelStore()
+  const { updateLabel, removeLabel, labels, getLabels } = useLabelStore()
 
   const [name, setName] = useState(label.name)
   const [category, setCategory] = useState(label.category || "")

@@ -156,10 +156,10 @@ export function exportToPascalVoc(
   labels: Label[],
   filenamePrefix: string
 ) {
-  const zip = new JSZip();
+  const zip = new JSZip()
 
   project.images.forEach((image) => {
-    const imageLabels = labels.filter((label) => label.imageId === image.id);
+    const imageLabels = labels.filter((label) => label.imageId === image.id)
 
     let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <annotation>
@@ -169,7 +169,7 @@ export function exportToPascalVoc(
     <width>${image.width}</width>
     <height>${image.height}</height>
     <depth>3</depth>
-  </size>`;
+  </size>`
 
     imageLabels.forEach((label) => {
       xml += `\n  <object>
@@ -177,43 +177,43 @@ export function exportToPascalVoc(
     <pose>Unspecified</pose>
     <truncated>0</truncated>
     <difficult>0</difficult>
-    <color>${label.color || "blue-500"}</color>`;
+    <color>${label.color || "blue-500"}</color>`
       if (label.type === "box") {
-        const [topLeft, bottomRight] = label.coordinates;
+        const [topLeft, bottomRight] = label.coordinates
         xml += `\n    <bndbox>
       <xmin>${Math.round(topLeft.x)}</xmin>
       <ymin>${Math.round(topLeft.y)}</ymin>
       <xmax>${Math.round(bottomRight.x)}</xmax>
       <ymax>${Math.round(bottomRight.y)}</ymax>
-    </bndbox>`;
+    </bndbox>`
       } else if (label.type === "polygon") {
-        xml += `\n    <polygon>`;
+        xml += `\n    <polygon>`
         label.coordinates.forEach((point, index) => {
           xml += `\n      <pt${index + 1}>
         <x>${Math.round(point.x)}</x>
         <y>${Math.round(point.y)}</y>
-      </pt${index + 1}>`;
-        });
-        xml += `\n    </polygon>`;
+      </pt${index + 1}>`
+        })
+        xml += `\n    </polygon>`
       }
-      xml += `\n  </object>`;
-    });
+      xml += `\n  </object>`
+    })
 
-    xml += `\n</annotation>`;
-    const filename = image.name.replace(/\.[^/.]+$/, "") + ".xml";
-    zip.file(filename, xml);
-  });
+    xml += `\n</annotation>`
+    const filename = image.name.replace(/\.[^/.]+$/, "") + ".xml"
+    zip.file(filename, xml)
+  })
 
   zip.generateAsync({ type: "blob" }).then((content) => {
-    const url = URL.createObjectURL(content);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${filenamePrefix}.zip`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  });
+    const url = URL.createObjectURL(content)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `${filenamePrefix}.zip`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  })
 }
 
 export function exportToYolo(
@@ -221,68 +221,68 @@ export function exportToYolo(
   labels: Label[],
   filenamePrefix: string
 ) {
-  const zip = new JSZip();
+  const zip = new JSZip()
 
-  const categories = new Map();
+  const categories = new Map()
   labels.forEach((label) => {
-    const category = label.category || label.name;
+    const category = label.category || label.name
     if (!categories.has(category)) {
-      categories.set(category, categories.size);
+      categories.set(category, categories.size)
     }
-  });
+  })
 
-  const classesText = Array.from(categories.keys()).join("\n");
-  zip.file("classes.txt", classesText);
+  const classesText = Array.from(categories.keys()).join("\n")
+  zip.file("classes.txt", classesText)
 
-  const colorsMap = new Map();
+  const colorsMap = new Map()
   labels.forEach((label) => {
-    const category = label.category || label.name;
+    const category = label.category || label.name
     if (!colorsMap.has(category)) {
-      colorsMap.set(category, label.color || "blue-500");
+      colorsMap.set(category, label.color || "blue-500")
     }
-  });
+  })
 
   const colorsText = Array.from(colorsMap.entries())
     .map(([category, color]) => `${category}:${color}`)
-    .join("\n");
-  zip.file("colors.txt", colorsText);
+    .join("\n")
+  zip.file("colors.txt", colorsText)
 
   project.images.forEach((image) => {
-    const imageLabels = labels.filter((label) => label.imageId === image.id);
+    const imageLabels = labels.filter((label) => label.imageId === image.id)
 
-    const lines: string[] = [];
+    const lines: string[] = []
     imageLabels.forEach((label) => {
       if (label.type === "box") {
-        const [topLeft, bottomRight] = label.coordinates;
-        const width = bottomRight.x - topLeft.x;
-        const height = bottomRight.y - topLeft.y;
+        const [topLeft, bottomRight] = label.coordinates
+        const width = bottomRight.x - topLeft.x
+        const height = bottomRight.y - topLeft.y
 
-        const x_center = (topLeft.x + width / 2) / image.width;
-        const y_center = (topLeft.y + height / 2) / image.height;
-        const norm_width = width / image.width;
-        const norm_height = height / image.height;
+        const x_center = (topLeft.x + width / 2) / image.width
+        const y_center = (topLeft.y + height / 2) / image.height
+        const norm_width = width / image.width
+        const norm_height = height / image.height
 
-        const category = label.category || label.name;
-        const classId = categories.get(category);
+        const category = label.category || label.name
+        const classId = categories.get(category)
 
         lines.push(
           `${classId} ${x_center.toFixed(6)} ${y_center.toFixed(6)} ${norm_width.toFixed(6)} ${norm_height.toFixed(6)}`
-        );
+        )
       }
-    });
+    })
 
-    const filename = image.name.replace(/\.[^/.]+$/, "") + ".txt";
-    zip.file(filename, lines.join("\n"));
-  });
+    const filename = image.name.replace(/\.[^/.]+$/, "") + ".txt"
+    zip.file(filename, lines.join("\n"))
+  })
 
   zip.generateAsync({ type: "blob" }).then((content) => {
-    const url = URL.createObjectURL(content);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${filenamePrefix}.zip`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  });
+    const url = URL.createObjectURL(content)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `${filenamePrefix}.zip`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  })
 }
