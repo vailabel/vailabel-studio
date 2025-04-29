@@ -1,38 +1,38 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { ChevronRight, ChevronDown, Tag } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { useState } from "react"
+import { motion } from "framer-motion"
+import { ChevronRight, ChevronDown, Tag } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { useLabelStore } from "@/lib/store";
-import { useSettingsStore } from "@/lib/settings-store";
-import type { Label } from "@/lib/types";
+} from "@/components/ui/collapsible"
+import { useLabelStore } from "@/lib/store"
+import { useSettingsStore } from "@/lib/settings-store"
+import type { Label } from "@/lib/types"
 
 interface LabelListPanelProps {
-  onLabelSelect: (label: Label) => void;
+  onLabelSelect: (label: Label) => void
 }
 
 export function LabelListPanel({ onLabelSelect }: LabelListPanelProps) {
-  const [labelsOpen, setLabelsOpen] = useState(true);
-  const { labels } = useLabelStore();
-  const { darkMode } = useSettingsStore();
+  const [labelsOpen, setLabelsOpen] = useState(true)
+  const { labels } = useLabelStore()
+  const { darkMode } = useSettingsStore()
 
   // Group labels by category
-  const labelsByCategory: Record<string, Label[]> = {};
+  const labelsByCategory: Record<string, Label[]> = {}
   labels.forEach((label) => {
-    const category = label.category || "Uncategorized";
+    const category = label.category || "Uncategorized"
     if (!labelsByCategory[category]) {
-      labelsByCategory[category] = [];
+      labelsByCategory[category] = []
     }
-    labelsByCategory[category].push(label);
-  });
+    labelsByCategory[category].push(label)
+  })
 
   return (
     <div
@@ -174,5 +174,5 @@ export function LabelListPanel({ onLabelSelect }: LabelListPanelProps) {
         </div>
       </ScrollArea>
     </div>
-  );
+  )
 }

@@ -1,9 +1,9 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { Plus, Trash2, FolderOpen, ImageIcon, Moon, Sun } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useState } from "react"
+import { AnimatePresence, motion } from "framer-motion"
+import { Plus, Trash2, FolderOpen, ImageIcon, Moon, Sun } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
@@ -11,20 +11,20 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { ProjectManager } from "@/components/project-manager";
-import { useToast } from "@/hooks/use-toast";
-import { useSettingsStore } from "@/lib/settings-store";
-import { cn } from "@/lib/utils";
-import type { Project } from "@/lib/types";
-import Image from "next/image";
+} from "@/components/ui/card"
+import { ProjectManager } from "@/components/project-manager"
+import { useToast } from "@/hooks/use-toast"
+import { useSettingsStore } from "@/lib/settings-store"
+import { cn } from "@/lib/utils"
+import type { Project } from "@/lib/types"
+import Image from "next/image"
 
 interface ProjectDashboardProps {
-  projects: Project[];
-  isLoading: boolean;
-  onProjectSelect: (project: Project) => void;
-  onProjectCreate: (project: Project) => void;
-  onProjectDelete: (projectId: string) => void;
+  projects: Project[]
+  isLoading: boolean
+  onProjectSelect: (project: Project) => void
+  onProjectCreate: (project: Project) => void
+  onProjectDelete: (projectId: string) => void
 }
 
 export function ProjectDashboard({
@@ -34,19 +34,19 @@ export function ProjectDashboard({
   onProjectCreate,
   onProjectDelete,
 }: ProjectDashboardProps) {
-  const { toast } = useToast();
-  const [showNewProject, setShowNewProject] = useState(false);
-  const { darkMode, setDarkMode } = useSettingsStore();
+  const { toast } = useToast()
+  const [showNewProject, setShowNewProject] = useState(false)
+  const { darkMode, setDarkMode } = useSettingsStore()
 
   const handleProjectCreate = (project: Project) => {
-    onProjectCreate(project);
-    setShowNewProject(false);
+    onProjectCreate(project)
+    setShowNewProject(false)
 
     toast({
       title: "Project created",
       description: `${project.name} has been created with ${project.images.length} images.`,
-    });
-  };
+    })
+  }
 
   const handleDeleteProject = (projectId: string, projectName: string) => {
     if (
@@ -54,9 +54,9 @@ export function ProjectDashboard({
         `Are you sure you want to delete "${projectName}"? This action cannot be undone.`
       )
     ) {
-      onProjectDelete(projectId);
+      onProjectDelete(projectId)
     }
-  };
+  }
 
   return (
     <div
@@ -226,5 +226,5 @@ export function ProjectDashboard({
         )}
       </AnimatePresence>
     </div>
-  );
+  )
 }

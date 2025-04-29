@@ -1,28 +1,28 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { Brain, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useState } from "react"
+import { Brain, Loader2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { useToast } from "@/hooks/use-toast";
-import { useLabelStore } from "@/lib/store";
-import { detectObjects } from "@/lib/ai-utils";
-import type { ImageData } from "@/lib/types";
+} from "@/components/ui/tooltip"
+import { useToast } from "@/hooks/use-toast"
+import { useLabelStore } from "@/lib/store"
+import { detectObjects } from "@/lib/ai-utils"
+import type { ImageData } from "@/lib/types"
 
 interface AIDetectionButtonProps {
-  image: ImageData | null;
-  disabled?: boolean;
+  image: ImageData | null
+  disabled?: boolean
 }
 
 export function AIDetectionButton({ image, disabled }: AIDetectionButtonProps) {
-  const { toast } = useToast();
-  const { addLabel } = useLabelStore();
-  const [isDetecting, setIsDetecting] = useState(false);
+  const { toast } = useToast()
+  const { addLabel } = useLabelStore()
+  const [isDetecting, setIsDetecting] = useState(false)
 
   const handleDetection = async () => {
     if (!image) {
@@ -30,33 +30,33 @@ export function AIDetectionButton({ image, disabled }: AIDetectionButtonProps) {
         title: "No image selected",
         description: "Please select an image first",
         variant: "destructive",
-      });
-      return;
+      })
+      return
     }
 
-    setIsDetecting(true);
+    setIsDetecting(true)
 
     try {
-      const detections = await detectObjects(image.data);
+      const detections = await detectObjects(image.data)
 
       if (detections.length === 0) {
         toast({
           title: "No objects detected",
           description: "The AI model didn't detect any objects in this image",
-        });
-        return;
+        })
+        return
       }
 
       // Add each detection as a label
       detections.forEach((detection) => {
-        const { box, class: className, confidence } = detection;
+        const { box, class: className, confidence } = detection
 
         // Convert normalized coordinates to actual coordinates
-        const [x, y, width, height] = box;
-        const x1 = x * image.width;
-        const y1 = y * image.height;
-        const x2 = (x + width) * image.width;
-        const y2 = (y + height) * image.height;
+        const [x, y, width, height] = box
+        const x1 = x * image.width
+        const y1 = y * image.height
+        const x2 = (x + width) * image.width
+        const y2 = (y + height) * image.height
 
         // Create label with AI prefix to distinguish it
         addLabel({
@@ -73,24 +73,24 @@ export function AIDetectionButton({ image, disabled }: AIDetectionButtonProps) {
           updatedAt: new Date(),
           isAIGenerated: true,
           color: "green-500", // Give AI labels a distinct color
-        });
-      });
+        })
+      })
 
       toast({
         title: "AI Detection Complete",
         description: `Detected ${detections.length} objects in the image`,
-      });
+      })
     } catch (error) {
-      console.error("AI detection failed:", error);
+      console.error("AI detection failed:", error)
       toast({
         title: "Detection failed",
         description: "Failed to run AI detection on this image",
         variant: "destructive",
-      });
+      })
     } finally {
-      setIsDetecting(false);
+      setIsDetecting(false)
     }
-  };
+  }
 
   return (
     <TooltipProvider>
@@ -116,5 +116,5 @@ export function AIDetectionButton({ image, disabled }: AIDetectionButtonProps) {
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
-  );
+  )
 }

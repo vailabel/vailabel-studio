@@ -1,18 +1,18 @@
-"use client";
+"use client"
 
-import { motion, AnimatePresence } from "framer-motion";
-import { Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useLabelStore } from "@/lib/store";
-import { cn } from "@/lib/utils";
-import type { Label } from "@/lib/types";
+import { motion, AnimatePresence } from "framer-motion"
+import { Trash2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { useLabelStore } from "@/lib/store"
+import { cn } from "@/lib/utils"
+import type { Label } from "@/lib/types"
 
 interface LabelListProps {
-  labels: Label[];
+  labels: Label[]
 }
 
 export function LabelList({ labels }: LabelListProps) {
-  const { removeLabel } = useLabelStore();
+  const { removeLabel } = useLabelStore()
 
   if (labels.length === 0) {
     return (
@@ -24,7 +24,7 @@ export function LabelList({ labels }: LabelListProps) {
           Use the drawing tools to create labels
         </p>
       </div>
-    );
+    )
   }
 
   return (
@@ -82,5 +82,5 @@ export function LabelList({ labels }: LabelListProps) {
         ))}
       </AnimatePresence>
     </div>
-  );
+  )
 }

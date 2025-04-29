@@ -1,8 +1,8 @@
-"use client";
+"use client"
 
-import type React from "react";
+import type React from "react"
 
-import { motion } from "framer-motion";
+import { motion } from "framer-motion"
 import {
   Square,
   OctagonIcon as Polygon,
@@ -14,31 +14,31 @@ import {
   Crosshair,
   Pencil,
   Settings,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+} from "lucide-react"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Separator } from "@/components/ui/separator";
-import { useSettingsStore } from "@/lib/settings-store";
-import { AIDetectionButton } from "@/components/ai-detection-button";
-import type { ImageData } from "@/lib/types";
+} from "@/components/ui/tooltip"
+import { Separator } from "@/components/ui/separator"
+import { useSettingsStore } from "@/lib/settings-store"
+import { AIDetectionButton } from "@/components/ai-detection-button"
+import type { ImageData } from "@/lib/types"
 
 interface ToolbarProps {
-  currentImage: ImageData | null;
-  onOpenSettings: () => void;
-  onOpenAISettings: () => void;
+  currentImage: ImageData | null
+  onOpenSettings: () => void
+  onOpenAISettings: () => void
 }
 
 interface Tool {
-  id: string;
-  name: string;
-  icon: React.ElementType;
-  shortcut: string;
+  id: string
+  name: string
+  icon: React.ElementType
+  shortcut: string
 }
 
 export function Toolbar({
@@ -56,7 +56,7 @@ export function Toolbar({
     showCoordinates,
     setShowCoordinates,
     darkMode,
-  } = useSettingsStore();
+  } = useSettingsStore()
 
   const tools: Tool[] = [
     { id: "move", name: "Move", icon: Move, shortcut: "M" },
@@ -64,13 +64,13 @@ export function Toolbar({
     { id: "polygon", name: "Draw Polygon", icon: Polygon, shortcut: "P" },
     { id: "freeDraw", name: "Free Draw", icon: Pencil, shortcut: "F" },
     { id: "delete", name: "Delete", icon: Trash2, shortcut: "D" },
-  ];
+  ]
 
   const handleResetView = () => {
     // This will be handled by the Canvas component
-    const resetEvent = new CustomEvent("reset-canvas-view");
-    window.dispatchEvent(resetEvent);
-  };
+    const resetEvent = new CustomEvent("reset-canvas-view")
+    window.dispatchEvent(resetEvent)
+  }
 
   return (
     <div
@@ -247,5 +247,5 @@ export function Toolbar({
         </TooltipProvider>
       </div>
     </div>
-  );
+  )
 }

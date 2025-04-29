@@ -1,71 +1,71 @@
-"use client";
+"use client"
 
-import type React from "react";
+import type React from "react"
 
-import { useState, useRef } from "react";
-import { motion } from "framer-motion";
-import { X, ImageIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useState, useRef } from "react"
+import { motion } from "framer-motion"
+import { X, ImageIcon } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
 interface ImageUploaderProps {
-  onUpload: (imageUrl: string, imageName: string) => void;
-  onClose: () => void;
+  onUpload: (imageUrl: string, imageName: string) => void
+  onClose: () => void
 }
 
 export function ImageUploader({ onUpload, onClose }: ImageUploaderProps) {
-  const [isDragging, setIsDragging] = useState(false);
-  const [preview, setPreview] = useState<string | null>(null);
-  const [fileName, setFileName] = useState<string>("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDragging, setIsDragging] = useState(false)
+  const [preview, setPreview] = useState<string | null>(null)
+  const [fileName, setFileName] = useState<string>("")
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
+    e.preventDefault()
+    setIsDragging(true)
+  }
 
   const handleDragLeave = () => {
-    setIsDragging(false);
-  };
+    setIsDragging(false)
+  }
 
   const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
+    e.preventDefault()
+    setIsDragging(false)
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFile(e.dataTransfer.files[0]);
+      handleFile(e.dataTransfer.files[0])
     }
-  };
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      handleFile(e.target.files[0]);
+      handleFile(e.target.files[0])
     }
-  };
+  }
 
   const handleFile = (file: File) => {
     if (!file.type.match("image.*")) {
-      alert("Please select an image file");
-      return;
+      alert("Please select an image file")
+      return
     }
 
-    setFileName(file.name);
+    setFileName(file.name)
 
-    const reader = new FileReader();
+    const reader = new FileReader()
     reader.onload = (e) => {
       if (e.target && typeof e.target.result === "string") {
-        setPreview(e.target.result);
+        setPreview(e.target.result)
       }
-    };
-    reader.readAsDataURL(file);
-  };
+    }
+    reader.readAsDataURL(file)
+  }
 
   const handleUpload = () => {
     if (preview) {
-      onUpload(preview, fileName || "Untitled Image");
+      onUpload(preview, fileName || "Untitled Image")
     }
-  };
+  }
 
   return (
     <motion.div
@@ -153,5 +153,5 @@ export function ImageUploader({ onUpload, onClose }: ImageUploaderProps) {
         </div>
       </motion.div>
     </motion.div>
-  );
+  )
 }

@@ -1,23 +1,23 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { ChevronRight, ChevronDown, ImageIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { useState } from "react"
+import { ChevronRight, ChevronDown, ImageIcon } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { useLabelStore } from "@/lib/store";
-import { useSettingsStore } from "@/lib/settings-store";
-import type { Project } from "@/lib/types";
+} from "@/components/ui/collapsible"
+import { useLabelStore } from "@/lib/store"
+import { useSettingsStore } from "@/lib/settings-store"
+import type { Project } from "@/lib/types"
 
 interface ImageListProps {
-  project: Project;
-  currentImageIndex: number;
-  onImageSelect: (index: number) => void;
+  project: Project
+  currentImageIndex: number
+  onImageSelect: (index: number) => void
 }
 
 export function ImageList({
@@ -25,9 +25,9 @@ export function ImageList({
   currentImageIndex,
   onImageSelect,
 }: ImageListProps) {
-  const [imagesOpen, setImagesOpen] = useState(true);
-  const { labels } = useLabelStore();
-  const { darkMode } = useSettingsStore();
+  const [imagesOpen, setImagesOpen] = useState(true)
+  const { labels } = useLabelStore()
+  const { darkMode } = useSettingsStore()
 
   return (
     <div
@@ -109,5 +109,5 @@ export function ImageList({
         </div>
       </ScrollArea>
     </div>
-  );
+  )
 }
