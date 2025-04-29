@@ -2,12 +2,13 @@
 
 import type React from "react"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { motion } from "framer-motion"
-import { useLabelStore } from "@/lib/store"
+import { useStore } from "@/lib/store"
 import { useSettingsStore } from "@/lib/settings-store"
 import { cn, rgbToRgba } from "@/lib/utils"
-import type { ImageData, Label, Point } from "@/lib/types"
+import type { Annotation, ImageData, Label, Point } from "@/lib/types"
+import { useUIStore } from "@/lib/ui-store"
 
 interface CanvasProps {
   image: ImageData
@@ -30,12 +31,14 @@ export function Canvas({ image, labels }: CanvasProps) {
   const [movingOffset, setMovingOffset] = useState<Point | null>(null)
   const [cursorPosition, setCursorPosition] = useState<Point | null>(null)
   const [showLabelInput, setShowLabelInput] = useState(false)
-  const [tempLabel, setTempLabel] = useState<Partial<Label> | null>(null)
-
-  const { addLabel, updateLabel, removeLabel, setLabelPrompt } = useLabelStore()
-
+  const [tempLabel, setTempLabel] = useState<Partial<Annotation> | null>(null)
+  const { annotations, createAnnotation, updateAnnotation, deleteAnnotation } =
+    useStore()
+  const { setIsAnnotationPanelOpen, onSubmitCreateAnnotation } = useUIStore()
   const { showCrosshairs, showCoordinates, selectedTool, zoom, setZoom } =
     useSettingsStore()
+
+  const [uiZoom, setUiZoom] = useState(1)
 
   // Handle keyboard shortcuts
   useEffect(() => {
@@ -55,38 +58,38 @@ export function Canvas({ image, labels }: CanvasProps) {
 
       // Delete selected label
       if ((e.key === "Delete" || e.key === "Backspace") && selectedLabelId) {
-        removeLabel(selectedLabelId)
+        deleteAnnotation(selectedLabelId)
         setSelectedLabelId(null)
       }
 
       // Zoom shortcuts
       if (e.key === "=" || e.key === "+") {
-        setZoom(Math.min(zoom + 0.1, 5))
+        setUiZoom(Math.min(uiZoom + 0.1, 5))
       } else if (e.key === "-" || e.key === "_") {
-        setZoom(Math.max(zoom - 0.1, 0.1))
+        setUiZoom(Math.max(uiZoom - 0.1, 0.1))
       } else if (e.key === "0") {
-        setZoom(1)
+        setUiZoom(1)
         setPanOffset({ x: 0, y: 0 })
       }
     }
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [selectedLabelId, removeLabel])
+  }, [selectedLabelId, deleteAnnotation])
 
   // Handle mouse down on canvas
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!canvasRef.current) return
 
     const rect = canvasRef.current.getBoundingClientRect()
-    const x = (e.clientX - rect.left - panOffset.x) / zoom
-    const y = (e.clientY - rect.top - panOffset.y) / zoom
+    const x = (e.clientX - rect.left - panOffset.x) / uiZoom
+    const y = (e.clientY - rect.top - panOffset.y) / uiZoom
 
     // Check for resize handles first
     if (selectedLabelId && selectedTool === "move") {
-      const label = labels.find((l) => l.id === selectedLabelId)
-      if (label && label.type === "box") {
-        const handle = getResizeHandle(e, label)
+      const annotation = annotations.find((l) => l.id === selectedLabelId)
+      if (annotation && annotation.type === "box") {
+        const handle = getResizeHandle(e, annotation)
         if (handle) {
           setIsResizing(true)
           setResizeHandle(handle)
@@ -97,23 +100,25 @@ export function Canvas({ image, labels }: CanvasProps) {
 
     // Check if clicked on a label for selection or moving
     if (selectedTool === "move" && e.button === 0) {
-      const clickedLabel = findLabelAtPoint({ x, y })
+      const clickedAnnotation = findLabelAtPoint({ x, y })
 
-      if (clickedLabel) {
-        setSelectedLabelId(clickedLabel.id)
-        setMovingLabelId(clickedLabel.id)
+      if (clickedAnnotation) {
+        setSelectedLabelId(clickedAnnotation.id)
+        setMovingLabelId(clickedAnnotation.id)
 
         // Calculate offset from the top-left corner of the label
-        if (clickedLabel.type === "box") {
-          const [topLeft] = clickedLabel.coordinates
+        if (clickedAnnotation.type === "box") {
+          const [topLeft] = clickedAnnotation.coordinates
           setMovingOffset({
             x: x - topLeft.x,
             y: y - topLeft.y,
           })
-        } else if (clickedLabel.type === "polygon") {
+        } else if (clickedAnnotation.type === "polygon") {
           // For polygon, we'll move the entire shape
           // Calculate the centroid as reference
-          const centroid = calculatePolygonCentroid(clickedLabel.coordinates)
+          const centroid = calculatePolygonCentroid(
+            clickedAnnotation.coordinates
+          )
           setMovingOffset({
             x: x - centroid.x,
             y: y - centroid.y,
@@ -146,7 +151,7 @@ export function Canvas({ image, labels }: CanvasProps) {
     } else if (selectedTool === "delete") {
       const labelToDelete = findLabelAtPoint({ x, y })
       if (labelToDelete) {
-        removeLabel(labelToDelete.id)
+        deleteAnnotation(labelToDelete.id)
         setSelectedLabelId(null)
       }
     }
@@ -177,7 +182,7 @@ export function Canvas({ image, labels }: CanvasProps) {
 
     // Handle resizing
     if (isResizing && selectedLabelId && resizeHandle) {
-      const label = labels.find((l) => l.id === selectedLabelId)
+      const label = annotations.find((l) => l.id === selectedLabelId)
       if (label && label.type === "box") {
         const [topLeft, bottomRight] = [...label.coordinates]
         let newTopLeft = { ...topLeft }
@@ -217,7 +222,7 @@ export function Canvas({ image, labels }: CanvasProps) {
           newBottomRight.x > newTopLeft.x &&
           newBottomRight.y > newTopLeft.y
         ) {
-          updateLabel(selectedLabelId, {
+          updateAnnotation(selectedLabelId, {
             ...label,
             coordinates: [newTopLeft, newBottomRight],
             updatedAt: new Date(),
@@ -229,7 +234,7 @@ export function Canvas({ image, labels }: CanvasProps) {
 
     // Handle moving a label
     if (movingLabelId && movingOffset) {
-      const label = labels.find((l) => l.id === movingLabelId)
+      const label = annotations.find((l) => l.id === movingLabelId)
       if (label) {
         if (label.type === "box") {
           const [topLeft, bottomRight] = label.coordinates
@@ -246,7 +251,7 @@ export function Canvas({ image, labels }: CanvasProps) {
             y: newTopLeft.y + height,
           }
 
-          updateLabel(movingLabelId, {
+          updateAnnotation(movingLabelId, {
             ...label,
             coordinates: [newTopLeft, newBottomRight],
             updatedAt: new Date(),
@@ -262,7 +267,7 @@ export function Canvas({ image, labels }: CanvasProps) {
             y: point.y + dy,
           }))
 
-          updateLabel(movingLabelId, {
+          updateAnnotation(movingLabelId, {
             ...label,
             coordinates: newCoordinates,
             updatedAt: new Date(),
@@ -347,33 +352,44 @@ export function Canvas({ image, labels }: CanvasProps) {
     }
   }
 
-  // Handle label input submission
-  const handleLabelSubmit = (name: string, category: string, color: string) => {
-    if (tempLabel) {
-      const newLabel: Label = {
-        id: `label-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-        name,
-        category,
-        color,
-        type: tempLabel.type as "box" | "polygon",
-        coordinates: tempLabel.coordinates || [],
-        imageId: image.id,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }
-
-      // Add label to store (which now also saves to database)
-      addLabel(newLabel)
-      setTempLabel(null)
-      setShowLabelInput(false)
+  // Effect to prompt for label name when a shape is completed
+  useEffect(() => {
+    if (showLabelInput && tempLabel) {
+      setIsAnnotationPanelOpen(true)
     }
-  }
+  }, [
+    showLabelInput,
+    tempLabel,
+    setIsAnnotationPanelOpen,
+    onSubmitCreateAnnotation,
+  ])
+
+  // Handle label input submission
+  // const handleAnnotationSubmit = (label: Label) => {
+  //   if (tempLabel) {
+  //     const newAnnotation: Annotation = {
+  //       id: crypto.randomUUID(),
+  //       name: "",
+  //       type: tempLabel.type as "box" | "polygon",
+  //       coordinates: tempLabel.coordinates || [],
+  //       imageId: image.id,
+  //       createdAt: new Date(),
+  //       updatedAt: new Date(),
+  //       label: label,
+  //     }
+
+  //     createAnnotation(newAnnotation)
+  //     setTempLabel(null)
+  //     setShowLabelInput(false)
+  //     setIsAnnotationPanelOpen(false)
+  //   }
+  // }
 
   // Find a label at a specific point
-  const findLabelAtPoint = (point: Point): Label | null => {
+  const findLabelAtPoint = (point: Point): Annotation | null => {
     // First check for selected label to prioritize it
     if (selectedLabelId) {
-      const selectedLabel = labels.find((l) => l.id === selectedLabelId)
+      const selectedLabel = annotations.find((a) => a.id === selectedLabelId)
       if (selectedLabel) {
         if (isPointInLabel(point, selectedLabel)) {
           return selectedLabel
@@ -382,10 +398,10 @@ export function Canvas({ image, labels }: CanvasProps) {
     }
 
     // Then check other labels in reverse order (newest first)
-    for (let i = labels.length - 1; i >= 0; i--) {
-      const label = labels[i]
-      if (isPointInLabel(point, label)) {
-        return label
+    for (let i = annotations.length - 1; i >= 0; i--) {
+      const annotation = annotations[i]
+      if (isPointInLabel(point, annotation)) {
+        return annotation
       }
     }
 
@@ -393,17 +409,17 @@ export function Canvas({ image, labels }: CanvasProps) {
   }
 
   // Check if a point is inside a label
-  const isPointInLabel = (point: Point, label: Label): boolean => {
-    if (label.type === "box") {
-      const [topLeft, bottomRight] = label.coordinates
+  const isPointInLabel = (point: Point, annotation: Annotation): boolean => {
+    if (annotation.type === "box") {
+      const [topLeft, bottomRight] = annotation.coordinates
       return (
         point.x >= topLeft.x &&
         point.x <= bottomRight.x &&
         point.y >= topLeft.y &&
         point.y <= bottomRight.y
       )
-    } else if (label.type === "polygon") {
-      return isPointInPolygon(point, label.coordinates)
+    } else if (annotation.type === "polygon") {
+      return isPointInPolygon(point, annotation.coordinates)
     }
     return false
   }
@@ -445,18 +461,18 @@ export function Canvas({ image, labels }: CanvasProps) {
   // Get resize handle at mouse position
   const getResizeHandle = (
     e: React.MouseEvent,
-    label: Label
+    annotation: Annotation
   ): string | null => {
-    if (label.type !== "box") return null
+    if (annotation.type !== "box") return null
 
-    const [topLeft, bottomRight] = label.coordinates
+    const [topLeft, bottomRight] = annotation.coordinates
     const rect = canvasRef.current?.getBoundingClientRect()
     if (!rect) return null
 
-    const x = (e.clientX - rect.left - panOffset.x) / zoom
-    const y = (e.clientY - rect.top - panOffset.y) / zoom
+    const x = (e.clientX - rect.left - panOffset.x) / uiZoom
+    const y = (e.clientY - rect.top - panOffset.y) / uiZoom
 
-    const handleSize = 8 / zoom // Size of the resize handle
+    const handleSize = 8 / uiZoom // Size of the resize handle
 
     // Check each corner and edge
     if (
@@ -511,9 +527,9 @@ export function Canvas({ image, labels }: CanvasProps) {
   // Handle zoom
   const handleWheel = (e: React.WheelEvent) => {
     if (e.ctrlKey || e.metaKey) {
-      // e.preventDefault()
+      e.preventDefault()
       const delta = e.deltaY > 0 ? -0.1 : 0.1
-      const newZoom = Math.max(0.1, Math.min(5, zoom + delta))
+      const newZoom = Math.max(0.1, Math.min(5, uiZoom + delta))
 
       // Zoom centered on cursor position
       if (canvasRef.current) {
@@ -521,8 +537,8 @@ export function Canvas({ image, labels }: CanvasProps) {
         const mouseX = e.clientX - rect.left
         const mouseY = e.clientY - rect.top
 
-        const beforeZoomX = (mouseX - panOffset.x) / zoom
-        const beforeZoomY = (mouseY - panOffset.y) / zoom
+        const beforeZoomX = (mouseX - panOffset.x) / uiZoom
+        const beforeZoomY = (mouseY - panOffset.y) / uiZoom
 
         const afterZoomX = (mouseX - panOffset.x) / newZoom
         const afterZoomY = (mouseY - panOffset.y) / newZoom
@@ -533,22 +549,22 @@ export function Canvas({ image, labels }: CanvasProps) {
         })
       }
 
-      setZoom(newZoom)
+      setUiZoom(newZoom)
     }
   }
 
-  // Reset view
-  const resetView = () => {
-    setZoom(1)
+  const resetView = useCallback(() => {
+    setUiZoom(1)
     setPanOffset({ x: 0, y: 0 })
-  }
+  }, [])
 
-  const zoomIn = () => {
-    setZoom(Math.min(zoom + 0.1, 5))
-  }
-  const zoomOut = () => {
-    setZoom(Math.max(zoom - 0.1, 0.1))
-  }
+  const zoomIn = useCallback(() => {
+    setUiZoom((prevZoom) => Math.min(prevZoom + 0.1, 5))
+  }, [])
+
+  const zoomOut = useCallback(() => {
+    setUiZoom((prevZoom) => Math.max(prevZoom - 0.1, 0.1))
+  }, [])
 
   useEffect(() => {
     window.addEventListener("reset-zoom", resetView)
@@ -559,7 +575,11 @@ export function Canvas({ image, labels }: CanvasProps) {
       window.removeEventListener("zoom-in", zoomIn)
       window.removeEventListener("zoom-out", zoomOut)
     }
-  }, [])
+  }, [resetView, zoomIn, zoomOut])
+
+  useEffect(() => {
+    setZoom(uiZoom)
+  }, [uiZoom])
 
   // Draw crosshairs
   const drawCrosshairs = () => {
@@ -570,14 +590,14 @@ export function Canvas({ image, labels }: CanvasProps) {
         <div
           className="absolute top-0 border-l border-blue-400 border-dashed pointer-events-none z-10"
           style={{
-            left: `${cursorPosition.x * zoom + panOffset.x}px`,
+            left: `${cursorPosition.x * uiZoom + panOffset.x}px`,
             height: "100%",
           }}
         />
         <div
           className="absolute left-0 border-t border-blue-400 border-dashed pointer-events-none z-10"
           style={{
-            top: `${cursorPosition.y * zoom + panOffset.y}px`,
+            top: `${cursorPosition.y * uiZoom + panOffset.y}px`,
             width: "100%",
           }}
         />
@@ -593,8 +613,8 @@ export function Canvas({ image, labels }: CanvasProps) {
       <div
         className="absolute bg-black bg-opacity-75 text-white px-2 py-1 rounded text-xs pointer-events-none z-20"
         style={{
-          left: `${cursorPosition.x * zoom + panOffset.x + 10}px`,
-          top: `${cursorPosition.y * zoom + panOffset.y + 10}px`,
+          left: `${cursorPosition.x * uiZoom + panOffset.x + 10}px`,
+          top: `${cursorPosition.y * uiZoom + panOffset.y + 10}px`,
         }}
       >
         x: {Math.round(cursorPosition.x)}, y: {Math.round(cursorPosition.y)}
@@ -602,24 +622,11 @@ export function Canvas({ image, labels }: CanvasProps) {
     )
   }
 
-  // Effect to prompt for label name when a shape is completed
   useEffect(() => {
-    if (showLabelInput && tempLabel) {
-      setLabelPrompt({
-        isOpen: true,
-        onSubmit: handleLabelSubmit,
-        onCancel: () => {
-          setShowLabelInput(false)
-          setTempLabel(null)
-        },
-      })
+    if (!showLabelInput) {
+      setIsAnnotationPanelOpen(false)
     }
-  }, [showLabelInput, tempLabel, setLabelPrompt])
-
-  // Get color class for a label
-  const getLabelColorClass = (label: Label) => {
-    return label.color || "blue-500"
-  }
+  }, [showLabelInput, setIsAnnotationPanelOpen])
 
   return (
     <div
@@ -658,7 +665,7 @@ export function Canvas({ image, labels }: CanvasProps) {
           <div
             className="absolute"
             style={{
-              transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom})`,
+              transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${uiZoom})`,
               transformOrigin: "0 0",
               marginLeft: "0",
               marginTop: "0",
@@ -674,48 +681,53 @@ export function Canvas({ image, labels }: CanvasProps) {
             />
 
             {/* Render existing labels */}
-            {labels.map((label) => (
-              <div key={label.id}>
-                {label.type === "box" && (
+            {annotations.map((annotation: Annotation) => (
+              <div key={annotation.id}>
+                {annotation.type === "box" && (
                   <motion.div
                     className={cn(
                       "absolute border-2 bg-opacity-20",
-                      selectedLabelId === label.id
+                      selectedLabelId === annotation.id
                         ? "border-yellow-500 bg-yellow-500"
-                        : label.isAIGenerated
-                          ? "border-green-500 bg-green-500"
-                          : ``
+                        : ""
                     )}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     style={{
-                      left: label.coordinates[0].x,
-                      top: label.coordinates[0].y,
-                      width: label.coordinates[1].x - label.coordinates[0].x,
-                      height: label.coordinates[1].y - label.coordinates[0].y,
-                      backgroundColor: rgbToRgba(label.color || "blue", 0.2),
-                      borderColor: label.color || "blue",
+                      left: annotation.coordinates[0].x,
+                      top: annotation.coordinates[0].y,
+                      width:
+                        annotation.coordinates[1].x -
+                        annotation.coordinates[0].x,
+                      height:
+                        annotation.coordinates[1].y -
+                        annotation.coordinates[0].y,
+                      backgroundColor: rgbToRgba(
+                        annotation.label.color || "blue",
+                        0.2
+                      ),
+                      borderColor: annotation.label.color || "blue",
                     }}
                   >
                     <div
                       style={{
-                        backgroundColor: label.color || "blue",
+                        backgroundColor: annotation.label.color || "blue",
                       }}
                       className={cn(
                         "absolute -top-6 left-0 px-2 py-0.5 text-xs text-white",
-                        selectedLabelId === label.id
+                        selectedLabelId === annotation.id
                           ? "bg-yellow-500"
-                          : label.isAIGenerated
+                          : annotation.label.isAIGenerated
                             ? "bg-green-500"
                             : ``
                       )}
                     >
-                      {label.name} {label.category && `(${label.category})`}
-                      {label.isAIGenerated && " 🤖"}
+                      {annotation.label.name}
+                      {annotation.label.isAIGenerated && " 🤖"}
                     </div>
 
                     {/* Render resize handles when selected */}
-                    {selectedLabelId === label.id &&
+                    {selectedLabelId === annotation.id &&
                       selectedTool === "move" && (
                         <>
                           <div className="absolute -top-1 -left-1 h-2 w-2 cursor-nwse-resize bg-white border border-gray-400" />
@@ -731,48 +743,48 @@ export function Canvas({ image, labels }: CanvasProps) {
                   </motion.div>
                 )}
 
-                {label.type === "polygon" && (
+                {annotation.type === "polygon" && (
                   <svg className="absolute left-0 top-0 h-full w-full pointer-events-none">
                     <motion.polygon
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      points={label.coordinates
+                      points={annotation.coordinates
                         .map((p) => `${p.x},${p.y}`)
                         .join(" ")}
                       className={cn(
                         "fill-opacity-20 stroke-2",
-                        selectedLabelId === label.id
+                        selectedLabelId === annotation.id
                           ? "fill-yellow-500 stroke-yellow-500"
-                          : label.isAIGenerated
+                          : annotation.label.isAIGenerated
                             ? "fill-green-500 stroke-green-500"
-                            : `fill-${label.color || "blue-500"} stroke-${label.color || "blue-500"}`
+                            : `fill-${annotation.label.color || "blue-500"} stroke-${annotation.label.color || "blue-500"}`
                       )}
                     />
                     <text
-                      x={label.coordinates[0].x}
-                      y={label.coordinates[0].y - 10}
+                      x={annotation.coordinates[0].x}
+                      y={annotation.coordinates[0].y - 10}
                       className={cn(
                         "text-xs",
-                        selectedLabelId === label.id
+                        selectedLabelId === annotation.id
                           ? "fill-yellow-500"
-                          : label.isAIGenerated
+                          : annotation.label.isAIGenerated
                             ? "fill-green-500"
-                            : `fill-${label.color || "blue-500"}`
+                            : `fill-${annotation.label.color || "blue-500"}`
                       )}
                     >
-                      {label.name} {label.category && `(${label.category})`}
+                      {annotation.label.name}
                     </text>
 
                     {/* Render vertices when selected */}
-                    {selectedLabelId === label.id &&
+                    {selectedLabelId === annotation.id &&
                       selectedTool === "move" && (
                         <>
-                          {label.coordinates.map((point, index) => (
+                          {annotation.coordinates.map((point, index) => (
                             <circle
                               key={index}
                               cx={point.x}
                               cy={point.y}
-                              r={4 / zoom}
+                              r={4 / uiZoom}
                               className="fill-white stroke-gray-400 stroke-1"
                             />
                           ))}
@@ -808,7 +820,7 @@ export function Canvas({ image, labels }: CanvasProps) {
                     key={index}
                     cx={point.x}
                     cy={point.y}
-                    r={4 / zoom}
+                    r={4 / uiZoom}
                     className="fill-white stroke-blue-500 stroke-2"
                   />
                 ))}

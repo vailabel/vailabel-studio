@@ -35,12 +35,10 @@ import { AIModelModal } from "@/components/ai-model-modal"
 import { ContextMenu } from "@/components/context-menu"
 import { db } from "@/lib/db"
 import { useToast } from "@/hooks/use-toast"
-import { useLabelStore } from "@/lib/store"
-import { useSettingsStore } from "@/lib/settings-store"
+import { useStore } from "@/lib/store"
 import type { Project, Label } from "@/lib/types"
-import { cn } from "@/lib/utils"
 import { useTheme } from "next-themes"
-import { LabelPrompt } from "./label-prompt"
+import { CreateAnnotation } from "./create-annotation"
 
 interface ImageLabelerProps {
   project: Project
@@ -66,138 +64,11 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
   const canvasContainerRef = useRef<HTMLDivElement>(null)
   const [containerRect, setContainerRect] = useState<DOMRect | null>(null)
 
-  const { labels, setLabels, clearLabels } = useLabelStore()
+  const { labels, createAnnotation } = useStore()
   const { theme, setTheme } = useTheme()
-
-  // Calculate how many images have labels
-  useEffect(() => {
-    const countLabeledImages = async () => {
-      try {
-        const imageIds = project.images.map((img) => img.id)
-        const labeledImages = await db.labels
-          .where("imageId")
-          .anyOf(imageIds)
-          .toArray()
-
-        // Count unique imageIds that have labels
-        const uniqueImageIds = new Set(
-          labeledImages.map((label) => label.imageId)
-        )
-        setLabeledCount(uniqueImageIds.size)
-      } catch (error) {
-        console.error("Failed to count labeled images:", error)
-      }
-    }
-
-    countLabeledImages()
-  }, [project.images, labels])
-
-  // Load labels for the current image
-  useEffect(() => {
-    const loadLabels = async () => {
-      if (!project.images.length) return
-
-      try {
-        const currentImage = project.images[currentImageIndex]
-        const imageLabels = await db.labels
-          .where("imageId")
-          .equals(currentImage.id)
-          .toArray()
-
-        setLabels(imageLabels)
-      } catch (error) {
-        console.error("Failed to load labels:", error)
-        toast({
-          title: "Error",
-          description: "Failed to load image labels",
-          variant: "destructive",
-        })
-      }
-    }
-
-    loadLabels()
-  }, [project.images, currentImageIndex, setLabels, toast])
-
-  const handleSaveProject = async () => {
-    setIsSaving(true)
-
-    try {
-      // Update project's lastModified date
-      await db.projects.update(project.id, {
-        lastModified: new Date(),
-      })
-
-      toast({
-        title: "Success",
-        description: "Project saved successfully",
-      })
-    } catch (error) {
-      console.error("Failed to save project:", error)
-      toast({
-        title: "Error",
-        description: "Failed to save project",
-        variant: "destructive",
-      })
-    } finally {
-      setIsSaving(false)
-    }
-  }
 
   const handleExportProject = () => {
     setShowExport(true)
-  }
-
-  // Update the handleNextImage and handlePrevImage functions to properly save labels before changing images
-  const handleNextImage = async () => {
-    if (currentImageIndex < project.images.length - 1) {
-      // Save current labels to database before changing images
-      try {
-        const currentImage = project.images[currentImageIndex]
-        const nextImage = project.images[currentImageIndex + 1]
-
-        // Update project's lastModified date
-        await db.projects.update(project.id, {
-          lastModified: new Date(),
-        })
-
-        // Clear labels and load the next image's labels
-        clearLabels()
-        setCurrentImageIndex(currentImageIndex + 1)
-      } catch (error) {
-        console.error("Failed to save labels before changing image:", error)
-        toast({
-          title: "Error",
-          description: "Failed to save labels",
-          variant: "destructive",
-        })
-      }
-    }
-  }
-
-  const handlePrevImage = async () => {
-    if (currentImageIndex > 0) {
-      // Save current labels to database before changing images
-      try {
-        const currentImage = project.images[currentImageIndex]
-        const prevImage = project.images[currentImageIndex - 1]
-
-        // Update project's lastModified date
-        await db.projects.update(project.id, {
-          lastModified: new Date(),
-        })
-
-        // Clear labels and load the previous image's labels
-        clearLabels()
-        setCurrentImageIndex(currentImageIndex - 1)
-      } catch (error) {
-        console.error("Failed to save labels before changing image:", error)
-        toast({
-          title: "Error",
-          description: "Failed to save labels",
-          variant: "destructive",
-        })
-      }
-    }
   }
 
   const handleLabelSelect = (label: Label) => {
@@ -241,9 +112,9 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
         return
 
       if (e.key === "ArrowRight" || e.code === "ArrowRight") {
-        handleNextImage()
+        // TODO: Implement next image navigation
       } else if (e.key === "ArrowLeft" || e.code === "ArrowLeft") {
-        handlePrevImage()
+        // TODO: Implement previous image navigation
       }
     }
 
@@ -266,7 +137,7 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
 
   return (
     <div className="flex flex-col h-screen w-full overflow-hidden bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-      <header className="flex items-center justify-between border-b p-4 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+      <header className="flex items-center justify-between border-b px-4 py-1 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={onClose}>
             <ArrowLeft className="h-5 w-5" />
@@ -304,7 +175,7 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
               <TooltipTrigger asChild>
                 <Button
                   variant="outline"
-                  onClick={handleSaveProject}
+                  onClick={() => {}}
                   disabled={isSaving}
                 >
                   <Save className="mr-2 h-4 w-4" />
@@ -354,11 +225,7 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
           maxSize={400}
           className="h-full"
         >
-          <ImageList
-            project={project}
-            currentImageIndex={currentImageIndex}
-            onImageSelect={setCurrentImageIndex}
-          />
+          <LabelListPanel onLabelSelect={handleLabelSelect} />
         </ResizablePanel>
 
         {/* Middle panel - Canvas */}
@@ -404,7 +271,9 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
               )}
             </AnimatePresence>
           </div>
-
+          <AnimatePresence>
+            <CreateAnnotation />
+          </AnimatePresence>
           <div className="border-t p-4 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -414,7 +283,7 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={handlePrevImage}
+                        onClick={() => {}}
                         disabled={currentImageIndex === 0}
                       >
                         <ChevronLeft className="h-4 w-4" />
@@ -432,7 +301,7 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={handleNextImage}
+                        onClick={() => {}}
                         disabled={
                           currentImageIndex === project.images.length - 1
                         }
@@ -468,20 +337,7 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
               />
             </div>
           </div>
-          <LabelPrompt />
         </div>
-
-        {/* Right panel - Label list */}
-        <ResizablePanel
-          direction="horizontal"
-          controlPosition="left"
-          defaultSize={280}
-          minSize={200}
-          maxSize={400}
-          className="h-full"
-        >
-          <LabelListPanel onLabelSelect={handleLabelSelect} />
-        </ResizablePanel>
       </div>
 
       <AnimatePresence>

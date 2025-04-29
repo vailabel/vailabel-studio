@@ -10,8 +10,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
-import { useLabelStore } from "@/lib/store"
-import { useSettingsStore } from "@/lib/settings-store"
+import { useStore } from "@/lib/store"
 import type { Project } from "@/lib/types"
 
 interface ImageListProps {
@@ -26,7 +25,7 @@ export function ImageList({
   onImageSelect,
 }: ImageListProps) {
   const [imagesOpen, setImagesOpen] = useState(true)
-  const { labels } = useLabelStore()
+  const { labels } = useStore()
 
   return (
     <div
