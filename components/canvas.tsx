@@ -6,7 +6,7 @@ import { useState, useRef, useEffect } from "react"
 import { motion } from "framer-motion"
 import { useLabelStore } from "@/lib/store"
 import { useSettingsStore } from "@/lib/settings-store"
-import { cn } from "@/lib/utils"
+import { cn, rgbToRgba } from "@/lib/utils"
 import type { ImageData, Label, Point } from "@/lib/types"
 
 interface CanvasProps {
@@ -558,7 +558,6 @@ export function Canvas({ image, labels }: CanvasProps) {
     setZoom(Math.max(zoom - 0.1, 0.1))
   }
 
-
   useEffect(() => {
     window.addEventListener("reset-zoom", resetView)
     window.addEventListener("zoom-in", zoomIn)
@@ -772,7 +771,7 @@ export function Canvas({ image, labels }: CanvasProps) {
                         ? "border-yellow-500 bg-yellow-500"
                         : label.isAIGenerated
                           ? "border-green-500 bg-green-500"
-                          : `border-${label.color || "blue-500"} bg-${label.color || "blue-500"}`
+                          : ``
                     )}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -781,16 +780,21 @@ export function Canvas({ image, labels }: CanvasProps) {
                       top: label.coordinates[0].y,
                       width: label.coordinates[1].x - label.coordinates[0].x,
                       height: label.coordinates[1].y - label.coordinates[0].y,
+                      backgroundColor: rgbToRgba(label.color || "blue", 0.2),
+                      borderColor: label.color || "blue",
                     }}
                   >
                     <div
+                      style={{
+                        backgroundColor: label.color || "blue",
+                      }}
                       className={cn(
                         "absolute -top-6 left-0 px-2 py-0.5 text-xs text-white",
                         selectedLabelId === label.id
                           ? "bg-yellow-500"
                           : label.isAIGenerated
                             ? "bg-green-500"
-                            : `bg-${label.color || "blue-500"}`
+                            : ``
                       )}
                     >
                       {label.name} {label.category && `(${label.category})`}

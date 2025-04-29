@@ -27,7 +27,7 @@ export function ContextMenu({
   onClose,
 }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null)
-  const { setSelectedTool, darkMode } = useSettingsStore()
+  const { setSelectedTool } = useSettingsStore()
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -47,8 +47,8 @@ export function ContextMenu({
   }
 
   // Calculate position relative to the container
-  const menuX = containerRect ? x - containerRect.left : x
-  const menuY = containerRect ? y - containerRect.top : y
+  const menuX = containerRect ? Math.max(0, x - containerRect.left) : x
+  const menuY = containerRect ? Math.max(0, y - containerRect.top) : y
 
   // Adjust position to ensure menu stays within viewport
   const adjustedX = Math.min(
@@ -68,7 +68,8 @@ export function ContextMenu({
       exit={{ opacity: 0, scale: 0.9 }}
       className={cn(
         "absolute z-50 w-48 rounded-md shadow-lg ring-1 ring-opacity-5",
-        darkMode ? "bg-gray-800 ring-gray-700" : "bg-white ring-black"
+        "dark:bg-gray-800 dark:ring-gray-700",
+        "bg-white ring-black"
       )}
       style={{ left: adjustedX, top: adjustedY }}
     >
@@ -76,9 +77,8 @@ export function ContextMenu({
         <button
           className={cn(
             "flex w-full items-center px-4 py-2 text-sm",
-            darkMode
-              ? "text-gray-300 hover:bg-gray-700"
-              : "text-gray-700 hover:bg-gray-100"
+            "dark:text-gray-300 dark:hover:bg-gray-700",
+            "text-gray-700 hover:bg-gray-100"
           )}
           onClick={() => handleToolSelect("move")}
         >
@@ -88,9 +88,8 @@ export function ContextMenu({
         <button
           className={cn(
             "flex w-full items-center px-4 py-2 text-sm",
-            darkMode
-              ? "text-gray-300 hover:bg-gray-700"
-              : "text-gray-700 hover:bg-gray-100"
+            "dark:text-gray-300 dark:hover:bg-gray-700",
+            "text-gray-700 hover:bg-gray-100"
           )}
           onClick={() => handleToolSelect("box")}
         >
@@ -100,9 +99,8 @@ export function ContextMenu({
         <button
           className={cn(
             "flex w-full items-center px-4 py-2 text-sm",
-            darkMode
-              ? "text-gray-300 hover:bg-gray-700"
-              : "text-gray-700 hover:bg-gray-100"
+            "dark:text-gray-300 dark:hover:bg-gray-700",
+            "text-gray-700 hover:bg-gray-100"
           )}
           onClick={() => handleToolSelect("polygon")}
         >
@@ -112,9 +110,8 @@ export function ContextMenu({
         <button
           className={cn(
             "flex w-full items-center px-4 py-2 text-sm",
-            darkMode
-              ? "text-gray-300 hover:bg-gray-700"
-              : "text-gray-700 hover:bg-gray-100"
+            "dark:text-gray-300 dark:hover:bg-gray-700",
+            "text-gray-700 hover:bg-gray-100"
           )}
           onClick={() => handleToolSelect("freeDraw")}
         >
@@ -124,9 +121,8 @@ export function ContextMenu({
         <button
           className={cn(
             "flex w-full items-center px-4 py-2 text-sm",
-            darkMode
-              ? "text-gray-300 hover:bg-gray-700"
-              : "text-gray-700 hover:bg-gray-100"
+            "dark:text-gray-300 dark:hover:bg-gray-700",
+            "text-gray-700 hover:bg-gray-100"
           )}
           onClick={() => handleToolSelect("delete")}
         >
@@ -136,15 +132,15 @@ export function ContextMenu({
         <div
           className={cn(
             "my-1 border-t",
-            darkMode ? "border-gray-700" : "border-gray-200"
+            "dark:border-gray-700",
+            "border-gray-200"
           )}
         ></div>
         <button
           className={cn(
             "flex w-full items-center px-4 py-2 text-sm",
-            darkMode
-              ? "text-gray-300 hover:bg-gray-700"
-              : "text-gray-700 hover:bg-gray-100"
+            "dark:text-gray-300 dark:hover:bg-gray-700",
+            "text-gray-700 hover:bg-gray-100"
           )}
           onClick={() => {
             // Trigger zoom reset
