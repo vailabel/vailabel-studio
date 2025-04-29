@@ -11,7 +11,6 @@ export default function ImageLabelingApp() {
   const [isLoading, setIsLoading] = useState(true)
   const [projects, setProjects] = useState<Project[]>([])
 
-  
   // Load projects and active project on initial render
   useEffect(() => {
     const loadProjects = async () => {
@@ -33,7 +32,6 @@ export default function ImageLabelingApp() {
 
     loadProjects()
   }, [toast])
-
 
   const handleProjectCreate = (project: Project) => {
     setProjects([...projects, project])

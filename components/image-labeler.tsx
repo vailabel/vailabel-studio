@@ -469,7 +469,6 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
             </div>
           </div>
           <LabelPrompt />
-
         </div>
 
         {/* Right panel - Label list */}

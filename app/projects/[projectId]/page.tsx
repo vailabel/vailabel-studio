@@ -24,9 +24,9 @@ export default function ProjectDetails({
   const params = React.use(paramsPromise)
   const { projectId } = params
 
-  const [project, setProject] = useState<Project & { images: any[]; totalImages: number } | null>(
-    null
-  )
+  const [project, setProject] = useState<
+    (Project & { images: any[]; totalImages: number }) | null
+  >(null)
   const [currentPage, setCurrentPage] = useState(1)
   const imagesPerPage = 50
 
@@ -36,7 +36,11 @@ export default function ProjectDetails({
     return images.slice(startIndex, endIndex)
   }
 
-  const loadProject = async (projectId: string, page: number, limit: number) => {
+  const loadProject = async (
+    projectId: string,
+    page: number,
+    limit: number
+  ) => {
     const offset = (page - 1) * limit
     const images = await db.images
       .filter((image) => image.projectId === projectId)
@@ -97,9 +101,7 @@ export default function ProjectDetails({
   }
 
   if (!project) {
-    return (
-      <Loading />
-    )
+    return <Loading />
   }
 
   return (
@@ -123,29 +125,25 @@ export default function ProjectDetails({
                 <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-6 gap-4">
                   {project.images.map((image, index) => (
                     <Card key={index} className="overflow-hidden">
-                      <Link 
-                        href={`/projects/${projectId}/${image.id}`}
-                      >
-                      <img
-                        src={image.data || "/placeholder.svg"}
-                        alt={`Image ${index + 1}`}
-                        className="w-full h-48 object-cover"
-                      />
-                      <CardContent>
-                        <p className="text-sm text-gray-600">
-                          {image.name.length > 20
-                            ? `${image.name.slice(0, 20)}...`
-                            : image.name}
-                        </p>
-                      </CardContent>
+                      <Link href={`/projects/${projectId}/${image.id}`}>
+                        <img
+                          src={image.data || "/placeholder.svg"}
+                          alt={`Image ${index + 1}`}
+                          className="w-full h-48 object-cover"
+                        />
+                        <CardContent>
+                          <p className="text-sm text-gray-600">
+                            {image.name.length > 20
+                              ? `${image.name.slice(0, 20)}...`
+                              : image.name}
+                          </p>
+                        </CardContent>
                       </Link>
                     </Card>
                   ))}
                 </div>
                 <Pagination>
-                  <PaginationPrevious
-                    onClick={handlePreviousPage}
-                  >
+                  <PaginationPrevious onClick={handlePreviousPage}>
                     Previous
                   </PaginationPrevious>
                   <PaginationContent>
@@ -157,15 +155,13 @@ export default function ProjectDetails({
                       <PaginationLink>{totalPages}</PaginationLink>
                     </PaginationItem>
                   </PaginationContent>
-                  <PaginationNext
-                    onClick={handleNextPage}
-                  >
-                    Next
-                  </PaginationNext>
+                  <PaginationNext onClick={handleNextPage}>Next</PaginationNext>
                 </Pagination>
               </>
             ) : (
-              <p className="text-gray-600">No images available for this project.</p>
+              <p className="text-gray-600">
+                No images available for this project.
+              </p>
             )}
           </section>
         </CardContent>

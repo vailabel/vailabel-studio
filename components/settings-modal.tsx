@@ -12,6 +12,7 @@ import { useSettingsStore } from "@/lib/settings-store"
 import { db } from "@/lib/db"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
+import { useTheme } from "next-themes"
 
 interface SettingsModalProps {
   onClose: () => void
@@ -20,9 +21,8 @@ interface SettingsModalProps {
 export function SettingsModal({ onClose }: SettingsModalProps) {
   const { toast } = useToast()
   const [isClearing, setIsClearing] = useState(false)
-
+  const { theme, setTheme } = useTheme()
   const {
-    setDarkMode,
     showRulers,
     setShowRulers,
     showCrosshairs,
@@ -80,7 +80,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
       <motion.div
         className={cn(
           "w-full max-w-lg rounded-lg p-6 shadow-xl",
-          darkMode ? "bg-gray-800 text-gray-100" : "bg-white"
+          "bg-white dark:bg-gray-800 dark:text-gray-100"
         )}
         initial={{ scale: 0.9, y: 20 }}
         animate={{ scale: 1, y: 0 }}
@@ -109,18 +109,18 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                   Dark Mode
                 </Label>
                 <p
-                  className={cn(
-                    "text-sm",
-                    darkMode ? "text-gray-400" : "text-gray-500"
-                  )}
+                  className={cn("text-sm", "text-gray-500 dark:text-gray-400")}
                 >
                   Use dark theme for the application
                 </p>
               </div>
               <Switch
                 id="dark-mode"
-                checked={darkMode}
-                onCheckedChange={setDarkMode}
+                checked={theme === "dark"}
+                onCheckedChange={(checked) => {
+                  setTheme(checked ? "dark" : "light")
+                }}
+                className="dark-mode-switch"
               />
             </div>
 
@@ -130,10 +130,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                   Keyboard Shortcuts
                 </Label>
                 <p
-                  className={cn(
-                    "text-sm",
-                    darkMode ? "text-gray-400" : "text-gray-500"
-                  )}
+                  className={cn("text-sm", "text-gray-500 dark:text-gray-400")}
                 >
                   Enable keyboard shortcuts for tools
                 </p>
@@ -149,10 +146,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                   Show Rulers
                 </Label>
                 <p
-                  className={cn(
-                    "text-sm",
-                    darkMode ? "text-gray-400" : "text-gray-500"
-                  )}
+                  className={cn("text-sm", "text-gray-500 dark:text-gray-400")}
                 >
                   Show rulers on the canvas
                 </p>
@@ -170,10 +164,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                   Show Crosshairs
                 </Label>
                 <p
-                  className={cn(
-                    "text-sm",
-                    darkMode ? "text-gray-400" : "text-gray-500"
-                  )}
+                  className={cn("text-sm", "text-gray-500 dark:text-gray-400")}
                 >
                   Show crosshairs when drawing
                 </p>
@@ -191,10 +182,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                   Show Coordinates
                 </Label>
                 <p
-                  className={cn(
-                    "text-sm",
-                    darkMode ? "text-gray-400" : "text-gray-500"
-                  )}
+                  className={cn("text-sm", "text-gray-500 dark:text-gray-400")}
                 >
                   Show cursor coordinates on canvas
                 </p>
@@ -212,10 +200,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
               </Label>
               <div className="flex items-center gap-2">
                 <Sun
-                  className={cn(
-                    "h-4 w-4",
-                    darkMode ? "text-gray-400" : "text-gray-500"
-                  )}
+                  className={cn("h-4 w-4", "text-gray-500 dark:text-gray-400")}
                 />
                 <Slider
                   id="brightness"
@@ -236,10 +221,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
               </Label>
               <div className="flex items-center gap-2">
                 <Moon
-                  className={cn(
-                    "h-4 w-4",
-                    darkMode ? "text-gray-400" : "text-gray-500"
-                  )}
+                  className={cn("h-4 w-4", "text-gray-500 dark:text-gray-400")}
                 />
                 <Slider
                   id="contrast"
@@ -259,14 +241,14 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
             <div
               className={cn(
                 "rounded-md border p-4",
-                darkMode ? "border-gray-700" : "border-gray-200"
+                "border-gray-200 dark:border-gray-700"
               )}
             >
               <h4 className="font-medium">Clear All Data</h4>
               <p
                 className={cn(
                   "mt-1 text-sm",
-                  darkMode ? "text-gray-400" : "text-gray-500"
+                  "text-gray-500 dark:text-gray-400"
                 )}
               >
                 This will delete all projects, images, and labels from your
@@ -286,14 +268,14 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
             <div
               className={cn(
                 "rounded-md border p-4",
-                darkMode ? "border-gray-700" : "border-gray-200"
+                "border-gray-200 dark:border-gray-700"
               )}
             >
               <h4 className="font-medium">Export All Data</h4>
               <p
                 className={cn(
                   "mt-1 text-sm",
-                  darkMode ? "text-gray-400" : "text-gray-500"
+                  "text-gray-500 dark:text-gray-400"
                 )}
               >
                 Export all your projects, images, and labels as a JSON file.
