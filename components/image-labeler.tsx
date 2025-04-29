@@ -4,11 +4,25 @@ import type React from "react"
 
 import { useState, useEffect, useRef } from "react"
 import { AnimatePresence } from "framer-motion"
-import { ArrowLeft, Save, Download, Settings, ChevronLeft, ChevronRight, Moon, Sun } from "lucide-react"
+import {
+  ArrowLeft,
+  Save,
+  Download,
+  Settings,
+  ChevronLeft,
+  ChevronRight,
+  Moon,
+  Sun,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { Canvas } from "@/components/canvas"
 import { Toolbar } from "@/components/toolbar"
 import { ImageList } from "@/components/image-list"
@@ -57,10 +71,15 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
     const countLabeledImages = async () => {
       try {
         const imageIds = project.images.map((img) => img.id)
-        const labeledImages = await db.labels.where("imageId").anyOf(imageIds).toArray()
+        const labeledImages = await db.labels
+          .where("imageId")
+          .anyOf(imageIds)
+          .toArray()
 
         // Count unique imageIds that have labels
-        const uniqueImageIds = new Set(labeledImages.map((label) => label.imageId))
+        const uniqueImageIds = new Set(
+          labeledImages.map((label) => label.imageId)
+        )
         setLabeledCount(uniqueImageIds.size)
       } catch (error) {
         console.error("Failed to count labeled images:", error)
@@ -77,7 +96,10 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
 
       try {
         const currentImage = project.images[currentImageIndex]
-        const imageLabels = await db.labels.where("imageId").equals(currentImage.id).toArray()
+        const imageLabels = await db.labels
+          .where("imageId")
+          .equals(currentImage.id)
+          .toArray()
 
         setLabels(imageLabels)
       } catch (error) {
@@ -221,7 +243,8 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Only process if no modals are open
-      if (showSettings || showLabelEditor || showExport || showAISettings) return
+      if (showSettings || showLabelEditor || showExport || showAISettings)
+        return
 
       if (e.key === "n" || e.key === "N") {
         handleNextImage()
@@ -232,10 +255,20 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [currentImageIndex, project.images.length, showSettings, showLabelEditor, showExport, showAISettings])
+  }, [
+    currentImageIndex,
+    project.images.length,
+    showSettings,
+    showLabelEditor,
+    showExport,
+    showAISettings,
+  ])
 
   const currentImage = project.images[currentImageIndex]
-  const progress = project.images.length > 0 ? Math.round((labeledCount / project.images.length) * 100) : 0
+  const progress =
+    project.images.length > 0
+      ? Math.round((labeledCount / project.images.length) * 100)
+      : 0
 
   return (
     <div className="flex flex-col h-screen w-full overflow-hidden bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
@@ -245,7 +278,9 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">{project.name}</h1>
+            <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">
+              {project.name}
+            </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               {labeledCount} of {project.images.length} images labeled
             </p>
@@ -256,18 +291,32 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" size="icon" onClick={() => setDarkMode(!darkMode)}>
-                  {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setDarkMode(!darkMode)}
+                >
+                  {darkMode ? (
+                    <Sun className="h-4 w-4" />
+                  ) : (
+                    <Moon className="h-4 w-4" />
+                  )}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>{darkMode ? "Light mode" : "Dark mode"}</TooltipContent>
+              <TooltipContent>
+                {darkMode ? "Light mode" : "Dark mode"}
+              </TooltipContent>
             </Tooltip>
           </TooltipProvider>
 
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" onClick={handleSaveProject} disabled={isSaving}>
+                <Button
+                  variant="outline"
+                  onClick={handleSaveProject}
+                  disabled={isSaving}
+                >
                   <Save className="mr-2 h-4 w-4" />
                   {isSaving ? "Saving..." : "Save"}
                 </Button>
@@ -291,7 +340,11 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" size="icon" onClick={() => setShowSettings(true)}>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setShowSettings(true)}
+                >
                   <Settings className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
@@ -303,8 +356,19 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
 
       <div className="flex flex-1 overflow-hidden">
         {/* Left panel - Image list */}
-        <ResizablePanel direction="horizontal" controlPosition="right" defaultSize={280} minSize={200} maxSize={400} className="h-full">
-          <ImageList project={project} currentImageIndex={currentImageIndex} onImageSelect={setCurrentImageIndex} />
+        <ResizablePanel
+          direction="horizontal"
+          controlPosition="right"
+          defaultSize={280}
+          minSize={200}
+          maxSize={400}
+          className="h-full"
+        >
+          <ImageList
+            project={project}
+            currentImageIndex={currentImageIndex}
+            onImageSelect={setCurrentImageIndex}
+          />
         </ResizablePanel>
 
         {/* Middle panel - Canvas */}
@@ -325,7 +389,9 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
               <Canvas image={currentImage} labels={labels} />
             ) : (
               <div className="flex h-full items-center justify-center bg-gray-100 dark:bg-gray-900">
-                <p className="text-gray-500 dark:text-gray-400">No images in this project</p>
+                <p className="text-gray-500 dark:text-gray-400">
+                  No images in this project
+                </p>
               </div>
             )}
 
@@ -344,7 +410,12 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
           <div className="border-t p-4 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={handlePrevImage} disabled={currentImageIndex === 0}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePrevImage}
+                  disabled={currentImageIndex === 0}
+                >
                   <ChevronLeft className="h-4 w-4" />
                   Previous
                 </Button>
@@ -371,27 +442,53 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
             </div>
 
             <div className="mt-2">
-              <Progress value={progress} className="h-1 bg-gray-200 dark:bg-gray-700" />
+              <Progress
+                value={progress}
+                className="h-1 bg-gray-200 dark:bg-gray-700"
+              />
             </div>
           </div>
         </div>
 
         {/* Right panel - Label list */}
-        <ResizablePanel direction="horizontal" controlPosition="left" defaultSize={280} minSize={200} maxSize={400} className="h-full">
+        <ResizablePanel
+          direction="horizontal"
+          controlPosition="left"
+          defaultSize={280}
+          minSize={200}
+          maxSize={400}
+          className="h-full"
+        >
           <LabelListPanel onLabelSelect={handleLabelSelect} />
         </ResizablePanel>
       </div>
 
-      <AnimatePresence>{showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}</AnimatePresence>
-
       <AnimatePresence>
-        {showExport && <ExportModal project={project} labels={labels} onClose={() => setShowExport(false)} />}
+        {showSettings && (
+          <SettingsModal onClose={() => setShowSettings(false)} />
+        )}
       </AnimatePresence>
 
-      <AnimatePresence>{showAISettings && <AIModelModal onClose={() => setShowAISettings(false)} />}</AnimatePresence>
+      <AnimatePresence>
+        {showExport && (
+          <ExportModal
+            project={project}
+            labels={labels}
+            onClose={() => setShowExport(false)}
+          />
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
-        {showLabelEditor && selectedLabel && <LabelEditor label={selectedLabel} onClose={handleLabelEditorClose} />}
+        {showAISettings && (
+          <AIModelModal onClose={() => setShowAISettings(false)} />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showLabelEditor && selectedLabel && (
+          <LabelEditor label={selectedLabel} onClose={handleLabelEditorClose} />
+        )}
       </AnimatePresence>
     </div>
   )

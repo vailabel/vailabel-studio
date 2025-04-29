@@ -7,7 +7,12 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useToast } from "@/hooks/use-toast"
-import { exportToJson, exportToCoco, exportToPascalVoc, exportToYolo } from "@/lib/export-utils"
+import {
+  exportToJson,
+  exportToCoco,
+  exportToPascalVoc,
+  exportToYolo,
+} from "@/lib/export-utils"
 import type { Project } from "@/lib/types"
 import type { Label as LabelType } from "@/lib/types"
 
@@ -79,9 +84,15 @@ export function ExportModal({ project, labels, onClose }: ExportModalProps) {
         </div>
 
         <div className="mt-4">
-          <p className="text-sm text-gray-500">Choose a format to export your project data</p>
+          <p className="text-sm text-gray-500">
+            Choose a format to export your project data
+          </p>
 
-          <RadioGroup value={exportFormat} onValueChange={setExportFormat} className="mt-4 space-y-3">
+          <RadioGroup
+            value={exportFormat}
+            onValueChange={setExportFormat}
+            className="mt-4 space-y-3"
+          >
             <div className="flex items-start space-x-2">
               <RadioGroupItem value="json" id="json" className="mt-1" />
               <div>
@@ -89,7 +100,9 @@ export function ExportModal({ project, labels, onClose }: ExportModalProps) {
                   <FileJson className="mr-2 h-4 w-4" />
                   Simple JSON
                 </Label>
-                <p className="text-xs text-gray-500">Export as a simple JSON file with all project data</p>
+                <p className="text-xs text-gray-500">
+                  Export as a simple JSON file with all project data
+                </p>
               </div>
             </div>
 
@@ -100,7 +113,10 @@ export function ExportModal({ project, labels, onClose }: ExportModalProps) {
                   <FileJson className="mr-2 h-4 w-4" />
                   COCO JSON
                 </Label>
-                <p className="text-xs text-gray-500">MS COCO format, compatible with many computer vision frameworks</p>
+                <p className="text-xs text-gray-500">
+                  MS COCO format, compatible with many computer vision
+                  frameworks
+                </p>
               </div>
             </div>
 
@@ -111,7 +127,9 @@ export function ExportModal({ project, labels, onClose }: ExportModalProps) {
                   <FileCode className="mr-2 h-4 w-4" />
                   Pascal VOC XML
                 </Label>
-                <p className="text-xs text-gray-500">XML format used by Pascal VOC dataset, one file per image</p>
+                <p className="text-xs text-gray-500">
+                  XML format used by Pascal VOC dataset, one file per image
+                </p>
               </div>
             </div>
 
@@ -123,7 +141,8 @@ export function ExportModal({ project, labels, onClose }: ExportModalProps) {
                   YOLO TXT
                 </Label>
                 <p className="text-xs text-gray-500">
-                  Darknet YOLO format, one text file per image with normalized coordinates
+                  Darknet YOLO format, one text file per image with normalized
+                  coordinates
                 </p>
               </div>
             </div>

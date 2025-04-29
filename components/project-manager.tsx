@@ -17,7 +17,10 @@ interface ProjectManagerProps {
   onProjectCreate: (project: Project) => void
 }
 
-export function ProjectManager({ onClose, onProjectCreate }: ProjectManagerProps) {
+export function ProjectManager({
+  onClose,
+  onProjectCreate,
+}: ProjectManagerProps) {
   const { toast } = useToast()
   const [projectName, setProjectName] = useState("")
   const [images, setImages] = useState<ImageData[]>([])
@@ -104,7 +107,9 @@ export function ProjectManager({ onClose, onProjectCreate }: ProjectManagerProps
     })
   }
 
-  const getImageDimensions = (dataUrl: string): Promise<{ width: number; height: number }> => {
+  const getImageDimensions = (
+    dataUrl: string
+  ): Promise<{ width: number; height: number }> => {
     return new Promise((resolve) => {
       const img = new Image()
       img.onload = () => {
@@ -222,7 +227,9 @@ export function ProjectManager({ onClose, onProjectCreate }: ProjectManagerProps
             >
               <Upload className="mb-2 h-8 w-8 text-gray-400" />
               <p className="text-sm font-medium text-gray-700">
-                {isUploading ? "Processing..." : "Drag and drop images, or click to browse"}
+                {isUploading
+                  ? "Processing..."
+                  : "Drag and drop images, or click to browse"}
               </p>
               <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
               <input
@@ -239,10 +246,15 @@ export function ProjectManager({ onClose, onProjectCreate }: ProjectManagerProps
 
           {images.length > 0 && (
             <div>
-              <Label className="mb-2 block">Selected Images ({images.length})</Label>
+              <Label className="mb-2 block">
+                Selected Images ({images.length})
+              </Label>
               <div className="grid max-h-64 grid-cols-3 gap-2 overflow-y-auto p-1">
                 {images.map((image, index) => (
-                  <div key={index} className="group relative rounded-md border border-gray-200">
+                  <div
+                    key={index}
+                    className="group relative rounded-md border border-gray-200"
+                  >
                     <img
                       src={image.data || "/placeholder.svg"}
                       alt={image.name}
@@ -262,7 +274,9 @@ export function ProjectManager({ onClose, onProjectCreate }: ProjectManagerProps
                       </Button>
                     </div>
                     <div className="absolute bottom-0 left-0 right-0 bg-black/70 p-1 text-xs text-white">
-                      {image.name.length > 20 ? `${image.name.substring(0, 20)}...` : image.name}
+                      {image.name.length > 20
+                        ? `${image.name.substring(0, 20)}...`
+                        : image.name}
                     </div>
                   </div>
                 ))}
@@ -274,7 +288,12 @@ export function ProjectManager({ onClose, onProjectCreate }: ProjectManagerProps
             <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button onClick={handleCreateProject} disabled={isUploading || !projectName.trim() || images.length === 0}>
+            <Button
+              onClick={handleCreateProject}
+              disabled={
+                isUploading || !projectName.trim() || images.length === 0
+              }
+            >
               Create Project
             </Button>
           </div>

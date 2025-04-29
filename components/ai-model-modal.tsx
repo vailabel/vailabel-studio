@@ -10,7 +10,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useToast } from "@/hooks/use-toast"
-import { getAvailableModels, uploadCustomModel, selectModel } from "@/lib/ai-utils"
+import {
+  getAvailableModels,
+  uploadCustomModel,
+  selectModel,
+} from "@/lib/ai-utils"
 
 interface AIModelModalProps {
   onClose: () => void
@@ -124,7 +128,8 @@ export function AIModelModal({ onClose }: AIModelModalProps) {
 
         <div className="mt-4">
           <p className="text-sm text-gray-500">
-            Select a pre-trained model or upload your own custom YOLOv8 model (.pt file)
+            Select a pre-trained model or upload your own custom YOLOv8 model
+            (.pt file)
           </p>
 
           {isLoading ? (
@@ -132,7 +137,11 @@ export function AIModelModal({ onClose }: AIModelModalProps) {
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"></div>
             </div>
           ) : (
-            <RadioGroup value={selectedModel} onValueChange={setSelectedModel} className="mt-4">
+            <RadioGroup
+              value={selectedModel}
+              onValueChange={setSelectedModel}
+              className="mt-4"
+            >
               {availableModels.map((model) => (
                 <div key={model} className="flex items-center space-x-2">
                   <RadioGroupItem value={model} id={model} />
@@ -159,7 +168,9 @@ export function AIModelModal({ onClose }: AIModelModalProps) {
                 </div>
               )}
             </div>
-            <p className="mt-1 text-xs text-gray-500">Only YOLOv8 PyTorch models (.pt) are supported</p>
+            <p className="mt-1 text-xs text-gray-500">
+              Only YOLOv8 PyTorch models (.pt) are supported
+            </p>
           </div>
 
           <div className="mt-6 flex justify-end space-x-2">

@@ -37,7 +37,11 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   } = useSettingsStore()
 
   const handleClearAllData = async () => {
-    if (!confirm("Are you sure you want to clear all data? This action cannot be undone.")) {
+    if (
+      !confirm(
+        "Are you sure you want to clear all data? This action cannot be undone."
+      )
+    ) {
       return
     }
 
@@ -75,7 +79,10 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
       onClick={onClose}
     >
       <motion.div
-        className={cn("w-full max-w-lg rounded-lg p-6 shadow-xl", darkMode ? "bg-gray-800 text-gray-100" : "bg-white")}
+        className={cn(
+          "w-full max-w-lg rounded-lg p-6 shadow-xl",
+          darkMode ? "bg-gray-800 text-gray-100" : "bg-white"
+        )}
         initial={{ scale: 0.9, y: 20 }}
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.9, y: 20 }}
@@ -102,11 +109,20 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                 <Label htmlFor="dark-mode" className="text-base">
                   Dark Mode
                 </Label>
-                <p className={cn("text-sm", darkMode ? "text-gray-400" : "text-gray-500")}>
+                <p
+                  className={cn(
+                    "text-sm",
+                    darkMode ? "text-gray-400" : "text-gray-500"
+                  )}
+                >
                   Use dark theme for the application
                 </p>
               </div>
-              <Switch id="dark-mode" checked={darkMode} onCheckedChange={setDarkMode} />
+              <Switch
+                id="dark-mode"
+                checked={darkMode}
+                onCheckedChange={setDarkMode}
+              />
             </div>
 
             <div className="flex items-center justify-between">
@@ -114,7 +130,12 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                 <Label htmlFor="keyboard-shortcuts" className="text-base">
                   Keyboard Shortcuts
                 </Label>
-                <p className={cn("text-sm", darkMode ? "text-gray-400" : "text-gray-500")}>
+                <p
+                  className={cn(
+                    "text-sm",
+                    darkMode ? "text-gray-400" : "text-gray-500"
+                  )}
+                >
                   Enable keyboard shortcuts for tools
                 </p>
               </div>
@@ -128,9 +149,20 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                 <Label htmlFor="show-rulers" className="text-base">
                   Show Rulers
                 </Label>
-                <p className={cn("text-sm", darkMode ? "text-gray-400" : "text-gray-500")}>Show rulers on the canvas</p>
+                <p
+                  className={cn(
+                    "text-sm",
+                    darkMode ? "text-gray-400" : "text-gray-500"
+                  )}
+                >
+                  Show rulers on the canvas
+                </p>
               </div>
-              <Switch id="show-rulers" checked={showRulers} onCheckedChange={setShowRulers} />
+              <Switch
+                id="show-rulers"
+                checked={showRulers}
+                onCheckedChange={setShowRulers}
+              />
             </div>
 
             <div className="flex items-center justify-between">
@@ -138,11 +170,20 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                 <Label htmlFor="show-crosshairs" className="text-base">
                   Show Crosshairs
                 </Label>
-                <p className={cn("text-sm", darkMode ? "text-gray-400" : "text-gray-500")}>
+                <p
+                  className={cn(
+                    "text-sm",
+                    darkMode ? "text-gray-400" : "text-gray-500"
+                  )}
+                >
                   Show crosshairs when drawing
                 </p>
               </div>
-              <Switch id="show-crosshairs" checked={showCrosshairs} onCheckedChange={setShowCrosshairs} />
+              <Switch
+                id="show-crosshairs"
+                checked={showCrosshairs}
+                onCheckedChange={setShowCrosshairs}
+              />
             </div>
 
             <div className="flex items-center justify-between">
@@ -150,11 +191,20 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                 <Label htmlFor="show-coordinates" className="text-base">
                   Show Coordinates
                 </Label>
-                <p className={cn("text-sm", darkMode ? "text-gray-400" : "text-gray-500")}>
+                <p
+                  className={cn(
+                    "text-sm",
+                    darkMode ? "text-gray-400" : "text-gray-500"
+                  )}
+                >
                   Show cursor coordinates on canvas
                 </p>
               </div>
-              <Switch id="show-coordinates" checked={showCoordinates} onCheckedChange={setShowCoordinates} />
+              <Switch
+                id="show-coordinates"
+                checked={showCoordinates}
+                onCheckedChange={setShowCoordinates}
+              />
             </div>
 
             <div className="space-y-2">
@@ -162,7 +212,12 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                 Brightness
               </Label>
               <div className="flex items-center gap-2">
-                <Sun className={cn("h-4 w-4", darkMode ? "text-gray-400" : "text-gray-500")} />
+                <Sun
+                  className={cn(
+                    "h-4 w-4",
+                    darkMode ? "text-gray-400" : "text-gray-500"
+                  )}
+                />
                 <Slider
                   id="brightness"
                   min={50}
@@ -181,7 +236,12 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                 Contrast
               </Label>
               <div className="flex items-center gap-2">
-                <Moon className={cn("h-4 w-4", darkMode ? "text-gray-400" : "text-gray-500")} />
+                <Moon
+                  className={cn(
+                    "h-4 w-4",
+                    darkMode ? "text-gray-400" : "text-gray-500"
+                  )}
+                />
                 <Slider
                   id="contrast"
                   min={50}
@@ -197,21 +257,46 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
           </TabsContent>
 
           <TabsContent value="data" className="space-y-4 pt-4">
-            <div className={cn("rounded-md border p-4", darkMode ? "border-gray-700" : "border-gray-200")}>
+            <div
+              className={cn(
+                "rounded-md border p-4",
+                darkMode ? "border-gray-700" : "border-gray-200"
+              )}
+            >
               <h4 className="font-medium">Clear All Data</h4>
-              <p className={cn("mt-1 text-sm", darkMode ? "text-gray-400" : "text-gray-500")}>
-                This will delete all projects, images, and labels from your browser's local storage. This action cannot
-                be undone.
+              <p
+                className={cn(
+                  "mt-1 text-sm",
+                  darkMode ? "text-gray-400" : "text-gray-500"
+                )}
+              >
+                This will delete all projects, images, and labels from your
+                browser's local storage. This action cannot be undone.
               </p>
-              <Button variant="destructive" className="mt-4" onClick={handleClearAllData} disabled={isClearing}>
+              <Button
+                variant="destructive"
+                className="mt-4"
+                onClick={handleClearAllData}
+                disabled={isClearing}
+              >
                 <Trash2 className="mr-2 h-4 w-4" />
                 {isClearing ? "Clearing..." : "Clear All Data"}
               </Button>
             </div>
 
-            <div className={cn("rounded-md border p-4", darkMode ? "border-gray-700" : "border-gray-200")}>
+            <div
+              className={cn(
+                "rounded-md border p-4",
+                darkMode ? "border-gray-700" : "border-gray-200"
+              )}
+            >
               <h4 className="font-medium">Export All Data</h4>
-              <p className={cn("mt-1 text-sm", darkMode ? "text-gray-400" : "text-gray-500")}>
+              <p
+                className={cn(
+                  "mt-1 text-sm",
+                  darkMode ? "text-gray-400" : "text-gray-500"
+                )}
+              >
                 Export all your projects, images, and labels as a JSON file.
               </p>
               <Button className="mt-4">Export Data</Button>

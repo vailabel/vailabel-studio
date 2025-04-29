@@ -3,7 +3,12 @@
 import { useState } from "react"
 import { Brain, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { useToast } from "@/hooks/use-toast"
 import { useLabelStore } from "@/lib/store"
 import { detectObjects } from "@/lib/ai-utils"
@@ -98,11 +103,16 @@ export function AIDetectionButton({ image, disabled }: AIDetectionButtonProps) {
             onClick={handleDetection}
             disabled={disabled || isDetecting || !image}
           >
-            {isDetecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
+            {isDetecting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Brain className="h-4 w-4" />
+            )}
           </Button>
         </TooltipTrigger>
-        <TooltipContent side="bottom">Auto Detect with AI
-          (this feature is experimental using mock data not a real AI model)
+        <TooltipContent side="bottom">
+          Auto Detect with AI (this feature is experimental using mock data not
+          a real AI model)
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

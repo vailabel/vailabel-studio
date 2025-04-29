@@ -35,7 +35,13 @@ export function Canvas({ image, labels }: CanvasProps) {
 
   const { addLabel, updateLabel, removeLabel, setLabelPrompt } = useLabelStore()
 
-  const { showRulers, showCrosshairs, showCoordinates, selectedTool, darkMode } = useSettingsStore()
+  const {
+    showRulers,
+    showCrosshairs,
+    showCoordinates,
+    selectedTool,
+    darkMode,
+  } = useSettingsStore()
 
   // Handle keyboard shortcuts
   useEffect(() => {
@@ -213,7 +219,10 @@ export function Canvas({ image, labels }: CanvasProps) {
         }
 
         // Ensure the box has positive width and height
-        if (newBottomRight.x > newTopLeft.x && newBottomRight.y > newTopLeft.y) {
+        if (
+          newBottomRight.x > newTopLeft.x &&
+          newBottomRight.y > newTopLeft.y
+        ) {
           updateLabel(selectedLabelId, {
             ...label,
             coordinates: [newTopLeft, newBottomRight],
@@ -302,12 +311,21 @@ export function Canvas({ image, labels }: CanvasProps) {
     if (isDragging && startPoint && currentPoint) {
       // Complete the box
       const coordinates = [
-        { x: Math.min(startPoint.x, currentPoint.x), y: Math.min(startPoint.y, currentPoint.y) },
-        { x: Math.max(startPoint.x, currentPoint.x), y: Math.max(startPoint.y, currentPoint.y) },
+        {
+          x: Math.min(startPoint.x, currentPoint.x),
+          y: Math.min(startPoint.y, currentPoint.y),
+        },
+        {
+          x: Math.max(startPoint.x, currentPoint.x),
+          y: Math.max(startPoint.y, currentPoint.y),
+        },
       ]
 
       // Only create a box if it has some size
-      if (Math.abs(coordinates[1].x - coordinates[0].x) > 5 && Math.abs(coordinates[1].y - coordinates[0].y) > 5) {
+      if (
+        Math.abs(coordinates[1].x - coordinates[0].x) > 5 &&
+        Math.abs(coordinates[1].y - coordinates[0].y) > 5
+      ) {
         setTempLabel({
           type: "box",
           coordinates,
@@ -384,7 +402,12 @@ export function Canvas({ image, labels }: CanvasProps) {
   const isPointInLabel = (point: Point, label: Label): boolean => {
     if (label.type === "box") {
       const [topLeft, bottomRight] = label.coordinates
-      return point.x >= topLeft.x && point.x <= bottomRight.x && point.y >= topLeft.y && point.y <= bottomRight.y
+      return (
+        point.x >= topLeft.x &&
+        point.x <= bottomRight.x &&
+        point.y >= topLeft.y &&
+        point.y <= bottomRight.y
+      )
     } else if (label.type === "polygon") {
       return isPointInPolygon(point, label.coordinates)
     }
@@ -400,7 +423,9 @@ export function Canvas({ image, labels }: CanvasProps) {
       const xj = polygon[j].x,
         yj = polygon[j].y
 
-      const intersect = yi > point.y !== yj > point.y && point.x < ((xj - xi) * (point.y - yi)) / (yj - yi) + xi
+      const intersect =
+        yi > point.y !== yj > point.y &&
+        point.x < ((xj - xi) * (point.y - yi)) / (yj - yi) + xi
 
       if (intersect) inside = !inside
     }
@@ -424,7 +449,10 @@ export function Canvas({ image, labels }: CanvasProps) {
   }
 
   // Get resize handle at mouse position
-  const getResizeHandle = (e: React.MouseEvent, label: Label): string | null => {
+  const getResizeHandle = (
+    e: React.MouseEvent,
+    label: Label
+  ): string | null => {
     if (label.type !== "box") return null
 
     const [topLeft, bottomRight] = label.coordinates
@@ -437,21 +465,49 @@ export function Canvas({ image, labels }: CanvasProps) {
     const handleSize = 8 / zoom // Size of the resize handle
 
     // Check each corner and edge
-    if (Math.abs(x - topLeft.x) <= handleSize && Math.abs(y - topLeft.y) <= handleSize) {
+    if (
+      Math.abs(x - topLeft.x) <= handleSize &&
+      Math.abs(y - topLeft.y) <= handleSize
+    ) {
       return "top-left"
-    } else if (Math.abs(x - bottomRight.x) <= handleSize && Math.abs(y - topLeft.y) <= handleSize) {
+    } else if (
+      Math.abs(x - bottomRight.x) <= handleSize &&
+      Math.abs(y - topLeft.y) <= handleSize
+    ) {
       return "top-right"
-    } else if (Math.abs(x - topLeft.x) <= handleSize && Math.abs(y - bottomRight.y) <= handleSize) {
+    } else if (
+      Math.abs(x - topLeft.x) <= handleSize &&
+      Math.abs(y - bottomRight.y) <= handleSize
+    ) {
       return "bottom-left"
-    } else if (Math.abs(x - bottomRight.x) <= handleSize && Math.abs(y - bottomRight.y) <= handleSize) {
+    } else if (
+      Math.abs(x - bottomRight.x) <= handleSize &&
+      Math.abs(y - bottomRight.y) <= handleSize
+    ) {
       return "bottom-right"
-    } else if (Math.abs(y - topLeft.y) <= handleSize && x > topLeft.x && x < bottomRight.x) {
+    } else if (
+      Math.abs(y - topLeft.y) <= handleSize &&
+      x > topLeft.x &&
+      x < bottomRight.x
+    ) {
       return "top"
-    } else if (Math.abs(x - bottomRight.x) <= handleSize && y > topLeft.y && y < bottomRight.y) {
+    } else if (
+      Math.abs(x - bottomRight.x) <= handleSize &&
+      y > topLeft.y &&
+      y < bottomRight.y
+    ) {
       return "right"
-    } else if (Math.abs(y - bottomRight.y) <= handleSize && x > topLeft.x && x < bottomRight.x) {
+    } else if (
+      Math.abs(y - bottomRight.y) <= handleSize &&
+      x > topLeft.x &&
+      x < bottomRight.x
+    ) {
       return "bottom"
-    } else if (Math.abs(x - topLeft.x) <= handleSize && y > topLeft.y && y < bottomRight.y) {
+    } else if (
+      Math.abs(x - topLeft.x) <= handleSize &&
+      y > topLeft.y &&
+      y < bottomRight.y
+    ) {
       return "left"
     }
 
@@ -497,9 +553,9 @@ export function Canvas({ image, labels }: CanvasProps) {
     const handleResetCanvasView = () => {
       resetView()
     }
-  
+
     window.addEventListener("reset-canvas-view", handleResetCanvasView)
-  
+
     return () => {
       window.removeEventListener("reset-canvas-view", handleResetCanvasView)
     }
@@ -521,21 +577,25 @@ export function Canvas({ image, labels }: CanvasProps) {
           className="absolute top-0 left-0 h-5 border-b bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 z-10"
           style={{ width: `${imageWidth + rulerSize}px` }}
         >
-          {Array.from({ length: Math.ceil(imageWidth / tickInterval) }).map((_, i) => (
-            <div
-              key={`h-${i}`}
-              className="absolute bottom-0 border-l h-2 border-gray-400 dark:border-gray-600"
-              style={{ left: `${i * tickInterval + rulerSize}px` }}
-            >
-              <div className="absolute -left-3 -top-4 text-[10px] text-gray-600 dark:text-gray-400">
-                {i * tickInterval}
+          {Array.from({ length: Math.ceil(imageWidth / tickInterval) }).map(
+            (_, i) => (
+              <div
+                key={`h-${i}`}
+                className="absolute bottom-0 border-l h-2 border-gray-400 dark:border-gray-600"
+                style={{ left: `${i * tickInterval + rulerSize}px` }}
+              >
+                <div className="absolute -left-3 -top-4 text-[10px] text-gray-600 dark:text-gray-400">
+                  {i * tickInterval}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          )}
           {cursorPosition && (
             <div
               className="absolute bottom-0 border-l border-red-500 h-full"
-              style={{ left: `${cursorPosition.x * zoom + panOffset.x + rulerSize}px` }}
+              style={{
+                left: `${cursorPosition.x * zoom + panOffset.x + rulerSize}px`,
+              }}
             />
           )}
         </div>
@@ -545,21 +605,25 @@ export function Canvas({ image, labels }: CanvasProps) {
           className="absolute top-0 left-0 w-5 border-r bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 z-10"
           style={{ height: `${imageHeight + rulerSize}px` }}
         >
-          {Array.from({ length: Math.ceil(imageHeight / tickInterval) }).map((_, i) => (
-            <div
-              key={`v-${i}`}
-              className="absolute right-0 border-t w-2 border-gray-400 dark:border-gray-600"
-              style={{ top: `${i * tickInterval + rulerSize}px` }}
-            >
-              <div className="absolute -top-3 -left-4 text-[10px] rotate-90 origin-top-left text-gray-600 dark:text-gray-400">
-                {i * tickInterval}
+          {Array.from({ length: Math.ceil(imageHeight / tickInterval) }).map(
+            (_, i) => (
+              <div
+                key={`v-${i}`}
+                className="absolute right-0 border-t w-2 border-gray-400 dark:border-gray-600"
+                style={{ top: `${i * tickInterval + rulerSize}px` }}
+              >
+                <div className="absolute -top-3 -left-4 text-[10px] rotate-90 origin-top-left text-gray-600 dark:text-gray-400">
+                  {i * tickInterval}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          )}
           {cursorPosition && (
             <div
               className="absolute right-0 border-t border-red-500 w-full"
-              style={{ top: `${cursorPosition.y * zoom + panOffset.y + rulerSize}px` }}
+              style={{
+                top: `${cursorPosition.y * zoom + panOffset.y + rulerSize}px`,
+              }}
             />
           )}
         </div>
@@ -631,12 +695,19 @@ export function Canvas({ image, labels }: CanvasProps) {
   }
 
   return (
-    <div className="relative h-full w-full overflow-hidden bg-gray-100 dark:bg-gray-900" onWheel={handleWheel}>
+    <div
+      className="relative h-full w-full overflow-hidden bg-gray-100 dark:bg-gray-900"
+      onWheel={handleWheel}
+    >
       {!image ? (
         <div className="flex h-full items-center justify-center">
           <div className="text-center">
-            <p className="text-lg font-medium text-gray-500 dark:text-gray-300">No image loaded</p>
-            <p className="text-sm text-gray-400 dark:text-gray-400">Select an image to start labeling</p>
+            <p className="text-lg font-medium text-gray-500 dark:text-gray-300">
+              No image loaded
+            </p>
+            <p className="text-sm text-gray-400 dark:text-gray-400">
+              Select an image to start labeling
+            </p>
           </div>
         </div>
       ) : (
@@ -650,7 +721,7 @@ export function Canvas({ image, labels }: CanvasProps) {
                 ? "cursor-move"
                 : selectedTool === "delete"
                   ? "cursor-pointer"
-                  : "cursor-default",
+                  : "cursor-default"
           )}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
@@ -688,7 +759,7 @@ export function Canvas({ image, labels }: CanvasProps) {
                         ? "border-yellow-500 bg-yellow-500"
                         : label.isAIGenerated
                           ? "border-green-500 bg-green-500"
-                          : `border-${label.color || "blue-500"} bg-${label.color || "blue-500"}`,
+                          : `border-${label.color || "blue-500"} bg-${label.color || "blue-500"}`
                     )}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -706,7 +777,7 @@ export function Canvas({ image, labels }: CanvasProps) {
                           ? "bg-yellow-500"
                           : label.isAIGenerated
                             ? "bg-green-500"
-                            : `bg-${label.color || "blue-500"}`,
+                            : `bg-${label.color || "blue-500"}`
                       )}
                     >
                       {label.name} {label.category && `(${label.category})`}
@@ -714,18 +785,19 @@ export function Canvas({ image, labels }: CanvasProps) {
                     </div>
 
                     {/* Render resize handles when selected */}
-                    {selectedLabelId === label.id && selectedTool === "move" && (
-                      <>
-                        <div className="absolute -top-1 -left-1 h-2 w-2 cursor-nwse-resize bg-white border border-gray-400" />
-                        <div className="absolute -top-1 -right-1 h-2 w-2 cursor-nesw-resize bg-white border border-gray-400" />
-                        <div className="absolute -bottom-1 -left-1 h-2 w-2 cursor-nesw-resize bg-white border border-gray-400" />
-                        <div className="absolute -bottom-1 -right-1 h-2 w-2 cursor-nwse-resize bg-white border border-gray-400" />
-                        <div className="absolute top-1/2 -left-1 h-2 w-2 -translate-y-1/2 cursor-ew-resize bg-white border border-gray-400" />
-                        <div className="absolute top-1/2 -right-1 h-2 w-2 -translate-y-1/2 cursor-ew-resize bg-white border border-gray-400" />
-                        <div className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 cursor-ns-resize bg-white border border-gray-400" />
-                        <div className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 cursor-ns-resize bg-white border border-gray-400" />
-                      </>
-                    )}
+                    {selectedLabelId === label.id &&
+                      selectedTool === "move" && (
+                        <>
+                          <div className="absolute -top-1 -left-1 h-2 w-2 cursor-nwse-resize bg-white border border-gray-400" />
+                          <div className="absolute -top-1 -right-1 h-2 w-2 cursor-nesw-resize bg-white border border-gray-400" />
+                          <div className="absolute -bottom-1 -left-1 h-2 w-2 cursor-nesw-resize bg-white border border-gray-400" />
+                          <div className="absolute -bottom-1 -right-1 h-2 w-2 cursor-nwse-resize bg-white border border-gray-400" />
+                          <div className="absolute top-1/2 -left-1 h-2 w-2 -translate-y-1/2 cursor-ew-resize bg-white border border-gray-400" />
+                          <div className="absolute top-1/2 -right-1 h-2 w-2 -translate-y-1/2 cursor-ew-resize bg-white border border-gray-400" />
+                          <div className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 cursor-ns-resize bg-white border border-gray-400" />
+                          <div className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 cursor-ns-resize bg-white border border-gray-400" />
+                        </>
+                      )}
                   </motion.div>
                 )}
 
@@ -734,14 +806,16 @@ export function Canvas({ image, labels }: CanvasProps) {
                     <motion.polygon
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      points={label.coordinates.map((p) => `${p.x},${p.y}`).join(" ")}
+                      points={label.coordinates
+                        .map((p) => `${p.x},${p.y}`)
+                        .join(" ")}
                       className={cn(
                         "fill-opacity-20 stroke-2",
                         selectedLabelId === label.id
                           ? "fill-yellow-500 stroke-yellow-500"
                           : label.isAIGenerated
                             ? "fill-green-500 stroke-green-500"
-                            : `fill-${label.color || "blue-500"} stroke-${label.color || "blue-500"}`,
+                            : `fill-${label.color || "blue-500"} stroke-${label.color || "blue-500"}`
                       )}
                     />
                     <text
@@ -753,26 +827,27 @@ export function Canvas({ image, labels }: CanvasProps) {
                           ? "fill-yellow-500"
                           : label.isAIGenerated
                             ? "fill-green-500"
-                            : `fill-${label.color || "blue-500"}`,
+                            : `fill-${label.color || "blue-500"}`
                       )}
                     >
                       {label.name} {label.category && `(${label.category})`}
                     </text>
 
                     {/* Render vertices when selected */}
-                    {selectedLabelId === label.id && selectedTool === "move" && (
-                      <>
-                        {label.coordinates.map((point, index) => (
-                          <circle
-                            key={index}
-                            cx={point.x}
-                            cy={point.y}
-                            r={4 / zoom}
-                            className="fill-white stroke-gray-400 stroke-1"
-                          />
-                        ))}
-                      </>
-                    )}
+                    {selectedLabelId === label.id &&
+                      selectedTool === "move" && (
+                        <>
+                          {label.coordinates.map((point, index) => (
+                            <circle
+                              key={index}
+                              cx={point.x}
+                              cy={point.y}
+                              r={4 / zoom}
+                              className="fill-white stroke-gray-400 stroke-1"
+                            />
+                          ))}
+                        </>
+                      )}
                   </svg>
                 )}
               </div>
