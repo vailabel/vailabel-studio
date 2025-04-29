@@ -58,9 +58,6 @@
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.6",
     "zod": "^3.24.1",
-    "@emotion/is-prop-valid": "latest",
-    "immer": "latest",
-    "use-sync-external-store": "latest",
     "framer-motion": "latest",
     "dexie": "latest",
     "zustand": "latest"
