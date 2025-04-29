@@ -13,11 +13,6 @@ interface SettingsState {
   setShowCrosshairs: (show: boolean) => void
   showCoordinates: boolean
   setShowCoordinates: (show: boolean) => void
-
-  // Theme
-  darkMode: boolean
-  setDarkMode: (dark: boolean) => void
-
   // Image adjustments
   brightness: number
   setBrightness: (value: number) => void
@@ -42,10 +37,6 @@ export const useSettingsStore = create<SettingsState>()(
       showCoordinates: true,
       setShowCoordinates: (show) => set({ showCoordinates: show }),
 
-      // Theme
-      darkMode: false,
-      setDarkMode: (dark) => set({ darkMode: dark }),
-
       // Image adjustments
       brightness: 100,
       setBrightness: (value) => set({ brightness: value }),
@@ -55,7 +46,7 @@ export const useSettingsStore = create<SettingsState>()(
       setZoom: (value) => set({ zoom: value }),
     }),
     {
-      name: "image-labeler-settings", // unique name for localStorage
+      name: "image-labeler-settings",
     }
   )
 )

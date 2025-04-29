@@ -97,7 +97,7 @@ export function Toolbar({
   ]
 
   return (
-    <div className="flex items-center justify-between border-b p-2 dark:bg-gray-800 dark:border-gray-700 bg-white border-gray-200">
+    <div className="flex items-center justify-between border-b p-1 dark:bg-gray-800 dark:border-gray-700 bg-white border-gray-200">
       <div className="flex items-center space-x-1">
         <TooltipProvider>
           {tools.map((tool) => (
@@ -157,7 +157,7 @@ export function Toolbar({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 className="h-8 w-8"
                 onClick={() => {
@@ -170,11 +170,13 @@ export function Toolbar({
             </TooltipTrigger>
             <TooltipContent side="bottom">Zoom In</TooltipContent>
           </Tooltip>
-          <p className="text-sm text-gray-500">{(zoom * 100).toFixed(0)}%</p>
+          <p className="text-sm text-gray-700 dark:text-gray-200">
+            {(zoom * 100).toFixed(0)}%
+          </p>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 className="h-8 w-8"
                 onClick={() => {
