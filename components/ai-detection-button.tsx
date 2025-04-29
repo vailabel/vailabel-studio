@@ -101,7 +101,9 @@ export function AIDetectionButton({ image, disabled }: AIDetectionButtonProps) {
             {isDetecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
           </Button>
         </TooltipTrigger>
-        <TooltipContent side="bottom">Auto Detect with AI</TooltipContent>
+        <TooltipContent side="bottom">Auto Detect with AI
+          (this feature is experimental using mock data not a real AI model)
+        </TooltipContent>
       </Tooltip>
     </TooltipProvider>
   )

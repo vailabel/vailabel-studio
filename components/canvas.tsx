@@ -123,7 +123,7 @@ export function Canvas({ image, labels }: CanvasProps) {
       }
 
       // Start panning if not on a label and middle mouse button or space+left click
-      if (e.button === 1 || (e.button === 0 && e.getModifierState("Space"))) {
+      if (e.button === 1 || (e.button === 0 && e.altKey)) {
         setIsPanning(true)
         setLastPanPoint({ x: e.clientX, y: e.clientY })
         return
@@ -461,7 +461,7 @@ export function Canvas({ image, labels }: CanvasProps) {
   // Handle zoom
   const handleWheel = (e: React.WheelEvent) => {
     if (e.ctrlKey || e.metaKey) {
-      e.preventDefault()
+      // e.preventDefault()
       const delta = e.deltaY > 0 ? -0.1 : 0.1
       const newZoom = Math.max(0.1, Math.min(5, zoom + delta))
 
@@ -492,6 +492,18 @@ export function Canvas({ image, labels }: CanvasProps) {
     setZoom(1)
     setPanOffset({ x: 0, y: 0 })
   }
+
+  useEffect(() => {
+    const handleResetCanvasView = () => {
+      resetView()
+    }
+  
+    window.addEventListener("reset-canvas-view", handleResetCanvasView)
+  
+    return () => {
+      window.removeEventListener("reset-canvas-view", handleResetCanvasView)
+    }
+  }, [])
 
   // Draw rulers
   const drawRulers = () => {
