@@ -1,5 +1,3 @@
-import { motion } from "framer-motion"
-import { cn, rgbToRgba } from "@/lib/utils"
 import type { Annotation } from "@/lib/types"
 import { BoxAnnotation } from "@/components/canvas/box-annotation"
 import { PolygonAnnotation } from "@/components/canvas/polygon-annotation"
