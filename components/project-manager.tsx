@@ -1,7 +1,5 @@
 "use client"
 
-import type React from "react"
-
 import { useState, useRef } from "react"
 import { motion } from "framer-motion"
 import { X, Upload, Trash2 } from "lucide-react"
@@ -16,13 +14,11 @@ import { cn } from "@/lib/utils"
 interface ProjectManagerProps {
   onClose: () => void
   onProjectCreate: (project: Project) => void
-  darkMode?: boolean // Add darkMode prop
 }
 
 export function ProjectManager({
   onClose,
   onProjectCreate,
-  darkMode = false, // Default to false
 }: ProjectManagerProps) {
   const { toast } = useToast()
   const [projectName, setProjectName] = useState("")
@@ -185,20 +181,14 @@ export function ProjectManager({
 
   return (
     <motion.div
-      className={cn(
-        "fixed inset-0 z-50 flex items-center justify-center",
-        darkMode ? "bg-black/70" : "bg-black/50"
-      )}
+      className="fixed inset-0 z-50 flex items-center justify-center dark:bg-black/70 bg-black/50"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       onClick={onClose}
     >
       <motion.div
-        className={cn(
-          "w-full max-w-3xl rounded-lg p-6 shadow-xl",
-          darkMode ? "bg-gray-800 text-gray-100" : "bg-white text-gray-900"
-        )}
+        className="w-full max-w-3xl rounded-lg p-6 shadow-xl dark:bg-gray-800 dark:text-gray-100 bg-white text-gray-900"
         initial={{ scale: 0.9, y: 20 }}
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.9, y: 20 }}
@@ -220,52 +210,25 @@ export function ProjectManager({
               value={projectName}
               onChange={(e) => setProjectName(e.target.value)}
               placeholder="Enter project name"
-              className={cn(
-                "mt-1",
-                darkMode ? "bg-gray-700 text-gray-100" : ""
-              )}
+              className="mt-1 dark:bg-gray-700 dark:text-gray-100"
             />
           </div>
 
           <div>
             <Label>Images</Label>
             <div
-              className={cn(
-                "mt-1 flex h-32 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed",
-                isUploading
-                  ? darkMode
-                    ? "border-blue-400 bg-blue-900"
-                    : "border-blue-500 bg-blue-50"
-                  : darkMode
-                    ? "border-gray-600 bg-gray-700"
-                    : "border-gray-300"
-              )}
+              className="mt-1 flex h-32 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed dark:border-gray-600 dark:bg-gray-700 border-gray-300"
               onDragOver={handleDragOver}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
             >
-              <Upload
-                className={cn(
-                  "mb-2 h-8 w-8",
-                  darkMode ? "text-gray-400" : "text-gray-500"
-                )}
-              />
-              <p
-                className={cn(
-                  "text-sm font-medium",
-                  darkMode ? "text-gray-300" : "text-gray-700"
-                )}
-              >
+              <Upload className="mb-2 h-8 w-8 dark:text-gray-400 text-gray-500" />
+              <p className="text-sm font-medium dark:text-gray-300 text-gray-700">
                 {isUploading
                   ? "Processing..."
                   : "Drag and drop images, or click to browse"}
               </p>
-              <p
-                className={cn(
-                  "text-xs",
-                  darkMode ? "text-gray-400" : "text-gray-500"
-                )}
-              >
+              <p className="text-xs dark:text-gray-400 text-gray-500">
                 PNG, JPG, GIF up to 10MB
               </p>
               <input
@@ -289,24 +252,14 @@ export function ProjectManager({
                 {images.map((image, index) => (
                   <div
                     key={index}
-                    className={cn(
-                      "group relative rounded-md border",
-                      darkMode
-                        ? "border-gray-600 bg-gray-700"
-                        : "border-gray-200"
-                    )}
+                    className="group relative rounded-md border dark:border-gray-600 dark:bg-gray-700 border-gray-200"
                   >
                     <img
                       src={image.data || "/placeholder.svg"}
                       alt={image.name}
                       className="h-24 w-full rounded-md object-cover"
                     />
-                    <div
-                      className={cn(
-                        "absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100",
-                        darkMode ? "bg-black/60" : "bg-black/50"
-                      )}
-                    >
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100 dark:bg-black/60 bg-black/50">
                       <Button
                         variant="destructive"
                         size="icon"
@@ -319,14 +272,7 @@ export function ProjectManager({
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
-                    <div
-                      className={cn(
-                        "absolute bottom-0 left-0 right-0 p-1 text-xs",
-                        darkMode
-                          ? "bg-black/80 text-gray-300"
-                          : "bg-black/70 text-white"
-                      )}
-                    >
+                    <div className="absolute bottom-0 left-0 right-0 p-1 text-xs dark:bg-black/80 dark:text-gray-300 bg-black/70 text-white">
                       {image.name.length > 20
                         ? `${image.name.substring(0, 20)}...`
                         : image.name}

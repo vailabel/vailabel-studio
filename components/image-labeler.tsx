@@ -35,19 +35,21 @@ import { AIModelModal } from "@/components/ai-model-modal"
 import { ContextMenu } from "@/components/context-menu"
 import { db } from "@/lib/db"
 import { useToast } from "@/hooks/use-toast"
-import { useLabelStore } from "@/lib/store"
-import { useSettingsStore } from "@/lib/settings-store"
+import { useStore } from "@/lib/store"
 import type { Project, Label } from "@/lib/types"
-import { cn } from "@/lib/utils"
+import { useTheme } from "next-themes"
+import { CreateAnnotation } from "./create-annotation"
 
 interface ImageLabelerProps {
   project: Project
+  imageId: string | null
   onClose: () => void
 }
 
-export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
+export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
   const { toast } = useToast()
-  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [currentImageId, setCurrentImageId] = useState<string | null>(imageId)
+  const currentImage = project.images.find((img) => img.id === currentImageId)
   const [showSettings, setShowSettings] = useState(false)
   const [showExport, setShowExport] = useState(false)
   const [showAISettings, setShowAISettings] = useState(false)
@@ -64,138 +66,11 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
   const canvasContainerRef = useRef<HTMLDivElement>(null)
   const [containerRect, setContainerRect] = useState<DOMRect | null>(null)
 
-  const { labels, setLabels, clearLabels } = useLabelStore()
-  const { darkMode, setDarkMode } = useSettingsStore()
-
-  // Calculate how many images have labels
-  useEffect(() => {
-    const countLabeledImages = async () => {
-      try {
-        const imageIds = project.images.map((img) => img.id)
-        const labeledImages = await db.labels
-          .where("imageId")
-          .anyOf(imageIds)
-          .toArray()
-
-        // Count unique imageIds that have labels
-        const uniqueImageIds = new Set(
-          labeledImages.map((label) => label.imageId)
-        )
-        setLabeledCount(uniqueImageIds.size)
-      } catch (error) {
-        console.error("Failed to count labeled images:", error)
-      }
-    }
-
-    countLabeledImages()
-  }, [project.images, labels])
-
-  // Load labels for the current image
-  useEffect(() => {
-    const loadLabels = async () => {
-      if (!project.images.length) return
-
-      try {
-        const currentImage = project.images[currentImageIndex]
-        const imageLabels = await db.labels
-          .where("imageId")
-          .equals(currentImage.id)
-          .toArray()
-
-        setLabels(imageLabels)
-      } catch (error) {
-        console.error("Failed to load labels:", error)
-        toast({
-          title: "Error",
-          description: "Failed to load image labels",
-          variant: "destructive",
-        })
-      }
-    }
-
-    loadLabels()
-  }, [project.images, currentImageIndex, setLabels, toast])
-
-  const handleSaveProject = async () => {
-    setIsSaving(true)
-
-    try {
-      // Update project's lastModified date
-      await db.projects.update(project.id, {
-        lastModified: new Date(),
-      })
-
-      toast({
-        title: "Success",
-        description: "Project saved successfully",
-      })
-    } catch (error) {
-      console.error("Failed to save project:", error)
-      toast({
-        title: "Error",
-        description: "Failed to save project",
-        variant: "destructive",
-      })
-    } finally {
-      setIsSaving(false)
-    }
-  }
+  const { labels, createAnnotation } = useStore()
+  const { theme, setTheme } = useTheme()
 
   const handleExportProject = () => {
     setShowExport(true)
-  }
-
-  // Update the handleNextImage and handlePrevImage functions to properly save labels before changing images
-  const handleNextImage = async () => {
-    if (currentImageIndex < project.images.length - 1) {
-      // Save current labels to database before changing images
-      try {
-        const currentImage = project.images[currentImageIndex]
-        const nextImage = project.images[currentImageIndex + 1]
-
-        // Update project's lastModified date
-        await db.projects.update(project.id, {
-          lastModified: new Date(),
-        })
-
-        // Clear labels and load the next image's labels
-        clearLabels()
-        setCurrentImageIndex(currentImageIndex + 1)
-      } catch (error) {
-        console.error("Failed to save labels before changing image:", error)
-        toast({
-          title: "Error",
-          description: "Failed to save labels",
-          variant: "destructive",
-        })
-      }
-    }
-  }
-
-  const handlePrevImage = async () => {
-    if (currentImageIndex > 0) {
-      // Save current labels to database before changing images
-      try {
-        const currentImage = project.images[currentImageIndex]
-        const prevImage = project.images[currentImageIndex - 1]
-
-        // Update project's lastModified date
-        await db.projects.update(project.id, {
-          lastModified: new Date(),
-        })
-
-        // Clear labels and load the previous image's labels
-        clearLabels()
-        setCurrentImageIndex(currentImageIndex - 1)
-      } catch (error) {
-        console.error("Failed to save labels before changing image:", error)
-        toast({
-          title: "Error",
-          description: "Failed to save labels",
-          variant: "destructive",
-        })
-      }
-    }
   }
 
   const handleLabelSelect = (label: Label) => {
@@ -239,16 +114,16 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
         return
 
       if (e.key === "ArrowRight" || e.code === "ArrowRight") {
-        handleNextImage()
+        nextImage()
       } else if (e.key === "ArrowLeft" || e.code === "ArrowLeft") {
-        handlePrevImage()
+        previousImage()
       }
     }
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [
-    currentImageIndex,
+    currentImageId,
     project.images.length,
     showSettings,
     showLabelEditor,
@@ -256,7 +131,34 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
     showAISettings,
   ])
 
-  const currentImage = project.images[currentImageIndex]
+  const nextImage = async () => {
+    const currentIndex = project.images.findIndex(
+      (img) => img.id === currentImageId
+    )
+    if (currentIndex < project.images.length - 1) {
+      setCurrentImageId(project.images[currentIndex + 1].id)
+    } else {
+      toast({
+        title: "No more images",
+        description: "You are at the last image.",
+      })
+    }
+  }
+
+  const previousImage = async () => {
+    const currentIndex = project.images.findIndex(
+      (img) => img.id === currentImageId
+    )
+    if (currentIndex > 0) {
+      setCurrentImageId(project.images[currentIndex - 1].id)
+    } else {
+      toast({
+        title: "No more images",
+        description: "You are at the first image.",
+      })
+    }
+  }
+
   const progress =
     project.images.length > 0
       ? Math.round((labeledCount / project.images.length) * 100)
@@ -264,8 +166,8 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
 
   return (
     <div className="flex flex-col h-screen w-full overflow-hidden bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-      <header className="flex items-center justify-between border-b p-4 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-        <div className="flex items-center gap-4">
+      <header className="flex justify-between border-b px-4 py-1 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+        <div className="flex items-center gap-4 min-w-[250px]">
           <Button variant="ghost" size="icon" onClick={onClose}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
@@ -278,7 +180,63 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
             </p>
           </div>
         </div>
+        <div className="p-4 w-full ">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="sm" onClick={previousImage}>
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Previous image
+                    <kbd className="ml-2 rounded border px-1.5 text-xs dark:border-gray-700 dark:bg-gray-800 border-gray-200 bg-gray-100">
+                      Left Arrow
+                    </kbd>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="sm" onClick={nextImage}>
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Next image
+                    <kbd className="ml-2 rounded border px-1.5 text-xs dark:border-gray-700 dark:bg-gray-800 border-gray-200 bg-gray-100">
+                      Right Arrow
+                    </kbd>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
 
+            <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+              <span>
+                Image
+                {project.images.findIndex((img) => img.id === currentImageId) +
+                  1}
+                of
+                {project.images.length}
+              </span>
+              <Separator orientation="vertical" className="h-4" />
+              <span>
+                {labeledCount} labeled ({progress}%)
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-2">
+            <Progress
+              value={progress}
+              className={`h-1 ${
+                progress > 50 ? "bg-green-500" : "bg-gray-200 dark:bg-gray-700"
+              }`}
+            />
+          </div>
+        </div>
         <div className="flex items-center gap-2">
           <TooltipProvider>
             <Tooltip>
@@ -286,17 +244,13 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={() => setDarkMode(!darkMode)}
+                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                 >
-                  {darkMode ? (
-                    <Sun className="h-4 w-4" />
-                  ) : (
-                    <Moon className="h-4 w-4" />
-                  )}
+                  {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                {darkMode ? "Light mode" : "Dark mode"}
+                {theme ? "Light mode" : "Dark mode"}
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -306,7 +260,7 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
               <TooltipTrigger asChild>
                 <Button
                   variant="outline"
-                  onClick={handleSaveProject}
+                  onClick={() => {}}
                   disabled={isSaving}
                 >
                   <Save className="mr-2 h-4 w-4" />
@@ -356,11 +310,7 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
           maxSize={400}
           className="h-full"
         >
-          <ImageList
-            project={project}
-            currentImageIndex={currentImageIndex}
-            onImageSelect={setCurrentImageIndex}
-          />
+          <LabelListPanel onLabelSelect={handleLabelSelect} />
         </ResizablePanel>
 
         {/* Middle panel - Canvas */}
@@ -371,14 +321,14 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
           onClick={handleCloseContextMenu}
         >
           <Toolbar
-            currentImage={currentImage}
+            currentImage={currentImage || null}
             onOpenSettings={() => setShowSettings(true)}
             onOpenAISettings={() => setShowAISettings(true)}
           />
 
           <div className="relative flex-1 overflow-hidden">
             {currentImage ? (
-              <Canvas image={currentImage} labels={labels} />
+              <Canvas image={currentImage} />
             ) : (
               <div className="flex h-full items-center justify-center bg-gray-100 dark:bg-gray-900">
                 <p className="text-gray-500 dark:text-gray-400">
@@ -406,83 +356,10 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
               )}
             </AnimatePresence>
           </div>
-
-          <div className="border-t p-4 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handlePrevImage}
-                        disabled={currentImageIndex === 0}
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      Previous image
-                      <kbd className="ml-2 rounded border px-1.5 text-xs dark:border-gray-700 dark:bg-gray-800 border-gray-200 bg-gray-100">
-                        Left Arrow
-                      </kbd>
-                    </TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleNextImage}
-                        disabled={
-                          currentImageIndex === project.images.length - 1
-                        }
-                      >
-                        <ChevronRight className="h-4 w-4 ml-1" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      Next image
-                      <kbd className="ml-2 rounded border px-1.5 text-xs dark:border-gray-700 dark:bg-gray-800 border-gray-200 bg-gray-100">
-                        Right Arrow
-                      </kbd>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-
-              <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                <span>
-                  Image {currentImageIndex + 1} of {project.images.length}
-                </span>
-                <Separator orientation="vertical" className="h-4" />
-                <span>
-                  {labeledCount} labeled ({progress}%)
-                </span>
-              </div>
-            </div>
-
-            <div className="mt-2">
-              <Progress
-                value={progress}
-                className="h-1 bg-gray-200 dark:bg-gray-700"
-              />
-            </div>
-          </div>
+          <AnimatePresence>
+            <CreateAnnotation />
+          </AnimatePresence>
         </div>
-
-        {/* Right panel - Label list */}
-        <ResizablePanel
-          direction="horizontal"
-          controlPosition="left"
-          defaultSize={280}
-          minSize={200}
-          maxSize={400}
-          className="h-full"
-        >
-          <LabelListPanel onLabelSelect={handleLabelSelect} />
-        </ResizablePanel>
       </div>
 
       <AnimatePresence>

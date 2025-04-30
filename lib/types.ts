@@ -7,13 +7,28 @@ export interface Label {
   id: string
   name: string
   category?: string
+  isAIGenerated?: boolean
+  projectId: string
+  color?: string
+}
+
+export interface Annotation {
+  id: string
+  name: string
   type: "box" | "polygon" | "freeDraw"
   coordinates: Point[]
   imageId: string
   createdAt: Date
   updatedAt: Date
-  isAIGenerated?: boolean
   color?: string
+  isAIGenerated?: boolean
+}
+
+export interface History {
+  labels: Label[]
+  historyIndex: number
+  canUndo: boolean
+  canRedo: boolean
 }
 
 export interface ImageData {

@@ -11,8 +11,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
-import { useLabelStore } from "@/lib/store"
-import { useSettingsStore } from "@/lib/settings-store"
+import { useStore } from "@/lib/store"
 import type { Label } from "@/lib/types"
 
 interface LabelListPanelProps {
@@ -21,7 +20,7 @@ interface LabelListPanelProps {
 
 export function LabelListPanel({ onLabelSelect }: LabelListPanelProps) {
   const [labelsOpen, setLabelsOpen] = useState(true)
-  const { labels } = useLabelStore()
+  const { labels } = useStore()
 
   // Group labels by category
   const labelsByCategory: Record<string, Label[]> = {}
@@ -43,7 +42,7 @@ export function LabelListPanel({ onLabelSelect }: LabelListPanelProps) {
     >
       <div
         className={cn(
-          "p-4 border-b",
+          "px-4 py-2 border-b",
           "dark:border-gray-700",
           "border-gray-200"
         )}
@@ -55,7 +54,7 @@ export function LabelListPanel({ onLabelSelect }: LabelListPanelProps) {
       </div>
 
       <ScrollArea className="h-[calc(100%-65px)]">
-        <div className="p-2">
+        <div className="p-2 ">
           <Collapsible open={labelsOpen} onOpenChange={setLabelsOpen}>
             <CollapsibleTrigger asChild>
               <Button
@@ -110,15 +109,6 @@ export function LabelListPanel({ onLabelSelect }: LabelListPanelProps) {
                                 {label.name}
                               </span>
                             </div>
-                            <span
-                              className={cn(
-                                "text-xs",
-                                "dark:text-gray-400",
-                                "text-gray-500"
-                              )}
-                            >
-                              {label.type}
-                            </span>
                           </div>
                           <p
                             className={cn(
@@ -128,7 +118,6 @@ export function LabelListPanel({ onLabelSelect }: LabelListPanelProps) {
                             )}
                           >
                             {label.isAIGenerated && "🤖 "}
-                            {label.coordinates.length} points
                           </p>
                         </motion.div>
                       ))}
