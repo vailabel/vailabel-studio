@@ -10,9 +10,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { useToast } from "@/hooks/use-toast"
-import { useLabelStore } from "@/lib/store"
+import { useStore } from "@/lib/store"
 import { detectObjects } from "@/lib/ai-utils"
-import type { ImageData } from "@/lib/types"
+import type { Annotation, ImageData } from "@/lib/types"
 
 interface AIDetectionButtonProps {
   image: ImageData | null
@@ -21,7 +21,7 @@ interface AIDetectionButtonProps {
 
 export function AIDetectionButton({ image, disabled }: AIDetectionButtonProps) {
   const { toast } = useToast()
-  const { addLabel } = useLabelStore()
+  const { createAnnotation } = useStore()
   const [isDetecting, setIsDetecting] = useState(false)
 
   const handleDetection = async () => {
@@ -58,11 +58,9 @@ export function AIDetectionButton({ image, disabled }: AIDetectionButtonProps) {
         const x2 = (x + width) * image.width
         const y2 = (y + height) * image.height
 
-        // Create label with AI prefix to distinguish it
-        addLabel({
-          id: `ai-label-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          name: `${className} (${Math.round(confidence * 100)}%)`,
-          category: "AI-detected",
+        let annotation: Annotation = {
+          id: crypto.randomUUID(),
+          name: className,
           type: "box",
           coordinates: [
             { x: x1, y: y1 },
@@ -71,9 +69,10 @@ export function AIDetectionButton({ image, disabled }: AIDetectionButtonProps) {
           imageId: image.id,
           createdAt: new Date(),
           updatedAt: new Date(),
-          isAIGenerated: true,
-          color: "green-500", // Give AI labels a distinct color
-        })
+        }
+
+        // Create the annotation in the store
+        createAnnotation(annotation)
       })
 
       toast({

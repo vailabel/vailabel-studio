@@ -1,229 +1,378 @@
 import { create } from "zustand"
 import { db } from "./db"
-import type { Label } from "./types"
+import type { Project, Label, ImageData, Annotation } from "./types"
 
-interface LabelPrompt {
-  isOpen: boolean
-  onSubmit: (name: string, category: string, color: string) => void
-  onCancel: () => void
-}
-
-interface LabelState {
+interface HistoryItem {
   labels: Label[]
-  history: Label[][]
-  historyIndex: number
-  labelPrompt: LabelPrompt | null
-  getLabels: () => Promise<void>
-  setLabels: (labels: Label[]) => void
-  addLabel: (label: Label) => void
-  updateLabel: (id: string, updatedLabel: Label) => void
-  removeLabel: (id: string) => void
-  clearLabels: () => void
-  undoAction: () => void
-  redoAction: () => void
-  setLabelPrompt: (prompt: LabelPrompt | null) => void
-  canUndo: boolean
-  canRedo: boolean
+  images: ImageData[]
+  annotations: Annotation[]
 }
 
-export const useLabelStore = create<LabelState>((set, get) => ({
+interface ProjectState {
+  projects: Project[]
+  currentProjectId: string | null
+  labels: Label[]
+  images: ImageData[]
+  annotations: Annotation[]
+  history: HistoryItem[]
+  historyIndex: number
+
+  // Project management
+  createProject: (project: Omit<Project, "id">) => Promise<void>
+  loadProject: (projectId: string) => Promise<void>
+  deleteProject: (projectId: string) => Promise<void>
+
+  // Label operations
+  createLabel: (label: Omit<Label, "id" | "projectId">) => Promise<void>
+  updateLabel: (labelId: string, updates: Partial<Label>) => Promise<void>
+  deleteLabel: (labelId: string) => Promise<void>
+
+  // Image operations
+  addImage: (image: Omit<ImageData, "id" | "projectId">) => Promise<void>
+  removeImage: (imageId: string) => Promise<void>
+
+  // Annotation operations
+  createAnnotation: (annotation: Omit<Annotation, "id">) => Promise<void>
+  updateAnnotation: (
+    annotationId: string,
+    updates: Partial<Annotation>
+  ) => Promise<void>
+  deleteAnnotation: (annotationId: string) => Promise<void>
+
+  // History operations
+  undo: () => Promise<void>
+  redo: () => Promise<void>
+  canUndo: () => boolean
+  canRedo: () => boolean
+
+  // Private methods
+  _captureState: () => HistoryItem
+  _applyState: (state: HistoryItem) => Promise<void>
+}
+
+export const useStore = create<ProjectState>((set, get) => ({
+  projects: [],
+  currentProjectId: null,
   labels: [],
-  history: [[]],
-  historyIndex: 0,
-  labelPrompt: null,
-  canUndo: false,
-  canRedo: false,
+  images: [],
+  annotations: [],
+  history: [],
+  historyIndex: -1,
 
-  setLabels: (labels) => {
-    set({
-      labels,
-      history: [labels],
-      historyIndex: 0,
-      canUndo: false,
-      canRedo: false,
-    })
-  },
+  // Private methods
+  _captureState: () => ({
+    labels: [...get().labels],
+    images: [...get().images],
+    annotations: [...get().annotations],
+  }),
 
-  getLabels: async () => {
-    // Fetch labels from the database
-    try {
-      const labels = await db.labels.toArray()
-      set({ labels })
-    } catch (error) {
-      console.error("Failed to fetch labels from database:", error)
-    }
-  },
+  _applyState: async (state) => {
+    const { currentProjectId } = get()
+    if (!currentProjectId) return
 
-  addLabel: async (label) => {
-    const { labels, history, historyIndex } = get()
-    const newLabels = [...labels, label]
+    // Update database transactions
+    await db.transaction(
+      "rw",
+      db.labels,
+      db.images,
+      db.annotations,
+      async () => {
+        // Update labels
+        const currentLabels = await db.labels
+          .where("projectId")
+          .equals(currentProjectId)
+          .toArray()
+        await Promise.all(
+          currentLabels.map((label) => db.labels.delete(label.id))
+        )
+        await db.labels.bulkAdd(state.labels)
 
-    // Add to history, removing any future states if we're in the middle of history
-    const newHistory = [...history.slice(0, historyIndex + 1), newLabels]
+        // Update images
+        const currentImages = await db.images
+          .where("projectId")
+          .equals(currentProjectId)
+          .toArray()
+        await Promise.all(
+          currentImages.map((image) => db.images.delete(image.id))
+        )
+        await db.images.bulkAdd(state.images)
 
-    // Save to database
-    try {
-      await db.labels.add(label)
-    } catch (error) {
-      console.error("Failed to save label to database:", error)
-    }
-
-    set({
-      labels: newLabels,
-      history: newHistory,
-      historyIndex: newHistory.length - 1,
-      canUndo: newHistory.length > 1,
-      canRedo: false,
-    })
-  },
-
-  updateLabel: async (id, updatedLabel) => {
-    const { labels, history, historyIndex } = get()
-    const newLabels = labels.map((label) =>
-      label.id === id ? updatedLabel : label
+        // Update annotations
+        const imageIds = state.images.map((i) => i.id)
+        const currentAnnotations = await db.annotations
+          .where("imageId")
+          .anyOf(imageIds)
+          .toArray()
+        await Promise.all(
+          currentAnnotations.map((ann) => db.annotations.delete(ann.id))
+        )
+        await db.annotations.bulkAdd(state.annotations)
+      }
     )
 
-    // Add to history
-    const newHistory = [...history.slice(0, historyIndex + 1), newLabels]
+    set({
+      labels: state.labels,
+      images: state.images,
+      annotations: state.annotations,
+    })
+  },
 
-    // Update in database
+  // Project management
+  createProject: async (project) => {
+    const id = crypto.randomUUID()
+    const newProject = { ...project, id }
+    await db.projects.add(newProject)
+    set((state) => ({ projects: [...state.projects, newProject] }))
+  },
+
+  loadProject: async (projectId) => {
     try {
-      await db.labels.update(id, { ...updatedLabel })
-    } catch (error) {
-      console.error("Failed to update label in database:", error)
-    }
-
-    set({
-      labels: newLabels,
-      history: newHistory,
-      historyIndex: newHistory.length - 1,
-      canUndo: newHistory.length > 1,
-      canRedo: false,
-    })
-  },
-
-  removeLabel: async (id) => {
-    const { labels, history, historyIndex } = get()
-    const newLabels = labels.filter((label) => label.id !== id)
-
-    // Add to history
-    const newHistory = [...history.slice(0, historyIndex + 1), newLabels]
-
-    // Remove from database
-    try {
-      await db.labels.delete(id)
-    } catch (error) {
-      console.error("Failed to delete label from database:", error)
-    }
-
-    set({
-      labels: newLabels,
-      history: newHistory,
-      historyIndex: newHistory.length - 1,
-      canUndo: newHistory.length > 1,
-      canRedo: false,
-    })
-  },
-
-  clearLabels: () => {
-    const { history, historyIndex } = get()
-
-    // Add to history
-    const newHistory = [...history.slice(0, historyIndex + 1), []]
-
-    set({
-      labels: [],
-      history: newHistory,
-      historyIndex: newHistory.length - 1,
-      canUndo: newHistory.length > 1,
-      canRedo: false,
-    })
-  },
-
-  undoAction: async () => {
-    const { history, historyIndex } = get()
-
-    if (historyIndex > 0) {
-      const newIndex = historyIndex - 1
-      const previousLabels = history[newIndex]
-      const currentLabels = history[historyIndex]
-
-      // Find labels that were removed in the previous state
-      const removedLabels = currentLabels.filter(
-        (current) => !previousLabels.some((prev) => prev.id === current.id)
-      )
-
-      // Delete removed labels from database
-      try {
-        for (const label of removedLabels) {
-          await db.labels.delete(label.id)
-        }
-      } catch (error) {
-        console.error("Failed to delete labels during undo:", error)
+      const project = await db.projects.get(projectId)
+      if (!project) {
+        console.error("Project not found:", projectId)
+        return
       }
 
-      // Update or add labels from previous state
-      try {
-        for (const label of previousLabels) {
-          await db.labels.put(label)
-        }
-      } catch (error) {
-        console.error("Failed to update labels during undo:", error)
+      // Get all related image IDs first
+      const imageIds = await db.images
+        .where("projectId")
+        .equals(projectId)
+        .primaryKeys()
+
+      // Parallel fetch of all related data
+      const [labels, images, annotations] = await Promise.all([
+        db.labels.where("projectId").equals(projectId).toArray(),
+        db.images.where("projectId").equals(projectId).toArray(),
+        db.annotations.where("imageId").anyOf(imageIds).toArray(),
+      ])
+
+      const initialState: HistoryItem = {
+        labels: [...labels],
+        images: [...images],
+        annotations: [...annotations],
       }
 
+      // Reset state with proper type safety
       set({
-        labels: previousLabels,
-        historyIndex: newIndex,
-        canUndo: newIndex > 0,
-        canRedo: true,
+        currentProjectId: projectId,
+        labels,
+        images,
+        annotations,
+        history: [initialState], // Initialize fresh history stack
+        historyIndex: 0, // Reset to initial state
       })
+    } catch (error) {
+      console.error("Failed to load project:", error)
+      // Consider adding error state handling
     }
   },
 
-  redoAction: async () => {
-    const { history, historyIndex } = get()
-
-    if (historyIndex < history.length - 1) {
-      const newIndex = historyIndex + 1
-      const nextLabels = history[newIndex]
-      const currentLabels = history[historyIndex]
-
-      // Find labels that were added in the next state
-      const addedLabels = nextLabels.filter(
-        (next) => !currentLabels.some((current) => current.id === next.id)
-      )
-
-      // Add new labels to database
-      try {
-        for (const label of addedLabels) {
-          await db.labels.put(label)
-        }
-      } catch (error) {
-        console.error("Failed to add labels during redo:", error)
+  deleteProject: async (projectId) => {
+    await db.transaction(
+      "rw",
+      db.projects,
+      db.labels,
+      db.images,
+      db.annotations,
+      async () => {
+        await db.projects.delete(projectId)
+        await db.labels.where("projectId").equals(projectId).delete()
+        const imageIds = await db.images
+          .where("projectId")
+          .equals(projectId)
+          .primaryKeys()
+        await db.images.where("projectId").equals(projectId).delete()
+        await db.annotations.where("imageId").anyOf(imageIds).delete()
       }
+    )
 
-      // Update or delete labels for next state
-      try {
-        for (const currentLabel of currentLabels) {
-          const exists = nextLabels.some((next) => next.id === currentLabel.id)
-          if (!exists) {
-            await db.labels.delete(currentLabel.id)
-          }
-        }
-      } catch (error) {
-        console.error("Failed to update labels during redo:", error)
-      }
+    set((state) => ({
+      projects: state.projects.filter((p) => p.id !== projectId),
+      currentProjectId:
+        state.currentProjectId === projectId ? null : state.currentProjectId,
+    }))
+  },
 
-      set({
-        labels: nextLabels,
-        historyIndex: newIndex,
-        canUndo: true,
-        canRedo: newIndex < history.length - 1,
-      })
+  // Label operations
+  createLabel: async (label) => {
+    const { currentProjectId, _captureState } = get()
+    if (!currentProjectId) return
+
+    const newLabel = {
+      ...label,
+      id: crypto.randomUUID(),
+      projectId: currentProjectId,
     }
+    const prevState = _captureState()
+
+    await db.labels.add(newLabel)
+    const newState = { ...prevState, labels: [...prevState.labels, newLabel] }
+
+    set((state) => ({
+      labels: newState.labels,
+      history: [...state.history.slice(0, state.historyIndex + 1), newState],
+      historyIndex: state.historyIndex + 1,
+    }))
   },
 
-  setLabelPrompt: (prompt) => {
-    set({ labelPrompt: prompt })
+  updateLabel: async (labelId, updates) => {
+    const { labels, _captureState } = get()
+    const prevState = _captureState()
+
+    const updatedLabels = labels.map((label) =>
+      label.id === labelId ? { ...label, ...updates } : label
+    )
+
+    await db.labels.update(labelId, updates)
+    const newState = { ...prevState, labels: updatedLabels }
+
+    set((state) => ({
+      labels: updatedLabels,
+      history: [...state.history.slice(0, state.historyIndex + 1), newState],
+      historyIndex: state.historyIndex + 1,
+    }))
   },
+
+  deleteLabel: async (labelId) => {
+    const { labels, _captureState } = get()
+    const prevState = _captureState()
+
+    const updatedLabels = labels.filter((label) => label.id !== labelId)
+    await db.labels.delete(labelId)
+    const newState = { ...prevState, labels: updatedLabels }
+
+    set((state) => ({
+      labels: updatedLabels,
+      history: [...state.history.slice(0, state.historyIndex + 1), newState],
+      historyIndex: state.historyIndex + 1,
+    }))
+  },
+
+  // Image operations
+  addImage: async (image) => {
+    const { currentProjectId, _captureState } = get()
+    if (!currentProjectId) return
+
+    const newImage = {
+      ...image,
+      id: crypto.randomUUID(),
+      projectId: currentProjectId,
+    }
+    const prevState = _captureState()
+
+    await db.images.add(newImage)
+    const newState = { ...prevState, images: [...prevState.images, newImage] }
+
+    set((state) => ({
+      images: newState.images,
+      history: [...state.history.slice(0, state.historyIndex + 1), newState],
+      historyIndex: state.historyIndex + 1,
+    }))
+  },
+
+  removeImage: async (imageId) => {
+    const { images, annotations, _captureState } = get()
+    const prevState = _captureState()
+
+    const updatedImages = images.filter((img) => img.id !== imageId)
+    const updatedAnnotations = annotations.filter(
+      (ann) => ann.imageId !== imageId
+    )
+
+    await db.transaction("rw", db.images, db.annotations, async () => {
+      await db.images.delete(imageId)
+      await db.annotations.where("imageId").equals(imageId).delete()
+    })
+
+    const newState = {
+      ...prevState,
+      images: updatedImages,
+      annotations: updatedAnnotations,
+    }
+
+    set((state) => ({
+      images: updatedImages,
+      annotations: updatedAnnotations,
+      history: [...state.history.slice(0, state.historyIndex + 1), newState],
+      historyIndex: state.historyIndex + 1,
+    }))
+  },
+
+  // Annotation operations
+  createAnnotation: async (annotation) => {
+    const { annotations, _captureState } = get()
+    const prevState = _captureState()
+
+    const newAnnotation = { ...annotation, id: crypto.randomUUID() }
+    await db.annotations.add(newAnnotation)
+    const newState = {
+      ...prevState,
+      annotations: [...annotations, newAnnotation],
+    }
+
+    set((state) => ({
+      annotations: newState.annotations,
+      history: [...state.history.slice(0, state.historyIndex + 1), newState],
+      historyIndex: state.historyIndex + 1,
+    }))
+  },
+
+  updateAnnotation: async (annotationId, updates) => {
+    const { annotations, _captureState } = get()
+    const prevState = _captureState()
+
+    const updatedAnnotations = annotations.map((ann) =>
+      ann.id === annotationId ? { ...ann, ...updates } : ann
+    )
+
+    await db.annotations.update(annotationId, updates)
+    const newState = { ...prevState, annotations: updatedAnnotations }
+
+    set((state) => ({
+      annotations: updatedAnnotations,
+      history: [...state.history.slice(0, state.historyIndex + 1), newState],
+      historyIndex: state.historyIndex + 1,
+    }))
+  },
+
+  deleteAnnotation: async (annotationId) => {
+    const { annotations, _captureState } = get()
+    const prevState = _captureState()
+
+    const updatedAnnotations = annotations.filter(
+      (ann) => ann.id !== annotationId
+    )
+    await db.annotations.delete(annotationId)
+    const newState = { ...prevState, annotations: updatedAnnotations }
+
+    set((state) => ({
+      annotations: updatedAnnotations,
+      history: [...state.history.slice(0, state.historyIndex + 1), newState],
+      historyIndex: state.historyIndex + 1,
+    }))
+  },
+
+  // History operations
+  undo: async () => {
+    const { history, historyIndex, _applyState } = get()
+    if (historyIndex <= 0) return
+
+    const prevState = history[historyIndex - 1]
+    await _applyState(prevState)
+
+    set({ historyIndex: historyIndex - 1 })
+  },
+
+  redo: async () => {
+    const { history, historyIndex, _applyState } = get()
+    if (historyIndex >= history.length - 1) return
+
+    const nextState = history[historyIndex + 1]
+    await _applyState(nextState)
+
+    set({ historyIndex: historyIndex + 1 })
+  },
+
+  canUndo: () => get().historyIndex > 0,
+  canRedo: () => get().historyIndex < get().history.length - 1,
 }))

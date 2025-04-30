@@ -10,8 +10,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
-import { useLabelStore } from "@/lib/store"
-import { useSettingsStore } from "@/lib/settings-store"
+import { useStore } from "@/lib/store"
 import type { Project } from "@/lib/types"
 
 interface ImageListProps {
@@ -26,31 +25,17 @@ export function ImageList({
   onImageSelect,
 }: ImageListProps) {
   const [imagesOpen, setImagesOpen] = useState(true)
-  const { labels } = useLabelStore()
-  const { darkMode } = useSettingsStore()
+  const { labels } = useStore()
 
   return (
     <div
       className={cn(
-        "h-full border-r",
-        darkMode
-          ? "bg-gray-800 border-gray-700 text-gray-100"
-          : "bg-white border-gray-200"
+        "h-full border-r bg-white border-gray-200 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
       )}
     >
-      <div
-        className={cn(
-          "p-4 border-b",
-          darkMode ? "border-gray-700" : "border-gray-200"
-        )}
-      >
+      <div className={cn("p-4 border-b border-gray-200 dark:border-gray-700")}>
         <h2 className="text-lg font-semibold">Images</h2>
-        <p
-          className={cn(
-            "text-sm",
-            darkMode ? "text-gray-400" : "text-gray-500"
-          )}
-        >
+        <p className={cn("text-sm text-gray-500 dark:text-gray-400")}>
           {project.images.length} total
         </p>
       </div>
@@ -83,9 +68,7 @@ export function ImageList({
                     className={cn(
                       "w-full justify-start text-left text-sm",
                       currentImageIndex === index &&
-                        (darkMode
-                          ? "bg-blue-900 text-blue-300"
-                          : "bg-blue-50 text-blue-500")
+                        "bg-blue-50 text-blue-500 dark:bg-blue-900 dark:text-blue-300"
                     )}
                     onClick={() => onImageSelect(index)}
                   >

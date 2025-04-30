@@ -5,7 +5,7 @@ import { ProjectDashboard } from "@/components/project-dashboard"
 import { db } from "@/lib/db"
 import { useToast } from "@/hooks/use-toast"
 import type { Project } from "@/lib/types"
-import MainLayout from "./main-layout"
+import MainLayout from "../main-layout"
 
 export default function ImageLabelingApp() {
   const { toast } = useToast()

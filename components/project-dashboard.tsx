@@ -18,11 +18,11 @@ import { useSettingsStore } from "@/lib/settings-store"
 import { cn } from "@/lib/utils"
 import type { Project } from "@/lib/types"
 import Image from "next/image"
+import { useRouter } from "next/router"
 
 interface ProjectDashboardProps {
   projects: Project[]
   isLoading: boolean
-  onProjectSelect: (project: Project) => void
   onProjectCreate: (project: Project) => void
   onProjectDelete: (projectId: string) => void
 }
@@ -30,13 +30,11 @@ interface ProjectDashboardProps {
 export function ProjectDashboard({
   projects,
   isLoading,
-  onProjectSelect,
   onProjectCreate,
   onProjectDelete,
 }: ProjectDashboardProps) {
   const { toast } = useToast()
   const [showNewProject, setShowNewProject] = useState(false)
-  const { darkMode, setDarkMode } = useSettingsStore()
 
   const handleProjectCreate = (project: Project) => {
     onProjectCreate(project)
@@ -59,34 +57,13 @@ export function ProjectDashboard({
   }
 
   return (
-    <div
-      className={cn(
-        "container mx-auto p-6",
-        darkMode ? "dark text-gray-100" : ""
-      )}
-    >
+    <>
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <Image
-            src={"/logo.png"}
-            alt="Logo"
-            width={100}
-            height={100}
-            className="h-14 w-auto"
-          />
+          <h1 className="text-2xl font-bold">Projects</h1>
+          <p className="text-gray-500">Manage your projects and images here.</p>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setDarkMode(!darkMode)}
-          >
-            {darkMode ? (
-              <Sun className="h-4 w-4" />
-            ) : (
-              <Moon className="h-4 w-4" />
-            )}
-          </Button>
           <Button onClick={() => setShowNewProject(true)}>
             <Plus className="mr-2 h-4 w-4" />
             New Project
@@ -104,12 +81,7 @@ export function ProjectDashboard({
             <div className="absolute h-12 w-12 border-2 border-blue-500 rounded-full"></div>
             <div className="absolute h-10 w-10 border-2 border-t-blue-500 border-transparent rounded-full"></div>
           </motion.div>
-          <p
-            className={cn(
-              "text-lg font-medium",
-              darkMode ? "text-gray-400" : "text-gray-500"
-            )}
-          >
+          <p className="text-lg font-medium text-gray-500 dark:text-gray-400">
             Loading projects...
           </p>
         </div>
@@ -119,50 +91,32 @@ export function ProjectDashboard({
             projects.map((project) => (
               <Card
                 key={project.id}
-                className={cn(
-                  "overflow-hidden",
-                  darkMode && "bg-gray-800 border-gray-700"
-                )}
+                className="overflow-hidden bg-white dark:bg-gray-800 dark:border-gray-700"
               >
-                <CardHeader
-                  className={cn("bg-gray-50", darkMode && "bg-gray-700")}
-                >
+                <CardHeader className="bg-gray-50 dark:bg-gray-700">
                   <CardTitle>{project.name}</CardTitle>
-                  <CardDescription className={darkMode ? "text-gray-400" : ""}>
+                  <CardDescription className="text-gray-600 dark:text-gray-400">
                     Created on{" "}
                     {new Date(project.createdAt).toLocaleDateString()}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-6">
-                  <div
-                    className={cn(
-                      "flex items-center gap-2 text-sm",
-                      darkMode ? "text-gray-400" : "text-gray-500"
-                    )}
-                  >
+                  <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                     <ImageIcon className="h-4 w-4" />
                     <span>{project.images.length} images</span>
                   </div>
-                  <p
-                    className={cn(
-                      "mt-2 text-sm",
-                      darkMode ? "text-gray-400" : "text-gray-500"
-                    )}
-                  >
+                  <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
                     Last modified:{" "}
                     {new Date(project.lastModified).toLocaleString()}
                   </p>
                 </CardContent>
-                <CardFooter
-                  className={cn(
-                    "flex justify-between p-4",
-                    darkMode ? "bg-gray-700" : "bg-gray-50"
-                  )}
-                >
+                <CardFooter className="flex justify-between p-4 bg-gray-50 dark:bg-gray-700">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => onProjectSelect(project)}
+                    onClick={() =>
+                      (window.location.href = `/projects/${project.id}`)
+                    }
                   >
                     <FolderOpen className="mr-2 h-4 w-4" />
                     Open Project
@@ -170,10 +124,7 @@ export function ProjectDashboard({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className={cn(
-                      "text-red-500 hover:text-red-600",
-                      darkMode ? "hover:bg-gray-600" : "hover:bg-red-50"
-                    )}
+                    className="text-red-500 hover:text-red-600 dark:hover:bg-gray-600 hover:bg-red-50"
                     onClick={() =>
                       handleDeleteProject(project.id, project.name)
                     }
@@ -184,27 +135,12 @@ export function ProjectDashboard({
               </Card>
             ))
           ) : (
-            <div
-              className={cn(
-                "col-span-full flex h-64 items-center justify-center rounded-lg border-2 border-dashed",
-                darkMode ? "border-gray-700" : "border-gray-300"
-              )}
-            >
+            <div className="col-span-full flex h-64 items-center justify-center rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700">
               <div className="text-center">
-                <p
-                  className={cn(
-                    "text-lg font-medium",
-                    darkMode ? "text-gray-400" : "text-gray-500"
-                  )}
-                >
+                <p className="text-lg font-medium text-gray-500 dark:text-gray-400">
                   No projects found
                 </p>
-                <p
-                  className={cn(
-                    "text-sm",
-                    darkMode ? "text-gray-500" : "text-gray-400"
-                  )}
-                >
+                <p className="text-sm text-gray-400 dark:text-gray-500">
                   Create a new project to get started
                 </p>
                 <Button
@@ -225,10 +161,9 @@ export function ProjectDashboard({
           <ProjectManager
             onClose={() => setShowNewProject(false)}
             onProjectCreate={handleProjectCreate}
-            darkMode={darkMode}
           />
         )}
       </AnimatePresence>
-    </div>
+    </>
   )
 }
