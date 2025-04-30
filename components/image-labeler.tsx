@@ -25,14 +25,12 @@ import {
 } from "@/components/ui/tooltip"
 import { Canvas } from "@/components/canvas"
 import { Toolbar } from "@/components/toolbar"
-import { ImageList } from "@/components/image-list"
 import { LabelListPanel } from "@/components/label-list-panel"
 import { ResizablePanel } from "@/components/resizable-panel"
 import { SettingsModal } from "@/components/settings-modal"
 import { ExportModal } from "@/components/export-modal"
 import { AIModelModal } from "@/components/ai-model-modal"
 import { ContextMenu } from "@/components/context-menu"
-import { db } from "@/lib/db"
 import { useToast } from "@/hooks/use-toast"
 import { useStore } from "@/lib/store"
 import type { Project, Label } from "@/lib/types"
@@ -368,7 +366,7 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
         {showExport && (
           <ExportModal
             project={project}
-            labels={labels}
+            annotations={annotations}
             onClose={() => setShowExport(false)}
           />
         )}
