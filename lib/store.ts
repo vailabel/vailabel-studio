@@ -10,7 +10,7 @@ interface HistoryItem {
 
 interface ProjectState {
   projects: Project[]
-  currentProjectId: string | null
+  currentProject: Project | null
   labels: Label[]
   images: ImageData[]
   annotations: Annotation[]
@@ -52,7 +52,7 @@ interface ProjectState {
 
 export const useStore = create<ProjectState>((set, get) => ({
   projects: [],
-  currentProjectId: null,
+  currentProject: null,
   labels: [],
   images: [],
   annotations: [],
@@ -67,8 +67,8 @@ export const useStore = create<ProjectState>((set, get) => ({
   }),
 
   _applyState: async (state) => {
-    const { currentProjectId } = get()
-    if (!currentProjectId) return
+    const { currentProject } = get()
+    if (!currentProject) return
 
     // Update database transactions
     await db.transaction(
@@ -80,7 +80,7 @@ export const useStore = create<ProjectState>((set, get) => ({
         // Update labels
         const currentLabels = await db.labels
           .where("projectId")
-          .equals(currentProjectId)
+          .equals(currentProject.id)
           .toArray()
         await Promise.all(
           currentLabels.map((label) => db.labels.delete(label.id))
@@ -90,7 +90,7 @@ export const useStore = create<ProjectState>((set, get) => ({
         // Update images
         const currentImages = await db.images
           .where("projectId")
-          .equals(currentProjectId)
+          .equals(currentProject.id)
           .toArray()
         await Promise.all(
           currentImages.map((image) => db.images.delete(image.id))
@@ -154,7 +154,7 @@ export const useStore = create<ProjectState>((set, get) => ({
 
       // Reset state with proper type safety
       set({
-        currentProjectId: projectId,
+        currentProject: project,
         labels,
         images,
         annotations,
@@ -189,19 +189,21 @@ export const useStore = create<ProjectState>((set, get) => ({
     set((state) => ({
       projects: state.projects.filter((p) => p.id !== projectId),
       currentProjectId:
-        state.currentProjectId === projectId ? null : state.currentProjectId,
+        state.currentProject?.id === projectId
+          ? null
+          : state.currentProject?.id,
     }))
   },
 
   // Label operations
   createLabel: async (label) => {
-    const { currentProjectId, _captureState } = get()
-    if (!currentProjectId) return
+    const { currentProject, _captureState } = get()
+    if (!currentProject) return
 
     const newLabel = {
       ...label,
       id: crypto.randomUUID(),
-      projectId: currentProjectId,
+      projectId: currentProject?.id,
     }
     const prevState = _captureState()
 
@@ -250,13 +252,13 @@ export const useStore = create<ProjectState>((set, get) => ({
 
   // Image operations
   addImage: async (image) => {
-    const { currentProjectId, _captureState } = get()
-    if (!currentProjectId) return
+    const { currentProject, _captureState } = get()
+    if (!currentProject) return
 
     const newImage = {
       ...image,
       id: crypto.randomUUID(),
-      projectId: currentProjectId,
+      projectId: currentProject.id,
     }
     const prevState = _captureState()
 

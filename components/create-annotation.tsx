@@ -6,40 +6,39 @@ import { motion } from "framer-motion"
 import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { useStore } from "@/lib/store"
 import { getRandomColor } from "@/lib/utils"
 import { useUIStore } from "@/lib/ui-store"
 
 export function CreateAnnotation() {
-  const { labels, createLabel } = useStore()
   const [labelName, setLabelName] = useState("")
   const [labelColor, setLabelColor] = useState("blue")
 
-  const { isAnnotationPanelOpen, setIsAnnotationPanelOpen } = useUIStore()
+  const { createAnnotationModal, setCreateAnnotationModal } = useUIStore()
 
   useEffect(() => {
-    if (isAnnotationPanelOpen) {
+    if (createAnnotationModal) {
       setLabelName("")
       setLabelColor(getRandomColor())
     }
-  }, [isAnnotationPanelOpen])
+  }, [createAnnotationModal])
 
-  const handleCancel = useCallback(() => {
-    setIsAnnotationPanelOpen(false)
-  }, [setIsAnnotationPanelOpen])
-
-  const handleSave = useCallback(
+  const handleSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault()
       if (labelName.trim()) {
-        createLabel({ name: labelName, color: labelColor })
-        setIsAnnotationPanelOpen(false)
+        createAnnotationModal?.onSubmit(labelName.trim())
+        setCreateAnnotationModal(null)
       }
     },
-    [labelName, labelColor, createLabel, setIsAnnotationPanelOpen]
+    [labelName, labelColor, createAnnotationModal, setCreateAnnotationModal]
   )
 
-  if (!isAnnotationPanelOpen) return null
+  const handleCancel = useCallback(() => {
+    createAnnotationModal?.onCancel()
+    setCreateAnnotationModal(null)
+  }, [createAnnotationModal, setCreateAnnotationModal])
+
+  if (!createAnnotationModal) return null
 
   return (
     <motion.div
@@ -57,7 +56,7 @@ export function CreateAnnotation() {
         </Button>
       </div>
 
-      <form onSubmit={handleSave} className="mt-4">
+      <form onSubmit={handleSubmit} className="mt-4">
         <div className="space-y-4">
           <div className="space-y-2">
             <Input
