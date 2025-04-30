@@ -13,16 +13,19 @@ import {
   exportToPascalVoc,
   exportToYolo,
 } from "@/lib/export-utils"
-import type { Project } from "@/lib/types"
-import type { Label as LabelType } from "@/lib/types"
+import type { Annotation, Project } from "@/lib/types"
 
 interface ExportModalProps {
   project: Project
-  labels: LabelType[]
+  annotations: Annotation[]
   onClose: () => void
 }
 
-export function ExportModal({ project, labels, onClose }: ExportModalProps) {
+export function ExportModal({
+  project,
+  annotations,
+  onClose,
+}: ExportModalProps) {
   const { toast } = useToast()
   const [exportFormat, setExportFormat] = useState<string>("json")
   const [isExporting, setIsExporting] = useState(false)
@@ -37,16 +40,16 @@ export function ExportModal({ project, labels, onClose }: ExportModalProps) {
 
       switch (exportFormat) {
         case "json":
-          exportToJson(project, labels, `${fileName}-export.json`)
+          exportToJson(project, annotations, `${fileName}-export.json`)
           break
         case "coco":
-          exportToCoco(project, labels, `${fileName}-coco.json`)
+          exportToCoco(project, annotations, `${fileName}-coco.json`)
           break
         case "pascal":
-          exportToPascalVoc(project, labels, `${fileName}-pascal`)
+          exportToPascalVoc(project, annotations, `${fileName}-pascal`)
           break
         case "yolo":
-          exportToYolo(project, labels, `${fileName}-yolo`)
+          exportToYolo(project, annotations, `${fileName}-yolo`)
           break
       }
 

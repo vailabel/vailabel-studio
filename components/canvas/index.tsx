@@ -3,13 +3,15 @@
 import type React from "react"
 
 import { useState, useRef, useEffect, useCallback } from "react"
-import { motion } from "framer-motion"
 import { useStore } from "@/lib/store"
 import { useSettingsStore } from "@/lib/settings-store"
 import { cn, getRandomColor, rgbToRgba } from "@/lib/utils"
 import type { Annotation, ImageData, Label, Point } from "@/lib/types"
 import { useUIStore } from "@/lib/ui-store"
 import { useCanvas } from "@/hooks/use-canvas"
+import { AnnotationRenderer } from "@/components/canvas/annotation-renderer"
+import { Crosshairs } from "@/components/canvas/crosshairs"
+import { PositionCoordinates } from "@/components/canvas/position-coordinates"
 
 interface CanvasProps {
   image: ImageData
@@ -592,45 +594,25 @@ export function Canvas({ image, annotations }: CanvasProps) {
     setZoom(uiZoom)
   }, [uiZoom])
 
-  // Draw crosshairs
-  const drawCrosshairs = () => {
-    if (!showCrosshairs || !cursorPosition) return null
+  useEffect(() => {
+    if (canvasRef.current && image) {
+      const canvasRect = canvasRef.current.getBoundingClientRect()
+      const scaleX = canvasRect.width / image.width
+      const scaleY = canvasRect.height / image.height
+      const initialZoom = Math.min(scaleX, scaleY)
+  
+      setUiZoom(initialZoom)
+      setPanOffset({ x: 0, y: 0 }) // Center the image
+    }
+  }, [image])
+  
 
-    return (
-      <>
-        <div
-          className="absolute top-0 border-l border-blue-400 border-dashed pointer-events-none z-10"
-          style={{
-            left: `${cursorPosition.x * uiZoom + panOffset.x}px`,
-            height: "100%",
-          }}
-        />
-        <div
-          className="absolute left-0 border-t border-blue-400 border-dashed pointer-events-none z-10"
-          style={{
-            top: `${cursorPosition.y * uiZoom + panOffset.y}px`,
-            width: "100%",
-          }}
-        />
-      </>
-    )
-  }
-
-  // Show coordinates
-  const showPositionCoordinates = () => {
-    if (!showCoordinates || !cursorPosition) return null
-
-    return (
-      <div
-        className="absolute bg-black bg-opacity-75 text-white px-2 py-1 rounded text-xs pointer-events-none z-20"
-        style={{
-          left: `${cursorPosition.x * uiZoom + panOffset.x + 10}px`,
-          top: `${cursorPosition.y * uiZoom + panOffset.y + 10}px`,
-        }}
-      >
-        x: {Math.round(cursorPosition.x)}, y: {Math.round(cursorPosition.y)}
-      </div>
-    )
+  const cursorStyles: Record<string, string> = {
+    box: "cursor-crosshair",
+    polygon: "cursor-crosshair",
+    move: "cursor-move",
+    delete: "cursor-pointer",
+    pan: "cursor-grabbing",
   }
 
   return (
@@ -654,13 +636,7 @@ export function Canvas({ image, annotations }: CanvasProps) {
           ref={canvasRef}
           className={cn(
             "relative h-full w-full overflow-hidden",
-            selectedTool === "box" || selectedTool === "polygon"
-              ? "cursor-crosshair"
-              : selectedTool === "move"
-                ? "cursor-move"
-                : selectedTool === "delete"
-                  ? "cursor-pointer"
-                  : "cursor-default"
+            cursorStyles[selectedTool] || "cursor-default"
           )}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
@@ -685,120 +661,13 @@ export function Canvas({ image, annotations }: CanvasProps) {
               height={image.height}
             />
 
-            {/* Render existing labels */}
-            {annotations.map((annotation: Annotation) => (
-              <div key={annotation.id}>
-                {annotation.type === "box" && (
-                  <motion.div
-                    className={cn(
-                      "absolute border-2 bg-opacity-20",
-                      selectedLabelId === annotation.id
-                        ? "border-yellow-500 bg-yellow-500"
-                        : ""
-                    )}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    style={{
-                      left: annotation.coordinates[0].x,
-                      top: annotation.coordinates[0].y,
-                      width:
-                        annotation.coordinates[1].x -
-                        annotation.coordinates[0].x,
-                      height:
-                        annotation.coordinates[1].y -
-                        annotation.coordinates[0].y,
-                      backgroundColor: rgbToRgba(
-                        annotation.color || "blue",
-                        0.2
-                      ),
-                      borderColor: annotation.color || "blue",
-                    }}
-                  >
-                    <div
-                      style={{
-                        backgroundColor: annotation.color || "blue",
-                      }}
-                      className={cn(
-                        "absolute -top-6 left-0 px-2 py-0.5 text-xs text-white",
-                        selectedLabelId === annotation.id
-                          ? "bg-yellow-500"
-                          : annotation.isAIGenerated
-                            ? "bg-green-500"
-                            : ``
-                      )}
-                    >
-                      {annotation.name}
-                      {annotation.isAIGenerated && " 🤖"}
-                    </div>
-
-                    {/* Render resize handles when selected */}
-                    {selectedLabelId === annotation.id &&
-                      selectedTool === "move" && (
-                        <>
-                          <div className="absolute -top-1 -left-1 h-2 w-2 cursor-nwse-resize bg-white border border-gray-400" />
-                          <div className="absolute -top-1 -right-1 h-2 w-2 cursor-nesw-resize bg-white border border-gray-400" />
-                          <div className="absolute -bottom-1 -left-1 h-2 w-2 cursor-nesw-resize bg-white border border-gray-400" />
-                          <div className="absolute -bottom-1 -right-1 h-2 w-2 cursor-nwse-resize bg-white border border-gray-400" />
-                          <div className="absolute top-1/2 -left-1 h-2 w-2 -translate-y-1/2 cursor-ew-resize bg-white border border-gray-400" />
-                          <div className="absolute top-1/2 -right-1 h-2 w-2 -translate-y-1/2 cursor-ew-resize bg-white border border-gray-400" />
-                          <div className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 cursor-ns-resize bg-white border border-gray-400" />
-                          <div className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 cursor-ns-resize bg-white border border-gray-400" />
-                        </>
-                      )}
-                  </motion.div>
-                )}
-
-                {annotation.type === "polygon" && (
-                  <svg className="absolute left-0 top-0 h-full w-full pointer-events-none">
-                    <motion.polygon
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      points={annotation.coordinates
-                        .map((p) => `${p.x},${p.y}`)
-                        .join(" ")}
-                      className={cn(
-                        "fill-opacity-20 stroke-2",
-                        selectedLabelId === annotation.id
-                          ? "fill-yellow-500 stroke-yellow-500"
-                          : annotation.isAIGenerated
-                            ? "fill-green-500 stroke-green-500"
-                            : `fill-${annotation.color || "blue-500"} stroke-${annotation.color || "blue-500"}`
-                      )}
-                    />
-                    <text
-                      x={annotation.coordinates[0].x}
-                      y={annotation.coordinates[0].y - 10}
-                      className={cn(
-                        "text-xs",
-                        selectedLabelId === annotation.id
-                          ? "fill-yellow-500"
-                          : annotation.isAIGenerated
-                            ? "fill-green-500"
-                            : `fill-${annotation.color || "blue-500"}`
-                      )}
-                    >
-                      {annotation.name}
-                    </text>
-
-                    {/* Render vertices when selected */}
-                    {selectedLabelId === annotation.id &&
-                      selectedTool === "move" && (
-                        <>
-                          {annotation.coordinates.map((point, index) => (
-                            <circle
-                              key={index}
-                              cx={point.x}
-                              cy={point.y}
-                              r={4 / uiZoom}
-                              className="fill-white stroke-gray-400 stroke-1"
-                            />
-                          ))}
-                        </>
-                      )}
-                  </svg>
-                )}
-              </div>
-            ))}
+            {/* Render existing annotation */}
+            <AnnotationRenderer
+              annotations={annotations}
+              selectedLabelId={selectedLabelId}
+              selectedTool={selectedTool}
+              uiZoom={uiZoom}
+            />
 
             {/* Render current drawing */}
             {isDragging && startPoint && currentPoint && (
@@ -833,10 +702,21 @@ export function Canvas({ image, annotations }: CanvasProps) {
             )}
           </div>
 
-          {drawCrosshairs()}
-          {showPositionCoordinates()}
+          <Crosshairs
+            showCrosshairs={showCrosshairs}
+            cursorPosition={cursorPosition}
+            uiZoom={uiZoom}
+            panOffset={panOffset}
+          />
+          <PositionCoordinates
+            showCoordinates={showCoordinates}
+            cursorPosition={cursorPosition}
+            uiZoom={uiZoom}
+            panOffset={panOffset}
+          />
         </div>
       )}
     </div>
   )
 }
+
