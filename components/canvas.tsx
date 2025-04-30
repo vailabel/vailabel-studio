@@ -6,23 +6,18 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import { motion } from "framer-motion"
 import { useStore } from "@/lib/store"
 import { useSettingsStore } from "@/lib/settings-store"
-import { cn, rgbToRgba } from "@/lib/utils"
+import { cn, getRandomColor, rgbToRgba } from "@/lib/utils"
 import type { Annotation, ImageData, Label, Point } from "@/lib/types"
 import { useUIStore } from "@/lib/ui-store"
+import { useCanvas } from "@/hooks/use-canvas"
 
 interface CanvasProps {
   image: ImageData
+  annotations: Annotation[]
 }
 
-export function Canvas({ image }: CanvasProps) {
+export function Canvas({ image, annotations }: CanvasProps) {
   const canvasRef = useRef<HTMLDivElement>(null)
-  const [isDragging, setIsDragging] = useState(false)
-  const [startPoint, setStartPoint] = useState<Point | null>(null)
-  const [currentPoint, setCurrentPoint] = useState<Point | null>(null)
-  const [polygonPoints, setPolygonPoints] = useState<Point[]>([])
-  const [panOffset, setPanOffset] = useState<Point>({ x: 0, y: 0 })
-  const [isPanning, setIsPanning] = useState(false)
-  const [lastPanPoint, setLastPanPoint] = useState<Point | null>(null)
   const [selectedLabelId, setSelectedLabelId] = useState<string | null>(null)
   const [isResizing, setIsResizing] = useState(false)
   const [resizeHandle, setResizeHandle] = useState<string | null>(null)
@@ -31,9 +26,25 @@ export function Canvas({ image }: CanvasProps) {
   const [cursorPosition, setCursorPosition] = useState<Point | null>(null)
   const [showLabelInput, setShowLabelInput] = useState(false)
   const [tempLabel, setTempLabel] = useState<Partial<Annotation> | null>(null)
-  const { annotations, createAnnotation, updateAnnotation, deleteAnnotation } =
-    useStore()
-  const { setIsAnnotationPanelOpen, onSubmitCreateAnnotation } = useUIStore()
+
+  const {
+    isDragging,
+    setIsDragging,
+    startPoint,
+    setStartPoint,
+    currentPoint,
+    setCurrentPoint,
+    polygonPoints,
+    setPolygonPoints,
+    panOffset,
+    setPanOffset,
+    isPanning,
+    setIsPanning,
+    lastPanPoint,
+    setLastPanPoint,
+  } = useCanvas()
+  const { createAnnotation, updateAnnotation, deleteAnnotation } = useStore()
+  const { setCreateAnnotationModal } = useUIStore()
   const { showCrosshairs, showCoordinates, selectedTool, zoom, setZoom } =
     useSettingsStore()
 
@@ -354,35 +365,36 @@ export function Canvas({ image }: CanvasProps) {
   // Effect to prompt for label name when a shape is completed
   useEffect(() => {
     if (showLabelInput && tempLabel) {
-      setIsAnnotationPanelOpen(true)
+      setCreateAnnotationModal({
+        isOpen: true,
+        onSubmit: handleAnnotationSubmit,
+        onCancel: () => {
+          setShowLabelInput(false)
+          setTempLabel(null)
+        },
+      })
     }
-  }, [
-    showLabelInput,
-    tempLabel,
-    setIsAnnotationPanelOpen,
-    onSubmitCreateAnnotation,
-  ])
+  }, [showLabelInput, tempLabel, setCreateAnnotationModal, setShowLabelInput])
 
-  // Handle label input submission
-  // const handleAnnotationSubmit = (label: Label) => {
-  //   if (tempLabel) {
-  //     const newAnnotation: Annotation = {
-  //       id: crypto.randomUUID(),
-  //       name: "",
-  //       type: tempLabel.type as "box" | "polygon",
-  //       coordinates: tempLabel.coordinates || [],
-  //       imageId: image.id,
-  //       createdAt: new Date(),
-  //       updatedAt: new Date(),
-  //       label: label,
-  //     }
+  const handleAnnotationSubmit = (name: string) => {
+    if (tempLabel) {
+      const newAnnotation: Annotation = {
+        id: crypto.randomUUID(),
+        name: name,
+        type: tempLabel.type as "box" | "polygon",
+        coordinates: tempLabel.coordinates || [],
+        imageId: image.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        color: getRandomColor(),
+        isAIGenerated: false,
+      }
 
-  //     createAnnotation(newAnnotation)
-  //     setTempLabel(null)
-  //     setShowLabelInput(false)
-  //     setIsAnnotationPanelOpen(false)
-  //   }
-  // }
+      createAnnotation(newAnnotation)
+      setTempLabel(null)
+      setShowLabelInput(false)
+    }
+  }
 
   // Find a label at a specific point
   const findLabelAtPoint = (point: Point): Annotation | null => {
@@ -620,12 +632,6 @@ export function Canvas({ image }: CanvasProps) {
       </div>
     )
   }
-
-  useEffect(() => {
-    if (!showLabelInput) {
-      setIsAnnotationPanelOpen(false)
-    }
-  }, [showLabelInput, setIsAnnotationPanelOpen])
 
   return (
     <div

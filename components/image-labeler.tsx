@@ -28,7 +28,6 @@ import { Toolbar } from "@/components/toolbar"
 import { ImageList } from "@/components/image-list"
 import { LabelListPanel } from "@/components/label-list-panel"
 import { ResizablePanel } from "@/components/resizable-panel"
-import { LabelEditor } from "@/components/label-editor"
 import { SettingsModal } from "@/components/settings-modal"
 import { ExportModal } from "@/components/export-modal"
 import { AIModelModal } from "@/components/ai-model-modal"
@@ -66,7 +65,7 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
   const canvasContainerRef = useRef<HTMLDivElement>(null)
   const [containerRect, setContainerRect] = useState<DOMRect | null>(null)
 
-  const { labels, createAnnotation } = useStore()
+  const { annotations, createAnnotation } = useStore()
   const { theme, setTheme } = useTheme()
 
   const handleExportProject = () => {
@@ -328,7 +327,12 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
 
           <div className="relative flex-1 overflow-hidden">
             {currentImage ? (
-              <Canvas image={currentImage} />
+              <Canvas
+                image={currentImage}
+                annotations={annotations.filter(
+                  (a) => a.imageId === currentImageId
+                )}
+              />
             ) : (
               <div className="flex h-full items-center justify-center bg-gray-100 dark:bg-gray-900">
                 <p className="text-gray-500 dark:text-gray-400">
@@ -344,14 +348,6 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
                   y={contextMenuProps.y}
                   containerRect={containerRect}
                   onClose={handleCloseContextMenu}
-                />
-              )}
-            </AnimatePresence>
-            <AnimatePresence>
-              {showLabelEditor && selectedLabel && (
-                <LabelEditor
-                  label={selectedLabel}
-                  onClose={handleLabelEditorClose}
                 />
               )}
             </AnimatePresence>
