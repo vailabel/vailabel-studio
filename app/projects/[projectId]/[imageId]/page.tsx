@@ -53,6 +53,7 @@ export default function ImageStudio({
       {!isLoading && activeProject && (
         <ImageLabeler
           project={activeProject}
+          imageId={params?.imageId}
           onClose={() =>
             (window.location.href = `/projects/${params?.projectId}`)
           }

@@ -12,10 +12,9 @@ import { useUIStore } from "@/lib/ui-store"
 
 interface CanvasProps {
   image: ImageData
-  labels: Label[]
 }
 
-export function Canvas({ image, labels }: CanvasProps) {
+export function Canvas({ image }: CanvasProps) {
   const canvasRef = useRef<HTMLDivElement>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [startPoint, setStartPoint] = useState<Point | null>(null)
@@ -674,7 +673,7 @@ export function Canvas({ image, labels }: CanvasProps) {
             <img
               src={image.data || "/placeholder.svg"}
               alt="Canvas"
-              className="pointer-events-none"
+              className="pointer-events-none select-none"
               draggable={false}
               width={image.width}
               height={image.height}
@@ -703,27 +702,27 @@ export function Canvas({ image, labels }: CanvasProps) {
                         annotation.coordinates[1].y -
                         annotation.coordinates[0].y,
                       backgroundColor: rgbToRgba(
-                        annotation.label.color || "blue",
+                        annotation.color || "blue",
                         0.2
                       ),
-                      borderColor: annotation.label.color || "blue",
+                      borderColor: annotation.color || "blue",
                     }}
                   >
                     <div
                       style={{
-                        backgroundColor: annotation.label.color || "blue",
+                        backgroundColor: annotation.color || "blue",
                       }}
                       className={cn(
                         "absolute -top-6 left-0 px-2 py-0.5 text-xs text-white",
                         selectedLabelId === annotation.id
                           ? "bg-yellow-500"
-                          : annotation.label.isAIGenerated
+                          : annotation.isAIGenerated
                             ? "bg-green-500"
                             : ``
                       )}
                     >
-                      {annotation.label.name}
-                      {annotation.label.isAIGenerated && " 🤖"}
+                      {annotation.name}
+                      {annotation.isAIGenerated && " 🤖"}
                     </div>
 
                     {/* Render resize handles when selected */}
@@ -755,9 +754,9 @@ export function Canvas({ image, labels }: CanvasProps) {
                         "fill-opacity-20 stroke-2",
                         selectedLabelId === annotation.id
                           ? "fill-yellow-500 stroke-yellow-500"
-                          : annotation.label.isAIGenerated
+                          : annotation.isAIGenerated
                             ? "fill-green-500 stroke-green-500"
-                            : `fill-${annotation.label.color || "blue-500"} stroke-${annotation.label.color || "blue-500"}`
+                            : `fill-${annotation.color || "blue-500"} stroke-${annotation.color || "blue-500"}`
                       )}
                     />
                     <text
@@ -767,12 +766,12 @@ export function Canvas({ image, labels }: CanvasProps) {
                         "text-xs",
                         selectedLabelId === annotation.id
                           ? "fill-yellow-500"
-                          : annotation.label.isAIGenerated
+                          : annotation.isAIGenerated
                             ? "fill-green-500"
-                            : `fill-${annotation.label.color || "blue-500"}`
+                            : `fill-${annotation.color || "blue-500"}`
                       )}
                     >
-                      {annotation.label.name}
+                      {annotation.name}
                     </text>
 
                     {/* Render vertices when selected */}
