@@ -1,5 +1,6 @@
 "use client"
 import { Folder, Home, Settings2, Sun, Moon } from "lucide-react"
+import { useEffect, useState } from "react"
 
 import React from "react"
 import { Button } from "@/components/ui/button"
@@ -21,6 +22,12 @@ export default function MainLayout({
   children: React.ReactNode
 }>) {
   const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   return (
     <div className="flex min-h-screen">
       {/* Sidebar */}
@@ -49,17 +56,19 @@ export default function MainLayout({
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-white px-4 md:px-6 dark:bg-gray-900">
           <h1 className="text-xl font-bold">Project Details</h1>
           <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            >
-              {theme === "dark" ? (
-                <Sun className="h-4 w-4" />
-              ) : (
-                <Moon className="h-4 w-4" />
-              )}
-            </Button>
+            {mounted && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              >
+                {theme === "dark" ? (
+                  <Sun className="h-4 w-4" />
+                ) : (
+                  <Moon className="h-4 w-4" />
+                )}
+              </Button>
+            )}
           </div>
         </header>
         <main className="flex-1 p-6">{children}</main>
