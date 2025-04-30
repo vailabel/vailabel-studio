@@ -25,6 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import MainLayout from "@/app/main-layout"
+import { useStore } from "@/lib/store"
 
 export default function ProjectDetails({
   params: paramsPromise,
@@ -34,50 +35,26 @@ export default function ProjectDetails({
   const params = React.use(paramsPromise)
   const { projectId } = params
 
-  const [project, setProject] = useState<
-    (Project & { images: any[]; totalImages: number }) | null
-  >(null)
-  const [currentPage, setCurrentPage] = useState(1)
-  const imagesPerPage = 50
-
-  const loadProject = async (
-    projectId: string,
-    page: number,
-    limit: number
-  ) => {
-    const offset = (page - 1) * limit
-    const images = await db.images
-      .filter((image) => image.projectId === projectId)
-      .offset(offset)
-      .limit(limit)
-      .toArray()
-
-    const totalImages = await db.images
-      .filter((image) => image.projectId === projectId)
-      .count()
-
-    const project = await db.projects.filter((p) => p.id === projectId).first()
-
-    return { ...project, images, totalImages }
-  }
+  const [project, setProject] = useState<Project | null>(null)
+  const { projects, loadProject } = useStore()
 
   useEffect(() => {
-    loadProject(projectId, currentPage, imagesPerPage)
-      .then((data) => setProject(data))
-      .catch((error) => console.error("Error loading project:", error))
-  }, [projectId, currentPage])
+    const fetchProject = async () => {
+      if (!projectId) return
+      try {
+        const projectData = await db.projects.get(projectId)
+        if (projectData) {
+          setProject(projectData)
+        } else {
+          console.error("Project not found")
+        }
+      } catch (error) {
+        console.error("Failed to fetch project:", error)
+      }
+    }
 
-  const totalPages = project?.totalImages
-    ? Math.ceil(project.totalImages / imagesPerPage)
-    : 0
-
-  const handleNextPage = () => {
-    if (currentPage < totalPages) setCurrentPage((prev) => prev + 1)
-  }
-
-  const handlePreviousPage = () => {
-    if (currentPage > 1) setCurrentPage((prev) => prev - 1)
-  }
+    fetchProject()
+  }, [projectId])
 
   if (!projectId) {
     return (
@@ -130,23 +107,6 @@ export default function ProjectDetails({
                       </Card>
                     ))}
                   </div>
-                  <Pagination>
-                    <PaginationPrevious onClick={handlePreviousPage}>
-                      Previous
-                    </PaginationPrevious>
-                    <PaginationContent>
-                      <PaginationItem>
-                        <PaginationLink>{currentPage}</PaginationLink>
-                      </PaginationItem>
-                      <PaginationEllipsis />
-                      <PaginationItem>
-                        <PaginationLink>{totalPages}</PaginationLink>
-                      </PaginationItem>
-                    </PaginationContent>
-                    <PaginationNext onClick={handleNextPage}>
-                      Next
-                    </PaginationNext>
-                  </Pagination>
                 </>
               ) : (
                 <p className="text-gray-600">No images available.</p>

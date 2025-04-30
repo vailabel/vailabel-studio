@@ -1,16 +1,17 @@
 import { create } from "zustand"
 
+interface CreateAnnotationModal {
+  isOpen: boolean
+  onSubmit: (name: string) => void
+  onCancel: () => void
+}
+
 interface UIState {
-  isAnnotationPanelOpen: boolean
-  setIsAnnotationPanelOpen: (isOpen: boolean) => void
-  onSubmitCreateAnnotation: (cb: CallableFunction) => void
+  createAnnotationModal: CreateAnnotationModal | null
+  setCreateAnnotationModal: (modal: CreateAnnotationModal | null) => void
 }
 
 export const useUIStore = create<UIState>((set) => ({
-  isAnnotationPanelOpen: false,
-  setIsAnnotationPanelOpen: (isOpen) => set({ isAnnotationPanelOpen: isOpen }),
-  onSubmitCreateAnnotation: (cb: CallableFunction) => {
-    set({ isAnnotationPanelOpen: false })
-    cb()
-  },
+  createAnnotationModal: null,
+  setCreateAnnotationModal: (modal) => set({ createAnnotationModal: modal }),
 }))

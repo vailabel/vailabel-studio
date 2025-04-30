@@ -20,17 +20,7 @@ interface LabelListPanelProps {
 
 export function LabelListPanel({ onLabelSelect }: LabelListPanelProps) {
   const [labelsOpen, setLabelsOpen] = useState(true)
-  const { labels } = useStore()
-
-  // Group labels by category
-  const labelsByCategory: Record<string, Label[]> = {}
-  labels.forEach((label) => {
-    const category = label.category || "Uncategorized"
-    if (!labelsByCategory[category]) {
-      labelsByCategory[category] = []
-    }
-    labelsByCategory[category].push(label)
-  })
+  const { annotations } = useStore()
 
   return (
     <div
@@ -49,7 +39,7 @@ export function LabelListPanel({ onLabelSelect }: LabelListPanelProps) {
       >
         <h2 className="text-lg font-semibold">Labels</h2>
         <p className={cn("text-sm", "dark:text-gray-400", "text-gray-500")}>
-          {labels.length} total
+          {annotations.length} total
         </p>
       </div>
 
@@ -73,60 +63,45 @@ export function LabelListPanel({ onLabelSelect }: LabelListPanelProps) {
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              {Object.entries(labelsByCategory).map(
-                ([category, categoryLabels]) => (
-                  <div key={category} className="mt-4">
-                    <h3
+              <div className="space-y-1">
+                {annotations.map((label) => (
+                  <motion.div
+                    key={label.id}
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="rounded-md border p-2 cursor-pointer dark:border-gray-700 dark:hover:bg-gray-700 border-gray-200 hover:bg-gray-50"
+                    onClick={() => onLabelSelect(label)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <div
+                          style={{
+                            backgroundColor: label.color,
+                          }}
+                          className={cn(
+                            "mr-2 h-3 w-3 rounded-full",
+                            label.isAIGenerated ? "bg-green-500" : ``
+                          )}
+                        />
+                        <span className="text-sm font-medium">
+                          {label.name}
+                        </span>
+                      </div>
+                    </div>
+                    <p
                       className={cn(
-                        "mb-2 text-xs font-medium",
+                        "mt-1 text-xs truncate",
                         "dark:text-gray-400",
                         "text-gray-500"
                       )}
                     >
-                      {category}
-                    </h3>
-                    <div className="space-y-1">
-                      {categoryLabels.map((label) => (
-                        <motion.div
-                          key={label.id}
-                          initial={{ opacity: 0, y: 5 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="rounded-md border p-2 cursor-pointer dark:border-gray-700 dark:hover:bg-gray-700 border-gray-200 hover:bg-gray-50"
-                          onClick={() => onLabelSelect(label)}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center">
-                              <div
-                                style={{
-                                  backgroundColor: label.color,
-                                }}
-                                className={cn(
-                                  "mr-2 h-3 w-3 rounded-full",
-                                  label.isAIGenerated ? "bg-green-500" : ``
-                                )}
-                              />
-                              <span className="text-sm font-medium">
-                                {label.name}
-                              </span>
-                            </div>
-                          </div>
-                          <p
-                            className={cn(
-                              "mt-1 text-xs truncate",
-                              "dark:text-gray-400",
-                              "text-gray-500"
-                            )}
-                          >
-                            {label.isAIGenerated && "🤖 "}
-                          </p>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
-                )
-              )}
+                      {label.isAIGenerated && "🤖 "}
+                    </p>
+                  </motion.div>
+                ))}
+              </div>
 
-              {labels.length === 0 && (
+              {annotations.length === 0 && (
                 <div
                   className={cn(
                     "mt-2 rounded-md border border-dashed p-4 text-center",
