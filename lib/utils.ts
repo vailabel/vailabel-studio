@@ -32,7 +32,8 @@ export function rgbToRgba(rgb: string, alpha: number): string {
   const rgbValues = rgb.match(/\d+/g)?.map(Number)
 
   if (!rgbValues || rgbValues.length !== 3) {
-    throw new Error("Invalid RGB format. Expected format: 'rgb(r, g, b)'.")
+    // throw new Error("Invalid RGB format. Expected format: 'rgb(r, g, b)'.")
+    return rgb
   }
 
   const [r, g, b] = rgbValues

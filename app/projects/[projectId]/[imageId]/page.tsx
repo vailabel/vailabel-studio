@@ -4,6 +4,7 @@ import { db } from "@/lib/db"
 import { Project } from "@/lib/types"
 import { useEffect, useState } from "react"
 import Loading from "@/components/loading"
+import { useStore } from "@/lib/store"
 
 export default function ImageStudio({
   params: paramsPromise,
@@ -15,45 +16,28 @@ export default function ImageStudio({
     imageId: string
   } | null>(null)
 
-  useEffect(() => {
-    paramsPromise.then(setParams).catch((error) => {
-      console.error("Error unwrapping params:", error)
-    })
-  }, [paramsPromise])
-
-  const fetchProject = async (projectId: string) => {
-    const project = await db.projects.filter((p) => p.id === projectId).first()
-    if (!project) {
-      throw new Error("Project not found")
-    }
-    return project
-  }
-
-  const [activeProject, setActiveProject] = useState<Project>()
+  const { loadProject, currentProject } = useStore()
   const [isLoading, setIsLoading] = useState(true)
+  useEffect(() => {
+    paramsPromise.then((params) => {
+      setParams(params)
+    })
+  }, [])
 
   useEffect(() => {
     if (!params) return
-
     setIsLoading(true)
-    fetchProject(params.projectId)
-      .then((data) => {
-        setActiveProject(data)
-        setIsLoading(false)
-      })
-      .catch((error) => {
-        console.error("Error loading project:", error)
-        setIsLoading(false)
-      })
-  }, [params])
+    loadProject(params.projectId)
+    setIsLoading(false)
+  }, [params?.projectId])
 
   return (
     <>
       {isLoading && <Loading />}
-      {!isLoading && activeProject && (
+      {!isLoading && (currentProject as Project) && (
         <ImageLabeler
-          project={activeProject}
-          imageId={params?.imageId}
+          project={currentProject as Project}
+          imageId={params?.imageId || ""}
           onClose={() =>
             (window.location.href = `/projects/${params?.projectId}`)
           }
