@@ -66,7 +66,7 @@ export function ProjectManager({
         const dimensions = await getImageDimensions(imageData)
 
         newImages.push({
-          id: `img-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          id: crypto.randomUUID(),
           name: file.name,
           data: imageData,
           width: dimensions.width,
@@ -145,7 +145,7 @@ export function ProjectManager({
     }
 
     try {
-      const projectId = `proj-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+      const projectId = crypto.randomUUID()
 
       // Assign project ID to all images
       const projectImages = images.map((img) => ({
