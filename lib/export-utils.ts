@@ -1,18 +1,18 @@
-import type { Project, Label } from "@/lib/types"
+import type { Project, Annotation } from "@/lib/types"
 import JSZip from "jszip"
 // Simple JSON export
 export function exportToJson(
   project: Project,
-  labels: Label[],
+  annotations: Annotation[],
   filename: string
 ) {
-  // Group labels by imageId
-  const labelsByImage: Record<string, Label[]> = {}
-  labels.forEach((label) => {
-    if (!labelsByImage[label.imageId]) {
-      labelsByImage[label.imageId] = []
+  // Group annotations by imageId
+  const annotationsByImage: Record<string, Annotation[]> = {}
+  annotations.forEach((annotation) => {
+    if (!annotationsByImage[annotation.imageId]) {
+      annotationsByImage[annotation.imageId] = []
     }
-    labelsByImage[label.imageId].push(label)
+    annotationsByImage[annotation.imageId].push(annotation)
   })
 
   // Create export data structure
@@ -29,7 +29,7 @@ export function exportToJson(
       name: img.name,
       width: img.width,
       height: img.height,
-      labels: labelsByImage[img.id] || [],
+      annotations: annotationsByImage[img.id] || [],
     })),
   }
 
@@ -50,7 +50,7 @@ export function exportToJson(
 // COCO JSON export
 export function exportToCoco(
   project: Project,
-  labels: Label[],
+  annotations: Annotation[],
   filename: string
 ) {
   // COCO format structure
@@ -67,9 +67,6 @@ export function exportToCoco(
     categories: [] as any[],
   }
 
-  // Create a map of unique categories
-  const categories = new Map()
-
   // Process images
   project.images.forEach((image, index) => {
     cocoData.images.push({
@@ -79,63 +76,49 @@ export function exportToCoco(
       height: image.height,
     })
 
-    // Find labels for this image
-    const imageLabels = labels.filter((label) => label.imageId === image.id)
+    // Find annotations for this image
+    const imageAnnotations = annotations.filter(
+      (annotation) => annotation.imageId === image.id
+    )
 
-    // Process labels
-    imageLabels.forEach((label, labelIndex) => {
-      // Add category if not exists
-      const category = label.category || "Uncategorized"
-      if (!categories.has(category)) {
-        categories.set(category, {
-          id: categories.size + 1,
-          name: category,
-          supercategory: "none",
-        })
-      }
-
-      const categoryId = categories.get(category).id
-
+    // Process annotations
+    imageAnnotations.forEach((annotation, annotationIndex) => {
       // Create annotation
-      const annotation: any = {
-        id: labelIndex + 1,
+      const cocoAnnotation: any = {
+        id: annotationIndex + 1,
         image_id: index + 1,
-        category_id: categoryId,
         segmentation: [],
         area: 0,
         bbox: [],
         iscrowd: 0,
-        color: label.color || "blue-500", // Include color in export
+        color: annotation.color || "blue-500", // Include color in export
       }
 
-      if (label.type === "box") {
-        const [topLeft, bottomRight] = label.coordinates
+      if (annotation.type === "box") {
+        const [topLeft, bottomRight] = annotation.coordinates
         const width = bottomRight.x - topLeft.x
         const height = bottomRight.y - topLeft.y
 
-        annotation.bbox = [topLeft.x, topLeft.y, width, height]
-        annotation.area = width * height
-      } else if (label.type === "polygon") {
+        cocoAnnotation.bbox = [topLeft.x, topLeft.y, width, height]
+        cocoAnnotation.area = width * height
+      } else if (annotation.type === "polygon") {
         // Flatten coordinates for COCO format
-        const flatCoords = label.coordinates.flatMap((p) => [p.x, p.y])
-        annotation.segmentation = [flatCoords]
+        const flatCoords = annotation.coordinates.flatMap((p) => [p.x, p.y])
+        cocoAnnotation.segmentation = [flatCoords]
 
         // Calculate polygon area (approximate)
         let area = 0
-        for (let i = 0; i < label.coordinates.length; i++) {
-          const j = (i + 1) % label.coordinates.length
-          area += label.coordinates[i].x * label.coordinates[j].y
-          area -= label.coordinates[j].x * label.coordinates[i].y
+        for (let i = 0; i < annotation.coordinates.length; i++) {
+          const j = (i + 1) % annotation.coordinates.length
+          area += annotation.coordinates[i].x * annotation.coordinates[j].y
+          area -= annotation.coordinates[j].x * annotation.coordinates[i].y
         }
-        annotation.area = Math.abs(area) / 2
+        cocoAnnotation.area = Math.abs(area) / 2
       }
 
-      cocoData.annotations.push(annotation)
+      cocoData.annotations.push(cocoAnnotation)
     })
   })
-
-  // Add categories to COCO data
-  cocoData.categories = Array.from(categories.values())
 
   // Convert to JSON and download
   const jsonStr = JSON.stringify(cocoData, null, 2)
@@ -153,13 +136,15 @@ export function exportToCoco(
 
 export function exportToPascalVoc(
   project: Project,
-  labels: Label[],
+  annotations: Annotation[],
   filenamePrefix: string
 ) {
   const zip = new JSZip()
 
   project.images.forEach((image) => {
-    const imageLabels = labels.filter((label) => label.imageId === image.id)
+    const imageAnnotations = annotations.filter(
+      (annotation) => annotation.imageId === image.id
+    )
 
     let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <annotation>
@@ -171,24 +156,24 @@ export function exportToPascalVoc(
     <depth>3</depth>
   </size>`
 
-    imageLabels.forEach((label) => {
+    imageAnnotations.forEach((annotation) => {
       xml += `\n  <object>
-    <name>${label.name}</name>
+    <name>${annotation.name}</name>
     <pose>Unspecified</pose>
     <truncated>0</truncated>
     <difficult>0</difficult>
-    <color>${label.color || "blue-500"}</color>`
-      if (label.type === "box") {
-        const [topLeft, bottomRight] = label.coordinates
+    <color>${annotation.color || "blue-500"}</color>`
+      if (annotation.type === "box") {
+        const [topLeft, bottomRight] = annotation.coordinates
         xml += `\n    <bndbox>
       <xmin>${Math.round(topLeft.x)}</xmin>
       <ymin>${Math.round(topLeft.y)}</ymin>
       <xmax>${Math.round(bottomRight.x)}</xmax>
       <ymax>${Math.round(bottomRight.y)}</ymax>
     </bndbox>`
-      } else if (label.type === "polygon") {
+      } else if (annotation.type === "polygon") {
         xml += `\n    <polygon>`
-        label.coordinates.forEach((point, index) => {
+        annotation.coordinates.forEach((point, index) => {
           xml += `\n      <pt${index + 1}>
         <x>${Math.round(point.x)}</x>
         <y>${Math.round(point.y)}</y>
@@ -218,42 +203,20 @@ export function exportToPascalVoc(
 
 export function exportToYolo(
   project: Project,
-  labels: Label[],
+  annotations: Annotation[],
   filenamePrefix: string
 ) {
   const zip = new JSZip()
 
-  const categories = new Map()
-  labels.forEach((label) => {
-    const category = label.category || label.name
-    if (!categories.has(category)) {
-      categories.set(category, categories.size)
-    }
-  })
-
-  const classesText = Array.from(categories.keys()).join("\n")
-  zip.file("classes.txt", classesText)
-
-  const colorsMap = new Map()
-  labels.forEach((label) => {
-    const category = label.category || label.name
-    if (!colorsMap.has(category)) {
-      colorsMap.set(category, label.color || "blue-500")
-    }
-  })
-
-  const colorsText = Array.from(colorsMap.entries())
-    .map(([category, color]) => `${category}:${color}`)
-    .join("\n")
-  zip.file("colors.txt", colorsText)
-
   project.images.forEach((image) => {
-    const imageLabels = labels.filter((label) => label.imageId === image.id)
+    const imageAnnotations = annotations.filter(
+      (annotation) => annotation.imageId === image.id
+    )
 
     const lines: string[] = []
-    imageLabels.forEach((label) => {
-      if (label.type === "box") {
-        const [topLeft, bottomRight] = label.coordinates
+    imageAnnotations.forEach((annotation) => {
+      if (annotation.type === "box") {
+        const [topLeft, bottomRight] = annotation.coordinates
         const width = bottomRight.x - topLeft.x
         const height = bottomRight.y - topLeft.y
 
@@ -262,11 +225,10 @@ export function exportToYolo(
         const norm_width = width / image.width
         const norm_height = height / image.height
 
-        const category = label.category || label.name
-        const classId = categories.get(category)
-
         lines.push(
-          `${classId} ${x_center.toFixed(6)} ${y_center.toFixed(6)} ${norm_width.toFixed(6)} ${norm_height.toFixed(6)}`
+          `0 ${x_center.toFixed(6)} ${y_center.toFixed(6)} ${norm_width.toFixed(
+            6
+          )} ${norm_height.toFixed(6)}`
         )
       }
     })
