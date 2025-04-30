@@ -17,10 +17,11 @@ export interface Annotation {
   name: string
   type: "box" | "polygon" | "freeDraw"
   coordinates: Point[]
-  label: Label
   imageId: string
   createdAt: Date
   updatedAt: Date
+  color?: string
+  isAIGenerated?: boolean
 }
 
 export interface History {

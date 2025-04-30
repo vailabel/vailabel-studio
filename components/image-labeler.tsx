@@ -42,12 +42,14 @@ import { CreateAnnotation } from "./create-annotation"
 
 interface ImageLabelerProps {
   project: Project
+  imageId: string | null
   onClose: () => void
 }
 
-export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
+export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
   const { toast } = useToast()
-  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [currentImageId, setCurrentImageId] = useState<string | null>(imageId)
+  const currentImage = project.images.find((img) => img.id === currentImageId)
   const [showSettings, setShowSettings] = useState(false)
   const [showExport, setShowExport] = useState(false)
   const [showAISettings, setShowAISettings] = useState(false)
@@ -112,16 +114,16 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
         return
 
       if (e.key === "ArrowRight" || e.code === "ArrowRight") {
-        // TODO: Implement next image navigation
+        nextImage()
       } else if (e.key === "ArrowLeft" || e.code === "ArrowLeft") {
-        // TODO: Implement previous image navigation
+        previousImage()
       }
     }
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [
-    currentImageIndex,
+    currentImageId,
     project.images.length,
     showSettings,
     showLabelEditor,
@@ -129,7 +131,34 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
     showAISettings,
   ])
 
-  const currentImage = project.images[currentImageIndex]
+  const nextImage = async () => {
+    const currentIndex = project.images.findIndex(
+      (img) => img.id === currentImageId
+    )
+    if (currentIndex < project.images.length - 1) {
+      setCurrentImageId(project.images[currentIndex + 1].id)
+    } else {
+      toast({
+        title: "No more images",
+        description: "You are at the last image.",
+      })
+    }
+  }
+
+  const previousImage = async () => {
+    const currentIndex = project.images.findIndex(
+      (img) => img.id === currentImageId
+    )
+    if (currentIndex > 0) {
+      setCurrentImageId(project.images[currentIndex - 1].id)
+    } else {
+      toast({
+        title: "No more images",
+        description: "You are at the first image.",
+      })
+    }
+  }
+
   const progress =
     project.images.length > 0
       ? Math.round((labeledCount / project.images.length) * 100)
@@ -137,8 +166,8 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
 
   return (
     <div className="flex flex-col h-screen w-full overflow-hidden bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-      <header className="flex items-center justify-between border-b px-4 py-1 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-        <div className="flex items-center gap-4">
+      <header className="flex justify-between border-b px-4 py-1 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+        <div className="flex items-center gap-4 min-w-[250px]">
           <Button variant="ghost" size="icon" onClick={onClose}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
@@ -151,7 +180,63 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
             </p>
           </div>
         </div>
+        <div className="p-4 w-full ">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="sm" onClick={previousImage}>
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Previous image
+                    <kbd className="ml-2 rounded border px-1.5 text-xs dark:border-gray-700 dark:bg-gray-800 border-gray-200 bg-gray-100">
+                      Left Arrow
+                    </kbd>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="sm" onClick={nextImage}>
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Next image
+                    <kbd className="ml-2 rounded border px-1.5 text-xs dark:border-gray-700 dark:bg-gray-800 border-gray-200 bg-gray-100">
+                      Right Arrow
+                    </kbd>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
 
+            <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+              <span>
+                Image
+                {project.images.findIndex((img) => img.id === currentImageId) +
+                  1}
+                of
+                {project.images.length}
+              </span>
+              <Separator orientation="vertical" className="h-4" />
+              <span>
+                {labeledCount} labeled ({progress}%)
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-2">
+            <Progress
+              value={progress}
+              className={`h-1 ${
+                progress > 50 ? "bg-green-500" : "bg-gray-200 dark:bg-gray-700"
+              }`}
+            />
+          </div>
+        </div>
         <div className="flex items-center gap-2">
           <TooltipProvider>
             <Tooltip>
@@ -236,14 +321,14 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
           onClick={handleCloseContextMenu}
         >
           <Toolbar
-            currentImage={currentImage}
+            currentImage={currentImage || null}
             onOpenSettings={() => setShowSettings(true)}
             onOpenAISettings={() => setShowAISettings(true)}
           />
 
           <div className="relative flex-1 overflow-hidden">
             {currentImage ? (
-              <Canvas image={currentImage} labels={labels} />
+              <Canvas image={currentImage} />
             ) : (
               <div className="flex h-full items-center justify-center bg-gray-100 dark:bg-gray-900">
                 <p className="text-gray-500 dark:text-gray-400">
@@ -274,69 +359,6 @@ export function ImageLabeler({ project, onClose }: ImageLabelerProps) {
           <AnimatePresence>
             <CreateAnnotation />
           </AnimatePresence>
-          <div className="border-t p-4 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {}}
-                        disabled={currentImageIndex === 0}
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      Previous image
-                      <kbd className="ml-2 rounded border px-1.5 text-xs dark:border-gray-700 dark:bg-gray-800 border-gray-200 bg-gray-100">
-                        Left Arrow
-                      </kbd>
-                    </TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {}}
-                        disabled={
-                          currentImageIndex === project.images.length - 1
-                        }
-                      >
-                        <ChevronRight className="h-4 w-4 ml-1" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      Next image
-                      <kbd className="ml-2 rounded border px-1.5 text-xs dark:border-gray-700 dark:bg-gray-800 border-gray-200 bg-gray-100">
-                        Right Arrow
-                      </kbd>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-
-              <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                <span>
-                  Image {currentImageIndex + 1} of {project.images.length}
-                </span>
-                <Separator orientation="vertical" className="h-4" />
-                <span>
-                  {labeledCount} labeled ({progress}%)
-                </span>
-              </div>
-            </div>
-
-            <div className="mt-2">
-              <Progress
-                value={progress}
-                className="h-1 bg-gray-200 dark:bg-gray-700"
-              />
-            </div>
-          </div>
         </div>
       </div>
 

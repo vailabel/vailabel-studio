@@ -57,16 +57,11 @@ export function ProjectDashboard({
   }
 
   return (
-    <div className="container mx-auto p-6">
+    <>
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <Image
-            src={"/logo.png"}
-            alt="Logo"
-            width={100}
-            height={100}
-            className="h-14 w-auto"
-          />
+          <h1 className="text-2xl font-bold">Projects</h1>
+          <p className="text-gray-500">Manage your projects and images here.</p>
         </div>
         <div className="flex gap-2">
           <Button onClick={() => setShowNewProject(true)}>
@@ -169,6 +164,6 @@ export function ProjectDashboard({
           />
         )}
       </AnimatePresence>
-    </div>
+    </>
   )
 }
