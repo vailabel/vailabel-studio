@@ -30,7 +30,6 @@ import { Separator } from "@/components/ui/separator"
 import { useSettingsStore } from "@/lib/settings-store"
 import { AIDetectionButton } from "@/components/ai-detection-button"
 import type { ImageData } from "@/lib/types"
-import { Input } from "./ui/input"
 
 interface ToolbarProps {
   currentImage: ImageData | null
