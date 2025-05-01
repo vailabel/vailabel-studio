@@ -2,7 +2,7 @@ import { create } from "zustand"
 
 interface CreateAnnotationModal {
   isOpen: boolean
-  onSubmit: (name: string) => void
+  onSubmit: (name: string, color: string) => void
   onCancel: () => void
 }
 
