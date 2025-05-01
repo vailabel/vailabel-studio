@@ -378,7 +378,7 @@ export function Canvas({ image, annotations }: CanvasProps) {
     }
   }, [showLabelInput, tempLabel, setCreateAnnotationModal, setShowLabelInput])
 
-  const handleAnnotationSubmit = (name: string) => {
+  const handleAnnotationSubmit = (name: string, color: string) => {
     if (tempLabel) {
       const newAnnotation: Annotation = {
         id: crypto.randomUUID(),
@@ -388,7 +388,7 @@ export function Canvas({ image, annotations }: CanvasProps) {
         imageId: image.id,
         createdAt: new Date(),
         updatedAt: new Date(),
-        color: getRandomColor(),
+        color: color,
         isAIGenerated: false,
       }
 
@@ -600,12 +600,11 @@ export function Canvas({ image, annotations }: CanvasProps) {
       const scaleX = canvasRect.width / image.width
       const scaleY = canvasRect.height / image.height
       const initialZoom = Math.min(scaleX, scaleY)
-  
+
       setUiZoom(initialZoom)
       setPanOffset({ x: 0, y: 0 }) // Center the image
     }
   }, [image])
-  
 
   const cursorStyles: Record<string, string> = {
     box: "cursor-crosshair",
@@ -719,4 +718,3 @@ export function Canvas({ image, annotations }: CanvasProps) {
     </div>
   )
 }
-

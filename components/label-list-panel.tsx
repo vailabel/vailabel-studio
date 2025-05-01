@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { ChevronRight, ChevronDown, Tag } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -12,7 +12,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { useStore } from "@/lib/store"
-import type { Label } from "@/lib/types"
+import { Annotation, type Label } from "@/lib/types"
 
 interface LabelListPanelProps {
   onLabelSelect: (label: Label) => void
@@ -21,6 +21,16 @@ interface LabelListPanelProps {
 export function LabelListPanel({ onLabelSelect }: LabelListPanelProps) {
   const [labelsOpen, setLabelsOpen] = useState(true)
   const { annotations } = useStore()
+  const [label, setLabel] = useState<Annotation[]>([])
+
+  useEffect(() => {
+    const uniqueLabels = annotations.filter(
+      (value, index, self) =>
+        index ===
+        self.findIndex((t) => t.name === value.name && t.color === value.color)
+    )
+    setLabel(uniqueLabels)
+  }, [annotations])
 
   return (
     <div
@@ -64,13 +74,13 @@ export function LabelListPanel({ onLabelSelect }: LabelListPanelProps) {
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="space-y-1">
-                {annotations.map((label) => (
+                {label.map((label) => (
                   <motion.div
                     key={label.id}
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="rounded-md border p-2 cursor-pointer dark:border-gray-700 dark:hover:bg-gray-700 border-gray-200 hover:bg-gray-50"
-                    onClick={() => onLabelSelect(label)}
+                    onClick={() => {}}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
@@ -101,7 +111,7 @@ export function LabelListPanel({ onLabelSelect }: LabelListPanelProps) {
                 ))}
               </div>
 
-              {annotations.length === 0 && (
+              {label.length === 0 && (
                 <div
                   className={cn(
                     "mt-2 rounded-md border border-dashed p-4 text-center",
