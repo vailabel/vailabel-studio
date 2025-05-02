@@ -10,6 +10,7 @@ import { db } from "@/lib/db"
 import { useToast } from "@/hooks/use-toast"
 import type { Project, ImageData } from "@/lib/types"
 import { cn } from "@/lib/utils"
+import Image from "next/image"
 
 interface ProjectManagerProps {
   onClose: () => void
@@ -254,7 +255,7 @@ export function ProjectManager({
                     key={index}
                     className="group relative rounded-md border dark:border-gray-600 dark:bg-gray-700 border-gray-200"
                   >
-                    <img
+                    <Image
                       src={image.data || "/placeholder.svg"}
                       alt={image.name}
                       className="h-24 w-full rounded-md object-cover"

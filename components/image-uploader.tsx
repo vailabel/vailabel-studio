@@ -8,6 +8,7 @@ import { X, ImageIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import Image from "next/image"
 
 interface ImageUploaderProps {
   onUpload: (imageUrl: string, imageName: string) => void
@@ -93,6 +94,7 @@ export function ImageUploader({ onUpload, onClose }: ImageUploaderProps) {
         <div className="mt-4">
           {!preview ? (
             <div
+              role="button"
               className={`flex h-64 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed ${
                 isDragging ? "border-blue-500 bg-blue-50" : "border-gray-300"
               }`}
@@ -117,7 +119,7 @@ export function ImageUploader({ onUpload, onClose }: ImageUploaderProps) {
           ) : (
             <div className="space-y-4">
               <div className="relative h-64 w-full overflow-hidden rounded-lg border border-gray-200">
-                <img
+                <Image
                   src={preview || "/placeholder.svg"}
                   alt="Preview"
                   className="h-full w-full object-contain"
