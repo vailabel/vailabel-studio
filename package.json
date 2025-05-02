@@ -1,20 +1,27 @@
 {
   "name": "vailabeling",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "image labeling",
+  "main": "dist/index.js",
   "private": true,
-  "authors":{
+  "authors": {
     "name": "Vichea Nath",
     "email": "nathvichea1@gmail.com"
   },
   "scripts": {
-    "clean": "npx git-clear-branch"
+    "clean": "npx git-clear-branch",
+    "desktop:build": "NODE_ENV=production webpack",
+    "desktop:start": "npm run build && electron ./dist/main.js",
+    "desktop:watch": "webpack --watch & nodemon --watch dist --exec electron ./packages/desktop/dist/main.js",
+    "desktop:dist": "npx electron-builder --config ./packages/desktop/electron-builder.json"
   },
   "keywords": [],
   "workspaces": [
-    "packages/*"
+    "packages/web"
   ],
-  "author": "",
+  "author": {
+    "name": "Vichea Nath",
+    "email": "nathvichea1@gmail.com"
+  },
   "license": "ISC"
 }
