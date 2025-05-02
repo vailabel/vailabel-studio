@@ -1,7 +1,6 @@
 
-import { Folder, Home, Settings2, Sun, Moon } from "lucide-react"
+import { Folder, Home, Settings2} from "lucide-react"
 import React from "react"
-import { Button } from "@/components/ui/button"
 import { PolarGrid } from "recharts"
 import { Link } from "react-router-dom"
 import { ThemeToggle } from "@/components/theme-toggle"

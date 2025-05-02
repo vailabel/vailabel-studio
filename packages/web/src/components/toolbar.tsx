@@ -1,7 +1,4 @@
-"use client"
-
 import type React from "react"
-
 import { motion } from "framer-motion"
 import {
   Square,
@@ -54,14 +51,12 @@ interface AdditionalTool {
 
 export function Toolbar({
   currentImage,
-  onOpenSettings,
   onOpenAISettings,
 }: ToolbarProps) {
   const {
     selectedTool,
     setSelectedTool,
     zoom,
-    setShowRulers,
     showCrosshairs,
     setShowCrosshairs,
     showCoordinates,

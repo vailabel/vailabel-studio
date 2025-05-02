@@ -1,3 +1,6 @@
+/* eslint-disable */
+// @ts-ignore TS6133: Ignore unused variable error
+
 interface Detection {
   box: [number, number, number, number] // [x, y, width, height] in normalized coordinates
   class: string
@@ -92,6 +95,7 @@ const COCO_CLASSES = [
 // In a real application, this would call a server endpoint
 export async function detectObjects(imageData: string): Promise<Detection[]> {
   // Simulate API call delay
+  console.log("Simulating YOLOv8 detection...", imageData)
   await new Promise((resolve) => setTimeout(resolve, 1500))
 
   // Generate random detections for demo purposes
@@ -118,9 +122,9 @@ export async function detectObjects(imageData: string): Promise<Detection[]> {
 
   return detections
 }
-
 // In a real application, you would implement model upload and management
 export async function uploadCustomModel(modelFile: File): Promise<boolean> {
+  console.log("Uploading model...", modelFile.name)
   // Simulate API call delay
   await new Promise((resolve) => setTimeout(resolve, 2000))
 
@@ -137,6 +141,7 @@ export async function getAvailableModels(): Promise<string[]> {
 // Function to select a model
 export async function selectModel(modelName: string): Promise<boolean> {
   // Simulate API call delay
+  console.log("Selecting model...", modelName)
   await new Promise((resolve) => setTimeout(resolve, 500))
 
   // Pretend we've selected the model

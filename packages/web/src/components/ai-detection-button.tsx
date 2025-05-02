@@ -1,5 +1,3 @@
-"use client"
-
 import { useState } from "react"
 import { Brain, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -49,7 +47,7 @@ export function AIDetectionButton({ image, disabled }: AIDetectionButtonProps) {
 
       // Add each detection as a label
       detections.forEach((detection) => {
-        const { box, class: className, confidence } = detection
+        const { box, class: className } = detection
 
         // Convert normalized coordinates to actual coordinates
         const [x, y, width, height] = box
@@ -58,7 +56,7 @@ export function AIDetectionButton({ image, disabled }: AIDetectionButtonProps) {
         const x2 = (x + width) * image.width
         const y2 = (y + height) * image.height
 
-        let annotation: Annotation = {
+        const annotation: Annotation = {
           id: crypto.randomUUID(),
           name: className,
           type: "box",
