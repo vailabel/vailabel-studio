@@ -36,7 +36,7 @@ import { useStore } from "@/lib/store"
 import type { Project, Label } from "@/lib/types"
 import { useTheme } from "next-themes"
 import { CreateAnnotation } from "./create-annotation"
-import { useRouter } from "next/navigation"
+import { ThemeToggle } from "./theme-toggle"
 
 interface ImageLabelerProps {
   project: Project
@@ -46,7 +46,6 @@ interface ImageLabelerProps {
 
 export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
   const { toast } = useToast()
-  const router = useRouter()
   const [currentImageId, setCurrentImageId] = useState<string | null>(imageId)
   const currentImage = project.images.find((img) => img.id === currentImageId)
   const [showSettings, setShowSettings] = useState(false)
@@ -130,9 +129,9 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
       (img) => img.id === currentImageId
     )
     if (currentIndex < project.images.length - 1) {
-      router.push(
-        `/projects/${project.id}/${project.images[currentIndex + 1].id}`
-      )
+      // router.push(
+      //   `/projects/${project.id}/${project.images[currentIndex + 1].id}`
+      // )
     } else {
       toast({
         title: "No more images",
@@ -146,9 +145,9 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
       (img) => img.id === currentImageId
     )
     if (currentIndex > 0) {
-      router.push(
-        `/projects/${project.id}/${project.images[currentIndex - 1].id}`
-      )
+      // router.push(
+      //   `/projects/${project.id}/${project.images[currentIndex - 1].id}`
+      // )
     } else {
       toast({
         title: "No more images",
@@ -236,22 +235,7 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                >
-                  {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                {theme ? "Light mode" : "Dark mode"}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <ThemeToggle />
 
           <TooltipProvider>
             <Tooltip>
