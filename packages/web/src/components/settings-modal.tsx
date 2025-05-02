@@ -12,7 +12,7 @@ import { useSettingsStore } from "@/lib/settings-store"
 import { db } from "@/lib/db"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
-import { useTheme } from "next-themes"
+import { useTheme } from "./theme-provider"
 
 interface SettingsModalProps {
   onClose: () => void
