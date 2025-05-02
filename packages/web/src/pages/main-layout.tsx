@@ -1,14 +1,10 @@
-"use client"
-import { Folder, Home, Settings2, Sun, Moon } from "lucide-react"
-import { useEffect, useState } from "react"
 
+import { Folder, Home, Settings2, Sun, Moon } from "lucide-react"
 import React from "react"
 import { Button } from "@/components/ui/button"
-
-import Link from "next/link"
-
 import { PolarGrid } from "recharts"
-import { useTheme } from "next-themes"
+import { Link } from "react-router-dom"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 const navigation = [
   { name: "Overview", href: "/", icon: Home },
@@ -21,12 +17,6 @@ export default function MainLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  const { theme, setTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   return (
     <div className="flex min-h-screen">
@@ -40,7 +30,7 @@ export default function MainLayout({
           {navigation.map((item) => (
             <Link
               key={item.name}
-              href={item.href}
+              to={item.href}
               className="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md hover:bg-gray-200 dark:hover:bg-gray-700"
             >
               <item.icon className="h-5 w-5" />
@@ -56,19 +46,7 @@ export default function MainLayout({
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-white px-4 md:px-6 dark:bg-gray-900">
           <h1 className="text-xl font-bold">Project Details</h1>
           <div className="flex items-center gap-4">
-            {mounted && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              >
-                {theme === "dark" ? (
-                  <Sun className="h-4 w-4" />
-                ) : (
-                  <Moon className="h-4 w-4" />
-                )}
-              </Button>
-            )}
+          <ThemeToggle />
           </div>
         </header>
         <main className="flex-1 p-4">{children}</main>

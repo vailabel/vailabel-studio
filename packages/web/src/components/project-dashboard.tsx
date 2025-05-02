@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { Plus, Trash2, FolderOpen, ImageIcon, Moon, Sun } from "lucide-react"
+import { Plus, Trash2, FolderOpen, ImageIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -14,11 +14,8 @@ import {
 } from "@/components/ui/card"
 import { ProjectManager } from "@/components/project-manager"
 import { useToast } from "@/hooks/use-toast"
-import { useSettingsStore } from "@/lib/settings-store"
-import { cn } from "@/lib/utils"
 import type { Project } from "@/lib/types"
-import Image from "next/image"
-import { useRouter } from "next/router"
+
 
 interface ProjectDashboardProps {
   projects: Project[]

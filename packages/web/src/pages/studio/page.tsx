@@ -1,35 +1,24 @@
 "use client"
 import { ImageLabeler } from "@/components/image-labeler"
-import { db } from "@/lib/db"
 import { Project } from "@/lib/types"
 import { useEffect, useState } from "react"
 import Loading from "@/components/loading"
 import { useStore } from "@/lib/store"
+import { useParams } from "react-router-dom"
 
-export default function ImageStudio({
-  params: paramsPromise,
-}: {
-  params: Promise<{ projectId: string; imageId: string }>
-}) {
-  const [params, setParams] = useState<{
-    projectId: string
-    imageId: string
-  } | null>(null)
+export default function ImageStudio() {
+  
+  const { projectId, imageId } = useParams<{ projectId: string, imageId: string }>()
 
   const { loadProject, currentProject } = useStore()
   const [isLoading, setIsLoading] = useState(true)
-  useEffect(() => {
-    paramsPromise.then((params) => {
-      setParams(params)
-    })
-  }, [])
+  
 
   useEffect(() => {
-    if (!params) return
     setIsLoading(true)
-    loadProject(params.projectId)
+    loadProject(projectId || "")
     setIsLoading(false)
-  }, [params?.projectId])
+  }, [projectId])
 
   return (
     <>
@@ -37,9 +26,9 @@ export default function ImageStudio({
       {!isLoading && (currentProject as Project) && (
         <ImageLabeler
           project={currentProject as Project}
-          imageId={params?.imageId || ""}
+          imageId={imageId || ""}
           onClose={() =>
-            (window.location.href = `/projects/${params?.projectId}`)
+            (window.location.href = `/projects/${projectId}`)
           }
         />
       )}

@@ -6,7 +6,6 @@ import { db } from "@/lib/db"
 import { useToast } from "@/hooks/use-toast"
 import type { Project } from "@/lib/types"
 import MainLayout from "../main-layout"
-import { useStore } from "@/lib/store"
 
 export default function ImageLabelingApp() {
   const { toast } = useToast()
