@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useEffect, useState, useMemo, useCallback } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { CornerDownLeft, X } from "lucide-react"
 import { Button } from "@/components/ui/button"

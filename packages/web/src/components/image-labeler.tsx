@@ -10,9 +10,7 @@ import {
   Download,
   Settings,
   ChevronLeft,
-  ChevronRight,
-  Moon,
-  Sun,
+  ChevronRight
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
@@ -33,8 +31,7 @@ import { AIModelModal } from "@/components/ai-model-modal"
 import { ContextMenu } from "@/components/context-menu"
 import { useToast } from "@/hooks/use-toast"
 import { useStore } from "@/lib/store"
-import type { Project, Label } from "@/lib/types"
-import { useTheme } from "next-themes"
+import type { Project, Annotation } from "@/lib/types"
 import { CreateAnnotation } from "./create-annotation"
 import { ThemeToggle } from "./theme-toggle"
 
@@ -46,15 +43,15 @@ interface ImageLabelerProps {
 
 export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
   const { toast } = useToast()
-  const [currentImageId, setCurrentImageId] = useState<string | null>(imageId)
+  const [currentImageId, ] = useState<string | null>(imageId)
   const currentImage = project.images.find((img) => img.id === currentImageId)
   const [showSettings, setShowSettings] = useState(false)
   const [showExport, setShowExport] = useState(false)
   const [showAISettings, setShowAISettings] = useState(false)
   const [showLabelEditor, setShowLabelEditor] = useState(false)
-  const [selectedLabel, setSelectedLabel] = useState<Label | null>(null)
-  const [isSaving, setIsSaving] = useState(false)
-  const [labeledCount, setLabeledCount] = useState(0)
+  const [, setSelectedLabel] = useState<Annotation | null>(null)
+  const [isSaving, ] = useState(false)
+  const [labeledCount] = useState(0)
   const [contextMenuProps, setContextMenuProps] = useState({
     isOpen: false,
     x: 0,
@@ -64,14 +61,13 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
   const canvasContainerRef = useRef<HTMLDivElement>(null)
   const [containerRect, setContainerRect] = useState<DOMRect | null>(null)
 
-  const { annotations, createAnnotation } = useStore()
-  const { theme, setTheme } = useTheme()
+  const { annotations } = useStore()
 
   const handleExportProject = () => {
     setShowExport(true)
   }
 
-  const handleLabelSelect = (label: Label) => {
+  const handleLabelSelect = (label: Annotation) => {
     setSelectedLabel(label)
     setShowLabelEditor(true)
   }

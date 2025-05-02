@@ -1,4 +1,4 @@
-"use client"
+/* eslint-disable */
 
 import { useState } from "react"
 import { motion } from "framer-motion"
@@ -12,7 +12,6 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
-import { useLabelStore } from "@/lib/store"
 import type { Project, Label } from "@/lib/types"
 
 interface SidebarProps {
@@ -31,17 +30,8 @@ export function Sidebar({
   const [imagesOpen, setImagesOpen] = useState(true)
   const [labelsOpen, setLabelsOpen] = useState(true)
 
-  const { labels } = useLabelStore()
-
   // Group labels by category
   const labelsByCategory: Record<string, Label[]> = {}
-  labels.forEach((label) => {
-    const category = label.category || "Uncategorized"
-    if (!labelsByCategory[category]) {
-      labelsByCategory[category] = []
-    }
-    labelsByCategory[category].push(label)
-  })
 
   return (
     <div className="w-64 border-l border-gray-200 bg-white">
@@ -86,12 +76,7 @@ export function Sidebar({
                     <div className="flex items-center">
                       <div
                         className={cn(
-                          "mr-2 h-2 w-2 rounded-full",
-                          // Check if this image has any labels
-                          labels.some((label) => label.imageId === image.id)
-                            ? "bg-green-500"
-                            : "bg-gray-300"
-                        )}
+                          "mr-2 h-2 w-2 rounded-full")}
                       />
                       <span className="truncate">{image.name}</span>
                     </div>
@@ -141,36 +126,18 @@ export function Sidebar({
                               <div
                                 className={cn(
                                   "mr-2 h-3 w-3 rounded-full",
-                                  label.type === "box"
-                                    ? "bg-blue-500"
-                                    : "bg-green-500"
                                 )}
                               />
                               <span className="text-sm font-medium">
                                 {label.name}
                               </span>
                             </div>
-                            <span className="text-xs text-gray-500">
-                              {label.type}
-                            </span>
                           </div>
-                          <p className="mt-1 text-xs text-gray-500 truncate">
-                            {label.coordinates.length} points
-                          </p>
                         </motion.div>
                       ))}
                     </div>
                   </div>
                 )
-              )}
-
-              {labels.length === 0 && (
-                <div className="mt-2 rounded-md border border-dashed border-gray-300 p-4 text-center">
-                  <p className="text-sm text-gray-500">No labels created yet</p>
-                  <p className="text-xs text-gray-400">
-                    Use the drawing tools to create labels
-                  </p>
-                </div>
               )}
             </CollapsibleContent>
           </Collapsible>

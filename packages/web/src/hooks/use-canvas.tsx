@@ -1,3 +1,4 @@
+import { Point } from "@/lib/types"
 import { useState } from "react"
 
 export const useCanvas = () => {
