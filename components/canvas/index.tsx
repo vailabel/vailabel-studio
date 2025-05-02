@@ -641,6 +641,7 @@ export function Canvas({ image, annotations }: CanvasProps) {
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onDoubleClick={handleDoubleClick}
+          role="button"
         >
           <div
             className="absolute"

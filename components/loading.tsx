@@ -12,7 +12,7 @@ export default function Loading() {
         <div className="absolute h-10 w-10 border-2 border-t-blue-500 border-transparent rounded-full"></div>
       </motion.div>
       <p className="text-lg font-medium text-gray-500 dark:text-gray-400">
-        Loading projects...
+        Loading ...
       </p>
     </div>
   )

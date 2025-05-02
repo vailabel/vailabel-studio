@@ -313,6 +313,7 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
 
         {/* Middle panel - Canvas */}
         <div
+          role="button"
           ref={canvasContainerRef}
           className="flex flex-1 flex-col overflow-hidden relative"
           onContextMenu={handleContextMenu}
