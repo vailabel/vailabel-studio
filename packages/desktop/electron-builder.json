@@ -4,16 +4,33 @@
   "directories": {
     "output": "dist"
   },
-  "files": [
-    "**/*",
-    "!**/node_modules/.bin",
-    "!**/tests"
-  ],
+  "files": ["**/*", "!**/node_modules/.bin", "!**/tests"],
   "publish": [
     {
       "provider": "github",
       "owner": "vailabel",
       "repo": "vailabel-studio"
     }
-  ]
+  ],
+  "dmg": {
+    "contents": [
+      {
+        "x": 110,
+        "y": 150
+      },
+      {
+        "x": 240,
+        "y": 150,
+        "type": "link",
+        "path": "/Applications"
+      }
+    ]
+  },
+  "linux": {
+    "target": ["AppImage", "deb"]
+  },
+  "win": {
+    "target": ["squirrel"],
+    "icon": "dist/favicon.ico"
+  }
 }
