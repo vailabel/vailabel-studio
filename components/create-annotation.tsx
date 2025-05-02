@@ -123,7 +123,7 @@ export function CreateAnnotation() {
             {annotationsFilter.length > 0 ? (
               <div className="grid grid-cols-2 gap-2">
                 {annotationsFilter.map((annotation) => (
-                  <div
+                  <button
                     onClick={() => {
                       setLabelName(annotation.name)
                       setAnnotationsFilter((prev) =>
@@ -145,14 +145,14 @@ export function CreateAnnotation() {
                       borderColor: annotation.color || "blue",
                     }}
                   >
-                    <span className="truncate text-sm font-medium text-gray-800">
+                    <span className="truncate text-sm font-medium text-gray-800 dark:text-gray-200">
                       {annotation.name}
                     </span>
-                  </div>
+                  </button>
                 ))}
               </div>
             ) : (
-              <div
+              <button
                 onClick={() => {
                   setLabelName(labelName)
                   setAnnotationsFilter((prev) =>
@@ -173,7 +173,7 @@ export function CreateAnnotation() {
                 <span className="truncate text-sm font-medium text-gray-800 dark:text-gray-200">
                   Create New {labelName}
                 </span>
-              </div>
+              </button>
             )}
           </div>
         </form>
