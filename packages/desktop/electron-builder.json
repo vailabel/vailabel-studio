@@ -1,0 +1,19 @@
+{
+  "appId": "com.vailabeling.desktop",
+  "productName": "VaiLabeling",
+  "directories": {
+    "output": "dist"
+  },
+  "files": [
+    "**/*",
+    "!**/node_modules/.bin",
+    "!**/tests"
+  ],
+  "publish": [
+    {
+      "provider": "github",
+      "owner": "vailabel",
+      "repo": "vailabel-studio"
+    }
+  ]
+}
