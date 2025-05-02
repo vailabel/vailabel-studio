@@ -36,6 +36,7 @@ import { useStore } from "@/lib/store"
 import type { Project, Label } from "@/lib/types"
 import { useTheme } from "next-themes"
 import { CreateAnnotation } from "./create-annotation"
+import { useRouter } from "next/navigation"
 
 interface ImageLabelerProps {
   project: Project
@@ -45,6 +46,7 @@ interface ImageLabelerProps {
 
 export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
   const { toast } = useToast()
+  const router = useRouter()
   const [currentImageId, setCurrentImageId] = useState<string | null>(imageId)
   const currentImage = project.images.find((img) => img.id === currentImageId)
   const [showSettings, setShowSettings] = useState(false)
@@ -73,11 +75,6 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
   const handleLabelSelect = (label: Label) => {
     setSelectedLabel(label)
     setShowLabelEditor(true)
-  }
-
-  const handleLabelEditorClose = () => {
-    setShowLabelEditor(false)
-    setSelectedLabel(null)
   }
 
   // Handle right-click for context menu
@@ -133,7 +130,9 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
       (img) => img.id === currentImageId
     )
     if (currentIndex < project.images.length - 1) {
-      setCurrentImageId(project.images[currentIndex + 1].id)
+      router.push(
+        `/projects/${project.id}/${project.images[currentIndex + 1].id}`
+      )
     } else {
       toast({
         title: "No more images",
@@ -147,7 +146,9 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
       (img) => img.id === currentImageId
     )
     if (currentIndex > 0) {
-      setCurrentImageId(project.images[currentIndex - 1].id)
+      router.push(
+        `/projects/${project.id}/${project.images[currentIndex - 1].id}`
+      )
     } else {
       toast({
         title: "No more images",

@@ -145,7 +145,7 @@ export function CreateAnnotation() {
                       borderColor: annotation.color || "blue",
                     }}
                   >
-                    <span className="truncate text-sm font-medium text-gray-800">
+                    <span className="truncate text-sm font-medium text-gray-800 dark:text-gray-200">
                       {annotation.name}
                     </span>
                   </div>

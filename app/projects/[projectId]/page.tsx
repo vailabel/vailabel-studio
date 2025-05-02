@@ -59,7 +59,6 @@ export default function ProjectDetails({
 
   return (
     <MainLayout>
-      <main className="flex-1 p-6">
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="text-3xl">{project.name}</CardTitle>
@@ -145,7 +144,6 @@ export default function ProjectDetails({
             </section>
           </CardContent>
         </Card>
-      </main>
     </MainLayout>
   )
 }
