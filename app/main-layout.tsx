@@ -71,7 +71,7 @@ export default function MainLayout({
             )}
           </div>
         </header>
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 p-4">{children}</main>
       </div>
     </div>
   )
