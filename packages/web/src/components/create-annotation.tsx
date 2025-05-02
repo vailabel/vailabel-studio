@@ -154,7 +154,7 @@ export function CreateAnnotation() {
             ) : (
               <button
                 onClick={() => {
-                  setLabelName(labelName)
+                  setLabelName((prev) => prev) // Avoid using the matching state variable
                   setAnnotationsFilter((prev) =>
                     prev.filter((a) => a.name !== labelName)
                   )
