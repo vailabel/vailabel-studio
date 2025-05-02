@@ -1,6 +1,6 @@
 <h1 align="center">Vision AI Label Studio</h1>
 <p align="center">
-  <img src="/public/logo.png" alt="Logo" width="200">
+  <img src="/docs/logo.png" alt="Logo" width="200">
 </p>
 
 A powerful, modern **image labeling tool** built with **Next.js**, **TypeScript**, **TailwindCSS**, **Framer Motion**, and **Dexie.js**, designed for creating high-quality datasets for machine learning models.  
@@ -23,7 +23,7 @@ Supports manual annotation, free drawing, and **AI-assisted labeling** using **Y
 
 ## 📸 Demo Screenshots
 
-![Studio](/docs/screens/studio.png)
+![Studio](/docs/screens/studio.gif)
 
 ---
 
