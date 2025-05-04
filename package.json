@@ -1,5 +1,5 @@
 {
-  "name": "vailabeling",
+  "name": "vailabel",
   "version": "1.0.0",
   "description": "image labeling",
   "main": "dist/index.js",
@@ -17,11 +17,12 @@
   },
   "keywords": [],
   "workspaces": [
-    "packages/web"
+    "apps/*",
+    "packages/*"
   ],
   "author": {
     "name": "Vichea Nath",
     "email": "nathvichea1@gmail.com"
   },
-  "license": "ISC"
+  "license": "GPL-3.0-only"
 }
