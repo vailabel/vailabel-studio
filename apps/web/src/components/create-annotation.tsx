@@ -170,7 +170,7 @@ export function CreateAnnotation() {
                   borderColor: color || "blue",
                 }}
               >
-                <span className="truncate text-sm font-medium text-gray-800 dark:text-gray-200">
+                <span className="truncate text-sm font-medium text-gray-200 dark:text-gray-200">
                   Create New {labelName}
                 </span>
               </button>

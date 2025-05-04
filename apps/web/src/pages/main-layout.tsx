@@ -43,7 +43,7 @@ export default function MainLayout({
       <div className="flex-1 flex flex-col">
         {/* Header */}
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-white px-4 md:px-6 dark:bg-gray-900">
-          <h1 className="text-xl font-bold">Project Details</h1>
+          <h1 className="text-xl font-bold"></h1>
           <div className="flex items-center gap-4">
           <ThemeToggle />
           </div>

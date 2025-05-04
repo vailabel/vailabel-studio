@@ -51,35 +51,13 @@ export default function ProjectDetails() {
     <MainLayout>
       <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle className="text-3xl">{project.name}</CardTitle>
+          <CardTitle className="text-2xl">{project.name}</CardTitle>
           <p className="text-gray-500">Project ID: {projectId}</p>
         </CardHeader>
         <CardContent>
           <section className="mb-6">
-            <h2 className="text-xl font-semibold">Description</h2>
-            <p className="text-gray-600">
-              {project.name || "No description available."}
-            </p>
-          </section>
-          <section className="mb-6">
             <h2 className="text-xl font-semibold">Images</h2>
-            <div className="flex space-x-4 mb-4">
-              <button
-                className={`px-4 py-2 rounded ${!showAnnotated ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700"}`}
-                onClick={() => setShowAnnotated(false)}
-              >
-                All Images
-              </button>
-              <button
-                className={`px-4 py-2 rounded relative ${showAnnotated ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700"}`}
-                onClick={() => setShowAnnotated(true)}
-              >
-                Annotated Images
-                <span className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full px-2">
-                  {annotatedImages.length}
-                </span>
-              </button>
-            </div>
+
             {showAnnotated ? (
               annotatedImages.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">

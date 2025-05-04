@@ -5,7 +5,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function exportToJson(data: any, filename: string) {
+export function exportToJson(data: unknown, filename: string) {
   const jsonStr = JSON.stringify(data, null, 2)
   const blob = new Blob([jsonStr], { type: "application/json" })
   const url = URL.createObjectURL(blob)
