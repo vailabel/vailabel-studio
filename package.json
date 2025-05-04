@@ -13,7 +13,8 @@
     "desktop:build": "NODE_ENV=production webpack",
     "desktop:start": "npm run build && electron ./dist/main.js",
     "desktop:watch": "webpack --watch & nodemon --watch dist --exec electron ./packages/desktop/dist/main.js",
-    "desktop:dist": "npx electron-builder --config ./packages/desktop/electron-builder.json"
+    "desktop:dist": "npx electron-builder --config ./packages/desktop/electron-builder.json",
+    "format": "prettier --write ."
   },
   "keywords": [],
   "workspaces": [

@@ -12,9 +12,8 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "@vailabel/core": ["packages/core/src"],
-      "@vailabel/adapters": ["packages/adapters/src"],
-      "@vailabel/config": ["packages/config/src"]
+      "@vailabel/web": ["apps/web/src"],
+      "@vailabel/desktop": ["apps/desktop/src"]
     }
   }
 }

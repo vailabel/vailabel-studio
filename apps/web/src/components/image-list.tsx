@@ -70,11 +70,7 @@ export function ImageList({
                     onClick={() => onImageSelect(index)}
                   >
                     <div className="flex items-center">
-                      <div
-                        className={cn(
-                          "mr-2 h-2 w-2 rounded-full"
-                        )}
-                      />
+                      <div className={cn("mr-2 h-2 w-2 rounded-full")} />
                       <span className="truncate">{image.name}</span>
                     </div>
                   </Button>

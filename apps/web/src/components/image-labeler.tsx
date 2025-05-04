@@ -10,7 +10,7 @@ import {
   Download,
   Settings,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
@@ -43,14 +43,14 @@ interface ImageLabelerProps {
 
 export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
   const { toast } = useToast()
-  const [currentImageId, ] = useState<string | null>(imageId)
+  const [currentImageId] = useState<string | null>(imageId)
   const currentImage = project.images.find((img) => img.id === currentImageId)
   const [showSettings, setShowSettings] = useState(false)
   const [showExport, setShowExport] = useState(false)
   const [showAISettings, setShowAISettings] = useState(false)
   const [showLabelEditor, setShowLabelEditor] = useState(false)
   const [, setSelectedLabel] = useState<Annotation | null>(null)
-  const [isSaving, ] = useState(false)
+  const [isSaving] = useState(false)
   const [labeledCount] = useState(0)
   const [contextMenuProps, setContextMenuProps] = useState({
     isOpen: false,

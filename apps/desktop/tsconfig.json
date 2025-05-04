@@ -1,11 +1,9 @@
 {
-    "extends": "../../tsconfig.base.json",
-    "compilerOptions": {
-      "outDir": "dist",
-      "module": "CommonJS",
-      "target": "ES2021",
-      "noEmit": false
-    },
-    "include": ["src"]
-  }
-  
+  "compilerOptions": {
+    "outDir": "dist",
+    "module": "CommonJS",
+    "target": "ES2021",
+    "noEmit": false,
+  },
+  "include": ["src"]
+}

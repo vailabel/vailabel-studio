@@ -49,10 +49,7 @@ interface AdditionalTool {
   action: () => void
 }
 
-export function Toolbar({
-  currentImage,
-  onOpenAISettings,
-}: ToolbarProps) {
+export function Toolbar({ currentImage, onOpenAISettings }: ToolbarProps) {
   const {
     selectedTool,
     setSelectedTool,

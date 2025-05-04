@@ -1,5 +1,12 @@
 import { app, BrowserWindow, dialog, MessageBoxReturnValue } from "electron"
 import { autoUpdater } from "electron-updater"
+import { registerIpcHandlers } from "./ipc"
+import {
+  checkPythonInstalled,
+  createVenvIfNotExists,
+  installDependencies,
+  getPythonExec,
+} from "./python/envManager"
 
 let mainWindow: BrowserWindow | null
 
@@ -25,6 +32,24 @@ function createWindow(): void {
 
 // Check for updates after app is ready
 app.on("ready", () => {
+  if (!checkPythonInstalled()) {
+    console.error("Python 3.10+ not found.")
+    app.quit()
+    return
+  }
+
+  if (!createVenvIfNotExists()) {
+    console.error("Failed to create virtual environment.")
+    app.quit()
+    return
+  }
+
+  if (!installDependencies()) {
+    console.error("Failed to install Python dependencies.")
+    app.quit()
+    return
+  }
+  registerIpcHandlers()
   createWindow()
   autoUpdater.checkForUpdatesAndNotify()
 })
