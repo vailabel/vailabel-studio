@@ -18,7 +18,7 @@ Supports manual annotation, free drawing, and **AI-assisted labeling** using **Y
 - 🗃️ **Multi-Format Export**: Export labeled datasets in COCO JSON, Pascal VOC XML, YOLO TXT, and Simple JSON formats.
 - 🌓 **Light/Dark Mode**: Modern UI with full responsive design.
 - 💾 **Offline Support**: Save your projects locally without any backend required.
-
+-    **Desktop Application** : Support Multi-platform Desktop app for Mac/Window/Linux
 ---
 
 ## 📸 Demo Screenshots
@@ -31,8 +31,8 @@ Supports manual annotation, free drawing, and **AI-assisted labeling** using **Y
 
 ### Prerequisites
 
-- Node.js >= 18
-- pnpm / yarn / npm
+- Node.js >= 20
+- yarn
 
 ### Installation
 
@@ -44,10 +44,10 @@ git clone https://github.com/vailabel/vailabel-studio.git
 cd vailabel-studio
 
 # Install dependencies
-pnpm install
+yarn install
 
 # Run the development server
-pnpm dev
+yarn dev
 ```
 
 Then open [http://localhost:3000](http://localhost:3000) 🚀
@@ -94,13 +94,11 @@ For major changes, please open an issue first to discuss what you would like to 
 
 ## 📄 License
 
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **GNU GENERAL PUBLIC LICENSE** — see the [LICENSE](LICENSE) file for details.
 
 ---
 
 ## ❤️ Acknowledgements
-
-- [Next.js](https://nextjs.org/)
 - [Ultralytics YOLOv8](https://github.com/ultralytics/ultralytics)
 - [TailwindCSS](https://tailwindcss.com/)
 - [Framer Motion](https://www.framer.com/motion/)
