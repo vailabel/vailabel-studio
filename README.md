@@ -3,7 +3,7 @@
   <img src="/docs/logo.png" alt="Logo" width="200">
 </p>
 
-A powerful, modern **image labeling tool** built with **Next.js**, **TypeScript**, **TailwindCSS**, **Framer Motion**, and **Dexie.js**, designed for creating high-quality datasets for machine learning models.  
+A powerful, modern **image labeling tool** built with **React.js**, **TypeScript**, **TailwindCSS**, **Framer Motion**, and **Dexie.js**, designed for creating high-quality datasets for machine learning models.  
 Supports manual annotation, free drawing, and **AI-assisted labeling** using **YOLOv8** models.
 
 ---
