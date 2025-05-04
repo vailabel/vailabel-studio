@@ -34,6 +34,7 @@ import { useStore } from "@/lib/store"
 import type { Project, Annotation } from "@/lib/types"
 import { CreateAnnotation } from "./create-annotation"
 import { ThemeToggle } from "./theme-toggle"
+import {  useNavigate } from "react-router-dom"
 
 interface ImageLabelerProps {
   project: Project
@@ -57,6 +58,8 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
     x: 0,
     y: 0,
   })
+
+  const navigate = useNavigate();
 
   const canvasContainerRef = useRef<HTMLDivElement>(null)
   const [containerRect, setContainerRect] = useState<DOMRect | null>(null)
@@ -125,9 +128,9 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
       (img) => img.id === currentImageId
     )
     if (currentIndex < project.images.length - 1) {
-      // router.push(
-      //   `/projects/${project.id}/${project.images[currentIndex + 1].id}`
-      // )
+      navigate(
+        `/projects/${project.id}/studio/${project.images[currentIndex + 1].id}`
+      )
     } else {
       toast({
         title: "No more images",
@@ -141,9 +144,9 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
       (img) => img.id === currentImageId
     )
     if (currentIndex > 0) {
-      // router.push(
-      //   `/projects/${project.id}/${project.images[currentIndex - 1].id}`
-      // )
+      navigate(
+        `/projects/${project.id}/studio/${project.images[currentIndex - 1].id}`
+      )
     } else {
       toast({
         title: "No more images",

@@ -672,7 +672,7 @@ export function Canvas({ image, annotations }: CanvasProps) {
             {/* Render current drawing */}
             {isDragging && startPoint && currentPoint && (
               <div
-                className="absolute border-2 border-dashed border-blue-500 bg-blue-500 bg-opacity-10"
+                className="absolute border-5 border-dashed border-blue-500 bg-opacity-10"
                 style={{
                   left: Math.min(startPoint.x, currentPoint.x),
                   top: Math.min(startPoint.y, currentPoint.y),
