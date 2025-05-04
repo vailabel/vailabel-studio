@@ -9,6 +9,12 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "jsx": "preserve",
-    "noEmit": true
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@vailabel/core": ["packages/core/src"],
+      "@vailabel/adapters": ["packages/adapters/src"],
+      "@vailabel/config": ["packages/config/src"]
+    }
   }
 }
