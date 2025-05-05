@@ -30,7 +30,7 @@
     }
   },
   "devDependencies": {
-    "@types/node": "^22.15.3",
+    "@types/node": "^22.15.5",
     "electron": "^36.1.0",
     "electron-builder": "^26.0.12",
     "nodemon": "^3.1.10",
