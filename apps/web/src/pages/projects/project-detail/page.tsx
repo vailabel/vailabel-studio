@@ -12,7 +12,7 @@ export default function ProjectDetails() {
   const { projectId } = useParams<{ projectId: string }>()
 
   const [project, setProject] = useState<Project | null>(null)
-  const [showAnnotated, setShowAnnotated] = useState(false)
+  const [showAnnotated] = useState(false)
 
   const annotatedImages = project?.images || []
 
