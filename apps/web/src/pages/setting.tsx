@@ -6,7 +6,6 @@ import { Switch } from "@/components/ui/switch"
 import { useTheme } from "@/components/theme-provider"
 import { useToast } from "@/hooks/use-toast"
 
-
 export default function Setting() {
   const { theme, setTheme } = useTheme()
   const { toast } = useToast()
@@ -15,7 +14,11 @@ export default function Setting() {
   const [isClearing, setIsClearing] = useState(false)
 
   const handleClearAllData = async () => {
-    if (!confirm("Are you sure you want to clear all data? This action cannot be undone.")) {
+    if (
+      !confirm(
+        "Are you sure you want to clear all data? This action cannot be undone."
+      )
+    ) {
       return
     }
 
@@ -57,7 +60,9 @@ export default function Setting() {
             <Switch
               id="dark-mode"
               checked={theme === "dark"}
-              onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+              onCheckedChange={(checked) =>
+                setTheme(checked ? "dark" : "light")
+              }
             />
           </div>
 
@@ -105,7 +110,8 @@ export default function Setting() {
           <div className="border-t pt-4">
             <h4 className="font-medium">Clear All Data</h4>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              This will delete all data from your browser's local storage. This action cannot be undone.
+              This will delete all data from your browser's local storage. This
+              action cannot be undone.
             </p>
             <button
               onClick={handleClearAllData}

@@ -74,10 +74,7 @@ export function Sidebar({
                     onClick={() => onImageSelect(index)}
                   >
                     <div className="flex items-center">
-                      <div
-                        className={cn(
-                          "mr-2 h-2 w-2 rounded-full")}
-                      />
+                      <div className={cn("mr-2 h-2 w-2 rounded-full")} />
                       <span className="truncate">{image.name}</span>
                     </div>
                   </Button>
@@ -124,9 +121,7 @@ export function Sidebar({
                           <div className="flex items-center justify-between">
                             <div className="flex items-center">
                               <div
-                                className={cn(
-                                  "mr-2 h-3 w-3 rounded-full",
-                                )}
+                                className={cn("mr-2 h-3 w-3 rounded-full")}
                               />
                               <span className="text-sm font-medium">
                                 {label.name}

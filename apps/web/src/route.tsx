@@ -25,7 +25,7 @@ const router = createBrowserRouter([
   {
     path: "/settings",
     element: <Setting />,
-  }
+  },
 ])
 
 const Route = () => {

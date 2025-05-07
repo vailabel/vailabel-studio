@@ -16,7 +16,6 @@ import { ProjectManager } from "@/components/project-manager"
 import { useToast } from "@/hooks/use-toast"
 import type { Project } from "@/lib/types"
 
-
 interface ProjectDashboardProps {
   projects: Project[]
   isLoading: boolean

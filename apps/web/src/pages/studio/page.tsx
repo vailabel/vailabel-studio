@@ -7,12 +7,13 @@ import { useStore } from "@/lib/store"
 import { useParams } from "react-router-dom"
 
 export default function ImageStudio() {
-  
-  const { projectId, imageId } = useParams<{ projectId: string, imageId: string }>()
+  const { projectId, imageId } = useParams<{
+    projectId: string
+    imageId: string
+  }>()
 
   const { loadProject, currentProject } = useStore()
   const [isLoading, setIsLoading] = useState(true)
-  
 
   useEffect(() => {
     setIsLoading(true)
@@ -27,9 +28,7 @@ export default function ImageStudio() {
         <ImageLabeler
           project={currentProject as Project}
           imageId={imageId || ""}
-          onClose={() =>
-            (window.location.href = `/projects/${projectId}`)
-          }
+          onClose={() => (window.location.href = `/projects/${projectId}`)}
         />
       )}
     </>
