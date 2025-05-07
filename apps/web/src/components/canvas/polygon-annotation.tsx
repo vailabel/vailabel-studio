@@ -1,20 +1,12 @@
 import { motion } from "framer-motion"
 import { rgbToRgba } from "@/lib/utils"
-import type { Annotation } from "@/lib/types"
+import type { Annotation, Point } from "@/lib/types"
+import { useAnnotations } from "@/contexts/annotations-context"
+import { useCanvas } from "@/contexts/canvas-context"
 
-interface PolygonAnnotationProps {
-  annotation: Annotation
-  selectedLabelId: string | null
-  selectedTool: string
-  uiZoom: number
-}
-
-export function PolygonAnnotation({
-  annotation,
-  selectedLabelId,
-  selectedTool,
-  uiZoom,
-}: PolygonAnnotationProps) {
+export function PolygonAnnotation() {
+  const { annotation  } = useAnnotations()
+  const { zoom ,selectedTool} = useCanvas()
   return (
     <svg className="absolute left-0 top-0 h-full w-full pointer-events-none">
       <motion.polygon
@@ -55,12 +47,12 @@ export function PolygonAnnotation({
 
       {selectedLabelId === annotation.id && selectedTool === "move" && (
         <>
-          {annotation.coordinates.map((point, index) => (
+          {annotation.coordinates.map((point: Point, index: number) => (
             <circle
               key={index}
               cx={point.x}
               cy={point.y}
-              r={4 / uiZoom}
+              r={4 / zoom}
               className="fill-white stroke-gray-400 stroke-1 cursor-pointer"
               onMouseDown={(e) => {
                 e.stopPropagation()
@@ -69,8 +61,8 @@ export function PolygonAnnotation({
                     e.target as SVGCircleElement
                   ).ownerSVGElement?.getBoundingClientRect()
                   if (rect) {
-                    const newX = (moveEvent.clientX - rect.left) / uiZoom
-                    const newY = (moveEvent.clientY - rect.top) / uiZoom
+                    const newX = (moveEvent.clientX - rect.left) / zoom
+                    const newY = (moveEvent.clientY - rect.top) / zoom
                     annotation.coordinates[index] = { x: newX, y: newY }
                   }
                 }
