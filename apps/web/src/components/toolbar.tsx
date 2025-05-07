@@ -40,6 +40,7 @@ interface Tool {
   name: string
   icon: React.ElementType
   shortcut: string
+  condition?: boolean
   action?: () => void
 }
 
@@ -55,7 +56,7 @@ export function Toolbar({ currentImage, onOpenAISettings }: ToolbarProps) {
   const { selectedTool, setSelectedTool, resetView, zoom } = useCanvas()
   const { undo, redo, canUndo, canRedo } = useAnnotations()
 
-  const tools: Tool[] = [
+  const selectedTools: Tool[] = [
     {
       id: "move",
       name: "Move",
@@ -91,17 +92,23 @@ export function Toolbar({ currentImage, onOpenAISettings }: ToolbarProps) {
       shortcut: "D",
       action: () => setSelectedTool("delete"),
     },
+    
+  ]
+
+  const clickableTools : Tool[] = [
     {
       id: "undo",
       name: "Undo",
       icon: RotateCcw,
       shortcut: "Cmd+Z",
+      condition: canUndo,
       action: () => undo(),
     },
     {
       id: "redo",
       name: "Redo",
       icon: RotateCw,
+      condition: canRedo,
       shortcut: "Cmd+Shift+Z",
       action: () => redo(),
     },
@@ -128,7 +135,7 @@ export function Toolbar({ currentImage, onOpenAISettings }: ToolbarProps) {
     <div className="flex items-center justify-between border-b p-1 dark:bg-gray-800 dark:border-gray-700 bg-white border-gray-200">
       <div className="flex items-center space-x-1">
         <TooltipProvider>
-          {tools.map((tool) => (
+          {selectedTools.map((tool) => (
             <Tooltip key={tool.id}>
               <TooltipTrigger asChild>
                 <Button
@@ -157,6 +164,37 @@ export function Toolbar({ currentImage, onOpenAISettings }: ToolbarProps) {
                       }}
                     />
                   )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <div className="flex items-center">
+                  <span>{tool.name}</span>
+                  <kbd
+                    className={cn(
+                      "ml-2 rounded border px-1.5 text-xs",
+                      "border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-800"
+                    )}
+                  >
+                    {tool.shortcut}
+                  </kbd>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          ))}
+          <Separator orientation="vertical" className="mx-2 h-6 dark:bg-gray-700" />
+          {clickableTools.map((tool) => (
+            <Tooltip key={tool.id}>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={!tool.condition}
+                  className={cn(
+                    "relative h-8 w-8 hover:bg-gray-100 dark:hover:bg-gray-700",
+                  )}
+                  onClick={() => tool.action && tool.action()}
+                >
+                  <tool.icon className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom">

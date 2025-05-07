@@ -31,14 +31,15 @@ export function useCanvasHandlers(canvasRef: React.RefObject<HTMLDivElement>) {
   const [startPoint, setStartPoint] = useState<Point | null>(null)
   const [currentPoint, setCurrentPoint] = useState<Point | null>(null)
   const [polygonPoints, setPolygonPoints] = useState<Point[]>([])
-  
+
   const [isResizing, setIsResizing] = useState(false)
   const [resizeHandle, setResizeHandle] = useState<string | null>(null)
   const [movingLabelId, setMovingLabelId] = useState<string | null>(null)
   const [movingOffset, setMovingOffset] = useState<Point | null>(null)
   const [isPanning, setIsPanning] = useState(false)
   const [lastPanPoint, setLastPanPoint] = useState<Point | null>(null)
-  const [tempLabel, setTempLabel] = useState<Partial<Annotation> | null>(null)
+  const [tempAnnotation, setTempAnnotation] =
+    useState<Partial<Annotation> | null>(null)
   const [showLabelInput, setShowLabelInput] = useState(false)
 
   const getCanvasCoords = useCallback(
@@ -169,7 +170,9 @@ export function useCanvasHandlers(canvasRef: React.RefObject<HTMLDivElement>) {
 
       // Check for resize handles first
       if (selectedAnnotation && selectedTool === "move") {
-        const annotation = annotations.find((l) => l.id === selectedAnnotation.id)
+        const annotation = annotations.find(
+          (l) => l.id === selectedAnnotation.id
+        )
         if (annotation && annotation.type === "box") {
           const handle = getResizeHandle(e, annotation)
           if (handle) {
@@ -237,17 +240,7 @@ export function useCanvasHandlers(canvasRef: React.RefObject<HTMLDivElement>) {
         }
       }
     },
-    [
-      canvasRef,
-      getCanvasCoords,
-      selectedAnnotation,
-      selectedTool,
-      annotations,
-      getResizeHandle,
-      findLabelAtPoint,
-      deleteAnnotation,
-      polygonPoints,
-    ]
+    [canvasRef, getCanvasCoords, selectedAnnotation, selectedTool, annotations, getResizeHandle, findLabelAtPoint, setSelectedAnnotation, polygonPoints, deleteAnnotation]
   )
 
   const handleMouseMove = useCallback(
@@ -271,7 +264,9 @@ export function useCanvasHandlers(canvasRef: React.RefObject<HTMLDivElement>) {
 
       // Handle resizing
       if (isResizing && selectedAnnotation && resizeHandle) {
-        const annotation = annotations.find((l) => l.id === selectedAnnotation.id)
+        const annotation = annotations.find(
+          (l) => l.id === selectedAnnotation.id
+        )
         if (annotation && annotation.type === "box") {
           const [topLeft, bottomRight] = [...annotation.coordinates]
           let newTopLeft = { ...topLeft }
@@ -433,7 +428,7 @@ export function useCanvasHandlers(canvasRef: React.RefObject<HTMLDivElement>) {
         Math.abs(coordinates[1].x - coordinates[0].x) > 5 &&
         Math.abs(coordinates[1].y - coordinates[0].y) > 5
       ) {
-        setTempLabel({
+        setTempAnnotation({
           type: "box",
           coordinates,
           imageId: currentImage?.id || "",
@@ -445,19 +440,12 @@ export function useCanvasHandlers(canvasRef: React.RefObject<HTMLDivElement>) {
       setStartPoint(null)
       setCurrentPoint(null)
     }
-  }, [
-    isPanning,
-    isResizing,
-    movingLabelId,
-    isDragging,
-    startPoint,
-    currentPoint,
-    currentImage,
-  ])
+
+  }, [isPanning, isResizing, movingLabelId, isDragging, startPoint, currentPoint, currentImage, setTempAnnotation])
 
   const handleDoubleClick = useCallback(() => {
     if (selectedTool === "polygon" && polygonPoints.length >= 3) {
-      setTempLabel({
+      setTempAnnotation({
         type: "polygon",
         coordinates: polygonPoints,
         imageId: currentImage?.id || "",
@@ -527,19 +515,19 @@ export function useCanvasHandlers(canvasRef: React.RefObject<HTMLDivElement>) {
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [selectedAnnotation, deleteAnnotation, setSelectedTool])
+  }, [selectedAnnotation, deleteAnnotation, setSelectedTool, setSelectedAnnotation])
 
   // Handle label creation modal
   useEffect(() => {
-    if (showLabelInput && tempLabel) {
+    if (showLabelInput && tempAnnotation) {
       const name = prompt("Enter label name:")
       if (name) {
         const newAnnotation: Annotation = {
           id: crypto.randomUUID(),
           name,
-          type: tempLabel.type as "box" | "polygon",
-          coordinates: tempLabel.coordinates || [],
-          imageId: tempLabel.imageId || "",
+          type: tempAnnotation.type as "box" | "polygon",
+          coordinates: tempAnnotation.coordinates || [],
+          imageId: tempAnnotation.imageId || "",
           createdAt: new Date(),
           updatedAt: new Date(),
           color: "#3b82f6", // Default blue color
@@ -547,10 +535,10 @@ export function useCanvasHandlers(canvasRef: React.RefObject<HTMLDivElement>) {
         }
         createAnnotation(newAnnotation)
       }
-      setTempLabel(null)
+      setTempAnnotation(null)
       setShowLabelInput(false)
     }
-  }, [showLabelInput, tempLabel, createAnnotation])
+  }, [showLabelInput, tempAnnotation, createAnnotation])
 
   return {
     handleMouseDown,

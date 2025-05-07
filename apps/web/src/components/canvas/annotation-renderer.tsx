@@ -3,25 +3,25 @@ import { PolygonAnnotation } from "@/components/canvas/polygon-annotation"
 import { useAnnotations } from "@/contexts/annotations-context"
 
 export function AnnotationRenderer() {
-  const { annotations } =
-    useAnnotations()
+  const { annotations } = useAnnotations()
 
+  const annotationComponents: Record<string, React.ElementType> = {
+    box: BoxAnnotation,
+    polygon: PolygonAnnotation,
+  }
 
   return (
     <>
-      {annotations.map((annotation) => (
-        <div key={annotation.id}>
-          {annotation.type === "box" && (
-            <BoxAnnotation
-              annotation={annotation}
-            />
-          )}
-
-          {annotation.type === "polygon" && (
-            <PolygonAnnotation/>
-          )}
-        </div>
-      ))}
+      {annotations.map((annotation) => {
+        const AnnotationComponent = annotationComponents[annotation.type]
+        return (
+          <div key={annotation.id}>
+            {AnnotationComponent && (
+              <AnnotationComponent annotation={annotation} />
+            )}
+          </div>
+        )
+      })}
     </>
   )
 }
