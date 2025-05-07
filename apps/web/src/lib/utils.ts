@@ -27,7 +27,7 @@ export function getRandomColor(): string {
   return `rgb(${r}, ${g}, ${b})`
 }
 
-export function rgbToRgba(rgb: string, alpha: number): string {
+export function rgbToRgba(rgb: string = "#333", alpha: number): string {
   // Extract all numbers from the rgb string
   const rgbValues = rgb.match(/\d+/g)?.map(Number)
 

@@ -87,7 +87,6 @@ export const Canvas = ({ image }: CanvasProps) => {
                 width={currentImage.width}
                 height={currentImage.height}
               />
-
               <AnnotationRenderer />
             </div>
 

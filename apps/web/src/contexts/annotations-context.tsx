@@ -31,7 +31,6 @@ export const AnnotationsProvider = ({
   const [currentIndex, setCurrentIndex] = useState(0)
   const [selectedAnnotation, setSelectedAnnotation] = useState<Annotation | null>(null)
   const [currentImage, setCurrentImage] = useState<ImageData | null>(null)
-
   const addHistoryEntry = useCallback(
     (newAnnotations: Annotation[]) => {
       const newHistory = history.slice(0, currentIndex + 1)
