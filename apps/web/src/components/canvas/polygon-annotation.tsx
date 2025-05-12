@@ -1,7 +1,7 @@
 import { motion } from "framer-motion"
 import { rgbToRgba } from "@/lib/utils"
 import type { Annotation, Point } from "@/lib/types"
-import { useAnnotations } from "@/contexts/annotations-context"
+import { useAnnotations } from "@/hooks/use-annotations"
 import { useCanvas } from "@/contexts/canvas-context"
 
 interface PolygonAnnotationProps {

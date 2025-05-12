@@ -2,7 +2,7 @@ import { motion } from "framer-motion"
 import { cn, rgbToRgba } from "@/lib/utils"
 import type { Annotation } from "@/lib/types"
 import { useCanvas } from "@/contexts/canvas-context"
-import { useAnnotations } from "@/contexts/annotations-context"
+import { useAnnotations } from "@/hooks/use-annotations"
 
 interface BoxAnnotationProps {
   annotation: Annotation

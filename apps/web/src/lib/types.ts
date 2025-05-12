@@ -15,7 +15,7 @@ export interface Label {
 export interface Annotation {
   id: string
   labelId: string
-  label: Label
+  label?: Label // Made optional to avoid circular dependencies
   name: string
   type: "box" | "polygon" | "freeDraw"
   coordinates: Point[]
@@ -46,7 +46,7 @@ export interface ImageData {
 export interface Project {
   id: string
   name: string
-  images: ImageData[]
+  images?: ImageData[] // Made optional to allow lazy loading
   createdAt: Date
   lastModified: Date
 }

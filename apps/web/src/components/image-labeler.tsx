@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import type { ImageData, Project, Annotation } from "@/lib/types"
 
 import { useState, useEffect, useRef } from "react"
 import { AnimatePresence } from "framer-motion"
@@ -30,12 +31,14 @@ import { ExportModal } from "@/components/export-modal"
 import { AIModelModal } from "@/components/ai-model-modal"
 import { ContextMenu } from "@/components/context-menu"
 import { useToast } from "@/hooks/use-toast"
-import { useStore } from "@/lib/store"
-import type { Project, Annotation } from "@/lib/types"
-import { ThemeToggle } from "./theme-toggle"
+import { IDataAccess, DexieDataAccess } from "@/lib/data-access"
 import { useNavigate } from "react-router-dom"
 import { CanvasProvider } from "@/contexts/canvas-context"
-import { AnnotationsProvider } from "@/contexts/annotations-context"
+import { AnnotationsProvider } from "@/contexts/annotations-context-provider"
+import { ThemeToggle } from "./theme-toggle"
+
+// Initialize the data access layer
+const dataAccess: IDataAccess = new DexieDataAccess()
 
 interface ImageLabelerProps {
   project: Project
@@ -46,26 +49,84 @@ interface ImageLabelerProps {
 export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
   const { toast } = useToast()
   const [currentImageId] = useState<string | null>(imageId)
-  const currentImage = project.images.find((img) => img.id === currentImageId)
+  const [currentImage, setCurrentImage] = useState<ImageData | null>(null)
+  const [annotations, setAnnotations] = useState<Annotation[]>([])
   const [showSettings, setShowSettings] = useState(false)
   const [showExport, setShowExport] = useState(false)
   const [showAISettings, setShowAISettings] = useState(false)
   const [showLabelEditor, setShowLabelEditor] = useState(false)
   const [, setSelectedLabel] = useState<Annotation | null>(null)
   const [isSaving] = useState(false)
-  const [labeledCount] = useState(0)
   const [contextMenuProps, setContextMenuProps] = useState({
     isOpen: false,
     x: 0,
     y: 0,
   })
+  const [images, setImages] = useState<ImageData[]>([])
 
   const navigate = useNavigate()
 
   const canvasContainerRef = useRef<HTMLDivElement>(null)
   const [containerRect, setContainerRect] = useState<DOMRect | null>(null)
 
-  const { annotations } = useStore()
+  const nextImage = async () => {
+    if (!images) return
+
+    const currentIndex = images.findIndex(
+      (img: ImageData) => img.id === currentImageId
+    )
+    if (currentIndex < (images?.length || 0) - 1) {
+      navigate(`/projects/${project.id}/studio/${images[currentIndex + 1]?.id}`)
+    } else {
+      toast({
+        title: "No more images",
+        description: "You are at the last image.",
+      })
+    }
+  }
+
+  const previousImage = async () => {
+    if (!images) return
+
+    const currentIndex = images.findIndex(
+      (img: ImageData) => img.id === currentImageId
+    )
+    if (currentIndex > 0) {
+      navigate(`/projects/${project.id}/studio/${images[currentIndex - 1]?.id}`)
+    } else {
+      toast({
+        title: "No more images",
+        description: "You are at the first image.",
+      })
+    }
+  }
+
+  useEffect(() => {
+    const fetchImageData = async () => {
+      try {
+        const fetchedImages = await dataAccess.getImages(project.id)
+        setImages(fetchedImages)
+
+        if (fetchedImages.length > 0) {
+          setCurrentImage(fetchedImages[0]) // Set the first image as the current image
+          const annotations = await dataAccess.getAnnotations(
+            fetchedImages[0].id
+          )
+          setAnnotations(annotations) // Fetch annotations for the first image
+        } else {
+          setCurrentImage(null)
+          setAnnotations([])
+        }
+      } catch (error) {
+        console.error("Failed to load images or annotations:", error)
+        setImages([])
+        setCurrentImage(null)
+        setAnnotations([])
+      }
+    }
+
+    fetchImageData()
+  }, [project.id])
 
   const handleExportProject = () => {
     setShowExport(true)
@@ -117,50 +178,20 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [
     currentImageId,
-    project.images.length,
+    images.length,
     showSettings,
     showLabelEditor,
     showExport,
     showAISettings,
+    nextImage,
+    previousImage,
   ])
 
-  const nextImage = async () => {
-    const currentIndex = project.images.findIndex(
-      (img) => img.id === currentImageId
-    )
-    if (currentIndex < project.images.length - 1) {
-      navigate(
-        `/projects/${project.id}/studio/${project.images[currentIndex + 1].id}`
-      )
-    } else {
-      toast({
-        title: "No more images",
-        description: "You are at the last image.",
-      })
-    }
-  }
-
-  const previousImage = async () => {
-    const currentIndex = project.images.findIndex(
-      (img) => img.id === currentImageId
-    )
-    if (currentIndex > 0) {
-      navigate(
-        `/projects/${project.id}/studio/${project.images[currentIndex - 1].id}`
-      )
-    } else {
-      toast({
-        title: "No more images",
-        description: "You are at the first image.",
-      })
-    }
-  }
-
   const progress =
-    project.images.length > 0
-      ? Math.round((labeledCount / project.images.length) * 100)
+    images.length > 0
+      ? Math.round((annotations.length / images.length) * 100)
       : 0
-
+  console.log(currentImageId, currentImage)
   return (
     <CanvasProvider>
       <AnnotationsProvider>
@@ -175,7 +206,7 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
                   {project.name}
                 </h1>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {labeledCount} of {project.images.length} images labeled
+                  {annotations.length} of {images.length} images labeled
                 </p>
               </div>
             </div>
@@ -219,15 +250,13 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
                 <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                   <span>
                     Image
-                    {project.images.findIndex(
-                      (img) => img.id === currentImageId
-                    ) + 1}
+                    {images.findIndex((img) => img.id === currentImageId) + 1}
                     of
-                    {project.images.length}
+                    {images.length}
                   </span>
                   <Separator orientation="vertical" className="h-4" />
                   <span>
-                    {labeledCount} labeled ({progress}%)
+                    {annotations.length} labeled ({progress}%)
                   </span>
                 </div>
               </div>
