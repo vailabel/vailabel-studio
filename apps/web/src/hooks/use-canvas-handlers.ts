@@ -397,25 +397,7 @@ export function useCanvasHandlers(canvasRef: React.RefObject<HTMLDivElement>) {
         })
       }
     },
-    [
-      canvasRef,
-      getCanvasCoords,
-      setCursorPosition,
-      isPanning,
-      lastPanPoint,
-      isResizing,
-      selectedAnnotation,
-      resizeHandle,
-      movingLabelId,
-      movingOffset,
-      isDragging,
-      startPoint,
-      setPanOffset,
-      panOffset.x,
-      panOffset.y,
-      annotations,
-      updateAnnotation,
-    ]
+    [canvasRef, getCanvasCoords, setCursorPosition, isPanning, lastPanPoint, isResizing, selectedAnnotation, resizeHandle, movingLabelId, movingOffset, isDragging, startPoint, setPanOffset, panOffset.x, panOffset.y, annotations, updateAnnotation, currentImage?.id]
   )
 
   const handleMouseUp = useCallback(() => {
@@ -561,28 +543,28 @@ export function useCanvasHandlers(canvasRef: React.RefObject<HTMLDivElement>) {
     setSelectedAnnotation,
   ])
 
-  // Handle label creation modal
-  useEffect(() => {
-    if (showLabelInput && tempAnnotation) {
-      const name = prompt("Enter label name:")
-      if (name) {
-        const newAnnotation: Partial<Annotation> = {
-          id: crypto.randomUUID(),
-          name,
-          type: tempAnnotation.type as "box" | "polygon",
-          coordinates: tempAnnotation.coordinates || [],
-          imageId: tempAnnotation.imageId || "",
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          color: "#3b82f6", // Default blue color
-          isAIGenerated: false,
-        }
-        createAnnotation(newAnnotation)
-      }
-      setTempAnnotation(null)
-      setShowLabelInput(false)
-    }
-  }, [showLabelInput, tempAnnotation, createAnnotation])
+  // // Handle label creation modal
+  // useEffect(() => {
+  //   if (showLabelInput && tempAnnotation) {
+  //     const name = prompt("Enter label name:")
+  //     if (name) {
+  //       const newAnnotation: Partial<Annotation> = {
+  //         id: crypto.randomUUID(),
+  //         name,
+  //         type: tempAnnotation.type as "box" | "polygon",
+  //         coordinates: tempAnnotation.coordinates || [],
+  //         imageId: tempAnnotation.imageId || "",
+  //         createdAt: new Date(),
+  //         updatedAt: new Date(),
+  //         color: "#3b82f6", // Default blue color
+  //         isAIGenerated: false,
+  //       }
+  //       createAnnotation(newAnnotation)
+  //     }
+  //     setTempAnnotation(null)
+  //     setShowLabelInput(false)
+  //   }
+  // }, [showLabelInput, tempAnnotation, createAnnotation])
 
   return {
     handleMouseDown,

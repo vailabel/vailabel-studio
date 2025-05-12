@@ -32,7 +32,6 @@ import { ContextMenu } from "@/components/context-menu"
 import { useToast } from "@/hooks/use-toast"
 import { useStore } from "@/lib/store"
 import type { Project, Annotation } from "@/lib/types"
-import { CreateAnnotation } from "./create-annotation"
 import { ThemeToggle } from "./theme-toggle"
 import { useNavigate } from "react-router-dom"
 import { CanvasProvider } from "@/contexts/canvas-context"
@@ -348,9 +347,6 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
                   )}
                 </AnimatePresence>
               </div>
-              <AnimatePresence>
-                <CreateAnnotation />
-              </AnimatePresence>
             </div>
           </div>
 
