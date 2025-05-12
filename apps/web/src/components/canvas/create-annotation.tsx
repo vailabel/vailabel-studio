@@ -12,15 +12,12 @@ import { Annotation } from "@/lib/types"
 
 interface CreateAnnotationModalProps {
   onSubmit: (name: string, color: string) => void
-  onCancel?: () => void
   isOpen: boolean
-  onClose?: () => void
+  onClose: () => void
 }
 
-// Add `isOpen` and `onCancel` handling
 export function CreateAnnotation({
   onSubmit,
-  onCancel,
   isOpen,
   onClose,
 }: CreateAnnotationModalProps) {
@@ -46,11 +43,13 @@ export function CreateAnnotation({
           labelName.trim(),
           existingAnnotation?.color || color || getRandomColor()
         )
+        setLabelName("") // Reset label name
+        setColor(null) // Reset color
+        setAnnotationsFilter(uniqueLabels) // Reset filter
       }
     },
     [labelName, onSubmit, uniqueLabels, color]
   )
-
 
   const handleChangeName = useCallback(
     (name: string) => {
@@ -127,7 +126,7 @@ export function CreateAnnotation({
                         annotation.color || getRandomColor()
                       )
                       setTimeout(() => {
-                        handleCancel() // Use `handleCancel` to close modal
+                        onClose()
                       }, 100)
                     }}
                     key={annotation.id}
@@ -149,13 +148,9 @@ export function CreateAnnotation({
             ) : (
               <button
                 onClick={() => {
-                  setLabelName((prev) => prev)
-                  setAnnotationsFilter((prev) =>
-                    prev.filter((a) => a.name !== labelName)
-                  )
                   onSubmit(labelName, color || getRandomColor())
                   setTimeout(() => {
-                    handleCancel() // Use `handleCancel` to close modal
+                    onClose()
                   }, 100)
                 }}
                 className="flex items-center justify-between p-2 border rounded-md cursor-pointer hover:shadow-md dark:border-gray-600"
