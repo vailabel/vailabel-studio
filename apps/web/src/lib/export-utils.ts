@@ -110,7 +110,7 @@ export async function exportToCoco(projectId: string, filename: string) {
         area: 0,
         bbox: [],
         iscrowd: 0,
-        color: annotation.color || "blue-500",
+        color: annotation.color ?? "blue",
       }
 
       if (annotation.type === "box") {
@@ -180,7 +180,7 @@ export function exportToPascalVoc(
     <pose>Unspecified</pose>
     <truncated>0</truncated>
     <difficult>0</difficult>
-    <color>${annotation.color || "blue-500"}</color>`
+    <color>${annotation.color}</color>`
       if (annotation.type === "box") {
         const [topLeft, bottomRight] = annotation.coordinates
         xml += `\n    <bndbox>
