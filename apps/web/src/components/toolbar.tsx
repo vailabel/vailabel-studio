@@ -26,8 +26,8 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { AIDetectionButton } from "@/components/ai-detection-button"
 import type { ImageData } from "@/lib/types"
-import { useAnnotations } from "@/contexts/annotations-context"
-import { useCanvas } from "@/contexts/canvas-context"
+import { useAnnotations } from "@/hooks/use-annotations"
+import { useCanvas } from "@/hooks/use-canvas"
 
 interface ToolbarProps {
   currentImage: ImageData | null
