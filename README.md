@@ -2,11 +2,13 @@
 <p align="center">
   <img src="/docs/logo.png" alt="Logo" width="200">
 </p>
-<span align="center">
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=vailabel_vailabel-studio&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=vailabel_vailabel-studio)
-[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=vailabel_vailabel-studio&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=vailabel_vailabel-studio)
-[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=vailabel_vailabel-studio&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=vailabel_vailabel-studio)
+<span align="center" style="display: flex; flex-direction: row; align-items: center;">
+
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=vailabel_vailabel-studio&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=vailabel_vailabel-studio)  
+[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=vailabel_vailabel-studio&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=vailabel_vailabel-studio)  
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=vailabel_vailabel-studio&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=vailabel_vailabel-studio)  
 [![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=vailabel_vailabel-studio&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=vailabel_vailabel-studio)
+
 </span>
 A powerful, modern **image labeling tool** built with **React.js**, **TypeScript**, **TailwindCSS**, **Framer Motion**, and **Dexie.js**, designed for creating high-quality datasets for machine learning models.  
 Supports manual annotation, free drawing, and **AI-assisted labeling** using **YOLOv8** models.
