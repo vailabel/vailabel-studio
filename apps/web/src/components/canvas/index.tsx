@@ -7,17 +7,14 @@ import { PositionCoordinates } from "@/components/canvas/position-coordinates"
 import { useCanvasHandlers } from "@/hooks/use-canvas-handlers"
 import { type Annotation, type ImageData } from "@/lib/types"
 import { Crosshair } from "./crosshair"
+import { TempAnnotation } from "./temp-anotaion"
 interface CanvasProps {
   image: ImageData | null
   annotations: Annotation[]
 }
 
 export const Canvas = ({ image }: CanvasProps) => {
-  const {
-    zoom,
-    panOffset,
-    selectedTool,
-  } = useCanvas()
+  const { zoom, panOffset, selectedTool } = useCanvas()
 
   const { currentImage, setCurrentImage } = useAnnotations()
   const canvasRef = useRef<HTMLDivElement>(null!) // Non-null assertion
@@ -28,6 +25,7 @@ export const Canvas = ({ image }: CanvasProps) => {
     handleMouseUp,
     handleDoubleClick,
     handleWheel,
+    tempAnnotation,
   } = useCanvasHandlers(canvasRef as React.RefObject<HTMLDivElement>)
 
   const cursorStyles = {
@@ -41,12 +39,10 @@ export const Canvas = ({ image }: CanvasProps) => {
     if (image) {
       setCurrentImage(image)
     }
-  }
-  , [image, setCurrentImage])
+  }, [image, setCurrentImage])
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-gray-100 dark:bg-gray-900">
-
       <div
         className="relative h-full w-full overflow-hidden"
         onWheel={handleWheel}
@@ -88,6 +84,7 @@ export const Canvas = ({ image }: CanvasProps) => {
                 height={currentImage.height}
               />
               <AnnotationRenderer />
+              {tempAnnotation && <TempAnnotation annotation={tempAnnotation} />}
             </div>
 
             <Crosshair />

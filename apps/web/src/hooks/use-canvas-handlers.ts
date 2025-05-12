@@ -40,6 +40,7 @@ export function useCanvasHandlers(canvasRef: React.RefObject<HTMLDivElement>) {
   const [lastPanPoint, setLastPanPoint] = useState<Point | null>(null)
   const [tempAnnotation, setTempAnnotation] =
     useState<Partial<Annotation> | null>(null)
+
   const [showLabelInput, setShowLabelInput] = useState(false)
 
   const getCanvasCoords = useCallback(
@@ -240,7 +241,18 @@ export function useCanvasHandlers(canvasRef: React.RefObject<HTMLDivElement>) {
         }
       }
     },
-    [canvasRef, getCanvasCoords, selectedAnnotation, selectedTool, annotations, getResizeHandle, findLabelAtPoint, setSelectedAnnotation, polygonPoints, deleteAnnotation]
+    [
+      canvasRef,
+      getCanvasCoords,
+      selectedAnnotation,
+      selectedTool,
+      annotations,
+      getResizeHandle,
+      findLabelAtPoint,
+      setSelectedAnnotation,
+      polygonPoints,
+      deleteAnnotation,
+    ]
   )
 
   const handleMouseMove = useCallback(
@@ -364,6 +376,25 @@ export function useCanvasHandlers(canvasRef: React.RefObject<HTMLDivElement>) {
       // Handle drawing
       if (isDragging && startPoint) {
         setCurrentPoint(point)
+
+        // Update tempAnnotation in real-time to show the dotted box on the UI
+        const coordinates = [
+          {
+            x: Math.min(startPoint.x, point.x),
+            y: Math.min(startPoint.y, point.y),
+          },
+          {
+            x: Math.max(startPoint.x, point.x),
+            y: Math.max(startPoint.y, point.y),
+          },
+        ]
+
+        setTempAnnotation({
+          type: "box",
+          coordinates,
+          imageId: currentImage?.id || "",
+          color: "#3b82f6", // Default blue color for the new annotation
+        })
       }
     },
     [
@@ -440,8 +471,16 @@ export function useCanvasHandlers(canvasRef: React.RefObject<HTMLDivElement>) {
       setStartPoint(null)
       setCurrentPoint(null)
     }
-
-  }, [isPanning, isResizing, movingLabelId, isDragging, startPoint, currentPoint, currentImage, setTempAnnotation])
+  }, [
+    isPanning,
+    isResizing,
+    movingLabelId,
+    isDragging,
+    startPoint,
+    currentPoint,
+    currentImage,
+    setTempAnnotation,
+  ])
 
   const handleDoubleClick = useCallback(() => {
     if (selectedTool === "polygon" && polygonPoints.length >= 3) {
@@ -515,14 +554,19 @@ export function useCanvasHandlers(canvasRef: React.RefObject<HTMLDivElement>) {
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [selectedAnnotation, deleteAnnotation, setSelectedTool, setSelectedAnnotation])
+  }, [
+    selectedAnnotation,
+    deleteAnnotation,
+    setSelectedTool,
+    setSelectedAnnotation,
+  ])
 
   // Handle label creation modal
   useEffect(() => {
     if (showLabelInput && tempAnnotation) {
       const name = prompt("Enter label name:")
       if (name) {
-        const newAnnotation: Annotation = {
+        const newAnnotation: Partial<Annotation> = {
           id: crypto.randomUUID(),
           name,
           type: tempAnnotation.type as "box" | "polygon",
@@ -552,5 +596,7 @@ export function useCanvasHandlers(canvasRef: React.RefObject<HTMLDivElement>) {
     polygonPoints,
     selectedAnnotation,
     setSelectedAnnotation,
+    tempAnnotation,
+    showLabelInput,
   }
 }
