@@ -6,7 +6,7 @@ interface TempAnnotationProps {
   annotation: Partial<Annotation>
 }
 
-export function TempAnnotation({ annotation }: TempAnnotationProps) {
+export function TempAnnotation({ annotation }: Readonly<TempAnnotationProps>) {
   const styles = {
     fill: rgbToRgba(annotation.color, 0.2),
     stroke: annotation.color,
