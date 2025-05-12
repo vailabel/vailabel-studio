@@ -13,7 +13,8 @@ import { Annotation } from "@/lib/types"
 interface CreateAnnotationModalProps {
   onSubmit: (name: string, color: string) => void
   onCancel?: () => void
-  isOpen: boolean // Add a prop to control modal visibility
+  isOpen: boolean
+  onClose?: () => void
 }
 
 // Add `isOpen` and `onCancel` handling
@@ -21,6 +22,7 @@ export function CreateAnnotation({
   onSubmit,
   onCancel,
   isOpen,
+  onClose,
 }: CreateAnnotationModalProps) {
   const [labelName, setLabelName] = useState("")
   const { annotations } = useStore()
@@ -49,11 +51,6 @@ export function CreateAnnotation({
     [labelName, onSubmit, uniqueLabels, color]
   )
 
-  const handleCancel = useCallback(() => {
-    if (onCancel) {
-      onCancel()
-    }
-  }, [onCancel])
 
   const handleChangeName = useCallback(
     (name: string) => {
@@ -85,7 +82,7 @@ export function CreateAnnotation({
       >
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold">Annotation Editor</h3>
-          <Button variant="default" size="icon" onClick={handleCancel}>
+          <Button variant="default" size="icon" onClick={onClose}>
             <X className="h-4 w-4" />
             <span className="sr-only">Close</span>
           </Button>

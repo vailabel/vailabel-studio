@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { useCallback, useEffect, useRef } from "react"
 import { cn } from "@/lib/utils"
 import { useCanvas } from "@/contexts/canvas-context"
 import { useAnnotations } from "@/contexts/annotations-context"
@@ -28,6 +28,8 @@ export const Canvas = ({ image }: CanvasProps) => {
     handleWheel,
     tempAnnotation,
     showLabelInput,
+    setShowLabelInput,
+    setTempAnnotation,
   } = useCanvasHandlers(canvasRef as React.RefObject<HTMLDivElement>)
 
   const cursorStyles = {
@@ -42,6 +44,11 @@ export const Canvas = ({ image }: CanvasProps) => {
       setCurrentImage(image)
     }
   }, [image, setCurrentImage])
+
+  const handleCloseCreateAnnotationModal = useCallback(() => {
+    setShowLabelInput(false)
+    setTempAnnotation(null)
+  }, [setShowLabelInput, setTempAnnotation])
 
   return (
     <>
@@ -98,7 +105,7 @@ export const Canvas = ({ image }: CanvasProps) => {
           )}
         </div>
       </div>
-      {showLabelInput && <CreateAnnotation onSubmit={() => {}} isOpen={true} />}
+      {showLabelInput && <CreateAnnotation onSubmit={() => {}} isOpen={true} onClose={handleCloseCreateAnnotationModal} />}
     </>
   )
 }
