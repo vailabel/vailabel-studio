@@ -191,7 +191,6 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
     images.length > 0
       ? Math.round((annotations.length / images.length) * 100)
       : 0
-  console.log(currentImageId, currentImage)
   return (
     <CanvasProvider>
       <AnnotationsProvider>
