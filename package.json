@@ -13,16 +13,22 @@
     "desktop:build": "NODE_ENV=production webpack",
     "desktop:start": "npm run build && electron ./dist/main.js",
     "desktop:watch": "webpack --watch & nodemon --watch dist --exec electron ./packages/desktop/dist/main.js",
-    "desktop:dist": "npx electron-builder --config ./packages/desktop/electron-builder.json"
+    "desktop:dist": "npx electron-builder --config ./packages/desktop/electron-builder.json",
+    "prepare": "husky",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\" --ignore-path .gitignore --ignore-path .prettierignore",
+    "commit": "cz"
   },
   "keywords": [],
   "workspaces": [
-    "apps/*",
-    "packages/*"
+    "apps/*"
   ],
   "author": {
     "name": "Vichea Nath",
     "email": "nathvichea1@gmail.com"
   },
-  "license": "GPL-3.0-only"
+  "license": "GPL-3.0-only",
+  "devDependencies": {
+    "commitizen": "^4.3.1",
+    "husky": "^9.1.7"
+  }
 }
