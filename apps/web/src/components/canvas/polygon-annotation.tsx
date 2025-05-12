@@ -2,7 +2,7 @@ import { motion } from "framer-motion"
 import { rgbToRgba } from "@/lib/utils"
 import type { Annotation, Point } from "@/lib/types"
 import { useAnnotations } from "@/hooks/use-annotations"
-import { useCanvas } from "@/contexts/canvas-context"
+import { useCanvas } from "@/hooks/use-canvas"
 
 interface PolygonAnnotationProps {
   annotation: Annotation
@@ -24,7 +24,7 @@ export function PolygonAnnotation({ annotation }: PolygonAnnotationProps) {
       default: annotation.color,
     },
     textFill: {
-      selected: annotation.color ,
+      selected: annotation.color,
       aiGenerated: annotation.color,
       default: "black",
     },

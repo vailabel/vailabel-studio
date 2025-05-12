@@ -1,6 +1,6 @@
 import { useCallback, useState, useEffect } from "react"
 import type { Point, Annotation } from "@/lib/types"
-import { useCanvas } from "@/contexts/canvas-context"
+import { useCanvas } from "@/hooks/use-canvas"
 import { useAnnotations } from "@/hooks/use-annotations"
 import { calculatePolygonCentroid, isPointInPolygon } from "@/lib/canvas-utils"
 
