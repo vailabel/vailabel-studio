@@ -10,7 +10,7 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { useStore } from "@/lib/store"
 import { detectObjects } from "@/lib/ai-utils"
-import type { Annotation, ImageData } from "@/lib/types"
+import type { Annotation, ImageData, Label } from "@/lib/types"
 
 interface AIDetectionButtonProps {
   image: ImageData | null
@@ -67,6 +67,13 @@ export function AIDetectionButton({ image, disabled }: AIDetectionButtonProps) {
           imageId: image.id,
           createdAt: new Date(),
           updatedAt: new Date(),
+          label: {
+            id: crypto.randomUUID(),
+            name: className,
+            projectId: image.projectId,
+            isAIGenerated: true,
+          } as Label,
+          labelId: crypto.randomUUID(),
         }
 
         // Create the annotation in the store

@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useCallback, useState } from "react"
 import type { Annotation, ImageData } from "@/lib/types"
 
@@ -29,7 +28,8 @@ export const AnnotationsProvider = ({
   const [annotations, setAnnotations] = useState<Annotation[]>([])
   const [history, setHistory] = useState<Annotation[][]>([[]])
   const [currentIndex, setCurrentIndex] = useState(0)
-  const [selectedAnnotation, setSelectedAnnotation] = useState<Annotation | null>(null)
+  const [selectedAnnotation, setSelectedAnnotation] =
+    useState<Annotation | null>(null)
   const [currentImage, setCurrentImage] = useState<ImageData | null>(null)
   const addHistoryEntry = useCallback(
     (newAnnotations: Annotation[]) => {

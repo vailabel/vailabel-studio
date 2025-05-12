@@ -15,7 +15,7 @@ interface CanvasProps {
 }
 
 export const Canvas = ({ image }: CanvasProps) => {
-  const { zoom, panOffset, selectedTool } = useCanvas()
+  const { zoom, panOffset, selectedTool, setCanvasRef } = useCanvas()
 
   const { currentImage, setCurrentImage } = useAnnotations()
   const canvasRef = useRef<HTMLDivElement>(null!) // Non-null assertion
@@ -43,7 +43,8 @@ export const Canvas = ({ image }: CanvasProps) => {
     if (image) {
       setCurrentImage(image)
     }
-  }, [image, setCurrentImage])
+    setCanvasRef(canvasRef)
+  }, [image, setCurrentImage, setCanvasRef])
 
   const handleCloseCreateAnnotationModal = useCallback(() => {
     setShowLabelInput(false)
@@ -105,7 +106,13 @@ export const Canvas = ({ image }: CanvasProps) => {
           )}
         </div>
       </div>
-      {showLabelInput && <CreateAnnotation onSubmit={() => {}} isOpen={true} onClose={handleCloseCreateAnnotationModal} />}
+      {showLabelInput && (
+        <CreateAnnotation
+          onSubmit={() => {}}
+          isOpen={true}
+          onClose={handleCloseCreateAnnotationModal}
+        />
+      )}
     </>
   )
 }
