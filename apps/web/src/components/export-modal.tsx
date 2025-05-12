@@ -40,10 +40,10 @@ export function ExportModal({
 
       switch (exportFormat) {
         case "json":
-          exportToJson(project, annotations, `${fileName}-export.json`)
+          await exportToJson(project.id, `${fileName}-export.json`)
           break
         case "coco":
-          exportToCoco(project, annotations, `${fileName}-coco.json`)
+          await exportToCoco(project.id, `${fileName}-coco.json`)
           break
         case "pascal":
           exportToPascalVoc(project, annotations, `${fileName}-pascal`)

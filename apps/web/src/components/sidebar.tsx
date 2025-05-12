@@ -37,7 +37,7 @@ export function Sidebar({
     <div className="w-64 border-l border-gray-200 bg-white">
       <div className="p-4">
         <h2 className="text-lg font-semibold">{project.name}</h2>
-        <p className="text-sm text-gray-500">{project.images.length} images</p>
+        <p className="text-sm text-gray-500">{project.images?.length} images</p>
       </div>
 
       <Separator />
@@ -63,7 +63,7 @@ export function Sidebar({
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="mt-2 space-y-1">
-                {project.images.map((image, index) => (
+                {project.images?.map((image, index) => (
                   <Button
                     key={image.id}
                     variant="ghost"
@@ -78,7 +78,9 @@ export function Sidebar({
                       <span className="truncate">{image.name}</span>
                     </div>
                   </Button>
-                ))}
+                )) || (
+                  <p className="text-sm text-gray-500">No images available</p>
+                )}
               </div>
             </CollapsibleContent>
           </Collapsible>

@@ -1,7 +1,7 @@
-import { createContext, useContext, useCallback, useState } from "react"
+import { createContext, useCallback, useState } from "react"
 import type { Point } from "@/lib/types"
 
-type CanvasContextType = {
+export type CanvasContextType = {
   zoom: number
   panOffset: Point
   cursorPosition: Point | null
@@ -15,7 +15,7 @@ type CanvasContextType = {
   canvasRef: React.RefObject<HTMLDivElement> | null
 }
 
-const CanvasContext = createContext<CanvasContextType | null>(null)
+export const CanvasContext = createContext<CanvasContextType | null>(null)
 
 export function CanvasProvider({ children }: { children: React.ReactNode }) {
   const [zoom, setZoom] = useState(1)
@@ -24,6 +24,7 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
   const [selectedTool, setSelectedTool] = useState("move")
   const [canvasRef, setCanvasRef] =
     useState<React.RefObject<HTMLDivElement> | null>(null)
+
   const resetView = useCallback(() => {
     setZoom(1)
     setPanOffset({ x: 0, y: 0 })
@@ -48,10 +49,4 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
       {children}
     </CanvasContext.Provider>
   )
-}
-
-export function useCanvas() {
-  const context = useContext(CanvasContext)
-  if (!context) throw new Error("useCanvas must be used within CanvasProvider")
-  return context
 }

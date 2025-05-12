@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react"
-import { useCanvas } from "@/contexts/canvas-context"
+import { useCanvas } from "@/hooks/use-canvas"
 
 export const PositionCoordinates: React.FC = () => {
   const { zoom, panOffset, cursorPosition, canvasRef } = useCanvas()

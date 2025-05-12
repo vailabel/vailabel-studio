@@ -6,10 +6,10 @@ interface TempAnnotationProps {
   annotation: Partial<Annotation>
 }
 
-export function TempAnnotation({ annotation }: TempAnnotationProps) {
+export function TempAnnotation({ annotation }: Readonly<TempAnnotationProps>) {
   const styles = {
     fill: rgbToRgba(annotation.color, 0.2),
-    stroke: annotation.color || "#3b82f6", // Default blue color
+    stroke: annotation.color,
   }
 
   if (annotation.type === "box" && annotation.coordinates?.length === 2) {

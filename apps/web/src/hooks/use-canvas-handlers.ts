@@ -1,10 +1,7 @@
-// hooks/use-canvas-handlers.ts
-"use client"
-
 import { useCallback, useState, useEffect } from "react"
 import type { Point, Annotation } from "@/lib/types"
-import { useCanvas } from "@/contexts/canvas-context"
-import { useAnnotations } from "@/contexts/annotations-context"
+import { useCanvas } from "@/hooks/use-canvas"
+import { useAnnotations } from "@/hooks/use-annotations"
 import { calculatePolygonCentroid, isPointInPolygon } from "@/lib/canvas-utils"
 
 export function useCanvasHandlers(canvasRef: React.RefObject<HTMLDivElement>) {
@@ -592,6 +589,9 @@ export function useCanvasHandlers(canvasRef: React.RefObject<HTMLDivElement>) {
     handleWheel,
     isDragging,
     startPoint,
+    isPanning,
+    isResizing,
+    resizeHandle,
     currentPoint,
     polygonPoints,
     selectedAnnotation,

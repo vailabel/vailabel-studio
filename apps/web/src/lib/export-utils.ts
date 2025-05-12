@@ -1,11 +1,24 @@
 import type { Project, Annotation } from "@/lib/types"
 import JSZip from "jszip"
+import { getDataAccessLayer } from "./data-access"
+
 // Simple JSON export
-export function exportToJson(
-  project: Project,
-  annotations: Annotation[],
-  filename: string
-) {
+export async function exportToJson(projectId: string, filename: string) {
+  const dataAccess = getDataAccessLayer()
+
+  // Fetch project data using IDataAccess
+  const projects = await dataAccess.getProjects()
+  const project = projects.find((p) => p.id === projectId)
+  if (!project) {
+    throw new Error(`Project with ID ${projectId} not found.`)
+  }
+
+  // Fetch related images and annotations using IDataAccess
+  const images = await dataAccess.getImages(projectId)
+  const annotations = await Promise.all(
+    images.map((img) => dataAccess.getAnnotations(img.id))
+  ).then((results) => results.flat())
+
   // Group annotations by imageId
   const annotationsByImage: Record<string, Annotation[]> = {}
   annotations.forEach((annotation) => {
@@ -22,13 +35,13 @@ export function exportToJson(
       name: project.name,
       createdAt: project.createdAt,
       lastModified: project.lastModified,
-      imageCount: project.images.length,
+      imageCount: images.length,
     },
-    images: project.images.map((img) => ({
+    images: images.map((img) => ({
       id: img.id,
       name: img.name,
-      width: img.width,
-      height: img.height,
+      width: img.width || 0, // Default to 0 if undefined
+      height: img.height || 0, // Default to 0 if undefined
       annotations: annotationsByImage[img.id] || [],
     })),
   }
@@ -48,12 +61,25 @@ export function exportToJson(
 }
 
 // COCO JSON export
-export function exportToCoco(
-  project: Project,
-  annotations: Annotation[],
-  filename: string
-) {
-  // COCO format structure
+export async function exportToCoco(projectId: string, filename: string) {
+  const dataAccess = getDataAccessLayer()
+
+  // Fetch project data using IDataAccess
+  const projects = await dataAccess.getProjects()
+  const project = projects.find((p) => p.id === projectId)
+  if (!project) {
+    throw new Error(`Project with ID ${projectId} not found.`)
+  }
+
+  const images = await dataAccess.getImages(projectId)
+  if (!images || images.length === 0) {
+    throw new Error(`No images found for project ID ${projectId}.`)
+  }
+
+  const annotations = await Promise.all(
+    images.map((img) => dataAccess.getAnnotations(img.id))
+  ).then((results) => results.flat())
+
   const cocoData = {
     info: {
       year: new Date().getFullYear(),
@@ -62,36 +88,29 @@ export function exportToCoco(
       contributor: "Image Labeling App",
       date_created: new Date().toISOString(),
     },
-    images: [] as any[],
-    annotations: [] as any[],
-    categories: [] as any[],
-  }
-
-  // Process images
-  project.images.forEach((image, index) => {
-    cocoData.images.push({
+    images: images.map((image, index) => ({
       id: index + 1,
       file_name: image.name,
-      width: image.width,
-      height: image.height,
-    })
-
-    // Find annotations for this image
-    const imageAnnotations = annotations.filter(
-      (annotation) => annotation.imageId === image.id
-    )
-
-    // Process annotations
-    imageAnnotations.forEach((annotation, annotationIndex) => {
-      // Create annotation
-      const cocoAnnotation: any = {
+      width: image.width || 0,
+      height: image.height || 0,
+    })),
+    annotations: annotations.map((annotation, annotationIndex) => {
+      const cocoAnnotation: {
+        id: number
+        image_id: number
+        segmentation: number[][]
+        area: number
+        bbox: number[]
+        iscrowd: number
+        color: string
+      } = {
         id: annotationIndex + 1,
-        image_id: index + 1,
+        image_id: images.findIndex((img) => img.id === annotation.imageId) + 1,
         segmentation: [],
         area: 0,
         bbox: [],
         iscrowd: 0,
-        color: annotation.color || "blue-500", // Include color in export
+        color: annotation.color ?? "blue",
       }
 
       if (annotation.type === "box") {
@@ -102,25 +121,24 @@ export function exportToCoco(
         cocoAnnotation.bbox = [topLeft.x, topLeft.y, width, height]
         cocoAnnotation.area = width * height
       } else if (annotation.type === "polygon") {
-        // Flatten coordinates for COCO format
         const flatCoords = annotation.coordinates.flatMap((p) => [p.x, p.y])
         cocoAnnotation.segmentation = [flatCoords]
 
-        // Calculate polygon area (approximate)
         let area = 0
         for (let i = 0; i < annotation.coordinates.length; i++) {
           const j = (i + 1) % annotation.coordinates.length
-          area += annotation.coordinates[i].x * annotation.coordinates[j].y
-          area -= annotation.coordinates[j].x * annotation.coordinates[i].y
+          area +=
+            annotation.coordinates[i].x * annotation.coordinates[j].y -
+            annotation.coordinates[j].x * annotation.coordinates[i].y
         }
         cocoAnnotation.area = Math.abs(area) / 2
       }
 
-      cocoData.annotations.push(cocoAnnotation)
-    })
-  })
+      return cocoAnnotation
+    }),
+    categories: [],
+  }
 
-  // Convert to JSON and download
   const jsonStr = JSON.stringify(cocoData, null, 2)
   const blob = new Blob([jsonStr], { type: "application/json" })
   const url = URL.createObjectURL(blob)
@@ -141,7 +159,7 @@ export function exportToPascalVoc(
 ) {
   const zip = new JSZip()
 
-  project.images.forEach((image) => {
+  project.images?.forEach((image) => {
     const imageAnnotations = annotations.filter(
       (annotation) => annotation.imageId === image.id
     )
@@ -162,7 +180,7 @@ export function exportToPascalVoc(
     <pose>Unspecified</pose>
     <truncated>0</truncated>
     <difficult>0</difficult>
-    <color>${annotation.color || "blue-500"}</color>`
+    <color>${annotation.color}</color>`
       if (annotation.type === "box") {
         const [topLeft, bottomRight] = annotation.coordinates
         xml += `\n    <bndbox>
@@ -208,7 +226,7 @@ export function exportToYolo(
 ) {
   const zip = new JSZip()
 
-  project.images.forEach((image) => {
+  project.images?.forEach((image) => {
     const imageAnnotations = annotations.filter(
       (annotation) => annotation.imageId === image.id
     )
