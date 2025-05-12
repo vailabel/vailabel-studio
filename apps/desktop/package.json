@@ -1,44 +1,44 @@
 {
   "name": "desktop",
-  "version": "1.0.0",
-  "description": "",
-  "main": "dist/main.js",
+  "productName": "desktop",
+  "version": "1.0.1",
+  "description": "My Electron application description",
+  "main": ".vite/build/main.js",
   "scripts": {
-    "build": "webpack --config ./webpack.config.js --mode production",
-    "start": "npm run build && electron ./dist/main.js",
-    "watch": "webpack --config ./webpack.config.js --watch & nodemon --watch dist --exec electron ./dist/main.js",
-    "dist": "npx electron-builder --config ./electron-builder.json"
+    "start": "electron-forge start",
+    "package": "electron-forge package",
+    "make": "electron-forge make",
+    "publish": "electron-forge publish",
+    "lint": "eslint --ext .ts,.tsx ."
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "build": {
-    "appId": "com.vailabel.studio",
-    "publish": [
-      {
-        "provider": "github",
-        "owner": "vailabel",
-        "repo": "vailabel-studio"
-      }
-    ],
-    "files": [
-      "dist/**/*",
-      "../web/out/**/*"
-    ],
-    "directories": {
-      "output": "release"
-    }
+  "author": {
+    "name": "Vichea",
+    "email": "nathvichea1@gmail.com"
   },
+  "license": "MIT",
   "devDependencies": {
-    "@types/node": "^22.15.3",
-    "electron": "^36.1.0",
-    "electron-builder": "^26.0.12",
-    "nodemon": "^3.1.10",
-    "ts-loader": "^9.5.2",
+    "@electron-forge/cli": "^7.8.0",
+    "@electron-forge/maker-deb": "^7.8.0",
+    "@electron-forge/maker-rpm": "^7.8.0",
+    "@electron-forge/maker-squirrel": "^7.8.0",
+    "@electron-forge/maker-zip": "^7.8.0",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.8.0",
+    "@electron-forge/plugin-fuses": "^7.8.0",
+    "@electron-forge/plugin-vite": "^7.8.0",
+    "@electron-forge/publisher-github": "^7.8.0",
+    "@electron/fuses": "^1.8.0",
+    "@types/electron-squirrel-startup": "^1.0.2",
+    "@typescript-eslint/eslint-plugin": "^5.62.0",
+    "@typescript-eslint/parser": "^5.62.0",
+    "electron": "36.2.0",
+    "eslint": "^8.57.1",
+    "eslint-plugin-import": "^2.31.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.3",
-    "webpack": "^5.99.7",
-    "webpack-cli": "^6.0.1",
-    "electron-updater": "^6.6.2"
+    "typescript": "~4.5.4",
+    "vite": "^5.4.19"
+  },
+  "dependencies": {
+    "electron-squirrel-startup": "^1.0.1"
   }
 }

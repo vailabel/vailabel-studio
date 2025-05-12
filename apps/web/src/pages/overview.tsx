@@ -58,14 +58,28 @@ const Overview = () => {
               </thead>
               <tbody>
                 {[
-                  { activity: 'Updated "Dataset A"', user: "User1", date: "2023-10-01" },
-                  { activity: 'Added label to "Dataset B"', user: "User2", date: "2023-10-02" },
-                  { activity: 'Joined "Dataset C"', user: "User3", date: "2023-10-03" },
+                  {
+                    activity: 'Updated "Dataset A"',
+                    user: "User1",
+                    date: "2023-10-01",
+                  },
+                  {
+                    activity: 'Added label to "Dataset B"',
+                    user: "User2",
+                    date: "2023-10-02",
+                  },
+                  {
+                    activity: 'Joined "Dataset C"',
+                    user: "User3",
+                    date: "2023-10-03",
+                  },
                 ].map((item, index) => (
                   <tr
                     key={index}
                     className={`${
-                      index % 2 === 0 ? "bg-gray-50 dark:bg-gray-700" : "bg-white dark:bg-gray-800"
+                      index % 2 === 0
+                        ? "bg-gray-50 dark:bg-gray-700"
+                        : "bg-white dark:bg-gray-800"
                     }`}
                   >
                     <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">

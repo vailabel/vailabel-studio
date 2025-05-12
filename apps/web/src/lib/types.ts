@@ -14,6 +14,8 @@ export interface Label {
 
 export interface Annotation {
   id: string
+  labelId: string
+  label: Label
   name: string
   type: "box" | "polygon" | "freeDraw"
   coordinates: Point[]

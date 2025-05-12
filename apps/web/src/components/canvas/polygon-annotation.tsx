@@ -1,20 +1,38 @@
 import { motion } from "framer-motion"
 import { rgbToRgba } from "@/lib/utils"
-import type { Annotation } from "@/lib/types"
+import type { Annotation, Point } from "@/lib/types"
+import { useAnnotations } from "@/contexts/annotations-context"
+import { useCanvas } from "@/contexts/canvas-context"
 
 interface PolygonAnnotationProps {
   annotation: Annotation
-  selectedLabelId: string | null
-  selectedTool: string
-  uiZoom: number
 }
 
-export function PolygonAnnotation({
-  annotation,
-  selectedLabelId,
-  selectedTool,
-  uiZoom,
-}: PolygonAnnotationProps) {
+export function PolygonAnnotation({ annotation }: PolygonAnnotationProps) {
+  const { selectedAnnotation } = useAnnotations()
+  const { zoom, selectedTool } = useCanvas()
+
+  const styles = {
+    fill: {
+      selected: rgbToRgba(annotation.color, 0.5),
+      aiGenerated: rgbToRgba(annotation.color, 0.5),
+      default: rgbToRgba(annotation.color, 0.2),
+    },
+    stroke: {
+      selected: annotation.color,
+      aiGenerated: annotation.color,
+      default: annotation.color,
+    },
+    textFill: {
+      selected: annotation.color || "yellow",
+      aiGenerated: annotation.color || "green",
+      default: "black",
+    },
+  }
+
+  const isSelected = selectedAnnotation?.id === annotation.id
+  const isAIGenerated = annotation.isAIGenerated
+
   return (
     <svg className="absolute left-0 top-0 h-full w-full pointer-events-none">
       <motion.polygon
@@ -22,18 +40,16 @@ export function PolygonAnnotation({
         animate={{ opacity: 1 }}
         points={annotation.coordinates.map((p) => `${p.x},${p.y}`).join(" ")}
         style={{
-          fill:
-            selectedLabelId === annotation.id
-              ? rgbToRgba(annotation.color || "yellow", 0.5)
-              : annotation.isAIGenerated
-                ? rgbToRgba(annotation.color || "green", 0.5)
-                : rgbToRgba(annotation.color || "blue", 0.2),
-          stroke:
-            selectedLabelId === annotation.id
-              ? annotation.color || "yellow"
-              : annotation.isAIGenerated
-                ? annotation.color || "green"
-                : annotation.color || "blue",
+          fill: isSelected
+            ? styles.fill.selected
+            : isAIGenerated
+              ? styles.fill.aiGenerated
+              : styles.fill.default,
+          stroke: isSelected
+            ? styles.stroke.selected
+            : isAIGenerated
+              ? styles.stroke.aiGenerated
+              : styles.stroke.default,
           strokeWidth: 2,
         }}
       />
@@ -41,26 +57,25 @@ export function PolygonAnnotation({
         x={annotation.coordinates[0].x}
         y={annotation.coordinates[0].y - 10}
         style={{
-          fill:
-            selectedLabelId === annotation.id
-              ? annotation.color || "yellow"
-              : annotation.isAIGenerated
-                ? annotation.color || "green"
-                : "black",
+          fill: isSelected
+            ? styles.textFill.selected
+            : isAIGenerated
+              ? styles.textFill.aiGenerated
+              : styles.textFill.default,
         }}
         className="text-xs"
       >
         {annotation.name}
       </text>
 
-      {selectedLabelId === annotation.id && selectedTool === "move" && (
+      {isSelected && selectedTool === "move" && (
         <>
-          {annotation.coordinates.map((point, index) => (
+          {annotation.coordinates.map((point: Point, index: number) => (
             <circle
               key={index}
               cx={point.x}
               cy={point.y}
-              r={4 / uiZoom}
+              r={4 / zoom}
               className="fill-white stroke-gray-400 stroke-1 cursor-pointer"
               onMouseDown={(e) => {
                 e.stopPropagation()
@@ -69,8 +84,8 @@ export function PolygonAnnotation({
                     e.target as SVGCircleElement
                   ).ownerSVGElement?.getBoundingClientRect()
                   if (rect) {
-                    const newX = (moveEvent.clientX - rect.left) / uiZoom
-                    const newY = (moveEvent.clientY - rect.top) / uiZoom
+                    const newX = (moveEvent.clientX - rect.left) / zoom
+                    const newY = (moveEvent.clientY - rect.top) / zoom
                     annotation.coordinates[index] = { x: newX, y: newY }
                   }
                 }
