@@ -24,13 +24,13 @@ export function BoxAnnotation({ annotation }: BoxAnnotationProps) {
         top: annotation.coordinates[0].y,
         width: annotation.coordinates[1].x - annotation.coordinates[0].x,
         height: annotation.coordinates[1].y - annotation.coordinates[0].y,
-        backgroundColor: rgbToRgba(annotation.color || "blue", 0.2),
-        borderColor: annotation.color || "blue",
+        backgroundColor: rgbToRgba(annotation.color ?? "blue", 0.2),
+        borderColor: annotation.color ?? "blue",
       }}
     >
       <div
         style={{
-          backgroundColor: annotation.color || "blue",
+          backgroundColor: annotation.color ?? "blue",
         }}
         className={cn("absolute -top-6 left-0 px-2 py-0.5 text-xs text-white")}
       >

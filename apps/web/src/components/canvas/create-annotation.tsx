@@ -41,7 +41,7 @@ export function CreateAnnotation({
         )
         onSubmit(
           labelName.trim(),
-          existingAnnotation?.color || color || getRandomColor()
+          existingAnnotation?.color ?? color ?? getRandomColor()
         )
         setLabelName("") // Reset label name
         setColor(null) // Reset color
@@ -59,7 +59,7 @@ export function CreateAnnotation({
           annotation.name.toLowerCase().includes(name.toLowerCase())
         )
         setAnnotationsFilter(filteredAnnotations)
-        setColor(filteredAnnotations[0]?.color || getRandomColor())
+        setColor(filteredAnnotations[0]?.color ?? getRandomColor())
       } else {
         setAnnotationsFilter(uniqueLabels)
         setColor(null)
@@ -123,7 +123,7 @@ export function CreateAnnotation({
                       )
                       onSubmit(
                         annotation.name,
-                        annotation.color || getRandomColor()
+                        annotation.color ?? getRandomColor()
                       )
                       setTimeout(() => {
                         onClose()
@@ -133,10 +133,10 @@ export function CreateAnnotation({
                     className="flex items-center justify-between p-2 border rounded-md cursor-pointer hover:shadow-md dark:border-gray-600"
                     style={{
                       backgroundColor: rgbToRgba(
-                        annotation.color || "blue",
+                        annotation.color ?? "blue",
                         0.2
                       ),
-                      borderColor: annotation.color || "blue",
+                      borderColor: annotation.color ?? "blue",
                     }}
                   >
                     <span className="truncate text-sm font-medium text-gray-800 dark:text-gray-200">
@@ -148,15 +148,15 @@ export function CreateAnnotation({
             ) : (
               <button
                 onClick={() => {
-                  onSubmit(labelName, color || getRandomColor())
+                  onSubmit(labelName, color ?? getRandomColor())
                   setTimeout(() => {
                     onClose()
                   }, 100)
                 }}
                 className="flex items-center justify-between p-2 border rounded-md cursor-pointer hover:shadow-md dark:border-gray-600"
                 style={{
-                  backgroundColor: rgbToRgba(color || "blue", 0.2),
-                  borderColor: color || "blue",
+                  backgroundColor: rgbToRgba(color ?? "blue", 0.2),
+                  borderColor: color ?? "blue",
                 }}
               >
                 <span className="truncate text-sm font-medium text-gray-200 dark:text-gray-200">

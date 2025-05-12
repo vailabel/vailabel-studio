@@ -24,8 +24,8 @@ export function PolygonAnnotation({ annotation }: PolygonAnnotationProps) {
       default: annotation.color,
     },
     textFill: {
-      selected: annotation.color || "yellow",
-      aiGenerated: annotation.color || "green",
+      selected: annotation.color ,
+      aiGenerated: annotation.color,
       default: "black",
     },
   }
