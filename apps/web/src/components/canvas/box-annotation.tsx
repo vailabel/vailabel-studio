@@ -13,7 +13,10 @@ export function BoxAnnotation({ annotation }: BoxAnnotationProps) {
   const { selectedAnnotation } = useAnnotations()
   return (
     <motion.div
-      className={cn("absolute border-2 bg-opacity-20" , selectedAnnotation?.id === annotation.id && "border-red-500")}
+      className={cn(
+        "absolute border-2 bg-opacity-20",
+        selectedAnnotation?.id === annotation.id && "border-red-500"
+      )}
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       style={{

@@ -19,7 +19,6 @@ export function useCanvasHandlers(canvasRef: React.RefObject<HTMLDivElement>) {
 
   const {
     annotations,
-    createAnnotation,
     updateAnnotation,
     deleteAnnotation,
     currentImage,
@@ -397,7 +396,26 @@ export function useCanvasHandlers(canvasRef: React.RefObject<HTMLDivElement>) {
         })
       }
     },
-    [canvasRef, getCanvasCoords, setCursorPosition, isPanning, lastPanPoint, isResizing, selectedAnnotation, resizeHandle, movingLabelId, movingOffset, isDragging, startPoint, setPanOffset, panOffset.x, panOffset.y, annotations, updateAnnotation, currentImage?.id]
+    [
+      canvasRef,
+      getCanvasCoords,
+      setCursorPosition,
+      isPanning,
+      lastPanPoint,
+      isResizing,
+      selectedAnnotation,
+      resizeHandle,
+      movingLabelId,
+      movingOffset,
+      isDragging,
+      startPoint,
+      setPanOffset,
+      panOffset.x,
+      panOffset.y,
+      annotations,
+      updateAnnotation,
+      currentImage?.id,
+    ]
   )
 
   const handleMouseUp = useCallback(() => {

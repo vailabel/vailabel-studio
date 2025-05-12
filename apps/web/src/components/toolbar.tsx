@@ -92,10 +92,9 @@ export function Toolbar({ currentImage, onOpenAISettings }: ToolbarProps) {
       shortcut: "D",
       action: () => setSelectedTool("delete"),
     },
-    
   ]
 
-  const clickableTools : Tool[] = [
+  const clickableTools: Tool[] = [
     {
       id: "undo",
       name: "Undo",
@@ -181,7 +180,10 @@ export function Toolbar({ currentImage, onOpenAISettings }: ToolbarProps) {
               </TooltipContent>
             </Tooltip>
           ))}
-          <Separator orientation="vertical" className="mx-2 h-6 dark:bg-gray-700" />
+          <Separator
+            orientation="vertical"
+            className="mx-2 h-6 dark:bg-gray-700"
+          />
           {clickableTools.map((tool) => (
             <Tooltip key={tool.id}>
               <TooltipTrigger asChild>
@@ -190,7 +192,7 @@ export function Toolbar({ currentImage, onOpenAISettings }: ToolbarProps) {
                   size="sm"
                   disabled={!tool.condition}
                   className={cn(
-                    "relative h-8 w-8 hover:bg-gray-100 dark:hover:bg-gray-700",
+                    "relative h-8 w-8 hover:bg-gray-100 dark:hover:bg-gray-700"
                   )}
                   onClick={() => tool.action && tool.action()}
                 >
