@@ -1,8 +1,33 @@
-import React from "react"
+import React, { useEffect, useState } from "react"
 import { useCanvas } from "@/contexts/canvas-context"
 
 export const PositionCoordinates: React.FC = () => {
-  const { zoom, panOffset, cursorPosition } = useCanvas()
+  const { zoom, panOffset, cursorPosition, canvasRef } = useCanvas()
+  const [tooltipPosition, setTooltipPosition] = useState({ left: 0, top: 0 })
+
+  useEffect(() => {
+    if (!cursorPosition || !canvasRef?.current) return
+
+    const tooltipOffset = 10
+    const tooltipWidth = 100
+    const tooltipHeight = 30
+    const canvasRect = canvasRef.current.getBoundingClientRect()
+
+    const calculatedLeft = cursorPosition.x * zoom + panOffset.x + tooltipOffset
+    const calculatedTop = cursorPosition.y * zoom + panOffset.y + tooltipOffset
+
+    const adjustedLeft =
+      calculatedLeft + tooltipWidth > canvasRect.width
+        ? Math.max(calculatedLeft - tooltipWidth - tooltipOffset, tooltipOffset)
+        : Math.max(calculatedLeft, tooltipOffset)
+
+    const adjustedTop =
+      calculatedTop + tooltipHeight > canvasRect.height
+        ? Math.max(calculatedTop - tooltipHeight - tooltipOffset, tooltipOffset)
+        : Math.max(calculatedTop, tooltipOffset)
+
+    setTooltipPosition({ left: adjustedLeft, top: adjustedTop })
+  }, [cursorPosition, zoom, panOffset, canvasRef])
 
   if (!cursorPosition) return null
 
@@ -10,8 +35,8 @@ export const PositionCoordinates: React.FC = () => {
     <div
       className="absolute bg-black bg-opacity-75 text-white px-2 py-1 rounded text-xs pointer-events-none z-20"
       style={{
-        left: `${cursorPosition.x * zoom + panOffset.x + 10}px`,
-        top: `${cursorPosition.y * zoom + panOffset.y + 10}px`,
+        left: `${tooltipPosition.left}px`,
+        top: `${tooltipPosition.top}px`,
       }}
     >
       x: {Math.round(cursorPosition.x)}, y: {Math.round(cursorPosition.y)}
