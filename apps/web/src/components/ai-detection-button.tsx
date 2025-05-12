@@ -10,7 +10,7 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { useStore } from "@/lib/store"
 import { detectObjects } from "@/lib/ai-utils"
-import type { Annotation, ImageData ,Label} from "@/lib/types"
+import type { Annotation, ImageData, Label } from "@/lib/types"
 
 interface AIDetectionButtonProps {
   image: ImageData | null
