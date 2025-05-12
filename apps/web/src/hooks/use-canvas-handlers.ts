@@ -579,6 +579,8 @@ export function useCanvasHandlers(canvasRef: React.RefObject<HTMLDivElement>) {
     selectedAnnotation,
     setSelectedAnnotation,
     tempAnnotation,
+    setTempAnnotation,
     showLabelInput,
+    setShowLabelInput,
   }
 }
