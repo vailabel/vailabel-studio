@@ -1,14 +1,13 @@
-import { useCallback, useEffect, useRef } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
 import { useCanvas } from "@/contexts/canvas-context"
-import { useAnnotations } from "@/contexts/annotations-context"
 import { AnnotationRenderer } from "@/components/canvas/annotation-renderer"
 import { PositionCoordinates } from "@/components/canvas/position-coordinates"
 import { useCanvasHandlers } from "@/hooks/use-canvas-handlers"
 import { type Annotation, type ImageData } from "@/lib/types"
-import { Crosshair } from "./crosshair"
-import { TempAnnotation } from "./temp-anotaion"
-import { CreateAnnotation } from "./create-annotation"
+import { Crosshair } from "@/components/canvas/crosshair"
+import { TempAnnotation } from "@/components/canvas/temp-annotation"
+import { CreateAnnotation } from "@/components/canvas/create-annotation"
 interface CanvasProps {
   image: ImageData | null
   annotations: Annotation[]
@@ -16,9 +15,8 @@ interface CanvasProps {
 
 export const Canvas = ({ image }: CanvasProps) => {
   const { zoom, panOffset, selectedTool, setCanvasRef } = useCanvas()
-
-  const { currentImage, setCurrentImage } = useAnnotations()
   const canvasRef = useRef<HTMLDivElement>(null!) // Non-null assertion
+  const [currentImage, setCurrentImage] = useState<ImageData | null>(null)
 
   const {
     handleMouseDown,
@@ -40,11 +38,17 @@ export const Canvas = ({ image }: CanvasProps) => {
   }
 
   useEffect(() => {
-    if (image) {
-      setCurrentImage(image)
+    const fetchImage = async () => {
+      if (image) {
+        setCurrentImage(image) // Use the image passed from props
+      } else {
+        setCurrentImage(null)
+      }
     }
+
+    fetchImage()
     setCanvasRef(canvasRef)
-  }, [image, setCurrentImage, setCanvasRef])
+  }, [image, setCanvasRef])
 
   const handleCloseCreateAnnotationModal = useCallback(() => {
     setShowLabelInput(false)

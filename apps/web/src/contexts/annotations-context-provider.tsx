@@ -1,7 +1,10 @@
-import { createContext, useContext, useCallback, useState } from "react"
+import { createContext, useCallback, useState } from "react"
 import type { Annotation, ImageData } from "@/lib/types"
+import { getDataAccessLayer } from "@/lib/data-access"
 
-type AnnotationsContextType = {
+const dataAccess = getDataAccessLayer(false) // Set to true to use API-based implementation
+
+export type AnnotationsContextType = {
   annotations: Annotation[]
   createAnnotation: (annotation: Annotation) => void
   updateAnnotation: (id: string, updates: Partial<Annotation>) => void
@@ -16,7 +19,9 @@ type AnnotationsContextType = {
   selectedAnnotation: Annotation | null
 }
 
-const AnnotationsContext = createContext<AnnotationsContextType | null>(null)
+export const AnnotationsContext = createContext<AnnotationsContextType | null>(
+  null
+)
 
 const MAX_HISTORY = 100
 
@@ -31,6 +36,7 @@ export const AnnotationsProvider = ({
   const [selectedAnnotation, setSelectedAnnotation] =
     useState<Annotation | null>(null)
   const [currentImage, setCurrentImage] = useState<ImageData | null>(null)
+
   const addHistoryEntry = useCallback(
     (newAnnotations: Annotation[]) => {
       const newHistory = history.slice(0, currentIndex + 1)
@@ -43,32 +49,39 @@ export const AnnotationsProvider = ({
   )
 
   const createAnnotation = useCallback(
-    (annotation: Annotation) => {
-      const newAnnotations = [...annotations, annotation]
-      setAnnotations(newAnnotations)
-      addHistoryEntry(newAnnotations)
-    },
-    [annotations, addHistoryEntry]
-  )
-
-  const updateAnnotation = useCallback(
-    (id: string, updates: Partial<Annotation>) => {
-      const newAnnotations = annotations.map((ann) =>
-        ann.id === id ? { ...ann, ...updates, updatedAt: new Date() } : ann
+    async (annotation: Annotation) => {
+      await dataAccess.createAnnotation(annotation)
+      const newAnnotations = await dataAccess.getAnnotations(
+        currentImage?.id || ""
       )
       setAnnotations(newAnnotations)
       addHistoryEntry(newAnnotations)
     },
-    [annotations, addHistoryEntry]
+    [currentImage, addHistoryEntry]
   )
 
-  const deleteAnnotation = useCallback(
-    (id: string) => {
-      const newAnnotations = annotations.filter((ann) => ann.id !== id)
+  const updateAnnotation = useCallback(
+    async (id: string, updates: Partial<Annotation>) => {
+      await dataAccess.updateAnnotation(id, updates)
+      const newAnnotations = await dataAccess.getAnnotations(
+        currentImage?.id || ""
+      )
       setAnnotations(newAnnotations)
       addHistoryEntry(newAnnotations)
     },
-    [annotations, addHistoryEntry]
+    [currentImage, addHistoryEntry]
+  )
+
+  const deleteAnnotation = useCallback(
+    async (id: string) => {
+      await dataAccess.deleteAnnotation(id)
+      const newAnnotations = await dataAccess.getAnnotations(
+        currentImage?.id || ""
+      )
+      setAnnotations(newAnnotations)
+      addHistoryEntry(newAnnotations)
+    },
+    [currentImage, addHistoryEntry]
   )
 
   const undo = useCallback(() => {
@@ -104,11 +117,4 @@ export const AnnotationsProvider = ({
       {children}
     </AnnotationsContext.Provider>
   )
-}
-
-export const useAnnotations = () => {
-  const context = useContext(AnnotationsContext)
-  if (!context)
-    throw new Error("useAnnotations must be used within AnnotationsProvider")
-  return context
 }

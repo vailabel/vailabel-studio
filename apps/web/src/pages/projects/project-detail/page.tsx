@@ -14,7 +14,8 @@ export default function ProjectDetails() {
   const [project, setProject] = useState<Project | null>(null)
   const [showAnnotated] = useState(false)
 
-  const annotatedImages = project?.images || []
+  const annotatedImages =
+    project?.images?.filter((image) => image.name.includes("annotated")) || []
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -83,9 +84,9 @@ export default function ProjectDetails() {
               ) : (
                 <p className="text-gray-600">No annotated images available.</p>
               )
-            ) : project.images.length > 0 ? (
+            ) : (project?.images?.length || 0) > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                {project.images.map((image, index) => (
+                {project.images?.map((image, index) => (
                   <Card key={index} className="overflow-hidden">
                     <Link to={`/projects/${projectId}/studio/${image.id}`}>
                       <img

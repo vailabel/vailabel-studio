@@ -36,9 +36,11 @@ export function ProjectDashboard({
     onProjectCreate(project)
     setShowNewProject(false)
 
+    const imageCount = project.images?.length || 0 // Safely access project.images
+
     toast({
       title: "Project created",
-      description: `${project.name} has been created with ${project.images.length} images.`,
+      description: `${project.name} has been created with ${imageCount} images.`,
     })
   }
 
@@ -99,7 +101,7 @@ export function ProjectDashboard({
                 <CardContent className="p-6">
                   <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                     <ImageIcon className="h-4 w-4" />
-                    <span>{project.images.length} images</span>
+                    <span>{project.images?.length || 0} images</span>
                   </div>
                   <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
                     Last modified:{" "}

@@ -1,6 +1,6 @@
 import { BoxAnnotation } from "@/components/canvas/box-annotation"
 import { PolygonAnnotation } from "@/components/canvas/polygon-annotation"
-import { useAnnotations } from "@/contexts/annotations-context"
+import { useAnnotations } from "@/hooks/use-annotations"
 
 export function AnnotationRenderer() {
   const { annotations } = useAnnotations()
