@@ -24,9 +24,10 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { Separator } from "@/components/ui/separator"
-import { useSettingsStore } from "@/lib/settings-store"
 import { AIDetectionButton } from "@/components/ai-detection-button"
 import type { ImageData } from "@/lib/types"
+import { useAnnotations } from "@/contexts/annotations-context"
+import { useCanvas } from "@/contexts/canvas-context"
 
 interface ToolbarProps {
   currentImage: ImageData | null
@@ -39,6 +40,8 @@ interface Tool {
   name: string
   icon: React.ElementType
   shortcut: string
+  condition?: boolean
+  action?: () => void
 }
 
 interface AdditionalTool {
@@ -49,28 +52,66 @@ interface AdditionalTool {
   action: () => void
 }
 
-export function Toolbar({
-  currentImage,
-  onOpenAISettings,
-}: ToolbarProps) {
-  const {
-    selectedTool,
-    setSelectedTool,
-    zoom,
-    showCrosshairs,
-    setShowCrosshairs,
-    showCoordinates,
-    setShowCoordinates,
-  } = useSettingsStore()
+export function Toolbar({ currentImage, onOpenAISettings }: ToolbarProps) {
+  const { selectedTool, setSelectedTool, resetView, zoom } = useCanvas()
+  const { undo, redo, canUndo, canRedo } = useAnnotations()
 
-  const tools: Tool[] = [
-    { id: "move", name: "Move", icon: Move, shortcut: "M" },
-    { id: "box", name: "Draw Box", icon: Square, shortcut: "B" },
-    { id: "polygon", name: "Draw Polygon", icon: Polygon, shortcut: "P" },
-    { id: "freeDraw", name: "Free Draw", icon: Pencil, shortcut: "F" },
-    { id: "delete", name: "Delete", icon: Trash2, shortcut: "D" },
-    { id: "undo", name: "Undo", icon: RotateCcw, shortcut: "Cmd+Z" },
-    { id: "redo", name: "Redo", icon: RotateCw, shortcut: "Cmd+Shift+Z" },
+  const selectedTools: Tool[] = [
+    {
+      id: "move",
+      name: "Move",
+      icon: Move,
+      shortcut: "M",
+      action: () => setSelectedTool("move"),
+    },
+    {
+      id: "box",
+      name: "Draw Box",
+      icon: Square,
+      shortcut: "B",
+      action: () => setSelectedTool("box"),
+    },
+    {
+      id: "polygon",
+      name: "Draw Polygon",
+      icon: Polygon,
+      shortcut: "P",
+      action: () => setSelectedTool("polygon"),
+    },
+    {
+      id: "freeDraw",
+      name: "Free Draw",
+      icon: Pencil,
+      shortcut: "F",
+      action: () => setSelectedTool("freeDraw"),
+    },
+    {
+      id: "delete",
+      name: "Delete",
+      icon: Trash2,
+      shortcut: "D",
+      action: () => setSelectedTool("delete"),
+    },
+    
+  ]
+
+  const clickableTools : Tool[] = [
+    {
+      id: "undo",
+      name: "Undo",
+      icon: RotateCcw,
+      shortcut: "Cmd+Z",
+      condition: canUndo,
+      action: () => undo(),
+    },
+    {
+      id: "redo",
+      name: "Redo",
+      icon: RotateCw,
+      condition: canRedo,
+      shortcut: "Cmd+Shift+Z",
+      action: () => redo(),
+    },
   ]
 
   const additionalTool: AdditionalTool[] = [
@@ -79,14 +120,14 @@ export function Toolbar({
       name: "Crosshair",
       icon: Crosshair,
       shortcut: "C",
-      action: () => setShowCrosshairs(!showCrosshairs),
+      action: () => {},
     },
     {
       id: "coordinates",
       name: "Coordinates",
       icon: MousePointer,
       shortcut: "Alt+Shift+C",
-      action: () => setShowCoordinates(!showCoordinates),
+      action: () => {},
     },
   ]
 
@@ -94,7 +135,7 @@ export function Toolbar({
     <div className="flex items-center justify-between border-b p-1 dark:bg-gray-800 dark:border-gray-700 bg-white border-gray-200">
       <div className="flex items-center space-x-1">
         <TooltipProvider>
-          {tools.map((tool) => (
+          {selectedTools.map((tool) => (
             <Tooltip key={tool.id}>
               <TooltipTrigger asChild>
                 <Button
@@ -140,13 +181,41 @@ export function Toolbar({
               </TooltipContent>
             </Tooltip>
           ))}
+          <Separator orientation="vertical" className="mx-2 h-6 dark:bg-gray-700" />
+          {clickableTools.map((tool) => (
+            <Tooltip key={tool.id}>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={!tool.condition}
+                  className={cn(
+                    "relative h-8 w-8 hover:bg-gray-100 dark:hover:bg-gray-700",
+                  )}
+                  onClick={() => tool.action && tool.action()}
+                >
+                  <tool.icon className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <div className="flex items-center">
+                  <span>{tool.name}</span>
+                  <kbd
+                    className={cn(
+                      "ml-2 rounded border px-1.5 text-xs",
+                      "border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-800"
+                    )}
+                  >
+                    {tool.shortcut}
+                  </kbd>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          ))}
         </TooltipProvider>
       </div>
-
       <Separator orientation="vertical" className="mx-2 h-6 dark:bg-gray-700" />
-
       <div className="flex items-center space-x-1">
-        {/* Zoom and Reset Buttons */}
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -192,10 +261,7 @@ export function Toolbar({
                 variant="ghost"
                 size="sm"
                 className="h-8 w-8"
-                onClick={() => {
-                  const resetZoomEvent = new CustomEvent("reset-zoom")
-                  window.dispatchEvent(resetZoomEvent)
-                }}
+                onClick={() => resetView()}
               >
                 <RefreshCcw className="h-4 w-4" />
               </Button>
@@ -219,8 +285,7 @@ export function Toolbar({
                   size="sm"
                   className={cn(
                     "h-8 w-8",
-                    (tool.id === "crosshair" && showCrosshairs) ||
-                      (tool.id === "coordinates" && showCoordinates)
+                    tool.id === "crosshair" || tool.id === "coordinates"
                       ? "bg-blue-50 text-blue-500 dark:bg-blue-900 dark:text-blue-300"
                       : ""
                   )}
