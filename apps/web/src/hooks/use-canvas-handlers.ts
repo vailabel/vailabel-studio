@@ -19,7 +19,6 @@ export function useCanvasHandlers(canvasRef: React.RefObject<HTMLDivElement>) {
 
   const {
     annotations,
-    createAnnotation,
     updateAnnotation,
     deleteAnnotation,
     currentImage,
