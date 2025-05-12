@@ -1,20 +1,29 @@
 "use client"
 
 import type React from "react"
-import { useEffect, useState, useCallback } from "react"
+import { useState, useCallback } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { CornerDownLeft, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { getRandomColor, rgbToRgba } from "@/lib/utils"
-import { useUIStore } from "@/lib/ui-store"
 import { useStore } from "@/lib/store"
 import { Annotation } from "@/lib/types"
 
-export function CreateAnnotation() {
+interface CreateAnnotationModalProps {
+  onSubmit: (name: string, color: string) => void
+  onCancel?: () => void
+  isOpen: boolean // Add a prop to control modal visibility
+}
+
+// Add `isOpen` and `onCancel` handling
+export function CreateAnnotation({
+  onSubmit,
+  onCancel,
+  isOpen,
+}: CreateAnnotationModalProps) {
   const [labelName, setLabelName] = useState("")
   const { annotations } = useStore()
-  const { createAnnotationModal, setCreateAnnotationModal } = useUIStore()
   const [annotationsFilter, setAnnotationsFilter] = useState<Annotation[]>([])
   const [color, setColor] = useState<string | null>(null)
   const uniqueLabels = annotations.filter(
@@ -22,13 +31,6 @@ export function CreateAnnotation() {
       index ===
       self.findIndex((t) => t.name === value.name && t.color === value.color)
   )
-  useEffect(() => {
-    if (createAnnotationModal) {
-      setLabelName("")
-
-      setAnnotationsFilter(uniqueLabels)
-    }
-  }, [createAnnotationModal])
 
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
@@ -38,26 +40,20 @@ export function CreateAnnotation() {
           (annotation) =>
             annotation.name.toLowerCase() === labelName.trim().toLowerCase()
         )
-        createAnnotationModal?.onSubmit(
+        onSubmit(
           labelName.trim(),
           existingAnnotation?.color || color || getRandomColor()
         )
-        setCreateAnnotationModal(null)
       }
     },
-    [
-      labelName,
-      createAnnotationModal,
-      setCreateAnnotationModal,
-      uniqueLabels,
-      color,
-    ]
+    [labelName, onSubmit, uniqueLabels, color]
   )
 
   const handleCancel = useCallback(() => {
-    createAnnotationModal?.onCancel()
-    setCreateAnnotationModal(null)
-  }, [createAnnotationModal, setCreateAnnotationModal])
+    if (onCancel) {
+      onCancel()
+    }
+  }, [onCancel])
 
   const handleChangeName = useCallback(
     (name: string) => {
@@ -76,12 +72,12 @@ export function CreateAnnotation() {
     [uniqueLabels]
   )
 
-  if (!createAnnotationModal) return null
+  if (!isOpen) return null // Use `isOpen` to control modal rendering
 
   return (
     <AnimatePresence>
       <motion.div
-        className="absolute w-full max-w-sm rounded-lg bg-white p-3 shadow-lg dark:bg-gray-800 dark:text-gray-100 mt-14 ml-2"
+        className="absolute w-full max-w-sm rounded-lg bg-white p-3 shadow-lg dark:bg-gray-800 dark:text-gray-100 top-2 left-2 z-50"
         initial={{ scale: 0.9, y: 20 }}
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.9, y: 20 }}
@@ -129,11 +125,13 @@ export function CreateAnnotation() {
                       setAnnotationsFilter((prev) =>
                         prev.filter((a) => a.id !== annotation.id)
                       )
-                      createAnnotationModal?.onSubmit(
+                      onSubmit(
                         annotation.name,
                         annotation.color || getRandomColor()
                       )
-                      setCreateAnnotationModal(null)
+                      setTimeout(() => {
+                        handleCancel() // Use `handleCancel` to close modal
+                      }, 100)
                     }}
                     key={annotation.id}
                     className="flex items-center justify-between p-2 border rounded-md cursor-pointer hover:shadow-md dark:border-gray-600"
@@ -154,15 +152,14 @@ export function CreateAnnotation() {
             ) : (
               <button
                 onClick={() => {
-                  setLabelName((prev) => prev) // Avoid using the matching state variable
+                  setLabelName((prev) => prev)
                   setAnnotationsFilter((prev) =>
                     prev.filter((a) => a.name !== labelName)
                   )
-                  createAnnotationModal?.onSubmit(
-                    labelName,
-                    color || getRandomColor()
-                  )
-                  setCreateAnnotationModal(null)
+                  onSubmit(labelName, color || getRandomColor())
+                  setTimeout(() => {
+                    handleCancel() // Use `handleCancel` to close modal
+                  }, 100)
                 }}
                 className="flex items-center justify-between p-2 border rounded-md cursor-pointer hover:shadow-md dark:border-gray-600"
                 style={{

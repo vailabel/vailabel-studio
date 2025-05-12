@@ -1,5 +1,5 @@
 import { motion } from "framer-motion"
-import { cn, rgbToRgba } from "@/lib/utils"
+import { rgbToRgba } from "@/lib/utils"
 import type { Annotation } from "@/lib/types"
 
 interface TempAnnotationProps {
