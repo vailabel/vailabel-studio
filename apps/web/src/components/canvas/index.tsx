@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
-import { useCanvas } from "@/contexts/canvas-context"
+import { useCanvas } from "@/hooks/use-canvas"
 import { AnnotationRenderer } from "@/components/canvas/annotation-renderer"
 import { PositionCoordinates } from "@/components/canvas/position-coordinates"
 import { useCanvasHandlers } from "@/hooks/use-canvas-handlers"

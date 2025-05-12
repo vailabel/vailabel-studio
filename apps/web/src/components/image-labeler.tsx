@@ -33,7 +33,7 @@ import { ContextMenu } from "@/components/context-menu"
 import { useToast } from "@/hooks/use-toast"
 import { IDataAccess, DexieDataAccess } from "@/lib/data-access"
 import { useNavigate } from "react-router-dom"
-import { CanvasProvider } from "@/contexts/canvas-context"
+import { CanvasProvider } from "@/contexts/canvas-context-provider"
 import { AnnotationsProvider } from "@/contexts/annotations-context-provider"
 import { ThemeToggle } from "./theme-toggle"
 
