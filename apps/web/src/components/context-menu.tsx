@@ -10,7 +10,6 @@ import {
   ZoomIn,
   Pencil,
 } from "lucide-react"
-import { useSettingsStore } from "@/lib/settings-store"
 import { cn } from "@/lib/utils"
 import { useCanvas } from "@/hooks/use-canvas"
 
@@ -28,7 +27,7 @@ export function ContextMenu({
   onClose,
 }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null)
-  const { setSelectedTool, resetView, zoom } = useCanvas()
+  const { setSelectedTool, resetView } = useCanvas()
 
   // Close menu when clicking outside
   useEffect(() => {
