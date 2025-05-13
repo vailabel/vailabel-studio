@@ -31,14 +31,11 @@ import { ExportModal } from "@/components/export-modal"
 import { AIModelModal } from "@/components/ai-model-modal"
 import { ContextMenu } from "@/components/context-menu"
 import { useToast } from "@/hooks/use-toast"
-import { IDataAccess, DexieDataAccess } from "@/lib/data-access"
 import { useNavigate } from "react-router-dom"
 import { CanvasProvider } from "@/contexts/canvas-context-provider"
 import { AnnotationsProvider } from "@/contexts/annotations-context-provider"
 import { ThemeToggle } from "./theme-toggle"
-
-// Initialize the data access layer
-const dataAccess: IDataAccess = new DexieDataAccess()
+import { useDataAccess } from "@/hooks/use-data-access"
 
 interface ImageLabelerProps {
   project: Project
@@ -47,6 +44,7 @@ interface ImageLabelerProps {
 }
 
 export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
+  const dataAccess = useDataAccess() 
   const { toast } = useToast()
   const [currentImageId] = useState<string | null>(imageId)
   const [currentImage, setCurrentImage] = useState<ImageData | null>(null)

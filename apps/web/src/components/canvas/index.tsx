@@ -8,6 +8,8 @@ import { type Annotation, type ImageData } from "@/lib/types"
 import { Crosshair } from "@/components/canvas/crosshair"
 import { TempAnnotation } from "@/components/canvas/temp-annotation"
 import { CreateAnnotation } from "@/components/canvas/create-annotation"
+import { useAnnotations } from "@/hooks/use-annotations"
+
 interface CanvasProps {
   image: ImageData | null
   annotations: Annotation[]
@@ -17,7 +19,7 @@ export const Canvas = ({ image }: CanvasProps) => {
   const { zoom, panOffset, selectedTool, setCanvasRef } = useCanvas()
   const canvasRef = useRef<HTMLDivElement>(null!) // Non-null assertion
   const [currentImage, setCurrentImage] = useState<ImageData | null>(null)
-
+  const { createAnnotation, getOrCreateLabel } = useAnnotations()
   const {
     handleMouseDown,
     handleMouseMove,
@@ -30,17 +32,41 @@ export const Canvas = ({ image }: CanvasProps) => {
     setTempAnnotation,
   } = useCanvasHandlers(canvasRef as React.RefObject<HTMLDivElement>)
 
-  const cursorStyles = {
-    box: "cursor-crosshair",
-    polygon: "cursor-crosshair",
-    move: "cursor-move",
-    delete: "cursor-pointer",
-  }
+  const handleCreateAnnotation = useCallback(
+    async (name: string, color: string) => {
+      if (!tempAnnotation) return
+
+      const label = await getOrCreateLabel(name, color)
+      if (!label) return
+
+      const newAnnotation: Annotation = {
+        label: label,
+        labelId: label.id,
+        color: label.color ?? color,
+        imageId: currentImage?.id ?? "",
+        id: crypto.randomUUID(),
+        name: name,
+        type: tempAnnotation?.type ?? "box",
+        coordinates: tempAnnotation?.coordinates ?? [],
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+      createAnnotation(newAnnotation)
+      setShowLabelInput(false)
+      setTempAnnotation(null)
+    },
+    [tempAnnotation, getOrCreateLabel, currentImage?.id, createAnnotation, setShowLabelInput, setTempAnnotation]
+  )
+
+  const handleCloseCreateAnnotationModal = useCallback(() => {
+    setShowLabelInput(false)
+    setTempAnnotation(null)
+  }, [setShowLabelInput, setTempAnnotation])
 
   useEffect(() => {
     const fetchImage = async () => {
       if (image) {
-        setCurrentImage(image) // Use the image passed from props
+        setCurrentImage(image)
       } else {
         setCurrentImage(null)
       }
@@ -50,10 +76,12 @@ export const Canvas = ({ image }: CanvasProps) => {
     setCanvasRef(canvasRef)
   }, [image, setCanvasRef])
 
-  const handleCloseCreateAnnotationModal = useCallback(() => {
-    setShowLabelInput(false)
-    setTempAnnotation(null)
-  }, [setShowLabelInput, setTempAnnotation])
+  const cursorStyles = {
+    box: "cursor-crosshair",
+    polygon: "cursor-crosshair",
+    move: "cursor-move",
+    delete: "cursor-pointer",
+  }
 
   return (
     <>
@@ -112,7 +140,7 @@ export const Canvas = ({ image }: CanvasProps) => {
       </div>
       {showLabelInput && (
         <CreateAnnotation
-          onSubmit={() => {}}
+          onSubmit={handleCreateAnnotation}
           isOpen={true}
           onClose={handleCloseCreateAnnotationModal}
         />

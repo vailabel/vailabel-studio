@@ -1,14 +1,17 @@
-import { createContext, useCallback, useState } from "react"
-import type { Annotation, ImageData } from "@/lib/types"
-import { getDataAccessLayer } from "@/lib/data-access"
-
-const dataAccess = getDataAccessLayer(false) // Set to true to use API-based implementation
+import { useCallback, useEffect, useState } from "react"
+import { AnnotationsContext } from "./annotations-context"
+import type { Annotation, ImageData, Label } from "@/lib/types"
+import { useDataAccess } from "@/hooks/use-data-access"
 
 export type AnnotationsContextType = {
   annotations: Annotation[]
   createAnnotation: (annotation: Annotation) => void
   updateAnnotation: (id: string, updates: Partial<Annotation>) => void
   deleteAnnotation: (id: string) => void
+  createLabel: (label: Label, annotationIds: string[]) => void
+  updateLabel: (id: string, updates: Partial<Label>) => void
+  deleteLabel: (id: string) => void
+  getOrCreateLabel: (name: string, color: string) => Promise<Label>
   undo: () => void
   redo: () => void
   canUndo: boolean
@@ -17,26 +20,23 @@ export type AnnotationsContextType = {
   setCurrentImage: (image: ImageData | null) => void
   setSelectedAnnotation: (annotation: Annotation | null) => void
   selectedAnnotation: Annotation | null
+  children: React.ReactNode
+  labels: Label[]
+  setLabels: React.Dispatch<React.SetStateAction<Label[]>>
 }
-
-export const AnnotationsContext = createContext<AnnotationsContextType | null>(
-  null
-)
 
 const MAX_HISTORY = 100
 
-export const AnnotationsProvider = ({
-  children,
-}: {
-  children: React.ReactNode
-}) => {
+export const AnnotationsProvider = ({ children }: AnnotationsContextType) => {
+  const dataAccess = useDataAccess()
   const [annotations, setAnnotations] = useState<Annotation[]>([])
   const [history, setHistory] = useState<Annotation[][]>([[]])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [selectedAnnotation, setSelectedAnnotation] =
     useState<Annotation | null>(null)
-  const [currentImage, setCurrentImage] = useState<ImageData | null>(null)
 
+  const [currentImage, setCurrentImage] = useState<ImageData | null>(null)
+  const [labels, setLabels] = useState<Label[]>([])
   const addHistoryEntry = useCallback(
     (newAnnotations: Annotation[]) => {
       const newHistory = history.slice(0, currentIndex + 1)
@@ -57,7 +57,7 @@ export const AnnotationsProvider = ({
       setAnnotations(newAnnotations)
       addHistoryEntry(newAnnotations)
     },
-    [currentImage, addHistoryEntry]
+    [currentImage, addHistoryEntry, dataAccess]
   )
 
   const updateAnnotation = useCallback(
@@ -69,7 +69,7 @@ export const AnnotationsProvider = ({
       setAnnotations(newAnnotations)
       addHistoryEntry(newAnnotations)
     },
-    [currentImage, addHistoryEntry]
+    [currentImage, addHistoryEntry, dataAccess]
   )
 
   const deleteAnnotation = useCallback(
@@ -81,7 +81,60 @@ export const AnnotationsProvider = ({
       setAnnotations(newAnnotations)
       addHistoryEntry(newAnnotations)
     },
-    [currentImage, addHistoryEntry]
+    [currentImage, addHistoryEntry, dataAccess]
+  )
+
+  const createLabel = useCallback(
+    async (label: Label, annotationIds: string[]) => {
+      await dataAccess.createLabel(label, annotationIds)
+      const newAnnotations = await dataAccess.getAnnotations(
+        currentImage?.id || ""
+      )
+      setAnnotations(newAnnotations)
+      addHistoryEntry(newAnnotations)
+    },
+    [currentImage, addHistoryEntry, dataAccess]
+  )
+
+  const updateLabel = useCallback(
+    async (id: string, updates: Partial<Label>) => {
+      await dataAccess.updateLabel(id, updates)
+      const newAnnotations = await dataAccess.getAnnotations(
+        currentImage?.id || ""
+      )
+      setAnnotations(newAnnotations)
+      addHistoryEntry(newAnnotations)
+    },
+    [currentImage, addHistoryEntry, dataAccess]
+  )
+
+  const deleteLabel = useCallback(
+    async (id: string) => {
+      await dataAccess.deleteLabel(id)
+      const newAnnotations = await dataAccess.getAnnotations(
+        currentImage?.id || ""
+      )
+      setAnnotations(newAnnotations)
+      addHistoryEntry(newAnnotations)
+    },
+    [currentImage, addHistoryEntry, dataAccess]
+  )
+
+  const getOrCreateLabel = useCallback(
+    async (name: string, color: string) => {
+      // Check if the label already exists
+      const existingLabels = await dataAccess.getLabels()
+      let label = existingLabels.find(
+        (lbl) => lbl.name === name && lbl.color === color
+      )
+      if (!label) {
+        // Create a new label if it doesn't exist
+        label = { id: crypto.randomUUID(), name, color } as Label
+        await dataAccess.createLabel(label, [])
+      }
+      return label
+    },
+    [dataAccess]
   )
 
   const undo = useCallback(() => {
@@ -97,12 +150,31 @@ export const AnnotationsProvider = ({
   const canUndo = currentIndex > 0
   const canRedo = currentIndex < history.length - 1
 
+  useEffect(() => {
+    dataAccess.getLabels().then((labels) => {
+      setLabels(labels)
+    })
+    dataAccess
+      .getAnnotations(currentImage?.id ?? "")
+      .then((annotations) => {
+        setAnnotations(annotations)
+      })
+      .catch((error) => {
+        console.error("Error fetching annotations:", error)
+      })
+  }, [currentImage, dataAccess])
   return (
     <AnnotationsContext.Provider
       value={{
+        labels,
+        setLabels,
         annotations,
         createAnnotation,
         updateAnnotation,
+        getOrCreateLabel,
+        createLabel,
+        updateLabel,
+        deleteLabel,
         deleteAnnotation,
         undo,
         redo,
@@ -112,6 +184,7 @@ export const AnnotationsProvider = ({
         setCurrentImage,
         setSelectedAnnotation,
         selectedAnnotation,
+        children,
       }}
     >
       {children}

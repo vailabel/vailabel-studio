@@ -4,6 +4,7 @@ import { useAnnotations } from "@/hooks/use-annotations"
 
 export function AnnotationRenderer() {
   const { annotations } = useAnnotations()
+  console.log("Annotations:", annotations)
   const annotationComponents: Record<string, React.ElementType> = {
     box: BoxAnnotation,
     polygon: PolygonAnnotation,
