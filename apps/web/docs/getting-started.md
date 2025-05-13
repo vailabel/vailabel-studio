@@ -65,18 +65,18 @@ sudo snap install vision-ai-label-studio
 
 ## Keyboard Shortcuts
 
-| Action | Shortcut |
-|--------|----------|
-| Save Project | Ctrl+S |
-| Undo | Ctrl+Z |
-| Redo | Ctrl+Y |
-| Delete Selected | Delete |
-| Select All | Ctrl+A |
-| Box Tool | B |
-| Polygon Tool | P |
-| Free Draw Tool | F |
-| Pan Image | Space+Drag |
-| Zoom In/Out | Ctrl+Mouse Wheel |
+| Action          | Shortcut         |
+| --------------- | ---------------- |
+| Save Project    | Ctrl+S           |
+| Undo            | Ctrl+Z           |
+| Redo            | Ctrl+Y           |
+| Delete Selected | Delete           |
+| Select All      | Ctrl+A           |
+| Box Tool        | B                |
+| Polygon Tool    | P                |
+| Free Draw Tool  | F                |
+| Pan Image       | Space+Drag       |
+| Zoom In/Out     | Ctrl+Mouse Wheel |
 
 ## Next Steps
 

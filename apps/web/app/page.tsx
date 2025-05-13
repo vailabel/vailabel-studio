@@ -16,7 +16,7 @@ import {
   Check,
   Tag,
   ExternalLink,
-  Clock
+  Clock,
 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
@@ -44,7 +44,8 @@ export default function Home() {
       name: "Polygon Tool",
       icon: <Hexagon className="w-5 h-5" />,
       color: "bg-purple-500",
-      description: "Draw precise polygons for irregular shapes and detailed annotations",
+      description:
+        "Draw precise polygons for irregular shapes and detailed annotations",
     },
     {
       name: "Brush Tool",
@@ -69,7 +70,8 @@ export default function Home() {
   useEffect(() => {
     // Check user preference
     const isDark =
-      localStorage.getItem("darkMode") === "true" || window.matchMedia("(prefers-color-scheme: dark)").matches
+      localStorage.getItem("darkMode") === "true" ||
+      window.matchMedia("(prefers-color-scheme: dark)").matches
     setDarkMode(isDark)
   }, [])
 
@@ -99,7 +101,12 @@ export default function Home() {
       // Box Tool Animation (index 0)
       if (activeToolIndex === 0) {
         // Move cursor to starting position
-        await cursorControls.start({ x: 200, y: 150, opacity: 1, transition: { duration: 0.5 } })
+        await cursorControls.start({
+          x: 200,
+          y: 150,
+          opacity: 1,
+          transition: { duration: 0.5 },
+        })
 
         // Draw box
         await boxControls.start({
@@ -254,7 +261,10 @@ export default function Home() {
       // AI Assist Animation (index 3)
       else if (activeToolIndex === 3) {
         // Hide cursor for AI animation
-        await cursorControls.start({ opacity: 0, transition: { duration: 0.3 } })
+        await cursorControls.start({
+          opacity: 0,
+          transition: { duration: 0.3 },
+        })
 
         // Show AI scanning effect
         await aiControls.start({
@@ -371,7 +381,15 @@ export default function Home() {
     toolAnimationSequence()
 
     // No need for interval as we're controlling the sequence manually
-  }, [activeToolIndex, boxControls, polygonControls, brushControls, aiControls, layerControls, cursorControls])
+  }, [
+    activeToolIndex,
+    boxControls,
+    polygonControls,
+    brushControls,
+    aiControls,
+    layerControls,
+    cursorControls,
+  ])
 
   const toggleDarkMode = () => {
     setDarkMode(!darkMode)
@@ -414,7 +432,10 @@ export default function Home() {
               >
                 Updates
               </Link>
-              <a href="#" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+              <a
+                href="#"
+                className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+              >
                 GitHub
               </a>
               <button
@@ -443,7 +464,8 @@ export default function Home() {
                 Vision AI Label Studio
               </h1>
               <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-400 mb-8">
-                Label smarter and faster with AI-assisted annotations, beautiful UI, and full offline support.
+                Label smarter and faster with AI-assisted annotations, beautiful
+                UI, and full offline support.
               </p>
               <div className="flex flex-col sm:flex-row justify-center gap-4 mb-12">
                 <motion.a
@@ -480,7 +502,9 @@ export default function Home() {
                     whileHover={{ scale: 1.05 }}
                     onClick={() => setActiveToolIndex(index)}
                   >
-                    <span className={`w-6 h-6 rounded-full ${tool.color} flex items-center justify-center text-white`}>
+                    <span
+                      className={`w-6 h-6 rounded-full ${tool.color} flex items-center justify-center text-white`}
+                    >
                       {tool.icon}
                     </span>
                     <span>{tool.name}</span>
@@ -523,7 +547,11 @@ export default function Home() {
                   {/* Animated Labeling Overlay */}
                   <div className="absolute inset-0">
                     {/* Animated cursor */}
-                    <motion.div className="absolute z-50" animate={cursorControls} initial={{ opacity: 0 }}>
+                    <motion.div
+                      className="absolute z-50"
+                      animate={cursorControls}
+                      initial={{ opacity: 0 }}
+                    >
                       <MousePointer className="w-6 h-6 text-blue-500 drop-shadow-lg" />
                     </motion.div>
 
@@ -548,9 +576,16 @@ export default function Home() {
                       <motion.polygon
                         points="400,100 450,150 500,130 520,200 450,250 380,220 400,100"
                         className="fill-transparent stroke-purple-500 stroke-2"
-                        initial={{ pathLength: 0, fill: "rgba(168, 85, 247, 0)" }}
+                        initial={{
+                          pathLength: 0,
+                          fill: "rgba(168, 85, 247, 0)",
+                        }}
                       />
-                      <motion.text x="420" y="90" className="fill-purple-500 text-xs font-medium">
+                      <motion.text
+                        x="420"
+                        y="90"
+                        className="fill-purple-500 text-xs font-medium"
+                      >
                         Car: 95%
                       </motion.text>
                     </motion.svg>
@@ -566,7 +601,11 @@ export default function Home() {
                         className="fill-transparent stroke-green-500 stroke-2 stroke-linecap-round"
                         initial={{ d: "M250,180", pathLength: 1 }}
                       />
-                      <motion.text x="250" y="160" className="fill-green-500 text-xs font-medium">
+                      <motion.text
+                        x="250"
+                        y="160"
+                        className="fill-green-500 text-xs font-medium"
+                      >
                         Segmentation Mask
                       </motion.text>
                     </motion.svg>
@@ -686,7 +725,9 @@ export default function Home() {
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
             >
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">Powerful Features</h2>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                Powerful Features
+              </h2>
               <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
                 Everything you need for efficient image annotation and labeling
               </p>
@@ -720,9 +761,12 @@ export default function Home() {
                     />
                   </svg>
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Manual Annotations</h3>
+                <h3 className="text-xl font-semibold mb-2">
+                  Manual Annotations
+                </h3>
                 <p className="text-gray-600 dark:text-gray-400">
-                  Create boxes, polygons, and free-form drawings with precision tools.
+                  Create boxes, polygons, and free-form drawings with precision
+                  tools.
                 </p>
               </motion.div>
 
@@ -747,7 +791,9 @@ export default function Home() {
                     />
                   </svg>
                 </div>
-                <h3 className="text-xl font-semibold mb-2">AI Labeling with YOLOv8</h3>
+                <h3 className="text-xl font-semibold mb-2">
+                  AI Labeling with YOLOv8
+                </h3>
                 <p className="text-gray-600 dark:text-gray-400">
                   Accelerate your workflow with AI-assisted auto-labeling.
                 </p>
@@ -774,8 +820,12 @@ export default function Home() {
                     />
                   </svg>
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Multi-Format Export</h3>
-                <p className="text-gray-600 dark:text-gray-400">Export to COCO, YOLO, Pascal VOC, and JSON formats.</p>
+                <h3 className="text-xl font-semibold mb-2">
+                  Multi-Format Export
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Export to COCO, YOLO, Pascal VOC, and JSON formats.
+                </p>
               </motion.div>
 
               {/* Feature 4 */}
@@ -799,9 +849,12 @@ export default function Home() {
                     />
                   </svg>
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Offline Project Storage</h3>
+                <h3 className="text-xl font-semibold mb-2">
+                  Offline Project Storage
+                </h3>
                 <p className="text-gray-600 dark:text-gray-400">
-                  Store projects locally with Dexie.js for complete offline support.
+                  Store projects locally with Dexie.js for complete offline
+                  support.
                 </p>
               </motion.div>
 
@@ -826,9 +879,12 @@ export default function Home() {
                     />
                   </svg>
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Cross-platform Desktop App</h3>
+                <h3 className="text-xl font-semibold mb-2">
+                  Cross-platform Desktop App
+                </h3>
                 <p className="text-gray-600 dark:text-gray-400">
-                  Use on Windows, macOS, or Linux with the same great experience.
+                  Use on Windows, macOS, or Linux with the same great
+                  experience.
                 </p>
               </motion.div>
 
@@ -853,9 +909,12 @@ export default function Home() {
                     />
                   </svg>
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Responsive Light/Dark UI</h3>
+                <h3 className="text-xl font-semibold mb-2">
+                  Responsive Light/Dark UI
+                </h3>
                 <p className="text-gray-600 dark:text-gray-400">
-                  Beautiful interface that adapts to your preferences and environment.
+                  Beautiful interface that adapts to your preferences and
+                  environment.
                 </p>
               </motion.div>
             </motion.div>
@@ -872,9 +931,12 @@ export default function Home() {
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
             >
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">Documentation & Resources</h2>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                Documentation & Resources
+              </h2>
               <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
-                Everything you need to get started and make the most of Vision AI Label Studio
+                Everything you need to get started and make the most of Vision
+                AI Label Studio
               </p>
             </motion.div>
 
@@ -938,24 +1000,39 @@ export default function Home() {
                   <h3 className="text-2xl font-bold mb-4">Latest Updates</h3>
                   <div className="space-y-6">
                     <div className="border-b border-gray-200 dark:border-gray-700 pb-4">
-                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">May 10, 2025</div>
-                      <h4 className="font-semibold text-lg">YOLOv8 Integration Now Available</h4>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                        May 10, 2025
+                      </div>
+                      <h4 className="font-semibold text-lg">
+                        YOLOv8 Integration Now Available
+                      </h4>
                       <p className="text-gray-600 dark:text-gray-400 mt-2">
-                        We've integrated YOLOv8 for AI-assisted labeling, making annotation up to 5x faster.
+                        We've integrated YOLOv8 for AI-assisted labeling, making
+                        annotation up to 5x faster.
                       </p>
                     </div>
                     <div className="border-b border-gray-200 dark:border-gray-700 pb-4">
-                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">April 22, 2025</div>
-                      <h4 className="font-semibold text-lg">New Export Formats Added</h4>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                        April 22, 2025
+                      </div>
+                      <h4 className="font-semibold text-lg">
+                        New Export Formats Added
+                      </h4>
                       <p className="text-gray-600 dark:text-gray-400 mt-2">
-                        Added support for Pascal VOC and COCO JSON export formats.
+                        Added support for Pascal VOC and COCO JSON export
+                        formats.
                       </p>
                     </div>
                     <div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">March 15, 2025</div>
-                      <h4 className="font-semibold text-lg">Version 1.0 Released</h4>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                        March 15, 2025
+                      </div>
+                      <h4 className="font-semibold text-lg">
+                        Version 1.0 Released
+                      </h4>
                       <p className="text-gray-600 dark:text-gray-400 mt-2">
-                        First stable release with core annotation features and offline storage.
+                        First stable release with core annotation features and
+                        offline storage.
                       </p>
                     </div>
                   </div>
@@ -983,9 +1060,12 @@ export default function Home() {
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
             >
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">See It In Action</h2>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                See It In Action
+              </h2>
               <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
-                Watch how Vision AI Label Studio makes image annotation fast and efficient
+                Watch how Vision AI Label Studio makes image annotation fast and
+                efficient
               </p>
             </motion.div>
 
@@ -1023,7 +1103,9 @@ export default function Home() {
                 </div>
               </div>
               <div className="bg-white dark:bg-gray-800 p-4 flex justify-between items-center">
-                <div className="text-sm text-gray-600 dark:text-gray-400">Demo: AI-assisted annotation workflow</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Demo: AI-assisted annotation workflow
+                </div>
                 <div className="flex gap-2">
                   <button className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
                     <svg
@@ -1034,7 +1116,11 @@ export default function Home() {
                       stroke="currentColor"
                       className="w-4 h-4"
                     >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M15.75 5.25v13.5m-7.5-13.5v13.5"
+                      />
                     </svg>
                   </button>
                   <button className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
@@ -1046,7 +1132,11 @@ export default function Home() {
                       stroke="currentColor"
                       className="w-4 h-4"
                     >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M8.25 4.5l7.5 7.5-7.5 7.5"
+                      />
                     </svg>
                   </button>
                 </div>
@@ -1067,7 +1157,8 @@ export default function Home() {
             >
               <h2 className="text-3xl md:text-4xl font-bold mb-4">Roadmap</h2>
               <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
-                See what's completed, in progress, and planned for future releases
+                See what's completed, in progress, and planned for future
+                releases
               </p>
             </motion.div>
 
@@ -1094,7 +1185,9 @@ export default function Home() {
                     </div>
                     <div>
                       <p className="font-medium">Manual Annotations</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Boxes, polygons, free draw</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Boxes, polygons, free draw
+                      </p>
                     </div>
                   </div>
 
@@ -1104,7 +1197,9 @@ export default function Home() {
                     </div>
                     <div>
                       <p className="font-medium">Offline Storage</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Using Dexie.js</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Using Dexie.js
+                      </p>
                     </div>
                   </div>
 
@@ -1114,7 +1209,9 @@ export default function Home() {
                     </div>
                     <div>
                       <p className="font-medium">YOLO Export</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Standard format support</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Standard format support
+                      </p>
                     </div>
                   </div>
                 </motion.div>
@@ -1134,7 +1231,9 @@ export default function Home() {
                     </div>
                     <div>
                       <p className="font-medium">YOLOv8 Integration</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">AI-assisted labeling</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        AI-assisted labeling
+                      </p>
                     </div>
                   </div>
 
@@ -1144,7 +1243,9 @@ export default function Home() {
                     </div>
                     <div>
                       <p className="font-medium">COCO Export</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">JSON format support</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        JSON format support
+                      </p>
                     </div>
                   </div>
 
@@ -1154,7 +1255,9 @@ export default function Home() {
                     </div>
                     <div>
                       <p className="font-medium">Pascal VOC Export</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">XML format support</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        XML format support
+                      </p>
                     </div>
                   </div>
                 </motion.div>
@@ -1200,7 +1303,9 @@ export default function Home() {
                     </div>
                     <div>
                       <p className="font-medium">Video Annotation</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Frame-by-frame labeling</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Frame-by-frame labeling
+                      </p>
                     </div>
                   </div>
 
@@ -1223,7 +1328,9 @@ export default function Home() {
                     </div>
                     <div>
                       <p className="font-medium">Team Collaboration</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Multi-user projects</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Multi-user projects
+                      </p>
                     </div>
                   </div>
 
@@ -1246,7 +1353,9 @@ export default function Home() {
                     </div>
                     <div>
                       <p className="font-medium">Cloud Sync</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Optional project backup</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Optional project backup
+                      </p>
                     </div>
                   </div>
                 </motion.div>
@@ -1265,9 +1374,12 @@ export default function Home() {
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
             >
-              <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to transform your image labeling workflow?</h2>
+              <h2 className="text-3xl md:text-4xl font-bold mb-6">
+                Ready to transform your image labeling workflow?
+              </h2>
               <p className="text-xl mb-8 text-blue-100">
-                Start using Vision AI Label Studio today and experience the power of AI-assisted annotation.
+                Start using Vision AI Label Studio today and experience the
+                power of AI-assisted annotation.
               </p>
               <div className="flex flex-col sm:flex-row justify-center gap-4">
                 <motion.a
@@ -1302,10 +1414,16 @@ export default function Home() {
                 A powerful, open-source image labeling tool with AI assistance.
               </p>
               <div className="flex items-center gap-4">
-                <a href="#" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+                <a
+                  href="#"
+                  className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                >
                   <Github size={20} />
                 </a>
-                <a href="#" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+                <a
+                  href="#"
+                  className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
@@ -1321,7 +1439,10 @@ export default function Home() {
                     />
                   </svg>
                 </a>
-                <a href="#" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+                <a
+                  href="#"
+                  className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
@@ -1352,17 +1473,26 @@ export default function Home() {
                   </Link>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+                  <a
+                    href="#"
+                    className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                  >
                     Tutorials
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+                  <a
+                    href="#"
+                    className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                  >
                     API Reference
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+                  <a
+                    href="#"
+                    className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                  >
                     Examples
                   </a>
                 </li>
@@ -1373,22 +1503,34 @@ export default function Home() {
               <h3 className="font-bold text-lg mb-4">Community</h3>
               <ul className="space-y-2">
                 <li>
-                  <a href="#" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+                  <a
+                    href="#"
+                    className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                  >
                     GitHub
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+                  <a
+                    href="#"
+                    className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                  >
                     Discord
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+                  <a
+                    href="#"
+                    className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                  >
                     Twitter
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+                  <a
+                    href="#"
+                    className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                  >
                     Contributing
                   </a>
                 </li>
@@ -1399,17 +1541,26 @@ export default function Home() {
               <h3 className="font-bold text-lg mb-4">Legal</h3>
               <ul className="space-y-2">
                 <li>
-                  <a href="#" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+                  <a
+                    href="#"
+                    className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                  >
                     License (GNU GPL)
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+                  <a
+                    href="#"
+                    className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                  >
                     Privacy Policy
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+                  <a
+                    href="#"
+                    className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                  >
                     Terms of Use
                   </a>
                 </li>
@@ -1418,7 +1569,10 @@ export default function Home() {
           </div>
 
           <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700 text-center text-gray-600 dark:text-gray-400">
-            <p>© {new Date().getFullYear()} Vision AI Label Studio. Released under the GNU GPL License.</p>
+            <p>
+              © {new Date().getFullYear()} Vision AI Label Studio. Released
+              under the GNU GPL License.
+            </p>
             <div className="flex justify-center mt-4 space-x-4">
               <div className="bg-gray-200 dark:bg-gray-700 px-3 py-1 rounded-full text-sm flex items-center gap-1">
                 <span>Made with</span>
