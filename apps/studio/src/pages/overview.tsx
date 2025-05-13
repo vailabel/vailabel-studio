@@ -1,9 +1,47 @@
 import { motion } from "framer-motion"
 import MainLayout from "./main-layout"
 import { useTheme } from "@/components/theme-provider"
+import { useEffect, useState } from "react"
+import { useDataAccess } from "@/hooks/use-data-access"
+
+interface RecentActivityItem {
+  activity: string
+  user: string
+  date: string
+}
 
 const Overview = () => {
   const { theme } = useTheme()
+  const dataAccess = useDataAccess()
+
+  const [statistics, setStatistics] = useState({
+    totalProjects: 0,
+    activeUsers: 0,
+    labelsCreated: 0,
+  })
+  const [recentActivity, setRecentActivity] = useState<RecentActivityItem[]>([])
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const projects = await dataAccess.getProjects()
+      const labels = await dataAccess.getLabels()
+
+      setStatistics({
+        totalProjects: projects.length,
+        activeUsers: 120, // Placeholder value; replace with real data if available
+        labelsCreated: labels.length,
+      })
+      setRecentActivity(
+        Array.from({ length: 3 }, (_, index) => ({
+          activity: `Action ${index + 1}`, // Mocked activity description
+          user: `User ${index + 1}`, // Mocked user
+          date: new Date().toISOString().split("T")[0], // Mocked date
+        }))
+      )
+    }
+
+    fetchData()
+  }, [dataAccess])
 
   return (
     <MainLayout>
@@ -21,9 +59,21 @@ const Overview = () => {
           <h2 className="text-2xl font-semibold mb-6">Statistics</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
-              { title: "Total Projects", value: 25, color: "bg-blue-500" },
-              { title: "Active Users", value: 120, color: "bg-green-500" },
-              { title: "Labels Created", value: 5432, color: "bg-purple-500" },
+              {
+                title: "Total Projects",
+                value: statistics.totalProjects,
+                color: "bg-blue-500",
+              },
+              {
+                title: "Active Users",
+                value: statistics.activeUsers,
+                color: "bg-green-500",
+              },
+              {
+                title: "Labels Created",
+                value: statistics.labelsCreated,
+                color: "bg-purple-500",
+              },
             ].map((stat, index) => (
               <motion.div
                 key={index}
@@ -57,23 +107,7 @@ const Overview = () => {
                 </tr>
               </thead>
               <tbody>
-                {[
-                  {
-                    activity: 'Updated "Dataset A"',
-                    user: "User1",
-                    date: "2023-10-01",
-                  },
-                  {
-                    activity: 'Added label to "Dataset B"',
-                    user: "User2",
-                    date: "2023-10-02",
-                  },
-                  {
-                    activity: 'Joined "Dataset C"',
-                    user: "User3",
-                    date: "2023-10-03",
-                  },
-                ].map((item, index) => (
+                {recentActivity.map((item, index) => (
                   <tr
                     key={index}
                     className={`${
