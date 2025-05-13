@@ -10,6 +10,7 @@
 [![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=vailabel_vailabel-studio&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=vailabel_vailabel-studio)
 
 </span>
+
 A powerful, modern **image labeling tool** built with **React.js**, **TypeScript**, **TailwindCSS**, **Framer Motion**, and **Dexie.js**, designed for creating high-quality datasets for machine learning models.  
 Supports manual annotation, free drawing, and **AI-assisted labeling** using **YOLOv8** models.
 
