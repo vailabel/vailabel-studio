@@ -21,10 +21,6 @@ class VisionDatabase extends Dexie {
       history: "labels, historyIndex, canUndo, canRedo",
     })
   }
-
-  getAnnotationsByImageId(imageId: string) {
-    return this.annotations.where("imageId").equals(imageId).toArray()
-  }
 }
 
 export const db = new VisionDatabase()

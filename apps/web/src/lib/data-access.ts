@@ -63,7 +63,7 @@ export class DexieDataAccess implements IDataAccess {
   }
 
   async getAnnotations(imageId: string): Promise<Annotation[]> {
-    return db.getAnnotationsByImageId(imageId)
+    return db.annotations.where("imageId").equals(imageId).toArray()
   }
 
   // Add methods for creating, updating, and deleting records
