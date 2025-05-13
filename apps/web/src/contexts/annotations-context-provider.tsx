@@ -2,9 +2,11 @@ import { useCallback, useEffect, useState } from "react"
 import { AnnotationsContext } from "./annotations-context"
 import type { Annotation, ImageData, Label } from "@/lib/types"
 import { useDataAccess } from "@/hooks/use-data-access"
+import Loading from "@/components/loading"
 
 export type AnnotationsContextType = {
   annotations: Annotation[]
+  setAnnotations: React.Dispatch<React.SetStateAction<Annotation[]>>
   createAnnotation: (annotation: Annotation) => void
   updateAnnotation: (id: string, updates: Partial<Annotation>) => void
   deleteAnnotation: (id: string) => void
@@ -40,6 +42,12 @@ export const AnnotationsProvider = ({
 
   const [currentImage, setCurrentImage] = useState<ImageData | null>(null)
   const [labels, setLabels] = useState<Label[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const [updateTimeouts, setUpdateTimeouts] = useState<
+    Record<string, NodeJS.Timeout>
+  >({})
+
   const addHistoryEntry = useCallback(
     (newAnnotations: Annotation[]) => {
       const newHistory = history.slice(0, currentIndex + 1)
@@ -64,15 +72,39 @@ export const AnnotationsProvider = ({
   )
 
   const updateAnnotation = useCallback(
-    async (id: string, updates: Partial<Annotation>) => {
-      await dataAccess.updateAnnotation(id, updates)
-      const newAnnotations = await dataAccess.getAnnotations(
-        currentImage?.id || ""
+    (id: string, updates: Partial<Annotation>) => {
+      // Update the state immediately for rendering purposes
+      setAnnotations((prevAnnotations) =>
+        prevAnnotations.map((annotation) =>
+          annotation.id === id ? { ...annotation, ...updates } : annotation
+        )
       )
-      setAnnotations(newAnnotations)
-      addHistoryEntry(newAnnotations)
+
+      // Add to history
+      addHistoryEntry(
+        annotations.map((annotation) =>
+          annotation.id === id ? { ...annotation, ...updates } : annotation
+        )
+      )
+
+      // Clear any existing timeout for this annotation
+      if (updateTimeouts[id]) {
+        clearTimeout(updateTimeouts[id])
+      }
+
+      // Set a new timeout to save the update to the database
+      const timeout = setTimeout(async () => {
+        await dataAccess.updateAnnotation(id, updates)
+        setUpdateTimeouts((prev) => {
+          const updatedTimeouts = { ...prev }
+          delete updatedTimeouts[id]
+          return updatedTimeouts
+        })
+      }, 300) // 300ms debounce delay
+
+      setUpdateTimeouts((prev) => ({ ...prev, [id]: timeout }))
     },
-    [currentImage, addHistoryEntry, dataAccess]
+    [annotations, addHistoryEntry, dataAccess, updateTimeouts]
   )
 
   const deleteAnnotation = useCallback(
@@ -154,24 +186,32 @@ export const AnnotationsProvider = ({
   const canRedo = currentIndex < history.length - 1
 
   useEffect(() => {
-    dataAccess.getLabels().then((labels) => {
-      setLabels(labels)
-    })
-    dataAccess
-      .getAnnotations(currentImage?.id ?? "")
-      .then((annotations) => {
+    const fetchData = async () => {
+      try {
+        const [labels, annotations] = await Promise.all([
+          dataAccess.getLabels(),
+          dataAccess.getAnnotations(currentImage?.id ?? ""),
+        ])
+        setLabels(labels)
         setAnnotations(annotations)
-      })
-      .catch((error) => {
-        console.error("Error fetching annotations:", error)
-      })
+      } catch (error) {
+        console.error("Error fetching annotations or labels:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
   }, [currentImage, dataAccess, setCurrentImage])
+  if (loading) {
+    return <Loading />
+  }
   return (
     <AnnotationsContext.Provider
       value={{
         labels,
         setLabels,
         annotations,
+        setAnnotations,
         createAnnotation,
         updateAnnotation,
         getOrCreateLabel,
