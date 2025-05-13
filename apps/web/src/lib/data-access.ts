@@ -20,6 +20,12 @@ export interface IDataAccess {
   updateAnnotation(id: string, updates: Partial<Annotation>): Promise<void>
   deleteAnnotation(id: string): Promise<void>
 
+  createLabel(label: Label, annotationIds: string[]): Promise<void>
+  getLabels(): Promise<Label[]>
+  getLabelById(id: string): Promise<Label | undefined>
+  updateLabel(id: string, updates: Partial<Label>): Promise<void>
+  deleteLabel(id: string): Promise<void>
+
   getSettings(): Promise<{ key: string; value: string }[]>
   updateSetting(key: string, value: string): Promise<void>
 
@@ -39,6 +45,11 @@ export interface IDataAccess {
   // Add methods to fetch next and previous image IDs
   getNextImageId(currentImageId: string): Promise<string | null>
   getPreviousImageId(currentImageId: string): Promise<string | null>
+
+  // Label CRUD methods
+  createLabel(label: Label, annotationIds: string[]): Promise<void>
+  updateLabel(id: string, updates: Partial<Label>): Promise<void>
+  deleteLabel(id: string): Promise<void>
 }
 
 // Dexie-based implementation of the Data Access Layer
@@ -52,7 +63,7 @@ export class DexieDataAccess implements IDataAccess {
   }
 
   async getAnnotations(imageId: string): Promise<Annotation[]> {
-    return db.getAnnotationsByImageId(imageId)
+    return db.annotations.where("imageId").equals(imageId).toArray()
   }
 
   // Add methods for creating, updating, and deleting records
@@ -367,9 +378,4 @@ export class ApiDataAccess implements IDataAccess {
       res.json()
     )
   }
-}
-
-// Factory function to get the appropriate Data Access implementation
-export function getDataAccessLayer(useApi: boolean = false): IDataAccess {
-  return useApi ? new ApiDataAccess() : new DexieDataAccess()
 }
