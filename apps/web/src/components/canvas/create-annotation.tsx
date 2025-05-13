@@ -1,13 +1,10 @@
-"use client"
-
 import type React from "react"
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect, useMemo } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { CornerDownLeft, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { getRandomColor, rgbToRgba } from "@/lib/utils"
-import { Label } from "@/lib/types"
 import { useAnnotations } from "@/hooks/use-annotations"
 
 interface CreateAnnotationModalProps {
@@ -22,41 +19,52 @@ export function CreateAnnotation({
   onClose,
 }: CreateAnnotationModalProps) {
   const [labelName, setLabelName] = useState("")
-  const [labelFilter, setLabelFilter] = useState<Label[]>([])
-  const [color, setColor] = useState<string | null>(null)
+  const [color, setColor] = useState<string>(getRandomColor())
   const { labels } = useAnnotations()
+
+  useEffect(() => {
+    if (isOpen) {
+      setLabelName("")
+      setColor(getRandomColor())
+    }
+  }, [isOpen])
+
+  const labelFilter = useMemo(() => {
+    if (!labelName.trim()) return labels
+    return labels.filter((label) =>
+      label.name.toLowerCase().includes(labelName.toLowerCase())
+    )
+  }, [labelName, labels])
+  const saveLabel = useCallback(
+    (name: string, color: string) => {
+      onSubmit(name, color)
+      setLabelName("")
+      setColor(getRandomColor())
+    },
+    [onSubmit]
+  )
 
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault()
-      if (labelName.trim()) {
-        onSubmit(labelName.trim(), getRandomColor())
-        setLabelName("") // Reset label name
-        setColor(null) // Reset color
-        setLabelFilter([]) // Reset filter
-      }
+      saveLabel(labelName.trim(), color)
     },
-    [labelName, onSubmit, labels, color]
+    [color, labelName, saveLabel]
   )
 
   const handleChangeName = useCallback(
     (name: string) => {
       setLabelName(name)
-      if (name.trim()) {
-        const filteredLabels = labels.filter((label) =>
-          label.name.toLowerCase().includes(name.toLowerCase())
-        )
-        setLabelFilter(filteredLabels)
-        setColor(filteredLabels[0]?.color ?? getRandomColor())
+      if (name.trim() && labelFilter.length > 0) {
+        setColor(labelFilter[0]?.color ?? getRandomColor())
       } else {
-        setLabelFilter(labels)
-        setColor(null)
+        setColor(getRandomColor())
       }
     },
-    [labels]
+    [labelFilter]
   )
 
-  if (!isOpen) return null // Use `isOpen` to control modal rendering
+  if (!isOpen) return null
 
   return (
     <AnimatePresence>
@@ -69,9 +77,13 @@ export function CreateAnnotation({
       >
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold">Annotation Editor</h3>
-          <Button variant="default" size="icon" onClick={onClose}>
+          <Button
+            variant="default"
+            size="icon"
+            onClick={onClose}
+            aria-label="Close"
+          >
             <X className="h-4 w-4" />
-            <span className="sr-only">Close</span>
           </Button>
         </div>
 
@@ -104,12 +116,16 @@ export function CreateAnnotation({
               <div className="grid grid-cols-2 gap-2">
                 {labelFilter.map((label) => (
                   <button
-                    onClick={handleSubmit}
+                    onClick={() => {
+                      setLabelName(label.name)
+                      setColor(label.color)
+                      saveLabel(label.name, label.color)
+                    }}
                     key={label.id}
                     className="flex items-center justify-between p-2 border rounded-md cursor-pointer hover:shadow-md dark:border-gray-600"
                     style={{
-                      backgroundColor: rgbToRgba(getRandomColor(), 0.2),
-                      borderColor: getRandomColor(),
+                      backgroundColor: rgbToRgba(label.color, 0.2),
+                      borderColor: label.color,
                     }}
                   >
                     <span className="truncate text-sm font-medium text-gray-800 dark:text-gray-200">
@@ -120,18 +136,11 @@ export function CreateAnnotation({
               </div>
             ) : (
               <button
-                onClick={() => {
-                  if (labelName.trim()) {
-                    onSubmit(labelName.trim(), getRandomColor())
-                    setLabelName("")
-                    setColor(null) // Reset color
-                    setLabelFilter([]) // Reset filter
-                  }
-                }}
+                onClick={handleSubmit}
                 className="flex items-center justify-between p-2 border rounded-md cursor-pointer hover:shadow-md dark:border-gray-600"
                 style={{
-                  backgroundColor: rgbToRgba(getRandomColor(), 0.2),
-                  borderColor: getRandomColor(),
+                  backgroundColor: rgbToRgba(color, 0.2),
+                  borderColor: color,
                 }}
               >
                 <span className="truncate text-sm font-medium text-gray-200 dark:text-gray-200">

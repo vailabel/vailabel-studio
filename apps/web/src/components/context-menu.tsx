@@ -10,8 +10,8 @@ import {
   ZoomIn,
   Pencil,
 } from "lucide-react"
-import { useSettingsStore } from "@/lib/settings-store"
 import { cn } from "@/lib/utils"
+import { useCanvas } from "@/hooks/use-canvas"
 
 interface ContextMenuProps {
   x: number
@@ -27,7 +27,7 @@ export function ContextMenu({
   onClose,
 }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null)
-  const { setSelectedTool } = useSettingsStore()
+  const { setSelectedTool, resetView } = useCanvas()
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -69,7 +69,7 @@ export function ContextMenu({
       className={cn(
         "absolute z-50 w-48 rounded-md shadow-lg ring-1 ring-opacity-5",
         "dark:bg-gray-800 dark:ring-gray-700",
-        "bg-white ring-black"
+        "bg-white ring-gray-200"
       )}
       style={{ left: adjustedX, top: adjustedY }}
     >
@@ -142,12 +142,7 @@ export function ContextMenu({
             "dark:text-gray-300 dark:hover:bg-gray-700",
             "text-gray-700 hover:bg-gray-100"
           )}
-          onClick={() => {
-            // Trigger zoom reset
-            const resetEvent = new CustomEvent("reset-canvas-view")
-            window.dispatchEvent(resetEvent)
-            onClose()
-          }}
+          onClick={() => resetView()}
         >
           <ZoomIn className="mr-2 h-4 w-4" />
           Reset Zoom
