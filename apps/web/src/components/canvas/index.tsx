@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef } from "react"
 import { cn } from "@/lib/utils"
 import { useCanvas } from "@/hooks/use-canvas"
 import { AnnotationRenderer } from "@/components/canvas/annotation-renderer"
@@ -8,16 +8,16 @@ import { type Annotation, type ImageData } from "@/lib/types"
 import { Crosshair } from "@/components/canvas/crosshair"
 import { TempAnnotation } from "@/components/canvas/temp-annotation"
 import { CreateAnnotation } from "@/components/canvas/create-annotation"
+import { useAnnotations } from "@/hooks/use-annotations"
+
 interface CanvasProps {
-  image: ImageData | null
-  annotations: Annotation[]
+  image: ImageData
 }
 
 export const Canvas = ({ image }: CanvasProps) => {
   const { zoom, panOffset, selectedTool, setCanvasRef } = useCanvas()
-  const canvasRef = useRef<HTMLDivElement>(null!) // Non-null assertion
-  const [currentImage, setCurrentImage] = useState<ImageData | null>(null)
-
+  const canvasRef = useRef<HTMLDivElement>(null!)
+  const { createAnnotation, getOrCreateLabel } = useAnnotations()
   const {
     handleMouseDown,
     handleMouseMove,
@@ -30,30 +30,52 @@ export const Canvas = ({ image }: CanvasProps) => {
     setTempAnnotation,
   } = useCanvasHandlers(canvasRef as React.RefObject<HTMLDivElement>)
 
+  const handleCreateAnnotation = useCallback(
+    async (name: string, color: string) => {
+      if (!tempAnnotation) return
+      const label = await getOrCreateLabel(name, color)
+      if (!label) return
+      const newAnnotation: Annotation = {
+        label: label,
+        labelId: label.id,
+        color: label.color ?? color,
+        imageId: image.id,
+        id: crypto.randomUUID(),
+        name: name,
+        type: tempAnnotation?.type ?? "box",
+        coordinates: tempAnnotation?.coordinates ?? [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }
+      createAnnotation(newAnnotation)
+      setShowLabelInput(false)
+      setTempAnnotation(null)
+    },
+    [
+      tempAnnotation,
+      getOrCreateLabel,
+      image.id,
+      createAnnotation,
+      setShowLabelInput,
+      setTempAnnotation,
+    ]
+  )
+
+  const handleCloseCreateAnnotationModal = useCallback(() => {
+    setShowLabelInput(false)
+    setTempAnnotation(null)
+  }, [setShowLabelInput, setTempAnnotation])
+
+  useEffect(() => {
+    setCanvasRef(canvasRef)
+  }, [setCanvasRef])
+
   const cursorStyles = {
     box: "cursor-crosshair",
     polygon: "cursor-crosshair",
     move: "cursor-move",
     delete: "cursor-pointer",
   }
-
-  useEffect(() => {
-    const fetchImage = async () => {
-      if (image) {
-        setCurrentImage(image) // Use the image passed from props
-      } else {
-        setCurrentImage(null)
-      }
-    }
-
-    fetchImage()
-    setCanvasRef(canvasRef)
-  }, [image, setCanvasRef])
-
-  const handleCloseCreateAnnotationModal = useCallback(() => {
-    setShowLabelInput(false)
-    setTempAnnotation(null)
-  }, [setShowLabelInput, setTempAnnotation])
 
   return (
     <>
@@ -62,7 +84,7 @@ export const Canvas = ({ image }: CanvasProps) => {
           className="relative h-full w-full overflow-hidden"
           onWheel={handleWheel}
         >
-          {!currentImage ? (
+          {!image ? (
             <div className="flex h-full items-center justify-center">
               <div className="text-center">
                 <p className="text-lg font-medium text-gray-500 dark:text-gray-300">
@@ -91,12 +113,12 @@ export const Canvas = ({ image }: CanvasProps) => {
                 }}
               >
                 <img
-                  src={currentImage.data}
+                  src={image.data}
                   alt="Canvas"
                   className="pointer-events-none select-none"
                   draggable={false}
-                  width={currentImage.width}
-                  height={currentImage.height}
+                  width={image.width}
+                  height={image.height}
                 />
                 <AnnotationRenderer />
                 {tempAnnotation && (
@@ -112,7 +134,7 @@ export const Canvas = ({ image }: CanvasProps) => {
       </div>
       {showLabelInput && (
         <CreateAnnotation
-          onSubmit={() => {}}
+          onSubmit={handleCreateAnnotation}
           isOpen={true}
           onClose={handleCloseCreateAnnotationModal}
         />

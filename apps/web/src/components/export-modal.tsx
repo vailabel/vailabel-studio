@@ -7,12 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useToast } from "@/hooks/use-toast"
-import {
-  exportToJson,
-  exportToCoco,
-  exportToPascalVoc,
-  exportToYolo,
-} from "@/lib/export-utils"
+import { ExportService } from "@/lib/export-service"
+import { useDataAccess } from "@/hooks/use-data-access"
 import type { Annotation, Project } from "@/lib/types"
 
 interface ExportModalProps {
@@ -29,6 +25,8 @@ export function ExportModal({
   const { toast } = useToast()
   const [exportFormat, setExportFormat] = useState<string>("json")
   const [isExporting, setIsExporting] = useState(false)
+  const dataAccess = useDataAccess()
+  const exportService = new ExportService(dataAccess)
 
   const handleExport = async () => {
     if (!project) return
@@ -40,16 +38,23 @@ export function ExportModal({
 
       switch (exportFormat) {
         case "json":
-          await exportToJson(project.id, `${fileName}-export.json`)
+          await exportService.exportToJson(
+            project.id,
+            `${fileName}-export.json`
+          )
           break
         case "coco":
-          await exportToCoco(project.id, `${fileName}-coco.json`)
+          await exportService.exportToCoco(project.id, `${fileName}-coco.json`)
           break
         case "pascal":
-          exportToPascalVoc(project, annotations, `${fileName}-pascal`)
+          exportService.exportToPascalVoc(
+            project,
+            annotations,
+            `${fileName}-pascal`
+          )
           break
         case "yolo":
-          exportToYolo(project, annotations, `${fileName}-yolo`)
+          exportService.exportToYolo(project, annotations, `${fileName}-yolo`)
           break
       }
 
