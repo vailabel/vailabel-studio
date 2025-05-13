@@ -73,7 +73,9 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
         const images = await dataAccess.getImages(project.id)
         console.log("Fetched images:", images)
         setImages(images)
-        const currentImage = images.find((img) => img.id === imageId) as ImageData | undefined
+        const currentImage = images.find((img) => img.id === imageId) as
+          | ImageData
+          | undefined
         if (currentImage) {
           setCurrentImage(currentImage)
           setAnnotations(await dataAccess.getAnnotations(currentImage.id))
@@ -82,7 +84,6 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
       fetchImages()
     }
   }, [project.id, imageId, dataAccess, setCurrentImage, setAnnotations])
-
 
   const handleExportProject = () => {
     setShowExport(true)
@@ -204,8 +205,7 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
 
                 <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                   <span>
-                    Image
-                    of
+                    Image of
                     {images.length}
                   </span>
                   <Separator orientation="vertical" className="h-4" />
@@ -305,9 +305,7 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
 
               <div className="relative flex-1 overflow-hidden">
                 {currentImage ? (
-                  <Canvas
-                    image={currentImage}
-                  />
+                  <Canvas image={currentImage} />
                 ) : (
                   <div className="flex h-full items-center justify-center bg-gray-100 dark:bg-gray-900">
                     <p className="text-gray-500 dark:text-gray-400">
