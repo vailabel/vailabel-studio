@@ -1,4 +1,3 @@
-
 import { AnnotationsContext } from "@/contexts/annotations-context"
 import { useContext } from "react"
 
