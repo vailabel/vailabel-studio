@@ -12,6 +12,7 @@ export function useCanvasHandlers(canvasRef: React.RefObject<HTMLDivElement>) {
     setPanOffset,
     setCursorPosition,
     setSelectedTool,
+    setZoom,
   } = useCanvas()
 
   const {
@@ -22,7 +23,6 @@ export function useCanvasHandlers(canvasRef: React.RefObject<HTMLDivElement>) {
     selectedAnnotation,
     setSelectedAnnotation,
   } = useAnnotations()
-
   const [isDragging, setIsDragging] = useState(false)
   const [startPoint, setStartPoint] = useState<Point | null>(null)
   const [currentPoint, setCurrentPoint] = useState<Point | null>(null)
@@ -51,31 +51,6 @@ export function useCanvasHandlers(canvasRef: React.RefObject<HTMLDivElement>) {
     [canvasRef, panOffset, zoom]
   )
 
-  const findLabelAtPoint = useCallback(
-    (point: Point): Annotation | null => {
-      // First check for selected label to prioritize it
-      if (selectedAnnotation) {
-        const selectedLabel = annotations.find(
-          (a) => a.id === selectedAnnotation.id
-        )
-        if (selectedLabel && isPointInLabel(point, selectedLabel)) {
-          return selectedLabel
-        }
-      }
-
-      // Then check other labels in reverse order (newest first)
-      for (let i = annotations.length - 1; i >= 0; i--) {
-        const annotation = annotations[i]
-        if (isPointInLabel(point, annotation)) {
-          return annotation
-        }
-      }
-
-      return null
-    },
-    [annotations, selectedAnnotation]
-  )
-
   const isPointInLabel = useCallback(
     (point: Point, annotation: Annotation): boolean => {
       if (annotation.type === "box") {
@@ -92,6 +67,30 @@ export function useCanvasHandlers(canvasRef: React.RefObject<HTMLDivElement>) {
       return false
     },
     []
+  )
+
+  const findLabelAtPoint = useCallback(
+    (point: Point): Annotation | null => {
+      // First check for selected label to prioritize it
+      if (selectedAnnotation) {
+        const selectedLabel = annotations.find(
+          (a) => a.id === selectedAnnotation.id
+        )
+        if (selectedLabel && isPointInLabel(point, selectedLabel)) {
+          return selectedLabel
+        }
+      }
+      // Then check other labels in reverse order (newest first)
+      for (let i = annotations.length - 1; i >= 0; i--) {
+        const annotation = annotations[i]
+        if (isPointInLabel(point, annotation)) {
+          return annotation
+        }
+      }
+
+      return null
+    },
+    [annotations, selectedAnnotation, isPointInLabel]
   )
 
   const getResizeHandle = useCallback(
@@ -162,9 +161,7 @@ export function useCanvasHandlers(canvasRef: React.RefObject<HTMLDivElement>) {
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
       if (!canvasRef.current) return
-
       const point = getCanvasCoords(e.clientX, e.clientY)
-
       // Check for resize handles first
       if (selectedAnnotation && selectedTool === "move") {
         const annotation = annotations.find(
@@ -183,7 +180,6 @@ export function useCanvasHandlers(canvasRef: React.RefObject<HTMLDivElement>) {
       // Check if clicked on a label for selection or moving
       if (selectedTool === "move" && e.button === 0) {
         const clickedAnnotation = findLabelAtPoint(point)
-
         if (clickedAnnotation) {
           setSelectedAnnotation(clickedAnnotation)
           setMovingLabelId(clickedAnnotation.id)
@@ -494,11 +490,10 @@ export function useCanvasHandlers(canvasRef: React.RefObject<HTMLDivElement>) {
   const handleWheel = useCallback(
     (e: React.WheelEvent) => {
       if (e.ctrlKey || e.metaKey) {
-        e.preventDefault()
+        e.preventDefault() // Prevent default scrolling behavior
         const delta = e.deltaY > 0 ? -0.1 : 0.1
         const newZoom = Math.max(0.1, Math.min(5, zoom + delta))
 
-        // Zoom centered on cursor position
         if (canvasRef.current) {
           const rect = canvasRef.current.getBoundingClientRect()
           const mouseX = e.clientX - rect.left
@@ -511,13 +506,16 @@ export function useCanvasHandlers(canvasRef: React.RefObject<HTMLDivElement>) {
           const afterZoomY = (mouseY - panOffset.y) / newZoom
 
           setPanOffset({
-            x: panOffset.x - (afterZoomX - beforeZoomX) * newZoom,
-            y: panOffset.y - (afterZoomY - beforeZoomY) * newZoom,
+            x: panOffset.x + (beforeZoomX - afterZoomX) * newZoom,
+            y: panOffset.y + (beforeZoomY - afterZoomY) * newZoom,
           })
         }
+
+        // Update the zoom level using the appropriate method
+        setZoom(newZoom)
       }
     },
-    [zoom, panOffset, canvasRef, setPanOffset]
+    [zoom, panOffset, canvasRef, setPanOffset, setZoom]
   )
 
   // Handle keyboard shortcuts
@@ -557,29 +555,6 @@ export function useCanvasHandlers(canvasRef: React.RefObject<HTMLDivElement>) {
     setSelectedTool,
     setSelectedAnnotation,
   ])
-
-  // // Handle label creation modal
-  // useEffect(() => {
-  //   if (showLabelInput && tempAnnotation) {
-  //     const name = prompt("Enter label name:")
-  //     if (name) {
-  //       const newAnnotation: Partial<Annotation> = {
-  //         id: crypto.randomUUID(),
-  //         name,
-  //         type: tempAnnotation.type as "box" | "polygon",
-  //         coordinates: tempAnnotation.coordinates || [],
-  //         imageId: tempAnnotation.imageId || "",
-  //         createdAt: new Date(),
-  //         updatedAt: new Date(),
-  //         color: "#3b82f6", // Default blue color
-  //         isAIGenerated: false,
-  //       }
-  //       createAnnotation(newAnnotation)
-  //     }
-  //     setTempAnnotation(null)
-  //     setShowLabelInput(false)
-  //   }
-  // }, [showLabelInput, tempAnnotation, createAnnotation])
 
   return {
     handleMouseDown,
