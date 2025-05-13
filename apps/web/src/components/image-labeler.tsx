@@ -44,7 +44,7 @@ interface ImageLabelerProps {
 }
 
 export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
-  const dataAccess = useDataAccess() 
+  const dataAccess = useDataAccess()
   const { toast } = useToast()
   const [currentImageId] = useState<string | null>(imageId)
   const [currentImage, setCurrentImage] = useState<ImageData | null>(null)

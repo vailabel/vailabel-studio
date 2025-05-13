@@ -49,13 +49,20 @@ export const Canvas = ({ image }: CanvasProps) => {
         type: tempAnnotation?.type ?? "box",
         coordinates: tempAnnotation?.coordinates ?? [],
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       }
       createAnnotation(newAnnotation)
       setShowLabelInput(false)
       setTempAnnotation(null)
     },
-    [tempAnnotation, getOrCreateLabel, currentImage?.id, createAnnotation, setShowLabelInput, setTempAnnotation]
+    [
+      tempAnnotation,
+      getOrCreateLabel,
+      currentImage?.id,
+      createAnnotation,
+      setShowLabelInput,
+      setTempAnnotation,
+    ]
   )
 
   const handleCloseCreateAnnotationModal = useCallback(() => {
