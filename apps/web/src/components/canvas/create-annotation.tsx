@@ -7,8 +7,8 @@ import { CornerDownLeft, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { getRandomColor, rgbToRgba } from "@/lib/utils"
-import { useStore } from "@/lib/store"
-import { Annotation } from "@/lib/types"
+import {  Label } from "@/lib/types"
+import { useAnnotations } from "@/hooks/use-annotations"
 
 interface CreateAnnotationModalProps {
   onSubmit: (name: string, color: string) => void
@@ -22,50 +22,42 @@ export function CreateAnnotation({
   onClose,
 }: CreateAnnotationModalProps) {
   const [labelName, setLabelName] = useState("")
-  const { annotations } = useStore()
-  const [annotationsFilter, setAnnotationsFilter] = useState<Annotation[]>([])
+  const [labelFilter, setLabelFilter] = useState<Label[]>([])
   const [color, setColor] = useState<string | null>(null)
-  const uniqueLabels = annotations.filter(
-    (value, index, self) =>
-      index ===
-      self.findIndex((t) => t.name === value.name && t.color === value.color)
-  )
+  const { labels } = useAnnotations()
 
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault()
       if (labelName.trim()) {
-        const existingAnnotation = uniqueLabels.find(
-          (annotation) =>
-            annotation.name.toLowerCase() === labelName.trim().toLowerCase()
-        )
+       
         onSubmit(
           labelName.trim(),
-          existingAnnotation?.color ?? color ?? getRandomColor()
+          getRandomColor()
         )
         setLabelName("") // Reset label name
         setColor(null) // Reset color
-        setAnnotationsFilter(uniqueLabels) // Reset filter
+        setLabelFilter([]) // Reset filter
       }
     },
-    [labelName, onSubmit, uniqueLabels, color]
+    [labelName, onSubmit, labels, color]
   )
 
   const handleChangeName = useCallback(
     (name: string) => {
       setLabelName(name)
       if (name.trim()) {
-        const filteredAnnotations = uniqueLabels.filter((annotation) =>
-          annotation.name.toLowerCase().includes(name.toLowerCase())
+        const filteredLabels = labels.filter((label) =>
+          label.name.toLowerCase().includes(name.toLowerCase())
         )
-        setAnnotationsFilter(filteredAnnotations)
-        setColor(filteredAnnotations[0]?.color ?? getRandomColor())
+        setLabelFilter(filteredLabels)
+        setColor(filteredLabels[0]?.color ?? getRandomColor())
       } else {
-        setAnnotationsFilter(uniqueLabels)
+        setLabelFilter(labels)
         setColor(null)
       }
     },
-    [uniqueLabels]
+    [labels]
   )
 
   if (!isOpen) return null // Use `isOpen` to control modal rendering
@@ -112,35 +104,23 @@ export function CreateAnnotation({
             </div>
           </div>
           <div className="mt-4">
-            {annotationsFilter.length > 0 ? (
+            {labelFilter.length > 0 ? (
               <div className="grid grid-cols-2 gap-2">
-                {annotationsFilter.map((annotation) => (
+                {labelFilter.map((label) => (
                   <button
-                    onClick={() => {
-                      setLabelName(annotation.name)
-                      setAnnotationsFilter((prev) =>
-                        prev.filter((a) => a.id !== annotation.id)
-                      )
-                      onSubmit(
-                        annotation.name,
-                        annotation.color ?? getRandomColor()
-                      )
-                      setTimeout(() => {
-                        onClose()
-                      }, 100)
-                    }}
-                    key={annotation.id}
+                    onClick={handleSubmit}
+                    key={label.id}
                     className="flex items-center justify-between p-2 border rounded-md cursor-pointer hover:shadow-md dark:border-gray-600"
                     style={{
                       backgroundColor: rgbToRgba(
-                        annotation.color ?? "blue",
+                        getRandomColor(),
                         0.2
                       ),
-                      borderColor: annotation.color ?? "blue",
+                      borderColor: getRandomColor(),
                     }}
                   >
                     <span className="truncate text-sm font-medium text-gray-800 dark:text-gray-200">
-                      {annotation.name}
+                      {label.name}
                     </span>
                   </button>
                 ))}
@@ -148,15 +128,17 @@ export function CreateAnnotation({
             ) : (
               <button
                 onClick={() => {
-                  onSubmit(labelName, color ?? getRandomColor())
-                  setTimeout(() => {
-                    onClose()
-                  }, 100)
+                  if (labelName.trim()) {
+                    onSubmit(labelName.trim(), getRandomColor());
+                    setLabelName(""); 
+                    setColor(null); // Reset color
+                    setLabelFilter([]); // Reset filter
+                  }
                 }}
                 className="flex items-center justify-between p-2 border rounded-md cursor-pointer hover:shadow-md dark:border-gray-600"
                 style={{
-                  backgroundColor: rgbToRgba(color ?? "blue", 0.2),
-                  borderColor: color ?? "blue",
+                  backgroundColor: rgbToRgba(getRandomColor(), 0.2),
+                  borderColor: getRandomColor(),
                 }}
               >
                 <span className="truncate text-sm font-medium text-gray-200 dark:text-gray-200">

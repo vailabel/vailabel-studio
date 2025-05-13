@@ -20,14 +20,13 @@ export type AnnotationsContextType = {
   setCurrentImage: (image: ImageData | null) => void
   setSelectedAnnotation: (annotation: Annotation | null) => void
   selectedAnnotation: Annotation | null
-  children: React.ReactNode
   labels: Label[]
   setLabels: React.Dispatch<React.SetStateAction<Label[]>>
 }
 
 const MAX_HISTORY = 100
 
-export const AnnotationsProvider = ({ children }: AnnotationsContextType) => {
+export const AnnotationsProvider = ({ children }: { children: React.ReactNode }) => {
   const dataAccess = useDataAccess()
   const [annotations, setAnnotations] = useState<Annotation[]>([])
   const [history, setHistory] = useState<Annotation[][]>([[]])
@@ -162,7 +161,7 @@ export const AnnotationsProvider = ({ children }: AnnotationsContextType) => {
       .catch((error) => {
         console.error("Error fetching annotations:", error)
       })
-  }, [currentImage, dataAccess])
+  }, [currentImage, dataAccess, setCurrentImage])
   return (
     <AnnotationsContext.Provider
       value={{
@@ -183,8 +182,7 @@ export const AnnotationsProvider = ({ children }: AnnotationsContextType) => {
         currentImage,
         setCurrentImage,
         setSelectedAnnotation,
-        selectedAnnotation,
-        children,
+        selectedAnnotation
       }}
     >
       {children}

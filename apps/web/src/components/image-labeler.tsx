@@ -1,8 +1,5 @@
-"use client"
-
 import type React from "react"
-import type { ImageData, Project, Annotation } from "@/lib/types"
-
+import type { ImageData, Project, Annotation, Label } from "@/lib/types"
 import { useState, useEffect, useRef } from "react"
 import { AnimatePresence } from "framer-motion"
 import {
@@ -30,107 +27,68 @@ import { SettingsModal } from "@/components/settings-modal"
 import { ExportModal } from "@/components/export-modal"
 import { AIModelModal } from "@/components/ai-model-modal"
 import { ContextMenu } from "@/components/context-menu"
-import { useToast } from "@/hooks/use-toast"
-import { useNavigate } from "react-router-dom"
 import { CanvasProvider } from "@/contexts/canvas-context-provider"
 import { AnnotationsProvider } from "@/contexts/annotations-context-provider"
 import { ThemeToggle } from "./theme-toggle"
 import { useDataAccess } from "@/hooks/use-data-access"
+import { useAnnotations } from "@/hooks/use-annotations"
 
 interface ImageLabelerProps {
   project: Project
-  imageId: string | null
+  imageId?: string
   onClose: () => void
 }
 
 export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
   const dataAccess = useDataAccess()
-  const { toast } = useToast()
-  const [currentImageId] = useState<string | null>(imageId)
-  const [currentImage, setCurrentImage] = useState<ImageData | null>(null)
   const [annotations, setAnnotations] = useState<Annotation[]>([])
   const [showSettings, setShowSettings] = useState(false)
   const [showExport, setShowExport] = useState(false)
   const [showAISettings, setShowAISettings] = useState(false)
   const [showLabelEditor, setShowLabelEditor] = useState(false)
-  const [, setSelectedLabel] = useState<Annotation | null>(null)
+  const [, setSelectedLabel] = useState<Label | null>(null)
   const [isSaving] = useState(false)
   const [contextMenuProps, setContextMenuProps] = useState({
     isOpen: false,
     x: 0,
     y: 0,
   })
+  const { currentImage, setCurrentImage } = useAnnotations()
   const [images, setImages] = useState<ImageData[]>([])
-
-  const navigate = useNavigate()
 
   const canvasContainerRef = useRef<HTMLDivElement>(null)
   const [containerRect, setContainerRect] = useState<DOMRect | null>(null)
 
-  const nextImage = async () => {
-    if (!images) return
-
-    const currentIndex = images.findIndex(
-      (img: ImageData) => img.id === currentImageId
-    )
-    if (currentIndex < (images?.length || 0) - 1) {
-      navigate(`/projects/${project.id}/studio/${images[currentIndex + 1]?.id}`)
-    } else {
-      toast({
-        title: "No more images",
-        description: "You are at the last image.",
-      })
-    }
+  const nextImage = () => {
+    throw new Error("Not implemented")
   }
 
-  const previousImage = async () => {
-    if (!images) return
-
-    const currentIndex = images.findIndex(
-      (img: ImageData) => img.id === currentImageId
-    )
-    if (currentIndex > 0) {
-      navigate(`/projects/${project.id}/studio/${images[currentIndex - 1]?.id}`)
-    } else {
-      toast({
-        title: "No more images",
-        description: "You are at the first image.",
-      })
-    }
+  const previousImage = () => {
+    throw new Error("Not implemented")
   }
 
   useEffect(() => {
-    const fetchImageData = async () => {
-      try {
-        const fetchedImages = await dataAccess.getImages(project.id)
-        setImages(fetchedImages)
-
-        if (fetchedImages.length > 0) {
-          setCurrentImage(fetchedImages[0]) // Set the first image as the current image
-          const annotations = await dataAccess.getAnnotations(
-            fetchedImages[0].id
-          )
-          setAnnotations(annotations) // Fetch annotations for the first image
-        } else {
-          setCurrentImage(null)
-          setAnnotations([])
+    if (imageId) {
+      const fetchImages = async () => {
+        const images = await dataAccess.getImages(project.id)
+        console.log("Fetched images:", images)
+        setImages(images)
+        const currentImage = images.find((img) => img.id === imageId) as ImageData | undefined
+        if (currentImage) {
+          setCurrentImage(currentImage)
+          setAnnotations(await dataAccess.getAnnotations(currentImage.id))
         }
-      } catch (error) {
-        console.error("Failed to load images or annotations:", error)
-        setImages([])
-        setCurrentImage(null)
-        setAnnotations([])
       }
+      fetchImages()
     }
+  }, [project.id, imageId, dataAccess, setCurrentImage, setAnnotations])
 
-    fetchImageData()
-  }, [project.id])
 
   const handleExportProject = () => {
     setShowExport(true)
   }
 
-  const handleLabelSelect = (label: Annotation) => {
+  const handleLabelSelect = (label: Label) => {
     setSelectedLabel(label)
     setShowLabelEditor(true)
   }
@@ -175,7 +133,7 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [
-    currentImageId,
+    currentImage?.id,
     images.length,
     showSettings,
     showLabelEditor,
@@ -247,7 +205,6 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
                 <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                   <span>
                     Image
-                    {images.findIndex((img) => img.id === currentImageId) + 1}
                     of
                     {images.length}
                   </span>
@@ -350,9 +307,6 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
                 {currentImage ? (
                   <Canvas
                     image={currentImage}
-                    annotations={annotations.filter(
-                      (a) => a.imageId === currentImageId
-                    )}
                   />
                 ) : (
                   <div className="flex h-full items-center justify-center bg-gray-100 dark:bg-gray-900">

@@ -21,7 +21,6 @@ export default function ImageStudio() {
     loadProject(projectId || "")
     setIsLoading(false)
   }, [loadProject, projectId])
-
   return (
     <>
       {isLoading && <Loading />}
@@ -29,7 +28,7 @@ export default function ImageStudio() {
         <AnnotationsProvider>
           <ImageLabeler
             project={currentProject as Project}
-            imageId={imageId || ""}
+            imageId={imageId ?? ""}
             onClose={() => (window.location.href = `/projects/${projectId}`)}
           />
         </AnnotationsProvider>
