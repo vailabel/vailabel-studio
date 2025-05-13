@@ -12,9 +12,10 @@ import { useAnnotations } from "@/hooks/use-annotations"
 
 interface CanvasProps {
   image: ImageData
+  annotations: Annotation[]
 }
 
-export const Canvas = ({ image }: CanvasProps) => {
+export const Canvas = ({ image, annotations }: CanvasProps) => {
   const { zoom, panOffset, selectedTool, setCanvasRef } = useCanvas()
   const canvasRef = useRef<HTMLDivElement>(null!)
   const { createAnnotation, getOrCreateLabel } = useAnnotations()
@@ -76,7 +77,6 @@ export const Canvas = ({ image }: CanvasProps) => {
     move: "cursor-move",
     delete: "cursor-pointer",
   }
-
   return (
     <>
       <div className="relative h-full w-full overflow-hidden bg-gray-100 dark:bg-gray-900">
@@ -104,6 +104,7 @@ export const Canvas = ({ image }: CanvasProps) => {
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
               onDoubleClick={handleDoubleClick}
+              role="button"
             >
               <div
                 className="absolute"
@@ -120,7 +121,7 @@ export const Canvas = ({ image }: CanvasProps) => {
                   width={image.width}
                   height={image.height}
                 />
-                <AnnotationRenderer />
+                <AnnotationRenderer annotations={annotations} />
                 {tempAnnotation && (
                   <TempAnnotation annotation={tempAnnotation} />
                 )}

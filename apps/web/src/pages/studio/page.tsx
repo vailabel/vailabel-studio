@@ -6,6 +6,7 @@ import Loading from "@/components/loading"
 import { useStore } from "@/lib/store"
 import { useParams } from "react-router-dom"
 import { AnnotationsProvider } from "@/contexts/annotations-context-provider"
+import { CanvasProvider } from "@/contexts/canvas-context-provider"
 
 export default function ImageStudio() {
   const { projectId, imageId } = useParams<{
@@ -25,13 +26,15 @@ export default function ImageStudio() {
     <>
       {isLoading && <Loading />}
       {!isLoading && (currentProject as Project) && (
-        <AnnotationsProvider>
-          <ImageLabeler
-            project={currentProject as Project}
-            imageId={imageId ?? ""}
-            onClose={() => (window.location.href = `/projects/${projectId}`)}
-          />
-        </AnnotationsProvider>
+        <CanvasProvider>
+          <AnnotationsProvider>
+            <ImageLabeler
+              project={currentProject as Project}
+              imageId={imageId ?? ""}
+              onClose={() => (window.location.href = `/projects/${projectId}`)}
+            />
+          </AnnotationsProvider>
+        </CanvasProvider>
       )}
     </>
   )
