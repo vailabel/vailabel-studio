@@ -1,5 +1,6 @@
+
+import { AnnotationsContext } from "@/contexts/annotations-context"
 import { useContext } from "react"
-import { AnnotationsContext } from "@/contexts/annotations-context-provider"
 
 export const useAnnotations = () => {
   const context = useContext(AnnotationsContext)

@@ -1,6 +1,4 @@
-/* eslint-disable */
-// @ts-ignore TS6133: Ignore unused variable error
-import { useEffect, useState } from "react"
+import {  useState } from "react"
 import { motion } from "framer-motion"
 import { ChevronRight, ChevronDown, Tag } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -11,27 +9,16 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
-import { useStore } from "@/lib/store"
-import { Annotation } from "@/lib/types"
+import { Label } from "@/lib/types"
+import { useAnnotations } from "@/hooks/use-annotations"
 
 interface LabelListPanelProps {
-  onLabelSelect: (annotation: Annotation) => void
+  onLabelSelect: (label: Label) => void
 }
 
 export function LabelListPanel({ onLabelSelect }: LabelListPanelProps) {
   const [labelsOpen, setLabelsOpen] = useState(true)
-  const { annotations } = useStore()
-  const [label, setLabel] = useState<Annotation[]>([])
-
-  useEffect(() => {
-    const uniqueLabels = annotations.filter(
-      (value, index, self) =>
-        index ===
-        self.findIndex((t) => t.name === value.name && t.color === value.color)
-    )
-    setLabel(uniqueLabels)
-  }, [annotations])
-
+  const { labels } = useAnnotations()
   return (
     <div
       className={cn(
@@ -49,7 +36,7 @@ export function LabelListPanel({ onLabelSelect }: LabelListPanelProps) {
       >
         <h2 className="text-lg font-semibold">Labels</h2>
         <p className={cn("text-sm", "dark:text-gray-400", "text-gray-500")}>
-          {annotations.length} total
+          {labels.length} total
         </p>
       </div>
 
@@ -74,7 +61,7 @@ export function LabelListPanel({ onLabelSelect }: LabelListPanelProps) {
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="space-y-1">
-                {label.map((label) => (
+                {labels.map((label) => (
                   <motion.div
                     key={label.id}
                     initial={{ opacity: 0, y: 5 }}
@@ -111,7 +98,7 @@ export function LabelListPanel({ onLabelSelect }: LabelListPanelProps) {
                 ))}
               </div>
 
-              {label.length === 0 && (
+              {labels.length === 0 && (
                 <div
                   className={cn(
                     "mt-2 rounded-md border border-dashed p-4 text-center",
