@@ -4,14 +4,12 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { AnimatePresence } from "framer-motion"
 import {
   ArrowLeft,
-  Save,
   Download,
   Settings,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
 import {
   Tooltip,
@@ -30,6 +28,7 @@ import { ContextMenu } from "@/components/context-menu"
 import { ThemeToggle } from "./theme-toggle"
 import { useDataAccess } from "@/hooks/use-data-access"
 import { useAnnotations } from "@/hooks/use-annotations"
+import { useNavigate } from "react-router-dom"
 
 interface ImageLabelerProps {
   project: Project
@@ -38,13 +37,13 @@ interface ImageLabelerProps {
 }
 
 export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
+  const navigate = useNavigate()
   const dataAccess = useDataAccess()
   const [showSettings, setShowSettings] = useState(false)
   const [showExport, setShowExport] = useState(false)
   const [showAISettings, setShowAISettings] = useState(false)
   const [showLabelEditor, setShowLabelEditor] = useState(false)
   const [, setSelectedLabel] = useState<Label | null>(null)
-  const [isSaving] = useState(false)
   const [contextMenuProps, setContextMenuProps] = useState({
     isOpen: false,
     x: 0,
@@ -58,12 +57,26 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
   const [containerRect, setContainerRect] = useState<DOMRect | null>(null)
 
   const nextImage = useCallback(() => {
-    throw new Error("Not implemented")
-  }, [])
+    if (images.length === 0) return
+
+    const currentIndex = images.findIndex((img) => img.id === currentImage?.id)
+    const nextIndex = (currentIndex + 1) % images.length
+    const nextImage = images[nextIndex]
+
+    setCurrentImage(nextImage)
+    navigate(`/projects/${project.id}/studio/${nextImage.id}`)
+  }, [images, setCurrentImage, navigate, project.id, currentImage?.id])
 
   const previousImage = useCallback(() => {
-    throw new Error("Not implemented")
-  }, [])
+    if (images.length === 0) return
+
+    const currentIndex = images.findIndex((img) => img.id === currentImage?.id)
+    const prevIndex = (currentIndex - 1 + images.length) % images.length
+    const prevImage = images[prevIndex]
+
+    setCurrentImage(prevImage)
+    navigate(`/projects/${project.id}/studio/${prevImage.id}`)
+  }, [images, setCurrentImage, navigate, project.id, currentImage?.id])
 
   useEffect(() => {
     if (imageId) {
@@ -150,7 +163,7 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
     previousImage,
   ])
 
-  const progress =
+  const overallProgress =
     images.length > 0
       ? Math.round((annotations.length / images.length) * 100)
       : 0
@@ -205,43 +218,14 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
 
             <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
               <span>
-                Image of
-                {images.length}
+                {images.length} labeled ({overallProgress}%)
               </span>
               <Separator orientation="vertical" className="h-4" />
-              <span>
-                {annotations.length} labeled ({progress}%)
-              </span>
             </div>
-          </div>
-
-          <div className="mt-2">
-            <Progress
-              value={progress}
-              className={`h-1 ${
-                progress > 50 ? "bg-green-500" : "bg-gray-200 dark:bg-gray-700"
-              }`}
-            />
           </div>
         </div>
         <div className="flex items-center gap-2">
           <ThemeToggle />
-
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  onClick={() => {}}
-                  disabled={isSaving}
-                >
-                  <Save className="mr-2 h-4 w-4" />
-                  {isSaving ? "Saving..." : "Save"}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Save project</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
 
           <TooltipProvider>
             <Tooltip>
@@ -253,9 +237,6 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
               </TooltipTrigger>
               <TooltipContent>Export project in various formats</TooltipContent>
             </Tooltip>
-          </TooltipProvider>
-
-          <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button

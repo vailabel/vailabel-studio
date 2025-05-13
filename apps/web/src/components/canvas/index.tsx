@@ -70,7 +70,6 @@ export const Canvas = ({ image, annotations }: CanvasProps) => {
   useEffect(() => {
     setCanvasRef(canvasRef)
   }, [setCanvasRef])
-
   const cursorStyles = {
     box: "cursor-crosshair",
     polygon: "cursor-crosshair",
@@ -133,13 +132,11 @@ export const Canvas = ({ image, annotations }: CanvasProps) => {
           )}
         </div>
       </div>
-      {showLabelInput && (
-        <CreateAnnotation
-          onSubmit={handleCreateAnnotation}
-          isOpen={true}
-          onClose={handleCloseCreateAnnotationModal}
-        />
-      )}
+      <CreateAnnotation
+        onSubmit={handleCreateAnnotation}
+        isOpen={showLabelInput}
+        onClose={handleCloseCreateAnnotationModal}
+      />
     </>
   )
 }
