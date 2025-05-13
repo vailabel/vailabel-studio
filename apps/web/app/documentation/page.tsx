@@ -7,7 +7,8 @@ import ReactMarkdown from "react-markdown"
 
 export const metadata: Metadata = {
   title: "Documentation - Vision AI Label Studio",
-  description: "Documentation for Vision AI Label Studio - AI-Assisted Image Annotation Tool",
+  description:
+    "Documentation for Vision AI Label Studio - AI-Assisted Image Annotation Tool",
 }
 
 export default async function DocumentationPage() {
@@ -126,7 +127,8 @@ Happy labeling!`
     markdownContent = await fs.readFile(filePath, "utf8")
   } catch (error) {
     console.error("Error reading markdown file:", error)
-    markdownContent = "# Error Loading Documentation\n\nSorry, there was an error loading the documentation content."
+    markdownContent =
+      "# Error Loading Documentation\n\nSorry, there was an error loading the documentation content."
   }
 
   return (
@@ -136,7 +138,10 @@ Happy labeling!`
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-2">
-              <Link href="/" className="text-xl font-bold flex items-center gap-2">
+              <Link
+                href="/"
+                className="text-xl font-bold flex items-center gap-2"
+              >
                 <ArrowLeft size={18} />
                 <span>Vision AI Label Studio</span>
               </Link>
@@ -158,10 +163,16 @@ Happy labeling!`
                 >
                   Getting Started
                 </a>
-                <a href="#installation" className="block py-2 px-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md">
+                <a
+                  href="#installation"
+                  className="block py-2 px-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
+                >
                   Installation
                 </a>
-                <a href="#quick-start" className="block py-2 px-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md">
+                <a
+                  href="#quick-start"
+                  className="block py-2 px-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
+                >
                   Quick Start
                 </a>
                 <a
@@ -176,7 +187,10 @@ Happy labeling!`
                 >
                   Keyboard Shortcuts
                 </a>
-                <a href="#next-steps" className="block py-2 px-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md">
+                <a
+                  href="#next-steps"
+                  className="block py-2 px-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
+                >
                   Next Steps
                 </a>
               </nav>

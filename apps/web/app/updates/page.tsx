@@ -1,6 +1,13 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { ArrowLeft, Github, GitCommit, GitPullRequest, Star, GitMerge } from "lucide-react"
+import {
+  ArrowLeft,
+  Github,
+  GitCommit,
+  GitPullRequest,
+  Star,
+  GitMerge,
+} from "lucide-react"
 
 export const metadata: Metadata = {
   title: "Latest Updates - Vision AI Label Studio",
@@ -31,14 +38,17 @@ type GitHubCommit = {
 
 async function getGitHubReleases() {
   // Replace with your actual GitHub repo
-  const res = await fetch("https://api.github.com/repos/vailabel/vailabel-studio/releases", {
-    headers: {
-      Accept: "application/vnd.github.v3+json",
-      // Add GitHub token if needed for higher rate limits
-      'Authorization': `token ${process.env.GITHUB_TOKEN}`
-    },
-    next: { revalidate: 3600 }, // Revalidate every hour
-  })
+  const res = await fetch(
+    "https://api.github.com/repos/vailabel/vailabel-studio/releases",
+    {
+      headers: {
+        Accept: "application/vnd.github.v3+json",
+        // Add GitHub token if needed for higher rate limits
+        Authorization: `token ${process.env.GITHUB_TOKEN}`,
+      },
+      next: { revalidate: 3600 }, // Revalidate every hour
+    }
+  )
 
   if (!res.ok) {
     // Return mock data if the API call fails
@@ -50,14 +60,17 @@ async function getGitHubReleases() {
 
 async function getGitHubCommits() {
   // Replace with your actual GitHub repo
-  const res = await fetch("https://api.github.com/repos/vailabel/vailabel-studio/commits", {
-    headers: {
-      Accept: "application/vnd.github.v3+json",
-      // Add GitHub token if needed for higher rate limits
-      'Authorization': `token ${process.env.GITHUB_TOKEN}`
-    },
-    next: { revalidate: 3600 }, // Revalidate every hour
-  })
+  const res = await fetch(
+    "https://api.github.com/repos/vailabel/vailabel-studio/commits",
+    {
+      headers: {
+        Accept: "application/vnd.github.v3+json",
+        // Add GitHub token if needed for higher rate limits
+        Authorization: `token ${process.env.GITHUB_TOKEN}`,
+      },
+      next: { revalidate: 3600 }, // Revalidate every hour
+    }
+  )
 
   if (!res.ok) {
     // Return mock data if the API call fails
@@ -168,7 +181,10 @@ function formatDate(dateString: string) {
 
 export default async function UpdatesPage() {
   // Fetch data in parallel
-  const [releasesData, commitsData] = await Promise.all([getGitHubReleases(), getGitHubCommits()])
+  const [releasesData, commitsData] = await Promise.all([
+    getGitHubReleases(),
+    getGitHubCommits(),
+  ])
 
   const releases = releasesData.slice(0, 3) // Get latest 3 releases
   const commits = commitsData.slice(0, 5) // Get latest 5 commits
@@ -180,7 +196,10 @@ export default async function UpdatesPage() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-2">
-              <Link href="/" className="text-xl font-bold flex items-center gap-2">
+              <Link
+                href="/"
+                className="text-xl font-bold flex items-center gap-2"
+              >
                 <ArrowLeft size={18} />
                 <span>Vision AI Label Studio</span>
               </Link>
@@ -213,7 +232,9 @@ export default async function UpdatesPage() {
               </div>
               <div>
                 <div className="text-2xl font-bold">87</div>
-                <div className="text-gray-600 dark:text-gray-400">Pull Requests</div>
+                <div className="text-gray-600 dark:text-gray-400">
+                  Pull Requests
+                </div>
               </div>
             </div>
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 flex items-center gap-4">
@@ -222,7 +243,9 @@ export default async function UpdatesPage() {
               </div>
               <div>
                 <div className="text-2xl font-bold">342</div>
-                <div className="text-gray-600 dark:text-gray-400">Contributors</div>
+                <div className="text-gray-600 dark:text-gray-400">
+                  Contributors
+                </div>
               </div>
             </div>
           </div>
@@ -248,7 +271,10 @@ export default async function UpdatesPage() {
             </h2>
             <div className="space-y-6">
               {releases.map((release) => (
-                <div key={release.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                <div
+                  key={release.id}
+                  className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6"
+                >
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
                     <h3 className="text-xl font-bold">{release.name}</h3>
                     <div className="flex items-center gap-2 mt-2 md:mt-0">
@@ -260,7 +286,9 @@ export default async function UpdatesPage() {
                       </span>
                     </div>
                   </div>
-                  <p className="text-gray-700 dark:text-gray-300 mb-4">{release.body}</p>
+                  <p className="text-gray-700 dark:text-gray-300 mb-4">
+                    {release.body}
+                  </p>
                   <a
                     href={release.html_url}
                     target="_blank"
@@ -297,7 +325,10 @@ export default async function UpdatesPage() {
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
               <ul className="divide-y divide-gray-200 dark:divide-gray-700">
                 {commits.map((commit) => (
-                  <li key={commit.sha} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                  <li
+                    key={commit.sha}
+                    className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                  >
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                       <div className="flex-1">
                         <a
@@ -336,7 +367,11 @@ export default async function UpdatesPage() {
                   stroke="currentColor"
                   className="w-4 h-4"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M8.25 4.5l7.5 7.5-7.5 7.5"
+                  />
                 </svg>
               </a>
             </div>
