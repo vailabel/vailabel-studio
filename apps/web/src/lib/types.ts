@@ -9,7 +9,7 @@ export interface Label {
   category?: string
   isAIGenerated?: boolean
   projectId: string
-  color?: string
+  color: string
 }
 
 export interface Annotation {

@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { ChevronRight, ChevronDown, Tag } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -19,6 +19,11 @@ interface LabelListPanelProps {
 export function LabelListPanel({ onLabelSelect }: LabelListPanelProps) {
   const [labelsOpen, setLabelsOpen] = useState(true)
   const { labels } = useAnnotations()
+  useEffect(() => {
+    if (labels.length > 0) {
+      setLabelsOpen(true)
+    }
+  }, [labels])
   return (
     <div
       className={cn(
