@@ -7,7 +7,7 @@ import { CornerDownLeft, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { getRandomColor, rgbToRgba } from "@/lib/utils"
-import {  Label } from "@/lib/types"
+import { Label } from "@/lib/types"
 import { useAnnotations } from "@/hooks/use-annotations"
 
 interface CreateAnnotationModalProps {
@@ -30,11 +30,7 @@ export function CreateAnnotation({
     (e: React.FormEvent) => {
       e.preventDefault()
       if (labelName.trim()) {
-       
-        onSubmit(
-          labelName.trim(),
-          getRandomColor()
-        )
+        onSubmit(labelName.trim(), getRandomColor())
         setLabelName("") // Reset label name
         setColor(null) // Reset color
         setLabelFilter([]) // Reset filter
@@ -112,10 +108,7 @@ export function CreateAnnotation({
                     key={label.id}
                     className="flex items-center justify-between p-2 border rounded-md cursor-pointer hover:shadow-md dark:border-gray-600"
                     style={{
-                      backgroundColor: rgbToRgba(
-                        getRandomColor(),
-                        0.2
-                      ),
+                      backgroundColor: rgbToRgba(getRandomColor(), 0.2),
                       borderColor: getRandomColor(),
                     }}
                   >
@@ -129,10 +122,10 @@ export function CreateAnnotation({
               <button
                 onClick={() => {
                   if (labelName.trim()) {
-                    onSubmit(labelName.trim(), getRandomColor());
-                    setLabelName(""); 
-                    setColor(null); // Reset color
-                    setLabelFilter([]); // Reset filter
+                    onSubmit(labelName.trim(), getRandomColor())
+                    setLabelName("")
+                    setColor(null) // Reset color
+                    setLabelFilter([]) // Reset filter
                   }
                 }}
                 className="flex items-center justify-between p-2 border rounded-md cursor-pointer hover:shadow-md dark:border-gray-600"

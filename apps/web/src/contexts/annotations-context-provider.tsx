@@ -26,7 +26,11 @@ export type AnnotationsContextType = {
 
 const MAX_HISTORY = 100
 
-export const AnnotationsProvider = ({ children }: { children: React.ReactNode }) => {
+export const AnnotationsProvider = ({
+  children,
+}: {
+  children: React.ReactNode
+}) => {
   const dataAccess = useDataAccess()
   const [annotations, setAnnotations] = useState<Annotation[]>([])
   const [history, setHistory] = useState<Annotation[][]>([[]])
@@ -182,7 +186,7 @@ export const AnnotationsProvider = ({ children }: { children: React.ReactNode })
         currentImage,
         setCurrentImage,
         setSelectedAnnotation,
-        selectedAnnotation
+        selectedAnnotation,
       }}
     >
       {children}

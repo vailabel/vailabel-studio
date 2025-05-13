@@ -51,7 +51,14 @@ export const Canvas = ({ image }: CanvasProps) => {
       setShowLabelInput(false)
       setTempAnnotation(null)
     },
-    [tempAnnotation, getOrCreateLabel, image.id, createAnnotation, setShowLabelInput, setTempAnnotation]
+    [
+      tempAnnotation,
+      getOrCreateLabel,
+      image.id,
+      createAnnotation,
+      setShowLabelInput,
+      setTempAnnotation,
+    ]
   )
 
   const handleCloseCreateAnnotationModal = useCallback(() => {
@@ -61,7 +68,7 @@ export const Canvas = ({ image }: CanvasProps) => {
 
   useEffect(() => {
     setCanvasRef(canvasRef)
-  }, [ setCanvasRef])
+  }, [setCanvasRef])
 
   const cursorStyles = {
     box: "cursor-crosshair",
