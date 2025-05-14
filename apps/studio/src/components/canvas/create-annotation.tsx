@@ -13,6 +13,47 @@ interface CreateAnnotationModalProps {
   onClose: () => void
 }
 
+interface Label {
+  id: string
+  name: string
+  color: string
+}
+
+function filterLabels(labelName: string, labels: Label[]) {
+  if (!labelName.trim()) return labels
+  return labels.filter((label) =>
+    label.name.toLowerCase().includes(labelName.toLowerCase())
+  )
+}
+
+function handleLabelClick(
+  label: Label,
+  saveLabel: (name: string, color: string) => void
+) {
+  saveLabel(label.name, label.color)
+}
+
+function renderLabelButtons(
+  labelFilter: Label[],
+  saveLabel: (name: string, color: string) => void
+) {
+  return labelFilter.map((label) => (
+    <button
+      onClick={() => handleLabelClick(label, saveLabel)}
+      key={label.id}
+      className="flex items-center justify-between p-2 border rounded-md cursor-pointer hover:shadow-md dark:border-gray-600"
+      style={{
+        backgroundColor: rgbToRgba(label.color, 0.2),
+        borderColor: label.color,
+      }}
+    >
+      <span className="truncate text-sm font-medium text-gray-800 dark:text-gray-200">
+        {label.name}
+      </span>
+    </button>
+  ))
+}
+
 export function CreateAnnotation({
   onSubmit,
   isOpen,
@@ -29,12 +70,11 @@ export function CreateAnnotation({
     }
   }, [isOpen])
 
-  const labelFilter = useMemo(() => {
-    if (!labelName.trim()) return labels
-    return labels.filter((label) =>
-      label.name.toLowerCase().includes(labelName.toLowerCase())
-    )
-  }, [labelName, labels])
+  const labelFilter = useMemo(
+    () => filterLabels(labelName, labels),
+    [labelName, labels]
+  )
+
   const saveLabel = useCallback(
     (name: string, color: string) => {
       onSubmit(name, color)
@@ -114,25 +154,7 @@ export function CreateAnnotation({
           <div className="mt-4">
             {labelFilter.length > 0 ? (
               <div className="grid grid-cols-2 gap-2">
-                {labelFilter.map((label) => (
-                  <button
-                    onClick={() => {
-                      setLabelName(label.name)
-                      setColor(label.color)
-                      saveLabel(label.name, label.color)
-                    }}
-                    key={label.id}
-                    className="flex items-center justify-between p-2 border rounded-md cursor-pointer hover:shadow-md dark:border-gray-600"
-                    style={{
-                      backgroundColor: rgbToRgba(label.color, 0.2),
-                      borderColor: label.color,
-                    }}
-                  >
-                    <span className="truncate text-sm font-medium text-gray-800 dark:text-gray-200">
-                      {label.name}
-                    </span>
-                  </button>
-                ))}
+                {renderLabelButtons(labelFilter, saveLabel)}
               </div>
             ) : (
               <button
