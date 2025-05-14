@@ -20,7 +20,7 @@
 </p>
 
 <p align="center">
-  A powerful, modern **image labeling tool** built with **React.js**, **TypeScript**, **TailwindCSS**, **Framer Motion**, and **Dexie.js**, designed for creating high-quality datasets for machine learning models. Supports manual annotation, free drawing, and **AI-assisted labeling** using **YOLOv8** models.
+  A powerful, modern <strong>image labeling tool</strong> built with <strong>React.js</strong>, <strong>TypeScript</strong>, <strong>TailwindCSS</strong>, <strong>Framer Motion</strong>, and <strong>Dexie.js</strong>, designed for creating high-quality datasets for machine learning models. Supports manual annotation, free drawing, and <strong>AI-assisted labeling</strong> using <strong>YOLOv8</strong> models.
 </p>
 
 ---
@@ -36,6 +36,16 @@
 - 🌓 **Light/Dark Mode**: Modern UI with full responsive design.
 - 💾 **Offline Support**: Save your projects locally without any backend required.
 - 🖥️ **Desktop Application**: Support Multi-platform Desktop app for Mac/Window/Linux.
+
+---
+
+## 📂 Sub-Projects
+
+| Sub-Project                 | Description                                                                        |
+| --------------------------- | ---------------------------------------------------------------------------------- |
+| [**Desktop**](apps/desktop) | 🖥️ Multi-platform desktop application for Mac, Windows, and Linux.                 |
+| [**Studio**](apps/studio)   | 🌐 Web-based image labeling tool with advanced features like AI-assisted labeling. |
+| [**Web**](apps/web)         | 📚 Documentation and updates site for the project.                                 |
 
 ---
 
@@ -126,11 +136,3 @@ This project is licensed under the **GNU GENERAL PUBLIC LICENSE** — see the [L
 - Inspiration: Roboflow, Label Studio, CVAT
 
 ---
-
-## 📂 Sub-Projects
-
-| Sub-Project                 | Description                                                                        |
-| --------------------------- | ---------------------------------------------------------------------------------- |
-| [**Desktop**](apps/desktop) | 🖥️ Multi-platform desktop application for Mac, Windows, and Linux.                 |
-| [**Studio**](apps/studio)   | 🌐 Web-based image labeling tool with advanced features like AI-assisted labeling. |
-| [**Web**](apps/web)         | 📚 Documentation and updates site for the project.                                 |
