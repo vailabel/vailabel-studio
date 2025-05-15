@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { X, Trash2, Moon, Sun } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -8,32 +8,65 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Slider } from "@/components/ui/slider"
-import { useSettingsStore } from "@/lib/settings-store"
 import { db } from "@/lib/db"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import { useTheme } from "./theme-provider"
+import { useDataAccess } from "@/hooks/use-data-access"
 
 interface SettingsModalProps {
   onClose: () => void
+}
+
+interface Settings {
+  [key: string]: string | number | boolean
 }
 
 export function SettingsModal({ onClose }: SettingsModalProps) {
   const { toast } = useToast()
   const [isClearing, setIsClearing] = useState(false)
   const { theme, setTheme } = useTheme()
-  const {
-    showRulers,
-    setShowRulers,
-    showCrosshairs,
-    setShowCrosshairs,
-    showCoordinates,
-    setShowCoordinates,
-    brightness,
-    setBrightness,
-    contrast,
-    setContrast,
-  } = useSettingsStore()
+  const data = useDataAccess()
+
+  const [, setSettings] = useState<Settings>({})
+  const [showRulers, setShowRulers] = useState(true)
+  const [showCrosshairs, setShowCrosshairs] = useState(true)
+  const [showCoordinates, setShowCoordinates] = useState(true)
+  const [brightness, setBrightness] = useState(100)
+  const [contrast, setContrast] = useState(100)
+
+  // Fetch settings on mount
+  useEffect(() => {
+    ;(async () => {
+      const settingsArray: { key: string; value: string }[] =
+        await data.getSettings()
+      const loadedSettings: Settings = settingsArray.reduce(
+        (acc, { key, value }) => {
+          acc[key] = value
+          return acc
+        },
+        {} as Settings
+      )
+      setSettings(loadedSettings)
+      setShowRulers(Boolean(loadedSettings.showRulers ?? true))
+      setShowCrosshairs(Boolean(loadedSettings.showCrosshairs ?? true))
+      setShowCoordinates(Boolean(loadedSettings.showCoordinates ?? true))
+      setBrightness(Number(loadedSettings.brightness ?? 100))
+      setContrast(Number(loadedSettings.contrast ?? 100))
+    })()
+  }, [data])
+
+  // Unified handler for toggles and sliders
+  const handleChangeSetting = (
+    key: string,
+    value: string | number | boolean
+  ) => {
+    data.updateSetting(key, String(value))
+    toast({
+      title: "Setting updated",
+      description: `${key} has been updated to ${value}`,
+    })
+  }
 
   const handleClearAllData = async () => {
     if (
@@ -153,8 +186,11 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
               </div>
               <Switch
                 id="show-rulers"
-                checked={showRulers}
-                onCheckedChange={setShowRulers}
+                checked={!!showRulers}
+                onCheckedChange={(checked) => {
+                  setShowRulers(checked)
+                  handleChangeSetting("showRulers", checked)
+                }}
               />
             </div>
 
@@ -171,8 +207,11 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
               </div>
               <Switch
                 id="show-crosshairs"
-                checked={showCrosshairs}
-                onCheckedChange={setShowCrosshairs}
+                checked={!!showCrosshairs}
+                onCheckedChange={(checked) => {
+                  setShowCrosshairs(checked)
+                  handleChangeSetting("showCrosshairs", checked)
+                }}
               />
             </div>
 
@@ -189,8 +228,11 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
               </div>
               <Switch
                 id="show-coordinates"
-                checked={showCoordinates}
-                onCheckedChange={setShowCoordinates}
+                checked={!!showCoordinates}
+                onCheckedChange={(checked) => {
+                  setShowCoordinates(checked)
+                  handleChangeSetting("showCoordinates", checked)
+                }}
               />
             </div>
 
@@ -207,8 +249,11 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                   min={50}
                   max={150}
                   step={1}
-                  value={[brightness]}
-                  onValueChange={(value) => setBrightness(value[0])}
+                  value={[Number(brightness)]}
+                  onValueChange={(value) => {
+                    setBrightness(value[0])
+                    handleChangeSetting("brightness", value[0])
+                  }}
                   className="flex-1"
                 />
                 <span className="w-8 text-right text-sm">{brightness}%</span>
@@ -228,8 +273,11 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                   min={50}
                   max={150}
                   step={1}
-                  value={[contrast]}
-                  onValueChange={(value) => setContrast(value[0])}
+                  value={[Number(contrast)]}
+                  onValueChange={(value) => {
+                    setContrast(value[0])
+                    handleChangeSetting("contrast", value[0])
+                  }}
                   className="flex-1"
                 />
                 <span className="w-8 text-right text-sm">{contrast}%</span>

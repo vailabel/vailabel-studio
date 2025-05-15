@@ -9,6 +9,7 @@ type MockDataAccess = IDataAccess & {
 }
 
 const mockDataAccess: MockDataAccess = {
+  getProjectById: jest.fn(),
   getProjects: jest.fn(),
   getImages: jest.fn(),
   getAnnotations: jest.fn(),
