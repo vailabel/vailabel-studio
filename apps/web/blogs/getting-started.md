@@ -1,3 +1,11 @@
+---
+title: "Getting Started with Vision AI Label Studio"
+description: "A guide to help you quickly get started with Vision AI Label Studio, an open-source image annotation tool."
+date: "2025-05-15"
+author: "Vision AI Team"
+tags: ["AI", "Labeling", "YOLOv8", "Image Annotation"]
+---
+
 # Getting Started with Vision AI Label Studio
 
 Welcome to Vision AI Label Studio, a powerful open-source tool for image annotation with AI assistance. This guide will help you get started quickly.

@@ -20,6 +20,9 @@ import {
 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
+import { data } from "./data"
+import { getGitHubReleases } from "@/lib/api"
+import ReactMarkdown from "react-markdown"
 
 export default function Home() {
   const [darkMode, setDarkMode] = useState(false)
@@ -32,6 +35,16 @@ export default function Home() {
   const brushControls = useAnimation()
   const aiControls = useAnimation()
   const layerControls = useAnimation()
+
+  const [releaseData, setReleaseData] = useState([])
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const releases = await getGitHubReleases()
+      setReleaseData(releases)
+    }
+    fetchData()
+  }, [])
 
   const labelingTools = [
     {
@@ -410,6 +423,8 @@ export default function Home() {
     show: { opacity: 1, y: 0 },
   }
 
+  console.log(releaseData)
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-200">
       <main>
@@ -431,7 +446,7 @@ export default function Home() {
               </p>
               <div className="flex flex-col sm:flex-row justify-center gap-4 mb-12">
                 <motion.a
-                  href="#"
+                  href={data.productionUrl}
                   className="px-8 py-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -439,7 +454,7 @@ export default function Home() {
                   Get Started <ArrowRight size={18} />
                 </motion.a>
                 <motion.a
-                  href="#"
+                  href={data.repoUrl}
                   className="px-8 py-3 rounded-lg bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-medium hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -961,6 +976,24 @@ export default function Home() {
                 <div className="p-6">
                   <h3 className="text-2xl font-bold mb-4">Latest Updates</h3>
                   <div className="space-y-6">
+                    {releaseData.slice(0, 2).map((update, index) => (
+                      <div
+                        key={index}
+                        className="border-b border-gray-200 dark:border-gray-700 pb-4"
+                      >
+                        <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                          {update?.published_at}
+                        </div>
+                        <h4 className="font-semibold text-lg">
+                          {update?.tag_name}
+                        </h4>
+                        <p className="text-gray-600 dark:text-gray-400 mt-2">
+                          <ReactMarkdown>
+                            {update?.body.slice(0, 70)}
+                          </ReactMarkdown>
+                        </p>
+                      </div>
+                    ))}
                     <div className="border-b border-gray-200 dark:border-gray-700 pb-4">
                       <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">
                         May 10, 2025
@@ -971,30 +1004,6 @@ export default function Home() {
                       <p className="text-gray-600 dark:text-gray-400 mt-2">
                         We've integrated YOLOv8 for AI-assisted labeling, making
                         annotation up to 5x faster.
-                      </p>
-                    </div>
-                    <div className="border-b border-gray-200 dark:border-gray-700 pb-4">
-                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-                        April 22, 2025
-                      </div>
-                      <h4 className="font-semibold text-lg">
-                        New Export Formats Added
-                      </h4>
-                      <p className="text-gray-600 dark:text-gray-400 mt-2">
-                        Added support for Pascal VOC and COCO JSON export
-                        formats.
-                      </p>
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-                        March 15, 2025
-                      </div>
-                      <h4 className="font-semibold text-lg">
-                        Version 1.0 Released
-                      </h4>
-                      <p className="text-gray-600 dark:text-gray-400 mt-2">
-                        First stable release with core annotation features and
-                        offline storage.
                       </p>
                     </div>
                   </div>
