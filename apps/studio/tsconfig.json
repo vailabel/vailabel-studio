@@ -9,7 +9,6 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    "jsx": "react-jsx",
-    "esModuleInterop": true
+    "jsx": "react-jsx"
   }
 }
