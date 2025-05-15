@@ -6,9 +6,10 @@ import React, { useEffect, useState } from "react"
 import { getGitHubReleases } from "@/lib/api"
 
 interface ReleaseData {
+  id: number
   tag_name: string
   published_at: string
-  body: string
+  body: string | null
 }
 
 const DocumentationBlog = () => {
@@ -19,11 +20,12 @@ const DocumentationBlog = () => {
       const releases = await getGitHubReleases()
       setReleaseData(
         releases?.map((release) => ({
+          id: release.id ?? 0,
           tag_name: release.tag_name ?? "",
-          published_at: new Date(
-            release.published_at ?? ""
-          ).toLocaleDateString(),
-          body: release.body ?? "",
+          published_at: release.published_at
+            ? new Date(release.published_at).toLocaleDateString()
+            : "",
+          body: release.body ?? null,
         })) ?? []
       )
     }
@@ -110,7 +112,7 @@ const DocumentationBlog = () => {
               <div className="space-y-6">
                 {releaseData.slice(0, 2).map((update, index) => (
                   <div
-                    key={index}
+                    key={update.id}
                     className="border-b border-gray-200 dark:border-gray-700 pb-4"
                   >
                     <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">
@@ -120,7 +122,7 @@ const DocumentationBlog = () => {
                       {update?.tag_name}
                     </h4>
                     <span className="text-gray-600 dark:text-gray-400 mt-2">
-                      <ReactMarkdown>{update?.body.slice(0, 70)}</ReactMarkdown>
+                      <ReactMarkdown>{update?.body?.slice(0, 70)}</ReactMarkdown>
                     </span>
                   </div>
                 ))}
