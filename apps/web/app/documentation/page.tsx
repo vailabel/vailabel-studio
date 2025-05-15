@@ -93,9 +93,9 @@ export default async function DocumentationPage() {
           {/* Main content */}
           <div className="flex-1 bg-white dark:bg-gray-800 rounded-lg shadow-md p-8">
             <article className="prose dark:prose-invert prose-blue max-w-none prose-headings:scroll-mt-24">
-              <ReactMarkdown 
-                remarkPlugins={[remarkGfm]}
-              >{markdownContent}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {markdownContent}
+              </ReactMarkdown>
             </article>
           </div>
         </div>
