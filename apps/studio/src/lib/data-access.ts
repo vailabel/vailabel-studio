@@ -4,6 +4,7 @@ import { db } from "./db"
 // Define the interface for the Data Access Layer
 export interface IDataAccess {
   getProjects(): Promise<Project[]>
+  getProjectById(id: string): Promise<Project | undefined>
   getImages(projectId: string): Promise<ImageData[]>
   getAnnotations(imageId: string): Promise<Annotation[]>
   // Add more methods as needed
@@ -56,6 +57,9 @@ export interface IDataAccess {
 export class DexieDataAccess implements IDataAccess {
   async getProjects(): Promise<Project[]> {
     return db.projects.toArray()
+  }
+  async getProjectById(id: string): Promise<Project | undefined> {
+    return db.projects.get(id)
   }
 
   async getImages(projectId: string): Promise<ImageData[]> {
@@ -208,6 +212,11 @@ export class ApiDataAccess implements IDataAccess {
   async getProjects(): Promise<Project[]> {
     // Replace with actual API call
     return fetch("/api/projects").then((res) => res.json())
+  }
+
+  async getProjectById(id: string): Promise<Project | undefined> {
+    // Replace with actual API call
+    return fetch(`/api/projects/${id}`).then((res) => res.json())
   }
 
   async getImages(projectId: string): Promise<ImageData[]> {

@@ -3,10 +3,10 @@ import { ImageLabeler } from "@/components/image-labeler"
 import { Project } from "@/lib/types"
 import { useEffect, useState } from "react"
 import Loading from "@/components/loading"
-import { useStore } from "@/lib/store"
 import { useParams } from "react-router-dom"
 import { AnnotationsProvider } from "@/contexts/annotations-context-provider"
 import { CanvasProvider } from "@/contexts/canvas-context-provider"
+import { useDataAccess } from "@/hooks/use-data-access"
 
 export default function ImageStudio() {
   const { projectId, imageId } = useParams<{
@@ -14,14 +14,25 @@ export default function ImageStudio() {
     imageId: string
   }>()
 
-  const { loadProject, currentProject } = useStore()
+  const { getProjectById } = useDataAccess()
   const [isLoading, setIsLoading] = useState(true)
+  const [currentProject, setCurrentProject] = useState<Project | null>(null)
 
   useEffect(() => {
-    setIsLoading(true)
-    loadProject(projectId || "")
-    setIsLoading(false)
-  }, [loadProject, projectId])
+    const fetchProject = async () => {
+      setIsLoading(true)
+      try {
+        const project = await getProjectById(projectId ?? "")
+        setCurrentProject(project ?? null)
+      } catch (error) {
+        console.error("Error loading project:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchProject()
+  }, [projectId, getProjectById])
   return (
     <>
       {isLoading && <Loading />}
