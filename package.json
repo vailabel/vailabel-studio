@@ -16,7 +16,9 @@
     "desktop:dist": "npx electron-builder --config ./packages/desktop/electron-builder.json",
     "prepare": "husky",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\" --ignore-path .gitignore --ignore-path .prettierignore",
-    "commit": "cz"
+    "commit": "cz",
+    "build:studio": "cd apps/studio && yarn run build",
+    "test": "jest --coverage --watchAll=false"
   },
   "keywords": [],
   "workspaces": [

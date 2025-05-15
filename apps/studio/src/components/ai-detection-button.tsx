@@ -8,9 +8,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { useToast } from "@/hooks/use-toast"
-import { useStore } from "@/lib/store"
 import { detectObjects } from "@/lib/ai-utils"
 import type { Annotation, ImageData, Label } from "@/lib/types"
+import { useDataAccess } from "@/hooks/use-data-access"
 
 interface AIDetectionButtonProps {
   image: ImageData | null
@@ -19,9 +19,8 @@ interface AIDetectionButtonProps {
 
 export function AIDetectionButton({ image, disabled }: AIDetectionButtonProps) {
   const { toast } = useToast()
-  const { createAnnotation } = useStore()
   const [isDetecting, setIsDetecting] = useState(false)
-
+  const data = useDataAccess()
   const handleDetection = async () => {
     if (!image) {
       toast({
@@ -75,9 +74,7 @@ export function AIDetectionButton({ image, disabled }: AIDetectionButtonProps) {
           } as Label,
           labelId: crypto.randomUUID(),
         }
-
-        // Create the annotation in the store
-        createAnnotation(annotation)
+        data.createAnnotation(annotation)
       })
 
       toast({
