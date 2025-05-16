@@ -5,9 +5,9 @@
   "description": "My Electron application description",
   "main": "dist/main.js",
   "scripts": {
-    "prebuild": "cp -r ../studio/dist/* dist",
+    "prebuild": "npx copyfiles -u 3 \"../studio/dist/**/*\" ./dist",
     "start": "tsc && electron .",
-    "build": "yarn prebuild && tsc && electron-builder --publish always"
+    "build": "tsc && electron-builder"
   },
   "keywords": [],
   "author": {
