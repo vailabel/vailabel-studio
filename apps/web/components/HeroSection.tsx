@@ -11,10 +11,16 @@ import {
   MousePointer,
   Check,
   Tag,
+  BluetoothSearching,
+  ChevronDown,
+  Laptop,
+  Monitor,
+  Apple,
 } from "lucide-react"
 import Image from "next/image"
 import { data } from "@/app/data"
 import { container, item } from "@/lib/motion"
+import DownloadButton from "./DownloadButton"
 
 const HeroSection = () => {
   const [activeToolIndex, setActiveToolIndex] = useState(0)
@@ -385,7 +391,7 @@ const HeroSection = () => {
             Label smarter and faster with AI-assisted annotations, beautiful UI,
             and full offline support.
           </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-4 mb-12">
+          <div className="flex flex-col sm:flex-row justify-center gap-4 mb-12 relative">
             <motion.a
               href={data.productionUrl}
               className="px-8 py-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
@@ -394,6 +400,7 @@ const HeroSection = () => {
             >
               Get Started <ArrowRight size={18} />
             </motion.a>
+            <DownloadButton />
             <motion.a
               href={data.repoUrl}
               className="px-8 py-3 rounded-lg bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-medium hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
