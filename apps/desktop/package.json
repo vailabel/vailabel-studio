@@ -19,9 +19,7 @@
   "devDependencies": {
     "@types/semver": "^7.7.0",
     "electron": "36.2.1",
-    "electron-builder": "^26.0.12",
-    "electron-installer-debian": "^3.2.0",
-    "electron-installer-snap": "^5.2.0"
+    "electron-builder": "^26.0.12"
   },
   "dependencies": {
     "electron-updater": "^6.6.2"
