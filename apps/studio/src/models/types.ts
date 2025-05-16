@@ -42,7 +42,7 @@ export interface ImageData {
   data: string
   width: number
   height: number
-  url ?: string 
+  url?: string
   projectId: string
   createdAt: Date
 }

@@ -18,7 +18,10 @@ export class SQLiteDataAccess implements IDataAccess {
     })
   }
 
-  private getAsync<T>(sql: string, params: unknown[] = []): Promise<T | undefined> {
+  private getAsync<T>(
+    sql: string,
+    params: unknown[] = []
+  ): Promise<T | undefined> {
     return new Promise((resolve, reject) => {
       this.db.get(sql, params, (err: unknown, row: T) => {
         if (err) return reject(err)

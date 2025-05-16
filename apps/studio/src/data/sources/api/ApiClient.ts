@@ -2,7 +2,9 @@ export type RequestInterceptor = (
   input: RequestInfo,
   init: RequestInit
 ) => Promise<[RequestInfo, RequestInit]> | [RequestInfo, RequestInit]
-export type ResponseInterceptor = (response: Response) => Promise<Response> | Response
+export type ResponseInterceptor = (
+  response: Response
+) => Promise<Response> | Response
 
 export type ApiClientOptions = {
   baseUrl?: string

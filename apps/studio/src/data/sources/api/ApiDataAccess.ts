@@ -8,7 +8,6 @@ import type {
 } from "@/models/types"
 import { ApiClient } from "@/data/sources/api/ApiClient"
 
-
 const api = new ApiClient()
 
 export class ApiDataAccess implements IDataAccess {
