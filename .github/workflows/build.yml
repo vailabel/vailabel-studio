@@ -29,7 +29,7 @@ jobs:
         run: yarn workspace studio build 
 
       - name: Build Electron app
-        run: yarn workspace desktop build 
+        run: yarn workspace desktop build:publish
 
       - name: Upload release assets
         uses: softprops/action-gh-release@v2
