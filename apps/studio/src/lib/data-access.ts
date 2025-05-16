@@ -1,6 +1,5 @@
 import type { Label, Project, ImageData, Annotation, History } from "./types"
 
-
 // Define the interface for the Data Access Layer
 export interface IDataAccess {
   getProjects(): Promise<Project[]>
@@ -52,4 +51,3 @@ export interface IDataAccess {
   updateLabel(id: string, updates: Partial<Label>): Promise<void>
   deleteLabel(id: string): Promise<void>
 }
-

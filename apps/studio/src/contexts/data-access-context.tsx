@@ -1,6 +1,7 @@
 import React, { createContext, useMemo } from "react"
 import type { IDataAccess } from "../lib/data-access"
-import { DexieDataAccess, ApiDataAccess } from "../lib/data-access"
+import { ApiDataAccess } from "@/data/sources/api/ApiDataAccess"
+import { DexieDataAccess } from "@/data/sources/dexie/DexieDataAccess"
 
 interface DataAccessContextType {
   dataAccess: IDataAccess

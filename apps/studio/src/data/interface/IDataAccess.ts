@@ -1,4 +1,10 @@
-import type { Project, ImageData, Annotation, Label, History } from "@/models/types"
+import type {
+  Project,
+  ImageData,
+  Annotation,
+  Label,
+  History,
+} from "@/models/types"
 
 export interface IDataAccess {
   // Project
@@ -10,7 +16,11 @@ export interface IDataAccess {
 
   // Image
   getImages(projectId: string): Promise<ImageData[]>
-  getImagesWithPagination(projectId: string, offset: number, limit: number): Promise<ImageData[]>
+  getImagesWithPagination(
+    projectId: string,
+    offset: number,
+    limit: number
+  ): Promise<ImageData[]>
   getNextImageId(currentImageId: string): Promise<string | null>
   getPreviousImageId(currentImageId: string): Promise<string | null>
   createImage(image: ImageData): Promise<void>
@@ -19,7 +29,10 @@ export interface IDataAccess {
 
   // Annotation
   getAnnotations(imageId: string): Promise<Annotation[]>
-  getAnnotationsWithFilter(imageId: string, filter: Partial<Annotation>): Promise<Annotation[]>
+  getAnnotationsWithFilter(
+    imageId: string,
+    filter: Partial<Annotation>
+  ): Promise<Annotation[]>
   createAnnotation(annotation: Annotation): Promise<void>
   updateAnnotation(id: string, updates: Partial<Annotation>): Promise<void>
   deleteAnnotation(id: string): Promise<void>

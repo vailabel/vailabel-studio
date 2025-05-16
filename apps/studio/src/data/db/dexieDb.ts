@@ -1,5 +1,11 @@
 import Dexie, { type Table } from "dexie"
-import type { Label, Project, ImageData, Annotation, History } from "@/models/types"
+import type {
+  Label,
+  Project,
+  ImageData,
+  Annotation,
+  History,
+} from "@/models/types"
 
 export class VisionDatabase extends Dexie {
   projects!: Table<Project>
@@ -23,3 +29,4 @@ export class VisionDatabase extends Dexie {
   }
 }
 
+export const db: VisionDatabase = new VisionDatabase()

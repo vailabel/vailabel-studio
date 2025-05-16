@@ -23,4 +23,4 @@ class VisionDatabase extends Dexie {
   }
 }
 
-export const db = new VisionDatabase()
+export const db: VisionDatabase = new VisionDatabase()

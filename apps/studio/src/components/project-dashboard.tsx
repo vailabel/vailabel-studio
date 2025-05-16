@@ -15,6 +15,7 @@ import {
 import { ProjectManager } from "@/components/project-manager"
 import { useToast } from "@/hooks/use-toast"
 import type { Project } from "@/lib/types"
+import { useNavigate } from "react-router-dom"
 
 interface ProjectDashboardProps {
   projects: Project[]
@@ -31,7 +32,7 @@ export function ProjectDashboard({
 }: ProjectDashboardProps) {
   const { toast } = useToast()
   const [showNewProject, setShowNewProject] = useState(false)
-
+  const navigate = useNavigate()
   const handleProjectCreate = (project: Project) => {
     onProjectCreate(project)
     setShowNewProject(false)
@@ -112,9 +113,7 @@ export function ProjectDashboard({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() =>
-                      (window.location.href = `/projects/${project.id}`)
-                    }
+                    onClick={() => navigate(`/projects/${project.id}`)}
                   >
                     <FolderOpen className="mr-2 h-4 w-4" />
                     Open Project
