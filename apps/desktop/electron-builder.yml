@@ -32,6 +32,8 @@ nsis:
 linux:
   target:
     - AppImage
+    - snap
+    - deb
   category: Graphics
   
 directories:
