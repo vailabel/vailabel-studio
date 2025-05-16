@@ -39,3 +39,7 @@ publish:
   provider: github
   owner: vailabel
   repo: vailabel-studio
+author:
+  name: Vichea Nath
+  email: nathvichea1@gmail.com
+  url: https://github.com/vicheanath
