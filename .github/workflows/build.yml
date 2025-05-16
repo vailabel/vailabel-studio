@@ -43,3 +43,4 @@ jobs:
             apps/desktop/dist/*.exe
             apps/desktop/dist/*.msi
             apps/desktop/dist/*.zip
+        if: always()
