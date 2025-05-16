@@ -1,7 +1,13 @@
 import Dexie, { type Table } from "dexie"
-import type { Label, Project, ImageData, Annotation, History } from "./types"
+import type {
+  Label,
+  Project,
+  ImageData,
+  Annotation,
+  History,
+} from "@/models/types"
 
-class VisionDatabase extends Dexie {
+export class VisionDatabase extends Dexie {
   projects!: Table<Project>
   images!: Table<ImageData>
   labels!: Table<Label>
@@ -18,7 +24,7 @@ class VisionDatabase extends Dexie {
       labels: "id, name, category, projectId, color, isAIGenerated",
       settings: "key, value",
       annotations: "id, name, type, coordinates, imageId, createdAt",
-      history: "labels, historyIndex, canUndo, canRedo",
+      history: "id, labels, historyIndex, canUndo, canRedo",
     })
   }
 }

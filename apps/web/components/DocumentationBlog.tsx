@@ -122,7 +122,9 @@ const DocumentationBlog = () => {
                       {update?.tag_name}
                     </h4>
                     <span className="text-gray-600 dark:text-gray-400 mt-2">
-                      <ReactMarkdown>{update?.body?.slice(0, 70)}</ReactMarkdown>
+                      <ReactMarkdown>
+                        {update?.body?.slice(0, 70)}
+                      </ReactMarkdown>
                     </span>
                   </div>
                 ))}

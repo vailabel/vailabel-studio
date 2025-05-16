@@ -1,6 +1,5 @@
 "use client"
 
-
 import HeroSection from "@/components/HeroSection"
 import FeatureHighlights from "@/components/FeatureHighlights"
 import DocumentationBlog from "@/components/DocumentationBlog"

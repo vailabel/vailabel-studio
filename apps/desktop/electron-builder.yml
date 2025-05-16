@@ -1,0 +1,42 @@
+appId: com.vailabel.studio
+asar: true
+productName: Vision AI Label Studio
+files:
+  - dist/**/*
+  - ../studio/dist/**/*
+mac:
+  target: dmg
+dmg:
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+
+win:
+  target:
+    - nsis
+    - portable
+nsis:
+  oneClick: true
+  perMachine: true
+  allowElevation: true
+  allowToChangeInstallationDirectory: false
+  installerIcon: assets/icon.ico
+  uninstallerIcon: assets/icon.ico
+  uninstallDisplayName: Vision AI Label Studio
+  createDesktopShortcut: true
+
+linux:
+  target:
+    - AppImage
+    - snap
+  category: Graphics
+  
+  
+directories:
+  buildResources: assets
+publish:
+  provider: github
