@@ -40,3 +40,5 @@ directories:
   buildResources: assets
 publish:
   provider: github
+  owner: vailabel
+  repo: vailabel-studio
