@@ -6,6 +6,10 @@ export type GitHubRelease = {
   published_at: string | null
   body?: string | null
   html_url?: string
+  assets?: Array<{
+    name: string
+    browser_download_url: string
+  }>
 }
 
 export type GitHubCommit = {
@@ -32,7 +36,7 @@ export async function getGitHubReleases() {
     },
   })
 
-  return res.data.map((release: GitHubRelease) => {
+  return res.data.map((release: any) => {
     return {
       id: release.id,
       name: release.name,
@@ -40,6 +44,7 @@ export async function getGitHubReleases() {
       published_at: release.published_at,
       body: release.body,
       html_url: release.html_url,
+      assets: release.assets,
     }
   })
 }

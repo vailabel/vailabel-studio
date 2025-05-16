@@ -2,7 +2,6 @@
   "name": "vailabel",
   "version": "1.0.0",
   "description": "image labeling",
-  "main": "dist/index.js",
   "private": true,
   "authors": {
     "name": "Vichea Nath",
@@ -10,17 +9,14 @@
   },
   "scripts": {
     "clean": "npx git-clear-branch",
-    "desktop:build": "NODE_ENV=production webpack",
-    "desktop:start": "npm run build && electron ./dist/main.js",
-    "desktop:watch": "webpack --watch & nodemon --watch dist --exec electron ./packages/desktop/dist/main.js",
-    "desktop:dist": "npx electron-builder --config ./packages/desktop/electron-builder.json",
     "prepare": "husky",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\" --ignore-path .gitignore --ignore-path .prettierignore",
     "commit": "cz",
-    "build:studio": "cd apps/studio && yarn run build",
     "test": "jest --coverage --watchAll=false",
-    "dev": "concurrently \"cd apps/studio && yarn run dev\" \"cd apps/desktop && yarn run start\"",
-    "build": "concurrently \"cd apps/studio && yarn run build\" \"cd apps/desktop && yarn run build\""
+    "dev": "concurrently \"yarn workspaces studio dev\" \"yarn workspaces desktop start\"",
+    "build": "concurrently \"yarn workspaces studio build\" \"yarn workspaces desktop build\"",
+    "dev:web": "yarn workspaces web dev",
+    "build:web": "yarn workspaces web build"
   },
   "keywords": [],
   "workspaces": [

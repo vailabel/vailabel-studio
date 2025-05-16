@@ -5,10 +5,16 @@ import { useTheme } from "next-themes"
 import { data } from "@/app/data"
 import { usePathname } from "next/navigation"
 import GitHubButton from "./GitHubButton"
+import { useEffect, useState } from "react"
 
 export default function Header() {
   const { theme, setTheme } = useTheme()
   const pathname = usePathname()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const toggleDarkMode = () => {
     if (theme === "dark") {
@@ -61,13 +67,15 @@ export default function Header() {
               Updates
             </Link>
             <GitHubButton repoUrl={data.repoUrl} />
-            <button
-              onClick={toggleDarkMode}
-              className="p-2 rounded-full bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
-              aria-label="Toggle dark mode"
-            >
-              {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-            </button>
+            {mounted && (
+              <button
+                onClick={toggleDarkMode}
+                className="p-2 rounded-full bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
+                aria-label="Toggle dark mode"
+              >
+                {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+              </button>
+            )}
           </div>
         </div>
       </div>
