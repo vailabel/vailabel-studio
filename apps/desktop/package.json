@@ -1,7 +1,7 @@
 {
   "name": "desktop",
   "productName": "desktop",
-  "version": "1.0.1",
+  "version": "0.1.3-alpha.0",
   "description": "My Electron application description",
   "main": "dist/main.js",
   "scripts": {

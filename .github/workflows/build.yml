@@ -4,8 +4,6 @@ on:
   push:
     tags:
       - 'v*.*.*'
-  release:
-    types: [published]
 env:
   GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
@@ -32,16 +30,3 @@ jobs:
 
       - name: Build Electron app
         run: yarn workspace desktop build:publish
-
-      - name: Upload release assets
-        uses: softprops/action-gh-release@v2
-        if: github.event_name == 'release'
-        with:
-          files: |
-            apps/desktop/dist/*.AppImage
-            apps/desktop/dist/*.deb
-            apps/desktop/dist/*.rpm
-            apps/desktop/dist/*.dmg
-            apps/desktop/dist/*.exe
-            apps/desktop/dist/*.msi
-            apps/desktop/dist/*.zip
