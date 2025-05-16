@@ -13,7 +13,8 @@
   "keywords": [],
   "author": {
     "name": "Vichea",
-    "email": "nathvichea1@gmail.com"
+    "email": "nathvichea1@gmail.com",
+    "url": "https://github.com/vicheanath"
   },
   "license": "MIT",
   "devDependencies": {
