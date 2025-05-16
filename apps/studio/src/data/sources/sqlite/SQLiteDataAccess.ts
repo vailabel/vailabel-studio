@@ -1,4 +1,3 @@
-// SQLiteDataAccess.ts (pseudo-code using sqlite3 in Electron)
 import { Database } from "sqlite3"
 import { IDataAccess } from "@/data/interface/IDataAccess"
 import { Project, ImageData, Annotation, Label, History } from "@/models/types"

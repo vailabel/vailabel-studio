@@ -5,10 +5,12 @@ import Setting from "./pages/setting"
 import Overview from "./pages/overview"
 
 import { HashRouter, Routes, Route } from "react-router-dom"
+import { AutoUpdateBanner } from "./components/AutoUpdateBanner"
 
 const AppRoutes = () => {
   return (
     <HashRouter>
+      <AutoUpdateBanner />
       <Routes>
         <Route path="/" element={<Overview />} />
         <Route path="/projects" element={<ImageLabelingApp />} />
