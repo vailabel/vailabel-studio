@@ -6,7 +6,7 @@ on:
       - 'v*.*.*'
 
 jobs:
-  build:
+  release:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -19,16 +19,25 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 20
- 
-      - name: Install deps and build
-        run: |
-          yarn install
-          yarn run build
 
-      - name: Publish release
-        uses: samuelmeuli/action-electron-builder@v1
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Build frontend
+        run: yarn workspace studio build 
+
+      - name: Build Electron app
+        run: yarn workspace desktop build 
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          release: true
-          build_script_name: build
-          args: --publish always
+          name: release-artifacts
+          path: |
+            apps/desktop/dist/*.AppImage
+            apps/desktop/dist/*.deb
+            apps/desktop/dist/*.rpm
+            apps/desktop/dist/*.dmg
+            apps/desktop/dist/*.exe
+            apps/desktop/dist/*.msi
+            apps/desktop/dist/*.zip

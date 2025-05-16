@@ -7,7 +7,7 @@
   "scripts": {
     "prebuild": "cp -r ../studio/dist/* dist",
     "start": "tsc && electron .",
-    "build": "yarn prebuild && tsc && electron-builder"
+    "build": "yarn prebuild && tsc && electron-builder --publish always"
   },
   "keywords": [],
   "author": {
