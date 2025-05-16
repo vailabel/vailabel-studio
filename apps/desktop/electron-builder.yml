@@ -32,9 +32,7 @@ nsis:
 linux:
   target:
     - AppImage
-    - snap
   category: Graphics
-  
   
 directories:
   buildResources: assets
