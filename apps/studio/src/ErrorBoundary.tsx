@@ -1,10 +1,6 @@
 import React, { useState } from "react"
 
-export function ErrorBoundary({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export function ErrorBoundary({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<Error | null>(null)
 
   // Custom error handler for child components
