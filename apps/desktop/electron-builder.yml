@@ -24,8 +24,6 @@ nsis:
   perMachine: true
   allowElevation: true
   allowToChangeInstallationDirectory: false
-  installerIcon: assets/icon.ico
-  uninstallerIcon: assets/icon.ico
   uninstallDisplayName: Vision AI Label Studio
   createDesktopShortcut: true
 
