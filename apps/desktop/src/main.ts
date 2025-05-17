@@ -1,6 +1,6 @@
 import { app, BrowserWindow } from "electron"
 import { autoUpdater } from "electron-updater"
-import * as path from 'path'
+import * as path from "path"
 let mainWindow: BrowserWindow
 const isDev = !app.isPackaged
 
