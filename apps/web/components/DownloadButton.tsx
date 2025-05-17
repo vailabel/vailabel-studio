@@ -102,7 +102,8 @@ const DownloadButton: React.FC = () => {
               <a
                 key={p}
                 href={releaseAssets[p] || undefined}
-                className={`flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg ${!releaseAssets[p] ? "opacity-50 pointer-events-none" : ""}`}
+                className={`flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg break-words
+                  ${!releaseAssets[p] ? "opacity-50 pointer-events-none" : ""}`}
                 onClick={() => setDropdownOpen(false)}
                 download
               >

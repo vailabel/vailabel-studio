@@ -1,20 +1,19 @@
 {
   "compilerOptions": {
-    "target": "ES2021",
+    "target": "ES2020",
     "module": "ESNext",
+    "lib": ["DOM", "ES2020"],
     "moduleResolution": "Node",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "jsx": "preserve",
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "strict": true,
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "@vailabel/core": ["packages/core/src"],
-      "@vailabel/adapters": ["packages/adapters/src"],
-      "@vailabel/config": ["packages/config/src"]
+      "@vailabel/core/*": ["packages/core/src/*"]
     }
   }
 }

@@ -1,5 +1,3 @@
-import pkg from "../../package.json"
-
 export const isElectron = () => {
   return (
     typeof window !== "undefined" &&
@@ -8,5 +6,3 @@ export const isElectron = () => {
     window.process.versions.electron
   )
 }
-export const APP_NAME = "Vai Studio"
-export const APP_VERSION = pkg.version

@@ -37,7 +37,7 @@ export default function Header() {
           </div>
           <div className="flex items-center space-x-4">
             <Link
-              href="/documentation"
+              href="/documentation/getting-started"
               className={`${
                 isActive("/documentation")
                   ? "text-gray-900 dark:text-white font-semibold"
