@@ -16,7 +16,10 @@ interface Heading {
   level: number
 }
 
-export function AnimatedTableOfContents({ content, className }: AnimatedTableOfContentsProps) {
+export function AnimatedTableOfContents({
+  content,
+  className,
+}: AnimatedTableOfContentsProps) {
   const [headings, setHeadings] = useState<Heading[]>([])
   const [activeId, setActiveId] = useState<string>("")
 
@@ -54,7 +57,7 @@ export function AnimatedTableOfContents({ content, className }: AnimatedTableOfC
           }
         })
       },
-      { rootMargin: "0px 0px -80% 0px" },
+      { rootMargin: "0px 0px -80% 0px" }
     )
 
     headings.forEach(({ id }) => {
@@ -115,10 +118,20 @@ export function AnimatedTableOfContents({ content, className }: AnimatedTableOfC
                 href={`#${heading.id}`}
                 className={cn(
                   "block py-1 transition-colors hover:text-foreground relative",
-                  heading.level === 2 ? "pl-0" : heading.level === 3 ? "pl-4" : "pl-6",
+                  heading.level === 2
+                    ? "pl-0"
+                    : heading.level === 3
+                      ? "pl-4"
+                      : "pl-6"
                 )}
               >
-                <span className={cn(activeId === heading.id ? "font-medium text-primary" : "text-muted-foreground")}>
+                <span
+                  className={cn(
+                    activeId === heading.id
+                      ? "font-medium text-primary"
+                      : "text-muted-foreground"
+                  )}
+                >
                   {heading.text}
                 </span>
                 {activeId === heading.id && (

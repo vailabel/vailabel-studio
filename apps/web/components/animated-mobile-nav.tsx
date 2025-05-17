@@ -8,12 +8,20 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 
 interface AnimatedMobileNavProps {
   docs: Array<{ slug: string; title: string; category?: string }>
-  docsByCategory: Record<string, Array<{ slug: string; title: string; category?: string }>>
+  docsByCategory: Record<
+    string,
+    Array<{ slug: string; title: string; category?: string }>
+  >
   sortedCategories: string[]
   onItemClick?: () => void
 }
 
-export function AnimatedMobileNav({ docs, docsByCategory, sortedCategories, onItemClick }: AnimatedMobileNavProps) {
+export function AnimatedMobileNav({
+  docs,
+  docsByCategory,
+  sortedCategories,
+  onItemClick,
+}: AnimatedMobileNavProps) {
   const pathname = usePathname()
 
   const containerVariants = {
@@ -34,10 +42,18 @@ export function AnimatedMobileNav({ docs, docsByCategory, sortedCategories, onIt
 
   return (
     <ScrollArea className="h-[calc(100vh-8rem)]">
-      <motion.div className="space-y-6 pb-8" initial="hidden" animate="visible" variants={containerVariants}>
+      <motion.div
+        className="space-y-6 pb-8"
+        initial="hidden"
+        animate="visible"
+        variants={containerVariants}
+      >
         {sortedCategories.map((category) => (
           <div key={category} className="space-y-2">
-            <motion.h3 className="font-medium text-sm text-muted-foreground px-3" variants={itemVariants}>
+            <motion.h3
+              className="font-medium text-sm text-muted-foreground px-3"
+              variants={itemVariants}
+            >
               {category}
             </motion.h3>
             <nav className="space-y-1">
@@ -52,7 +68,7 @@ export function AnimatedMobileNav({ docs, docsByCategory, sortedCategories, onIt
                         "block text-sm rounded-md px-3 py-2 transition-colors",
                         isActive
                           ? "bg-accent text-accent-foreground font-medium"
-                          : "hover:bg-accent/50 hover:text-accent-foreground",
+                          : "hover:bg-accent/50 hover:text-accent-foreground"
                       )}
                       onClick={onItemClick}
                     >

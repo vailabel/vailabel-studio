@@ -24,7 +24,6 @@ Enable AI-assisted labeling in your project settings:
 
 ```jsx
 import { AIAssistConfig } from "vision-ai-label-studio/ai"
-
 ;<AIAssistConfig
   enabled={true}
   models={["object-detection", "segmentation"]}
