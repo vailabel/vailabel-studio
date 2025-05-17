@@ -1,4 +1,4 @@
-import { Point } from "./types"
+import { Point } from "@vailabel/core"
 
 export const calculatePolygonCentroid = (points: Point[]): Point => {
   let sumX = 0

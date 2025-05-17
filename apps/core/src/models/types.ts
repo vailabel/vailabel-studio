@@ -1,3 +1,4 @@
+// Re-export all types for use in other modules
 export interface Point {
   x: number
   y: number

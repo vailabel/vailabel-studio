@@ -1,5 +1,5 @@
 import { createContext, useCallback, useState } from "react"
-import type { Point } from "@/lib/types"
+import type { Point } from "@vailabel/core"
 
 export type CanvasContextType = {
   zoom: number

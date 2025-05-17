@@ -13,7 +13,10 @@ export const DataAccessContext = createContext<
   DataAccessContextType | undefined
 >(undefined)
 
-const dataAccessStrategies: Record<string, () => IDataAccess> = {
+const dataAccessStrategies: Record<
+  "api" | "dexie" | "sqlite",
+  () => IDataAccess
+> = {
   api: () => new ApiDataAccess(),
   dexie: () => new DexieDataAccess(),
   sqlite: () => {
@@ -27,7 +30,7 @@ const dataAccessStrategies: Record<string, () => IDataAccess> = {
 function getDefaultType(): "api" | "dexie" | "sqlite" {
   if (typeof window === "undefined") return "api" // Node.js/SSR/Cloud
   if (isElectron()) return "sqlite" // Electron desktop
-  return "dexie" // Web browser
+  return "dexie" // Web browser (IndexedDB)
 }
 
 interface DataAccessProviderProps {
@@ -39,7 +42,7 @@ export const DataAccessProvider: React.FC<DataAccessProviderProps> = ({
   type,
   children,
 }) => {
-  const resolvedType = type || getDefaultType()
+  const resolvedType = isElectron() ? "sqlite" : type || getDefaultType()
   const dataAccess = useMemo(() => {
     const strategy = dataAccessStrategies[resolvedType]
     if (!strategy) {
@@ -47,6 +50,8 @@ export const DataAccessProvider: React.FC<DataAccessProviderProps> = ({
     }
     return strategy()
   }, [resolvedType])
+
+  console.log("DataAccessProvider", { type: resolvedType })
 
   return (
     <DataAccessContext.Provider value={{ dataAccess }}>

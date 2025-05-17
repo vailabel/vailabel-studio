@@ -10,6 +10,6 @@
     "strict": true,
     "noEmit": false
   },
-  "include": ["src"],
+  "include": ["src/**/**/*"],
   "references": [{ "path": "../core" }]
 }

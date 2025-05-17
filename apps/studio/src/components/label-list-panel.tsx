@@ -9,7 +9,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
-import { Label } from "@/lib/types"
+import { Label } from "@vailabel/core"
 import { useAnnotations } from "@/hooks/use-annotations"
 
 interface LabelListPanelProps {

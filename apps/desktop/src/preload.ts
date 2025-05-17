@@ -13,5 +13,3 @@ contextBridge.exposeInMainWorld("electronAPI", {
   onUpdateDownloaded: (callback: () => void) =>
     ipcRenderer.on("update-downloaded", () => callback()),
 })
-
-console.log("Preload script loaded")
