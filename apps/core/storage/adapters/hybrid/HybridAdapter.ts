@@ -1,4 +1,4 @@
-import { IStorageAdapter } from "@/storeage/interfaces/IStorageAdapter"
+import { IStorageAdapter } from "@vai/core/storage/interfaces/IStorageAdapter"
 
 export class HybridAdapter implements IStorageAdapter {
   constructor(

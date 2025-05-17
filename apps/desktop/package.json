@@ -24,7 +24,8 @@
     "electron-builder": "^26.0.12"
   },
   "dependencies": {
-    "electron-updater": "^6.6.2"
+    "electron-updater": "^6.6.2",
+    "@vai/core": "^1.0.0"
   },
   "repository": {
     "type": "git",

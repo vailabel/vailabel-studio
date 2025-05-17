@@ -4,7 +4,7 @@ import type {
   Annotation,
   Label,
   History,
-} from "@/models/types"
+} from "@vai/core/models/types"
 
 export interface IDataAccess {
   // Project
