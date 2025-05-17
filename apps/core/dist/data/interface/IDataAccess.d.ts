@@ -2,6 +2,7 @@ import type { Project, ImageData, Annotation, Label, History } from "../../model
 export interface IDataAccess {
     getProjects(): Promise<Project[]>;
     getProjectById(id: string): Promise<Project | undefined>;
+    getProjectWithImages(id: string): Promise<Project | undefined>;
     createProject(project: Project): Promise<void>;
     updateProject(id: string, updates: Partial<Project>): Promise<void>;
     deleteProject(id: string): Promise<void>;

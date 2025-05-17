@@ -1,7 +1,5 @@
-/// <reference types="node" />
-/// <reference types="node" />
 import { ContainerClient } from "@azure/storage-blob";
-import { IStorageAdapter } from "@vailabel/core/src/storage/interfaces/IStorageAdapter";
+import { IStorageAdapter } from "@vailabel/core/src/storage";
 export declare class AzureBlobStorageAdapter implements IStorageAdapter {
     private containerClient;
     constructor(containerClient: ContainerClient);

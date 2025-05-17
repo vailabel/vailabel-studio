@@ -1,8 +1,10 @@
 import React, { createContext, useMemo } from "react"
-import type { IDataAccess } from "../lib/data-access"
-import { ApiDataAccess } from "@vailabel/core/src/data/sources/api/ApiDataAccess"
-import { SQLiteDataAccess } from "@vailabel/core/src/data/sources/sqlite/SQLiteDataAccess"
-import { DexieDataAccess } from "@vailabel/core/src/data/sources/dexie/DexieDataAccess"
+import {
+  ApiDataAccess,
+  DexieDataAccess,
+  SQLiteDataAccess,
+  IDataAccess,
+} from "@vailabel/core/src/data"
 import { isElectron } from "../lib/constants"
 
 interface DataAccessContextType {
@@ -50,9 +52,6 @@ export const DataAccessProvider: React.FC<DataAccessProviderProps> = ({
     }
     return strategy()
   }, [resolvedType])
-
-  console.log("DataAccessProvider", { type: resolvedType })
-
   return (
     <DataAccessContext.Provider value={{ dataAccess }}>
       {children}

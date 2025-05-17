@@ -1,4 +1,4 @@
-import { IStorageAdapter } from "@vailabel/core/src/storage/interfaces/IStorageAdapter"
+import { IStorageAdapter } from "@vailabel/core/src/storage"
 
 export class HybridAdapter implements IStorageAdapter {
   constructor(

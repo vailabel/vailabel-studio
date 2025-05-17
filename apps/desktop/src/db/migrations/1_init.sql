@@ -1,8 +1,8 @@
 CREATE TABLE IF NOT EXISTS projects (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
-  createdAt TEXT,
-  lastModified TEXT
+  createdAt DATETIME,
+  lastModified DATETIME
 );
 
 CREATE TABLE IF NOT EXISTS images (
@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS images (
   width INTEGER,
   height INTEGER,
   url TEXT,
-  createdAt TEXT,
+  createdAt DATETIME,
   FOREIGN KEY(projectId) REFERENCES projects(id)
 );
 
@@ -24,8 +24,8 @@ CREATE TABLE IF NOT EXISTS labels (
   isAIGenerated INTEGER,
   projectId TEXT,
   color TEXT,
-  createdAt TEXT,
-  updatedAt TEXT
+  createdAt DATETIME,
+  updatedAt DATETIME
 );
 
 CREATE TABLE IF NOT EXISTS annotations (
@@ -37,8 +37,8 @@ CREATE TABLE IF NOT EXISTS annotations (
   coordinates TEXT,
   color TEXT,
   isAIGenerated INTEGER,
-  createdAt TEXT,
-  updatedAt TEXT,
+  createdAt DATETIME,
+  updatedAt DATETIME,
   FOREIGN KEY(imageId) REFERENCES images(id),
   FOREIGN KEY(labelId) REFERENCES labels(id)
 );
