@@ -25,7 +25,6 @@ Assign roles through the team management interface:
 
 ```jsx
 import { TeamManagement } from "vision-ai-label-studio/team"
-
 ;<TeamManagement projectId="your-project-id" defaultRole="annotator" />
 ```
 
@@ -51,7 +50,6 @@ Example configuration:
 
 ```jsx
 import { TaskAssignment } from "vision-ai-label-studio/workflow"
-
 ;<TaskAssignment
   strategy="balanced"
   maxTasksPerUser={50}

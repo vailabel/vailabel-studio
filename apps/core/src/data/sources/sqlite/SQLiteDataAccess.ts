@@ -9,8 +9,6 @@ import {
 } from "@vailabel/core/src/models/types"
 
 export class SQLiteDataAccess implements IDataAccess {
-
-
   getProjectById(id: string): Promise<Project | undefined> {
     return window.ipc.invoke("sqlite:get", [
       "SELECT * FROM projects WHERE id = ?",

@@ -53,7 +53,7 @@ export function TableOfContents({ content, className }: TableOfContentsProps) {
           }
         })
       },
-      { rootMargin: "0px 0px -80% 0px" },
+      { rootMargin: "0px 0px -80% 0px" }
     )
 
     headings.forEach(({ id }) => {
@@ -91,8 +91,14 @@ export function TableOfContents({ content, className }: TableOfContentsProps) {
                 href={`#${heading.id}`}
                 className={cn(
                   "block py-1 transition-colors hover:text-foreground",
-                  heading.level === 2 ? "pl-0" : heading.level === 3 ? "pl-4" : "pl-6",
-                  activeId === heading.id ? "font-medium text-primary" : "text-muted-foreground",
+                  heading.level === 2
+                    ? "pl-0"
+                    : heading.level === 3
+                      ? "pl-4"
+                      : "pl-6",
+                  activeId === heading.id
+                    ? "font-medium text-primary"
+                    : "text-muted-foreground"
                 )}
               >
                 {heading.text}

@@ -36,7 +36,6 @@ Vision AI Label Studio supports importing from various cloud storage providers:
 
 ```jsx
 import { S3Importer } from "vision-ai-label-studio/importers"
-
 ;<S3Importer bucket="your-bucket-name" prefix="images/" region="us-west-2" />
 ```
 
@@ -44,7 +43,6 @@ import { S3Importer } from "vision-ai-label-studio/importers"
 
 ```jsx
 import { GCSImporter } from "vision-ai-label-studio/importers"
-
 ;<GCSImporter bucket="your-bucket-name" prefix="images/" />
 ```
 
@@ -54,7 +52,6 @@ For large datasets, you can use batch processing to import images in chunks:
 
 ```jsx
 import { BatchImporter } from "vision-ai-label-studio/importers"
-
 ;<BatchImporter
   source="https://api.yourdomain.com/images"
   batchSize={100}

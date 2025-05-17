@@ -20,7 +20,11 @@ interface AnimatedSearchProps {
   docs: Array<{ slug: string; title: string; category?: string }>
 }
 
-export function AnimatedSearch({ className, placeholder = "Search documentation...", docs }: AnimatedSearchProps) {
+export function AnimatedSearch({
+  className,
+  placeholder = "Search documentation...",
+  docs,
+}: AnimatedSearchProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [query, setQuery] = useState("")
   const inputRef = useRef<HTMLInputElement>(null)
@@ -105,7 +109,12 @@ export function AnimatedSearch({ className, placeholder = "Search documentation.
                   placeholder="Search documentation..."
                   className="flex h-12 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 border-0 focus-visible:ring-0"
                 />
-                <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="h-8 w-8">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsOpen(false)}
+                  className="h-8 w-8"
+                >
                   <X className="h-4 w-4" />
                   <span className="sr-only">Close</span>
                 </Button>
@@ -113,7 +122,12 @@ export function AnimatedSearch({ className, placeholder = "Search documentation.
               <ScrollArea className="max-h-[300px] overflow-y-auto">
                 <AnimatePresence>
                   {results.length > 0 ? (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-2">
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="p-2"
+                    >
                       {results.map((result, index) => (
                         <motion.div
                           key={result.slug}
@@ -128,7 +142,9 @@ export function AnimatedSearch({ className, placeholder = "Search documentation.
                             className="block rounded-md px-3 py-2 hover:bg-accent hover:text-accent-foreground"
                           >
                             <h3 className="font-medium">{result.title}</h3>
-                            <p className="text-sm text-muted-foreground">{result.excerpt}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {result.excerpt}
+                            </p>
                           </Link>
                         </motion.div>
                       ))}
@@ -140,7 +156,9 @@ export function AnimatedSearch({ className, placeholder = "Search documentation.
                       exit={{ opacity: 0 }}
                       className="p-6 text-center"
                     >
-                      <p className="text-sm text-muted-foreground">No results found.</p>
+                      <p className="text-sm text-muted-foreground">
+                        No results found.
+                      </p>
                     </motion.div>
                   ) : null}
                 </AnimatePresence>
