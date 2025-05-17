@@ -1,13 +1,5 @@
-import { IStorageAdapter } from "@vai/core/storage/interfaces/IStorageAdapter"
+import { IStorageAdapter } from "@vailabel/core/src/storage/interfaces/IStorageAdapter"
 import * as path from "path"
-// Extend the Window interface to include 'ipc'
-declare global {
-  interface Window {
-    ipc: {
-      invoke(channel: string, args?: any): Promise<any>
-    }
-  }
-}
 
 export class FileSystemStorageAdapter implements IStorageAdapter {
   constructor(private directory: string) {}

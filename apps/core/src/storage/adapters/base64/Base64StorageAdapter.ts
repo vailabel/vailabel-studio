@@ -1,4 +1,4 @@
-import { IStorageAdapter } from "@vai/core/storage/interfaces/IStorageAdapter"
+import { IStorageAdapter } from "@vailabel/core/src/storage/interfaces/IStorageAdapter"
 
 export class Base64StorageAdapter implements IStorageAdapter {
   private prefix = "img_"
