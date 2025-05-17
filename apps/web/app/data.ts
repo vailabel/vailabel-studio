@@ -1,6 +1,6 @@
 export const data = {
   repoUrl: "https://github.com/vailabel/vailabel-studio",
-  productionUrl: "https://vailabel-studio.vercel.app/",
+  productionUrl: "https://studio.vailabel.com/",
   appName: "Vailabel Studio",
   appDescription:
     "Vailabel Studio is a web-based annotation tool for creating high-quality datasets for machine learning and computer vision tasks.",

@@ -25,10 +25,14 @@ export function TableOfContents({ content, className }: TableOfContentsProps) {
     const lines = content.split("\n")
 
     lines.forEach((line) => {
-      const match = line.match(/^(#{2,4})\s+(.+)$/)
+      // Use a safe regex to avoid super-linear backtracking
+      // Old: /^(#{2,4})\s+(.+)$/
+      // New: /^(#{2,4})\s+([^#]*)$/
+      // This ensures we do not match greedily or allow catastrophic backtracking
+      const match = line.match(/^(#{2,4})\s+([^#]*)$/)
       if (match) {
         const level = match[1].length
-        const text = match[2]
+        const text = match[2].trim()
         const id = text
           .toLowerCase()
           .replace(/[^\w\s-]/g, "")
