@@ -1,9 +1,9 @@
 import React, { createContext, useMemo } from "react"
 import type { IDataAccess } from "../lib/data-access"
-import { ApiDataAccess } from "@/data/sources/api/ApiDataAccess"
-import { DexieDataAccess } from "@/data/sources/dexie/DexieDataAccess"
-import { SQLiteDataAccess } from "@/data/sources/sqlite/SQLiteDataAccess"
-import { isElectronEnv } from "@/lib/constants"
+import { ApiDataAccess } from "@vailabel/core/src/data/sources/api/ApiDataAccess"
+import { SQLiteDataAccess } from "@vailabel/core/src/data/sources/sqlite/SQLiteDataAccess"
+import { DexieDataAccess } from "@vailabel/core/src/data/sources/dexie/DexieDataAccess"
+import { isElectron } from "../lib/constants"
 
 interface DataAccessContextType {
   dataAccess: IDataAccess
@@ -16,10 +16,22 @@ export const DataAccessContext = createContext<
 const dataAccessStrategies: Record<string, () => IDataAccess> = {
   api: () => new ApiDataAccess(),
   dexie: () => new DexieDataAccess(),
-  sqlite: () => new SQLiteDataAccess("vailabel.db"),
+  sqlite: () => {
+    if (!isElectron()) {
+      throw new Error("SQLite is only supported in Electron environment")
+    }
+    return new SQLiteDataAccess()
+  },
 }
+
+function getDefaultType(): "api" | "dexie" | "sqlite" {
+  if (typeof window === "undefined") return "api" // Node.js/SSR/Cloud
+  if (isElectron()) return "sqlite" // Electron desktop
+  return "dexie" // Web browser
+}
+
 interface DataAccessProviderProps {
-  type?: "api" | "dexie" // Add more types as needed
+  type?: "api" | "dexie" | "sqlite"
   children: React.ReactNode
 }
 
@@ -27,8 +39,7 @@ export const DataAccessProvider: React.FC<DataAccessProviderProps> = ({
   type,
   children,
 }) => {
-  // Auto-select type if not provided
-  const resolvedType = type || (isElectronEnv() ? "sqlite" : "dexie")
+  const resolvedType = type || getDefaultType()
   const dataAccess = useMemo(() => {
     const strategy = dataAccessStrategies[resolvedType]
     if (!strategy) {

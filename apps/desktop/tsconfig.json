@@ -1,4 +1,6 @@
 {
+  "extends": "../../tsconfig.base.json",
+
   "compilerOptions": {
     "target": "ESNext",
     "module": "CommonJS",
@@ -8,5 +10,6 @@
     "skipLibCheck": true,
     "sourceMap": true
   },
-  "include": ["main.ts", "preload.ts"]
+  "include": ["src/**/*"],
+  "references": [{ "path": "../core" }]
 }

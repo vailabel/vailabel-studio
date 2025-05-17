@@ -9,7 +9,7 @@
     "start": "tsc && electron .",
     "build": "tsc && electron-builder",
     "build:publish": "yarn prebuild && tsc && electron-builder --publish always",
-    "watch": "tsc --watch & electronmon . || nodemon --exec electron . --ext js,ts,json,html"
+    "dev": "tsc && electron ."
   },
   "keywords": [],
   "author": {
@@ -21,7 +21,8 @@
   "devDependencies": {
     "@types/semver": "^7.7.0",
     "electron": "36.2.1",
-    "electron-builder": "^26.0.12"
+    "electron-builder": "^26.0.12",
+    "@vailabel/core": "*"
   },
   "dependencies": {
     "electron-updater": "^6.6.2"
