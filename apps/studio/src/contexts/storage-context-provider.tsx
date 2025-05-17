@@ -61,7 +61,7 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({
   hybridLocal,
   hybridRemote,
 }) => {
-  let resolvedType = type || getDefaultType()
+  let resolvedType = type ?? getDefaultType()
   if (isElectron()) {
     resolvedType = "filesystem"
   }
