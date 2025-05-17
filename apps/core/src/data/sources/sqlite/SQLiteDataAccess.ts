@@ -9,11 +9,7 @@ import {
 } from "@vailabel/core/src/models/types"
 
 export class SQLiteDataAccess implements IDataAccess {
-  private filePath: string
 
-  constructor(filePath: string) {
-    this.filePath = filePath
-  }
 
   getProjectById(id: string): Promise<Project | undefined> {
     return window.ipc.invoke("sqlite:get", [
