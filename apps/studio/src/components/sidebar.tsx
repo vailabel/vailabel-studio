@@ -12,7 +12,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
-import type { Project, Label } from "@/lib/types"
+import type { Project, Label } from "@vailabel/core"
 
 interface SidebarProps {
   project: Project

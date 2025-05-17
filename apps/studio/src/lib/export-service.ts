@@ -1,5 +1,5 @@
 import type { IDataAccess } from "./data-access"
-import type { Project, Annotation } from "./types"
+import type { Project, Annotation } from "@vailabel/core"
 import JSZip from "jszip"
 
 export class ExportService {

@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/tooltip"
 import { Separator } from "@/components/ui/separator"
 import { AIDetectionButton } from "@/components/ai-detection-button"
-import type { ImageData } from "@/lib/types"
+import type { ImageData } from "@vailabel/core"
 import { useAnnotations } from "@/hooks/use-annotations"
 import { useCanvas } from "@/hooks/use-canvas"
 

@@ -1,5 +1,4 @@
-import { db } from "@/lib/db"
-import { Project } from "@/lib/types"
+import { Project } from "@vailabel/core"
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
@@ -7,13 +6,14 @@ import { Link, useParams } from "react-router-dom"
 import Loading from "@/components/loading"
 
 import MainLayout from "@/pages/main-layout"
+import { useDataAccess } from "@/hooks/use-data-access"
 
 export default function ProjectDetails() {
   const { projectId } = useParams<{ projectId: string }>()
 
   const [project, setProject] = useState<Project | null>(null)
   const [showAnnotated] = useState(false)
-
+  const { getProjectById } = useDataAccess()
   const annotatedImages =
     project?.images?.filter((image) => image.name.includes("annotated")) ?? []
 
@@ -21,8 +21,7 @@ export default function ProjectDetails() {
     const fetchProject = async () => {
       if (!projectId) return
       try {
-        const projectData = await db.projects.get(projectId)
-        console.log("Fetched project data:", projectData)
+        const projectData = await getProjectById(projectId)
         if (projectData) {
           setProject(projectData)
         } else {

@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/card"
 import { ProjectManager } from "@/components/project-manager"
 import { useToast } from "@/hooks/use-toast"
-import type { Project } from "@/lib/types"
+import type { Project } from "@vailabel/core"
 import { useNavigate } from "react-router-dom"
 
 interface ProjectDashboardProps {

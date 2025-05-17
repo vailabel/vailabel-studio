@@ -12,7 +12,7 @@ interface RecentActivityItem {
 
 const Overview = () => {
   const { theme } = useTheme()
-  const dataAccess = useDataAccess()
+  const { getProjects, getLabels } = useDataAccess()
 
   const [statistics, setStatistics] = useState({
     totalProjects: 0,
@@ -23,9 +23,10 @@ const Overview = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const projects = await dataAccess.getProjects()
-      const labels = await dataAccess.getLabels()
-
+      const projects = await getProjects()
+      const labels = await getLabels()
+      console.log("Projects:", projects)
+      console.log("Labels:", labels)
       setStatistics({
         totalProjects: projects.length,
         activeUsers: 120, // Placeholder value; replace with real data if available
@@ -41,7 +42,7 @@ const Overview = () => {
     }
 
     fetchData()
-  }, [dataAccess])
+  }, [getProjects, getLabels])
 
   return (
     <MainLayout>

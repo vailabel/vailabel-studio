@@ -10,7 +10,11 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "@vailable/core": path.resolve(__dirname, "../core/src"),
     },
+  },
+  optimizeDeps: {
+    include: ["@vailable/core"],
   },
   server: {
     host: "localhost",

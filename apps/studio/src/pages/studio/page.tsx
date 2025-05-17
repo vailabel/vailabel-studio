@@ -1,6 +1,6 @@
 "use client"
 import { ImageLabeler } from "@/components/image-labeler"
-import { Project } from "@/lib/types"
+import { Project } from "@vailabel/core"
 import { useEffect, useState } from "react"
 import Loading from "@/components/loading"
 import { useParams } from "react-router-dom"
