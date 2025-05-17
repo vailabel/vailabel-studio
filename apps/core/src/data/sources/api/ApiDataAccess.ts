@@ -12,7 +12,7 @@ const api = new ApiClient()
 
 export class ApiDataAccess implements IDataAccess {
   getProjectWithImages(id: string): Promise<Project | undefined> {
-    throw new Error("Method not implemented.")
+    return api.get<Project>(`/projects/${id}`)
   }
   async getNextImageId(currentImageId: string): Promise<string | null> {
     return api.get<string | null>(`/images/${currentImageId}/next`)
