@@ -1,6 +1,12 @@
 import { Database } from "sqlite3"
-import { IDataAccess } from "@/data/interface/IDataAccess"
-import { Project, ImageData, Annotation, Label, History } from "@/models/types"
+import { IDataAccess } from "@vai/core/data/interface/IDataAccess"
+import {
+  Project,
+  ImageData,
+  Annotation,
+  Label,
+  History,
+} from "@vai/core/models/types"
 
 export class SQLiteDataAccess implements IDataAccess {
   private db: Database

@@ -1,4 +1,4 @@
-import { IStorageAdapter } from "../../interfaces/IStorageAdapter"
+import { IStorageAdapter } from "@vai/core/storage/interfaces/IStorageAdapter"
 import { S3 } from "aws-sdk"
 
 export class S3StorageAdapter implements IStorageAdapter {

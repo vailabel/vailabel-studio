@@ -1,5 +1,10 @@
 import { contextBridge, ipcRenderer } from "electron"
 
+contextBridge.exposeInMainWorld("ipc", {
+  invoke: (channel: string, ...args: any[]) =>
+    ipcRenderer.invoke(channel, ...args),
+})
+
 contextBridge.exposeInMainWorld("electronAPI", {
   onUpdateAvailable: (callback: (info: any) => void) =>
     ipcRenderer.on("update-available", (_, info) => callback(info)),

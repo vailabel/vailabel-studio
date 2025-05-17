@@ -1,5 +1,5 @@
 import { ContainerClient } from "@azure/storage-blob"
-import { IStorageAdapter } from "@/storeage/interfaces/IStorageAdapter"
+import { IStorageAdapter } from "@vai/core/storage/interfaces/IStorageAdapter"
 
 export class AzureBlobStorageAdapter implements IStorageAdapter {
   constructor(private containerClient: ContainerClient) {}

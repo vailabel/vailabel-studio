@@ -1,9 +1,7 @@
 import React, { createContext, useMemo } from "react"
 import type { IDataAccess } from "../lib/data-access"
-import { ApiDataAccess } from "@/data/sources/api/ApiDataAccess"
-import { DexieDataAccess } from "@/data/sources/dexie/DexieDataAccess"
-import { SQLiteDataAccess } from "@/data/sources/sqlite/SQLiteDataAccess"
-import { isElectronEnv } from "@/lib/constants"
+import { ApiDataAccess } from "@vai/core/data/sources/api/ApiDataAccess"
+import { DexieDataAccess } from "@vai/core/data/sources/dexie/DexieDataAccess"
 
 interface DataAccessContextType {
   dataAccess: IDataAccess
@@ -16,7 +14,6 @@ export const DataAccessContext = createContext<
 const dataAccessStrategies: Record<string, () => IDataAccess> = {
   api: () => new ApiDataAccess(),
   dexie: () => new DexieDataAccess(),
-  sqlite: () => new SQLiteDataAccess("vailabel.db"),
 }
 interface DataAccessProviderProps {
   type?: "api" | "dexie" // Add more types as needed
@@ -24,18 +21,16 @@ interface DataAccessProviderProps {
 }
 
 export const DataAccessProvider: React.FC<DataAccessProviderProps> = ({
-  type,
+  type = "dexie",
   children,
 }) => {
-  // Auto-select type if not provided
-  const resolvedType = type || (isElectronEnv() ? "sqlite" : "dexie")
   const dataAccess = useMemo(() => {
-    const strategy = dataAccessStrategies[resolvedType]
+    const strategy = dataAccessStrategies[type]
     if (!strategy) {
-      throw new Error(`Unknown data access type: ${resolvedType}`)
+      throw new Error(`Unknown data access type: ${type}`)
     }
     return strategy()
-  }, [resolvedType])
+  }, [type])
 
   return (
     <DataAccessContext.Provider value={{ dataAccess }}>

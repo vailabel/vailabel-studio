@@ -1,6 +1,12 @@
-import { db } from "@/data/db/dexieDb"
-import { IDataAccess } from "@/data/interface/IDataAccess"
-import { Project, ImageData, Annotation, Label, History } from "@/models/types"
+import { db } from "@vai/core/data/db/dexieDb"
+import { IDataAccess } from "@vai/core/data/interface/IDataAccess"
+import {
+  Project,
+  ImageData,
+  Annotation,
+  Label,
+  History,
+} from "@vai/core/models/types"
 
 export class DexieDataAccess implements IDataAccess {
   async getProjects(): Promise<Project[]> {

@@ -1,0 +1,13 @@
+{
+  "name": "@vai/core",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "@azure/storage-blob": "^12.27.0",
+    "aws-sdk": "^2.1692.0",
+    "better-sqlite3": "^11.10.0",
+    "dexie": "^4.0.11",
+    "sqlite3": "^5.1.7"
+  }
+}

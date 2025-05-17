@@ -5,7 +5,7 @@ import type {
   ImageData,
   Annotation,
   History,
-} from "@/models/types"
+} from "@vai/core/models/types"
 
 export class VisionDatabase extends Dexie {
   projects!: Table<Project>
