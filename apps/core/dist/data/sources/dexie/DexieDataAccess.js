@@ -22,6 +22,15 @@ class DexieDataAccess {
             return dexieDb_1.db.projects.get(id);
         });
     }
+    getProjectWithImages(id) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const project = yield dexieDb_1.db.projects.get(id);
+            if (project) {
+                project.images = yield dexieDb_1.db.images.where("projectId").equals(id).toArray();
+            }
+            return project;
+        });
+    }
     getImages(projectId) {
         return __awaiter(this, void 0, void 0, function* () {
             return dexieDb_1.db.images.where("projectId").equals(projectId).toArray();

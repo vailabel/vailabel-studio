@@ -1,7 +1,31 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SQLiteDataAccess = void 0;
 class SQLiteDataAccess {
+    getProjectWithImages(id) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const project = (yield window.ipc.invoke("sqlite:get", [
+                "SELECT * FROM projects WHERE id = ?",
+                [id],
+            ]));
+            if (!project)
+                return undefined;
+            const images = (yield window.ipc.invoke("sqlite:all", [
+                "SELECT * FROM images WHERE projectId = ?",
+                [id],
+            ]));
+            return Object.assign(Object.assign({}, project), { images });
+        });
+    }
     getProjectById(id) {
         return window.ipc.invoke("sqlite:get", [
             "SELECT * FROM projects WHERE id = ?",
@@ -25,10 +49,36 @@ class SQLiteDataAccess {
         ]);
     }
     deleteProject(id) {
-        return window.ipc.invoke("sqlite:run", [
-            "DELETE FROM projects WHERE id = ?",
-            [id],
-        ]);
+        return __awaiter(this, void 0, void 0, function* () {
+            // Delete annotations for all images in the project
+            const images = yield window.ipc.invoke("sqlite:all", [
+                "SELECT id FROM images WHERE projectId = ?",
+                [id],
+            ]);
+            const imageIds = images.map((img) => img.id);
+            if (imageIds.length > 0) {
+                // Delete annotations for these images
+                yield window.ipc.invoke("sqlite:run", [
+                    `DELETE FROM annotations WHERE imageId IN (${imageIds.map(() => "?").join(",")})`,
+                    imageIds,
+                ]);
+            }
+            // Delete images for the project
+            yield window.ipc.invoke("sqlite:run", [
+                "DELETE FROM images WHERE projectId = ?",
+                [id],
+            ]);
+            // Delete labels for the project
+            yield window.ipc.invoke("sqlite:run", [
+                "DELETE FROM labels WHERE projectId = ?",
+                [id],
+            ]);
+            // Delete the project itself
+            yield window.ipc.invoke("sqlite:run", [
+                "DELETE FROM projects WHERE id = ?",
+                [id],
+            ]);
+        });
     }
     getImages(projectId) {
         return window.ipc.invoke("sqlite:all", [
@@ -60,8 +110,17 @@ class SQLiteDataAccess {
     }
     createImage(image) {
         return window.ipc.invoke("sqlite:run", [
-            "INSERT INTO images (id, projectId, url, createdAt) VALUES (?, ?, ?, ?)",
-            [image.id, image.projectId, image.url, image.createdAt],
+            "INSERT INTO images (id, projectId, name, data, width, height, url, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            [
+                image.id,
+                image.projectId,
+                image.name,
+                image.data,
+                image.width,
+                image.height,
+                image.url,
+                image.createdAt,
+            ],
         ]);
     }
     updateImage(id, updates) {
@@ -98,13 +157,18 @@ class SQLiteDataAccess {
     }
     createAnnotation(annotation) {
         return window.ipc.invoke("sqlite:run", [
-            "INSERT INTO annotations (id, imageId, createdAt, updatedAt, coordinates) VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO annotations (id, imageId, labelId, name, type, coordinates, color, isAIGenerated, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             [
                 annotation.id,
                 annotation.imageId,
+                annotation.labelId,
+                annotation.name,
+                annotation.type,
+                annotation.coordinates,
+                annotation.color,
+                annotation.isAIGenerated,
                 annotation.createdAt,
                 annotation.updatedAt,
-                annotation.coordinates,
             ],
         ]);
     }
@@ -126,8 +190,17 @@ class SQLiteDataAccess {
     }
     createLabel(label) {
         return window.ipc.invoke("sqlite:run", [
-            "INSERT INTO labels (id, name, createdAt, updatedAt) VALUES (?, ?, ?, ?)",
-            [label.id, label.name, label.createdAt, label.updatedAt],
+            "INSERT INTO labels (id, name, category, isAIGenerated, projectId, color, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            [
+                label.id,
+                label.name,
+                label.category,
+                label.isAIGenerated,
+                label.projectId,
+                label.color,
+                label.createdAt,
+                label.updatedAt,
+            ],
         ]);
     }
     getLabels() {

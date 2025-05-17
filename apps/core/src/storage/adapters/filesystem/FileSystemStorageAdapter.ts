@@ -1,11 +1,10 @@
-import { IStorageAdapter } from "@vailabel/core/src/storage/interfaces/IStorageAdapter"
-import * as path from "path"
+import { IStorageAdapter } from "@vailabel/core/src/storage"
 
 export class FileSystemStorageAdapter implements IStorageAdapter {
   constructor(private directory: string) {}
 
   private getPath(id: string) {
-    return path.join(this.directory, id + ".png")
+    return window.ipc.invoke("fs-get-path", { directory: this.directory })
   }
 
   async saveImage(id: string, data: Buffer): Promise<void> {
@@ -26,6 +25,6 @@ export class FileSystemStorageAdapter implements IStorageAdapter {
     })
     return files
       .filter((f: string) => f.endsWith(".png"))
-      .map((f: string) => path.basename(f, ".png"))
+      .map((f: string) => window.ipc.invoke("fs-get-base-name", { file: f }))
   }
 }

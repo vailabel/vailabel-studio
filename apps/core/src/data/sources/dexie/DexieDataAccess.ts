@@ -15,6 +15,13 @@ export class DexieDataAccess implements IDataAccess {
   async getProjectById(id: string): Promise<Project | undefined> {
     return db.projects.get(id)
   }
+  async getProjectWithImages(id: string): Promise<Project | undefined> {
+    const project = await db.projects.get(id)
+    if (project) {
+      project.images = await db.images.where("projectId").equals(id).toArray()
+    }
+    return project
+  }
 
   async getImages(projectId: string): Promise<ImageData[]> {
     return db.images.where("projectId").equals(projectId).toArray()

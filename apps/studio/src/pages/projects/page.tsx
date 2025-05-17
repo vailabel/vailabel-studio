@@ -1,39 +1,45 @@
 import { Project } from "@vailabel/core"
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-
 import { Link, useParams } from "react-router-dom"
 import Loading from "@/components/loading"
-
 import MainLayout from "@/pages/main-layout"
 import { useDataAccess } from "@/hooks/use-data-access"
+import { useToast } from "@/hooks/use-toast"
 
 export default function ProjectDetails() {
   const { projectId } = useParams<{ projectId: string }>()
-
+  const { toast } = useToast()
   const [project, setProject] = useState<Project | null>(null)
-  const [showAnnotated] = useState(false)
-  const { getProjectById } = useDataAccess()
-  const annotatedImages =
-    project?.images?.filter((image) => image.name.includes("annotated")) ?? []
+  const { getProjectWithImages } = useDataAccess()
+  const images = Array.isArray(project?.images) ? project.images : []
 
   useEffect(() => {
     const fetchProject = async () => {
       if (!projectId) return
       try {
-        const projectData = await getProjectById(projectId)
+        const projectData = await getProjectWithImages(projectId)
         if (projectData) {
           setProject(projectData)
         } else {
-          console.error("Project not found")
+          toast({
+            title: "Project not found",
+            description: `No project found with ID: ${projectId}`,
+            variant: "destructive",
+          })
         }
       } catch (error) {
-        console.error("Failed to fetch project:", error)
+        console.error("Error fetching project:", error)
+        toast({
+          title: "Error fetching project",
+          description: "An error occurred while fetching the project.",
+          variant: "destructive",
+        })
       }
     }
 
     fetchProject()
-  }, [projectId])
+  }, [projectId, getProjectWithImages, toast])
 
   if (!projectId) {
     return (
@@ -58,34 +64,9 @@ export default function ProjectDetails() {
           <section className="mb-6">
             <h2 className="text-xl font-semibold">Images</h2>
 
-            {showAnnotated ? (
-              annotatedImages.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                  {annotatedImages.map((image, index) => (
-                    <Card key={index} className="overflow-hidden">
-                      <Link to={`/projects/${projectId}/${image.id}`}>
-                        <img
-                          src={image.data ?? "/placeholder.svg"}
-                          alt={`Image ${index + 1}`}
-                          className="w-full h-48 object-cover"
-                        />
-                        <CardContent className="p-2">
-                          <p className="text-sm text-gray-600 dark:text-gray-300">
-                            {image.name.length > 50
-                              ? `${image.name.slice(0, 50)}...`
-                              : image.name}
-                          </p>
-                        </CardContent>
-                      </Link>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-600">No annotated images available.</p>
-              )
-            ) : (project?.images?.length ?? 0) > 0 ? (
+            {images.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                {project.images?.map((image, index) => (
+                {images.map((image, index) => (
                   <Card key={index} className="overflow-hidden">
                     <Link to={`/projects/${projectId}/studio/${image.id}`}>
                       <img
@@ -95,7 +76,8 @@ export default function ProjectDetails() {
                       />
                       <CardContent className="p-2">
                         <p className="text-sm text-gray-600 dark:text-gray-300">
-                          {image.name.length > 50
+                          {typeof image.name === "string" &&
+                          image.name.length > 50
                             ? `${image.name.slice(0, 50)}...`
                             : image.name}
                         </p>

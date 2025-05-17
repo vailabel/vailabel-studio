@@ -1,7 +1,7 @@
 import { Folder, Home, Settings2 } from "lucide-react"
 import React from "react"
 import { PolarGrid } from "recharts"
-import { Link } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 import { ThemeToggle } from "@/components/theme-toggle"
 
 const navigation = [
@@ -15,6 +15,7 @@ export default function MainLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const navigate = useNavigate()
   return (
     <div className="flex min-h-screen">
       {/* Sidebar */}
@@ -25,14 +26,14 @@ export default function MainLayout({
         </div>
         <nav className="space-y-2">
           {navigation.map((item) => (
-            <Link
+            <button
               key={item.name}
-              to={item.href}
+              onClick={() => navigate(item.href)}
               className="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md hover:bg-gray-200 dark:hover:bg-gray-700"
             >
               <item.icon className="h-5 w-5" />
               <span>{item.name}</span>
-            </Link>
+            </button>
           ))}
         </nav>
       </aside>
