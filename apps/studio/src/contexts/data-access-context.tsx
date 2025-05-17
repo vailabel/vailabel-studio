@@ -20,7 +20,7 @@ const dataAccessStrategies: Record<string, () => IDataAccess> = {
     if (!isElectron()) {
       throw new Error("SQLite is only supported in Electron environment")
     }
-    return new SQLiteDataAccess("vai-studio")
+    return new SQLiteDataAccess()
   },
 }
 
