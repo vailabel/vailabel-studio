@@ -13,6 +13,9 @@ exports.ApiDataAccess = void 0;
 const ApiClient_1 = require("@vailabel/core/src/data/sources/api/ApiClient");
 const api = new ApiClient_1.ApiClient();
 class ApiDataAccess {
+    getProjectWithImages(id) {
+        throw new Error("Method not implemented.");
+    }
     getNextImageId(currentImageId) {
         return __awaiter(this, void 0, void 0, function* () {
             return api.get(`/images/${currentImageId}/next`);

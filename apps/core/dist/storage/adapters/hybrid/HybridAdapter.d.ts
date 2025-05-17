@@ -1,6 +1,4 @@
-/// <reference types="node" />
-/// <reference types="node" />
-import { IStorageAdapter } from "@vailabel/core/src/storage/interfaces/IStorageAdapter";
+import { IStorageAdapter } from "@vailabel/core/src/storage";
 export declare class HybridAdapter implements IStorageAdapter {
     private local;
     private remote;

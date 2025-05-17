@@ -9,6 +9,20 @@ import {
 } from "../../../models/types"
 
 export class SQLiteDataAccess implements IDataAccess {
+  async getProjectWithImages(
+    id: string
+  ): Promise<(Project & { images: ImageData[] }) | undefined> {
+    const project = (await window.ipc.invoke("sqlite:get", [
+      "SELECT * FROM projects WHERE id = ?",
+      [id],
+    ])) as Project | undefined
+    if (!project) return undefined
+    const images = (await window.ipc.invoke("sqlite:all", [
+      "SELECT * FROM images WHERE projectId = ?",
+      [id],
+    ])) as ImageData[]
+    return { ...project, images }
+  }
   getProjectById(id: string): Promise<Project | undefined> {
     return window.ipc.invoke("sqlite:get", [
       "SELECT * FROM projects WHERE id = ?",
@@ -34,8 +48,32 @@ export class SQLiteDataAccess implements IDataAccess {
     ])
   }
 
-  deleteProject(id: string): Promise<void> {
-    return window.ipc.invoke("sqlite:run", [
+  async deleteProject(id: string): Promise<void> {
+    // Delete annotations for all images in the project
+    const images: ImageData[] = await window.ipc.invoke("sqlite:all", [
+      "SELECT id FROM images WHERE projectId = ?",
+      [id],
+    ])
+    const imageIds = images.map((img) => img.id)
+    if (imageIds.length > 0) {
+      // Delete annotations for these images
+      await window.ipc.invoke("sqlite:run", [
+        `DELETE FROM annotations WHERE imageId IN (${imageIds.map(() => "?").join(",")})`,
+        imageIds,
+      ])
+    }
+    // Delete images for the project
+    await window.ipc.invoke("sqlite:run", [
+      "DELETE FROM images WHERE projectId = ?",
+      [id],
+    ])
+    // Delete labels for the project
+    await window.ipc.invoke("sqlite:run", [
+      "DELETE FROM labels WHERE projectId = ?",
+      [id],
+    ])
+    // Delete the project itself
+    await window.ipc.invoke("sqlite:run", [
       "DELETE FROM projects WHERE id = ?",
       [id],
     ])
@@ -79,8 +117,17 @@ export class SQLiteDataAccess implements IDataAccess {
 
   createImage(image: ImageData): Promise<void> {
     return window.ipc.invoke("sqlite:run", [
-      "INSERT INTO images (id, projectId, url, createdAt) VALUES (?, ?, ?, ?)",
-      [image.id, image.projectId, image.url, image.createdAt],
+      "INSERT INTO images (id, projectId, name, data, width, height, url, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      [
+        image.id,
+        image.projectId,
+        image.name,
+        image.data,
+        image.width,
+        image.height,
+        image.url,
+        image.createdAt,
+      ],
     ])
   }
 
@@ -125,13 +172,18 @@ export class SQLiteDataAccess implements IDataAccess {
 
   createAnnotation(annotation: Annotation): Promise<void> {
     return window.ipc.invoke("sqlite:run", [
-      "INSERT INTO annotations (id, imageId, createdAt, updatedAt, coordinates) VALUES (?, ?, ?, ?, ?)",
+      "INSERT INTO annotations (id, imageId, labelId, name, type, coordinates, color, isAIGenerated, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [
         annotation.id,
         annotation.imageId,
+        annotation.labelId,
+        annotation.name,
+        annotation.type,
+        annotation.coordinates,
+        annotation.color,
+        annotation.isAIGenerated,
         annotation.createdAt,
         annotation.updatedAt,
-        annotation.coordinates,
       ],
     ])
   }
@@ -156,8 +208,17 @@ export class SQLiteDataAccess implements IDataAccess {
 
   createLabel(label: Label): Promise<void> {
     return window.ipc.invoke("sqlite:run", [
-      "INSERT INTO labels (id, name, createdAt, updatedAt) VALUES (?, ?, ?, ?)",
-      [label.id, label.name, label.createdAt, label.updatedAt],
+      "INSERT INTO labels (id, name, category, isAIGenerated, projectId, color, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      [
+        label.id,
+        label.name,
+        label.category,
+        label.isAIGenerated,
+        label.projectId,
+        label.color,
+        label.createdAt,
+        label.updatedAt,
+      ],
     ])
   }
 

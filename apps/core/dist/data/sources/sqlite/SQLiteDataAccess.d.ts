@@ -1,7 +1,9 @@
-/// <reference types="@vailabel/core/type" />
 import { IDataAccess } from "@vailabel/core/src/data/interface/IDataAccess";
 import { Project, ImageData, Annotation, Label, History } from "../../../models/types";
 export declare class SQLiteDataAccess implements IDataAccess {
+    getProjectWithImages(id: string): Promise<(Project & {
+        images: ImageData[];
+    }) | undefined>;
     getProjectById(id: string): Promise<Project | undefined>;
     createProject(project: Project): Promise<void>;
     updateProject(id: string, updates: Partial<Project>): Promise<void>;

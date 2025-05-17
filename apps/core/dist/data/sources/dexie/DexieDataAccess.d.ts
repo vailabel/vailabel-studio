@@ -3,6 +3,7 @@ import { Project, ImageData, Annotation, Label, History } from "../../../models/
 export declare class DexieDataAccess implements IDataAccess {
     getProjects(): Promise<Project[]>;
     getProjectById(id: string): Promise<Project | undefined>;
+    getProjectWithImages(id: string): Promise<Project | undefined>;
     getImages(projectId: string): Promise<ImageData[]>;
     getAnnotations(imageId: string): Promise<Annotation[]>;
     createProject(project: Project): Promise<void>;

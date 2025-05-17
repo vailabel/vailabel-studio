@@ -3,6 +3,7 @@ import ProjectDetails from "./pages/projects/page"
 import ImageStudio from "./pages/studio/page"
 import Setting from "./pages/setting"
 import Overview from "./pages/overview"
+import NotFound from "./pages/not-found"
 
 import { HashRouter, Routes, Route } from "react-router-dom"
 import { AutoUpdateBanner } from "./components/AutoUpdateBanner"
@@ -20,6 +21,7 @@ const AppRoutes = () => {
           element={<ImageStudio />}
         />
         <Route path="/settings" element={<Setting />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </HashRouter>
   )

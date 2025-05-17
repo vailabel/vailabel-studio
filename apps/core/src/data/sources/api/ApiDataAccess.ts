@@ -11,6 +11,9 @@ import { ApiClient } from "@vailabel/core/src/data/sources/api/ApiClient"
 const api = new ApiClient()
 
 export class ApiDataAccess implements IDataAccess {
+  getProjectWithImages(id: string): Promise<Project | undefined> {
+    throw new Error("Method not implemented.")
+  }
   async getNextImageId(currentImageId: string): Promise<string | null> {
     return api.get<string | null>(`/images/${currentImageId}/next`)
   }
