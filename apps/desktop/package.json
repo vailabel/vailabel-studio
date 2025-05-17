@@ -6,10 +6,9 @@
   "main": "dist/main.js",
   "scripts": {
     "prebuild": "copyfiles -u 3 \"../studio/dist/**/*\" ./dist",
-    "start": "tsc && electron .",
     "build": "tsc && electron-builder",
     "build:publish": "yarn prebuild && tsc && electron-builder --publish always",
-    "dev": "tsc && electron ."
+    "dev": "tsc && electron . --trace-warnings"
   },
   "keywords": [],
   "author": {

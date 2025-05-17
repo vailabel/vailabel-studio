@@ -1,5 +1,5 @@
-import { runMigrations } from "@vailabel/core/src/data/db/sqliteDb"
-import { SQLiteDataAccess } from "@vailabel/core/src/data/sources/sqlite/SQLiteDataAccess"
+import { runMigrations } from "@vailabel/core/data/db/sqliteDb"
+import { SQLiteDataAccess } from "@vailabel/core/data/sources/sqlite/SQLiteDataAccess"
 import { ipcMain } from "electron"
 import path from "path"
 
