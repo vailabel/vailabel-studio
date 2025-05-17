@@ -3,7 +3,6 @@ import path from "path"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { ChevronLeft, ChevronRight, Calendar, Tag } from "lucide-react"
-import { AnimatedTableOfContents } from "@/components/animated-table-of-contents"
 import { AnimatedLayout } from "@/components/animated-layout"
 import { MarkdownRenderer } from "@/components/markdown-renderer"
 
@@ -12,8 +11,9 @@ import matter from "gray-matter"
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string }
+  params: Promise<{ slug: string }>
 }) {
+  const { slug } = await params
   // Try multiple possible locations for docs
   const possibleDocsDirs = [
     path.join(process.cwd(), "docs"),
@@ -26,7 +26,7 @@ export async function generateMetadata({
 
   // Try to find the file in each possible location
   for (const dir of possibleDocsDirs) {
-    const filePath = path.join(dir, `${params.slug}.md`)
+    const filePath = path.join(dir, `${slug}.md`)
     try {
       await fs.access(filePath)
       docsDir = dir
@@ -41,15 +41,15 @@ export async function generateMetadata({
     notFound()
   }
 
-  const filePath = path.join(docsDir, `${params.slug}.md`)
+  const filePath = path.join(docsDir, `${slug}.md`)
 
   try {
     const raw = await fs.readFile(filePath, "utf8")
     const { data } = matter(raw)
     return {
-      title: `${data.title || params.slug} - Documentation`,
+      title: `${data.title || slug} - Documentation`,
       description:
-        data.description || `Documentation for ${data.title || params.slug}`,
+        data.description || `Documentation for ${data.title || slug}`,
     }
   } catch (error) {
     return {
@@ -62,8 +62,9 @@ export async function generateMetadata({
 export default async function DocDetailPage({
   params,
 }: {
-  params: { slug: string }
+  params: Promise<{ slug: string }>
 }) {
+  const { slug } = await params
   // Try multiple possible locations for docs
   const possibleDocsDirs = [
     path.join(process.cwd(), "docs"),
@@ -76,7 +77,7 @@ export default async function DocDetailPage({
 
   // Try to find the file in each possible location
   for (const dir of possibleDocsDirs) {
-    const filePath = path.join(dir, `${params.slug}.md`)
+    const filePath = path.join(dir, `${slug}.md`)
     try {
       await fs.access(filePath)
       docsDir = dir
@@ -91,9 +92,9 @@ export default async function DocDetailPage({
     notFound()
   }
 
-  const filePath = path.join(docsDir, `${params.slug}.md`)
+  const filePath = path.join(docsDir, `${slug}.md`)
   let content = ""
-  let title = params.slug
+  let title = slug
   let description = ""
   let tags: string[] = []
   let lastUpdated = ""
@@ -102,7 +103,7 @@ export default async function DocDetailPage({
     const raw = await fs.readFile(filePath, "utf8")
     const { data, content: mdContent } = matter(raw)
     content = mdContent
-    title = data.title || params.slug
+    title = data.title || slug
     description = data.description || ""
     tags = data.tags || []
     lastUpdated = data.lastUpdated || ""
@@ -133,7 +134,7 @@ export default async function DocDetailPage({
       })
     )
 
-    currentIndex = docs.findIndex((doc) => doc.slug === params.slug)
+    currentIndex = docs.findIndex((doc) => doc.slug === slug)
   } catch {}
 
   const prevDoc = docs[currentIndex - 1]
@@ -177,10 +178,6 @@ export default async function DocDetailPage({
             )}
           </div>
         </div>
-
-        {/* Table of contents */}
-        <AnimatedTableOfContents content={content} className="mb-8" />
-
         {/* Main content */}
         <article className="prose dark:prose-invert max-w-none prose-headings:scroll-mt-20 prose-headings:font-semibold prose-h2:text-2xl prose-h3:text-xl prose-img:rounded-lg prose-img:shadow-md prose-a:text-primary hover:prose-a:text-primary/80 prose-blockquote:border-l-primary/50 prose-blockquote:bg-muted/50 prose-blockquote:py-1 prose-blockquote:pl-6 prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:before:content-none prose-code:after:content-none prose-pre:bg-zinc-900 dark:prose-pre:bg-zinc-900/90 prose-pre:text-zinc-50 prose-pre:rounded-lg prose-pre:p-4 prose-pre:shadow-sm">
           <MarkdownRenderer content={content} />
