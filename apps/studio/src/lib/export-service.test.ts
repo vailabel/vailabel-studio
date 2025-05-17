@@ -1,5 +1,5 @@
 import { ExportService } from "./export-service"
-import { Project, Annotation } from "./types"
+import { Project, Annotation } from "@vailabel/core"
 import { IDataAccess } from "./data-access"
 
 type MockDataAccess = IDataAccess & {

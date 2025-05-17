@@ -2,12 +2,18 @@
   "name": "@vailabel/core",
   "version": "1.0.0",
   "main": "index.js",
+  "types": "dist/index.d.ts",
   "license": "MIT",
   "description": "Vailabel Studio Core",
   "author": {
     "name": "Vichea",
-    "email": "vichea@example.com"
+    "email": "nathvichea1@gmail.com"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc",
     "test": "jest",

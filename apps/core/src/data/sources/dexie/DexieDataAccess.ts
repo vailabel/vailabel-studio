@@ -6,7 +6,7 @@ import {
   Annotation,
   Label,
   History,
-} from "@vailabel/core/src/models/types"
+} from "../../../models/types"
 
 export class DexieDataAccess implements IDataAccess {
   async getProjects(): Promise<Project[]> {

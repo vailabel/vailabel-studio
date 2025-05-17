@@ -23,9 +23,6 @@ export function useAutoUpdate() {
     // @ts-expect-error electronAPI is injected by preload
     const electronAPI = window.electronAPI
     if (!electronAPI) return
-
-    console.log(window)
-
     electronAPI.onUpdateAvailable((info: UpdateInfo) => {
       setUpdateAvailable(info)
     })

@@ -1,5 +1,5 @@
 import ImageLabelingApp from "./pages/page"
-import ProjectDetails from "./pages/projects/project-detail/page"
+import ProjectDetails from "./pages/projects/page"
 import ImageStudio from "./pages/studio/page"
 import Setting from "./pages/setting"
 import Overview from "./pages/overview"

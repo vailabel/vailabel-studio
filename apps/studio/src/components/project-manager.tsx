@@ -6,9 +6,9 @@ import { X, Upload, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { db } from "@/lib/db"
 import { useToast } from "@/hooks/use-toast"
-import type { Project, ImageData } from "@/lib/types"
+import type { Project, ImageData } from "@vailabel/core"
+import { useDataAccess } from "@/hooks/use-data-access"
 
 interface ProjectManagerProps {
   onClose: () => void
@@ -24,7 +24,7 @@ export function ProjectManager({
   const [images, setImages] = useState<ImageData[]>([])
   const [isUploading, setIsUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
-
+  const { createProject } = useDataAccess()
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
   }
@@ -162,10 +162,7 @@ export function ProjectManager({
       }
 
       // Save to database
-      await db.transaction("rw", db.projects, db.images, async () => {
-        await db.projects.add(newProject)
-        await db.images.bulkAdd(projectImages)
-      })
+      await createProject(newProject)
 
       onProjectCreate(newProject)
     } catch (error) {

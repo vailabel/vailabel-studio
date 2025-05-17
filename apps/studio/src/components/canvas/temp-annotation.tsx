@@ -1,6 +1,6 @@
 import { motion } from "framer-motion"
 import { rgbToRgba } from "@/lib/utils"
-import type { Annotation } from "@/lib/types"
+import type { Annotation } from "@vailabel/core"
 
 interface TempAnnotationProps {
   annotation: Partial<Annotation>

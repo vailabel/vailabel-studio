@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/tooltip"
 import { useToast } from "@/hooks/use-toast"
 import { detectObjects } from "@/lib/ai-utils"
-import type { Annotation, ImageData, Label } from "@/lib/types"
+import type { Annotation, ImageData, Label } from "@vailabel/core"
 import { useDataAccess } from "@/hooks/use-data-access"
 
 interface AIDetectionButtonProps {

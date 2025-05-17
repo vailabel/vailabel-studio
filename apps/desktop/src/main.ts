@@ -1,8 +1,8 @@
 import { app, BrowserWindow } from "electron"
 import { autoUpdater } from "electron-updater"
-import path from "path"
+import * as path from "path"
 import "./ipc/slqiteIpc"
-
+import "./ipc/filesystemIpc"
 let mainWindow: BrowserWindow
 const isDev = !app.isPackaged
 

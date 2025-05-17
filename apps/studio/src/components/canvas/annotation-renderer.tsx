@@ -1,7 +1,7 @@
 import React, { useMemo } from "react"
 import { BoxAnnotation } from "@/components/canvas/box-annotation"
 import { PolygonAnnotation } from "@/components/canvas/polygon-annotation"
-import { Annotation } from "@/lib/types"
+import { Annotation } from "@vailabel/core"
 
 export const AnnotationRenderer = React.memo(function AnnotationRenderer({
   annotations,
