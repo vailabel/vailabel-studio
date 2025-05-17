@@ -3,6 +3,7 @@ import MainLayout from "./main-layout"
 import { useTheme } from "@/components/theme-provider"
 import { useEffect, useState } from "react"
 import { useDataAccess } from "@/hooks/use-data-access"
+import { useNavigate } from "react-router-dom"
 
 interface RecentActivityItem {
   activity: string
@@ -13,7 +14,7 @@ interface RecentActivityItem {
 const Overview = () => {
   const { theme } = useTheme()
   const { getProjects, getLabels } = useDataAccess()
-
+  const navigate = useNavigate()
   const [statistics, setStatistics] = useState({
     totalProjects: 0,
     activeUsers: 0,
@@ -140,17 +141,17 @@ const Overview = () => {
             {[
               {
                 label: "Create New Project",
-                action: () => {},
+                action: () => navigate("/projects"),
                 color: "bg-blue-600",
               },
               {
                 label: "View All Labels",
-                action: () => {},
+                action: () => navigate("/labels"),
                 color: "bg-green-600",
               },
               {
                 label: "Manage Users",
-                action: () => {},
+                action: () => navigate("/users"),
                 color: "bg-purple-600",
               },
             ].map((action, index) => (

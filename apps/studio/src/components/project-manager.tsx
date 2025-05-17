@@ -24,7 +24,7 @@ export function ProjectManager({
   const [images, setImages] = useState<ImageData[]>([])
   const [isUploading, setIsUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const { createProject } = useDataAccess()
+  const { createProject, createImage } = useDataAccess()
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
   }
@@ -64,13 +64,14 @@ export function ProjectManager({
         const imageData = await readFileAsDataURL(file)
         const dimensions = await getImageDimensions(imageData)
 
+        // Use a temporary value for projectId to satisfy the type, will be replaced on project creation
         newImages.push({
           id: crypto.randomUUID(),
           name: file.name,
           data: imageData,
           width: dimensions.width,
           height: dimensions.height,
-          projectId: "", // Will be set when project is created
+          projectId: "temp", // will be replaced with real projectId later
           createdAt: new Date(),
         })
       }
@@ -144,27 +145,28 @@ export function ProjectManager({
     }
 
     try {
+      // 1. Create project and get its ID
       const projectId = crypto.randomUUID()
+      const newProject: Project = {
+        id: projectId,
+        name: projectName.trim(),
+        images: [],
+        createdAt: new Date(),
+        lastModified: new Date(),
+      }
+      await createProject(newProject)
 
-      // Assign project ID to all images
+      // 2. Create images with the correct projectId
       const projectImages = images.map((img) => ({
         ...img,
         projectId,
       }))
-
-      // Create project object
-      const newProject: Project = {
-        id: projectId,
-        name: projectName.trim(),
-        images: projectImages,
-        createdAt: new Date(),
-        lastModified: new Date(),
+      for (const img of projectImages) {
+        await createImage(img)
       }
 
-      // Save to database
-      await createProject(newProject)
-
-      onProjectCreate(newProject)
+      // 3. Notify parent with project and images
+      onProjectCreate({ ...newProject, images: projectImages })
     } catch (error) {
       console.error("Error creating project:", error)
       toast({

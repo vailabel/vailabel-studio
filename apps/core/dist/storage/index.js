@@ -19,3 +19,4 @@ __exportStar(require("./adapters/azure/AzureBlobStorageAdapter"), exports);
 __exportStar(require("./adapters/base64/Base64StorageAdapter"), exports);
 __exportStar(require("./adapters/s3/S3StorageAdapter"), exports);
 __exportStar(require("./adapters/hybrid/HybridAdapter"), exports);
+__exportStar(require("./adapters/filesystem/FileSystemStorageAdapter"), exports);

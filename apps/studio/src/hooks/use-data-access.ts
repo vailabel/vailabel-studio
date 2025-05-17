@@ -1,6 +1,6 @@
 import { useContext } from "react"
 import { DataAccessContext } from "@/contexts/data-access-context"
-import type { IDataAccess } from "@/lib/data-access"
+import { IDataAccess } from "@vailabel/core/src/data"
 
 export const useDataAccess = (): IDataAccess => {
   const context = useContext(DataAccessContext)
