@@ -1,58 +1,32 @@
-import { Database } from "sqlite3"
-import { IDataAccess } from "@vai/core/data/interface/IDataAccess"
+/// <reference path='../../../type.d.ts' />
+import { IDataAccess } from "@vailabel/core/src/data/interface/IDataAccess"
 import {
   Project,
   ImageData,
   Annotation,
   Label,
   History,
-} from "@vai/core/models/types"
+} from "@vailabel/core/src/models/types"
 
 export class SQLiteDataAccess implements IDataAccess {
-  private db: Database
+  private filePath: string
 
   constructor(filePath: string) {
-    this.db = new Database(filePath)
-  }
-  private runAsync(sql: string, params: unknown[] = []): Promise<void> {
-    return new Promise((resolve, reject) => {
-      this.db.run(sql, params, (err: unknown) => {
-        if (err) return reject(err)
-        resolve()
-      })
-    })
-  }
-
-  private getAsync<T>(
-    sql: string,
-    params: unknown[] = []
-  ): Promise<T | undefined> {
-    return new Promise((resolve, reject) => {
-      this.db.get(sql, params, (err: unknown, row: T) => {
-        if (err) return reject(err)
-        resolve(row)
-      })
-    })
-  }
-
-  private allAsync<T>(sql: string, params: unknown[] = []): Promise<T[]> {
-    return new Promise((resolve, reject) => {
-      this.db.all(sql, params, (err: unknown, rows: T[]) => {
-        if (err) return reject(err)
-        resolve(rows)
-      })
-    })
+    this.filePath = filePath
   }
 
   getProjectById(id: string): Promise<Project | undefined> {
-    return this.getAsync<Project>("SELECT * FROM projects WHERE id = ?", [id])
+    return window.ipc.invoke("sqlite:get", [
+      "SELECT * FROM projects WHERE id = ?",
+      [id],
+    ])
   }
 
   createProject(project: Project): Promise<void> {
-    return this.runAsync(
+    return window.ipc.invoke("sqlite:run", [
       "INSERT INTO projects (id, name, createdAt, lastModified) VALUES (?, ?, ?, ?)",
-      [project.id, project.name, project.createdAt, project.lastModified]
-    )
+      [project.id, project.name, project.createdAt, project.lastModified],
+    ])
   }
 
   updateProject(id: string, updates: Partial<Project>): Promise<void> {
@@ -60,21 +34,24 @@ export class SQLiteDataAccess implements IDataAccess {
       .map((key) => `${key} = ?`)
       .join(", ")
     const values = Object.values(updates)
-    return this.runAsync(`UPDATE projects SET ${setClause} WHERE id = ?`, [
-      ...values,
-      id,
+    return window.ipc.invoke("sqlite:run", [
+      `UPDATE projects SET ${setClause} WHERE id = ?`,
+      [...values, id],
     ])
   }
 
   deleteProject(id: string): Promise<void> {
-    return this.runAsync("DELETE FROM projects WHERE id = ?", [id])
+    return window.ipc.invoke("sqlite:run", [
+      "DELETE FROM projects WHERE id = ?",
+      [id],
+    ])
   }
 
   getImages(projectId: string): Promise<ImageData[]> {
-    return this.allAsync<ImageData>(
+    return window.ipc.invoke("sqlite:all", [
       "SELECT * FROM images WHERE projectId = ?",
-      [projectId]
-    )
+      [projectId],
+    ])
   }
 
   getImagesWithPagination(
@@ -82,31 +59,35 @@ export class SQLiteDataAccess implements IDataAccess {
     offset: number,
     limit: number
   ): Promise<ImageData[]> {
-    return this.allAsync<ImageData>(
+    return window.ipc.invoke("sqlite:all", [
       "SELECT * FROM images WHERE projectId = ? LIMIT ? OFFSET ?",
-      [projectId, limit, offset]
-    )
+      [projectId, limit, offset],
+    ])
   }
 
   getNextImageId(currentImageId: string): Promise<string | null> {
-    return this.getAsync<{ id: string }>(
-      "SELECT id FROM images WHERE id > ? ORDER BY id ASC LIMIT 1",
-      [currentImageId]
-    ).then((row) => (row ? row.id : null))
+    return window.ipc
+      .invoke("sqlite:get", [
+        "SELECT id FROM images WHERE id > ? ORDER BY id ASC LIMIT 1",
+        [currentImageId],
+      ])
+      .then((row: { id: string } | undefined) => (row ? row.id : null))
   }
 
   getPreviousImageId(currentImageId: string): Promise<string | null> {
-    return this.getAsync<{ id: string }>(
-      "SELECT id FROM images WHERE id < ? ORDER BY id DESC LIMIT 1",
-      [currentImageId]
-    ).then((row) => (row ? row.id : null))
+    return window.ipc
+      .invoke("sqlite:get", [
+        "SELECT id FROM images WHERE id < ? ORDER BY id DESC LIMIT 1",
+        [currentImageId],
+      ])
+      .then((row: { id: string } | undefined) => (row ? row.id : null))
   }
 
   createImage(image: ImageData): Promise<void> {
-    return this.runAsync(
+    return window.ipc.invoke("sqlite:run", [
       "INSERT INTO images (id, projectId, url, createdAt) VALUES (?, ?, ?, ?)",
-      [image.id, image.projectId, image.url, image.createdAt]
-    )
+      [image.id, image.projectId, image.url, image.createdAt],
+    ])
   }
 
   updateImage(id: string, updates: Partial<ImageData>): Promise<void> {
@@ -114,21 +95,24 @@ export class SQLiteDataAccess implements IDataAccess {
       .map((key) => `${key} = ?`)
       .join(", ")
     const values = Object.values(updates)
-    return this.runAsync(`UPDATE images SET ${setClause} WHERE id = ?`, [
-      ...values,
-      id,
+    return window.ipc.invoke("sqlite:run", [
+      `UPDATE images SET ${setClause} WHERE id = ?`,
+      [...values, id],
     ])
   }
 
   deleteImage(id: string): Promise<void> {
-    return this.runAsync("DELETE FROM images WHERE id = ?", [id])
+    return window.ipc.invoke("sqlite:run", [
+      "DELETE FROM images WHERE id = ?",
+      [id],
+    ])
   }
 
   getAnnotations(imageId: string): Promise<Annotation[]> {
-    return this.allAsync<Annotation>(
+    return window.ipc.invoke("sqlite:all", [
       "SELECT * FROM annotations WHERE imageId = ?",
-      [imageId]
-    )
+      [imageId],
+    ])
   }
 
   getAnnotationsWithFilter(
@@ -139,14 +123,14 @@ export class SQLiteDataAccess implements IDataAccess {
       .map((key) => `${key} = ?`)
       .join(" AND ")
     const values = Object.values(filter)
-    return this.allAsync<Annotation>(
+    return window.ipc.invoke("sqlite:all", [
       `SELECT * FROM annotations WHERE imageId = ? AND ${whereClause}`,
-      [imageId, ...values]
-    )
+      [imageId, ...values],
+    ])
   }
 
   createAnnotation(annotation: Annotation): Promise<void> {
-    return this.runAsync(
+    return window.ipc.invoke("sqlite:run", [
       "INSERT INTO annotations (id, imageId, createdAt, updatedAt, coordinates) VALUES (?, ?, ?, ?, ?)",
       [
         annotation.id,
@@ -154,8 +138,8 @@ export class SQLiteDataAccess implements IDataAccess {
         annotation.createdAt,
         annotation.updatedAt,
         annotation.coordinates,
-      ]
-    )
+      ],
+    ])
   }
 
   updateAnnotation(id: string, updates: Partial<Annotation>): Promise<void> {
@@ -163,29 +147,35 @@ export class SQLiteDataAccess implements IDataAccess {
       .map((key) => `${key} = ?`)
       .join(", ")
     const values = Object.values(updates)
-    return this.runAsync(`UPDATE annotations SET ${setClause} WHERE id = ?`, [
-      ...values,
-      id,
+    return window.ipc.invoke("sqlite:run", [
+      `UPDATE annotations SET ${setClause} WHERE id = ?`,
+      [...values, id],
     ])
   }
 
   deleteAnnotation(id: string): Promise<void> {
-    return this.runAsync("DELETE FROM annotations WHERE id = ?", [id])
+    return window.ipc.invoke("sqlite:run", [
+      "DELETE FROM annotations WHERE id = ?",
+      [id],
+    ])
   }
 
   createLabel(label: Label): Promise<void> {
-    return this.runAsync(
+    return window.ipc.invoke("sqlite:run", [
       "INSERT INTO labels (id, name, createdAt, updatedAt) VALUES (?, ?, ?, ?)",
-      [label.id, label.name, label.createdAt, label.updatedAt]
-    )
+      [label.id, label.name, label.createdAt, label.updatedAt],
+    ])
   }
 
   getLabels(): Promise<Label[]> {
-    return this.allAsync<Label>("SELECT * FROM labels", [])
+    return window.ipc.invoke("sqlite:all", ["SELECT * FROM labels", []])
   }
 
   getLabelById(id: string): Promise<Label | undefined> {
-    return this.getAsync<Label>("SELECT * FROM labels WHERE id = ?", [id])
+    return window.ipc.invoke("sqlite:get", [
+      "SELECT * FROM labels WHERE id = ?",
+      [id],
+    ])
   }
 
   updateLabel(id: string, updates: Partial<Label>): Promise<void> {
@@ -193,32 +183,32 @@ export class SQLiteDataAccess implements IDataAccess {
       .map((key) => `${key} = ?`)
       .join(", ")
     const values = Object.values(updates)
-    return this.runAsync(`UPDATE labels SET ${setClause} WHERE id = ?`, [
-      ...values,
-      id,
+    return window.ipc.invoke("sqlite:run", [
+      `UPDATE labels SET ${setClause} WHERE id = ?`,
+      [...values, id],
     ])
   }
 
   deleteLabel(id: string): Promise<void> {
-    return this.runAsync("DELETE FROM labels WHERE id = ?", [id])
+    return window.ipc.invoke("sqlite:run", [
+      "DELETE FROM labels WHERE id = ?",
+      [id],
+    ])
   }
 
   getSettings(): Promise<{ key: string; value: string }[]> {
-    return this.allAsync<{ key: string; value: string }>(
-      "SELECT * FROM settings",
-      []
-    )
+    return window.ipc.invoke("sqlite:all", ["SELECT * FROM settings", []])
   }
 
   updateSetting(key: string, value: string): Promise<void> {
-    return this.runAsync("UPDATE settings SET value = ? WHERE key = ?", [
-      value,
-      key,
+    return window.ipc.invoke("sqlite:run", [
+      "UPDATE settings SET value = ? WHERE key = ?",
+      [value, key],
     ])
   }
 
   getHistory(): Promise<History[]> {
-    return this.allAsync<History>("SELECT * FROM history", [])
+    return window.ipc.invoke("sqlite:all", ["SELECT * FROM history", []])
   }
 
   updateHistory(history: History): Promise<void> {
@@ -226,13 +216,13 @@ export class SQLiteDataAccess implements IDataAccess {
       .map((key) => `${key} = ?`)
       .join(", ")
     const values = Object.values(history)
-    return this.runAsync(`UPDATE history SET ${setClause} WHERE id = ?`, [
-      ...values,
-      history.id,
+    return window.ipc.invoke("sqlite:run", [
+      `UPDATE history SET ${setClause} WHERE id = ?`,
+      [...values, history.id],
     ])
   }
 
-  async getProjects(): Promise<Project[]> {
-    return this.allAsync<Project>("SELECT * FROM projects", [])
+  getProjects(): Promise<Project[]> {
+    return window.ipc.invoke("sqlite:all", ["SELECT * FROM projects", []])
   }
 }

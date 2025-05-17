@@ -1,6 +1,5 @@
 import { ipcMain } from "electron"
 import * as fs from "fs/promises"
-import * as path from "path"
 
 // Save image
 ipcMain.handle("fs-save-image", async (_event, { path: filePath, data }) => {

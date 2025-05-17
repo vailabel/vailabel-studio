@@ -117,7 +117,9 @@ export class ExportService {
           cocoAnnotation.bbox = [topLeft.x, topLeft.y, width, height]
           cocoAnnotation.area = width * height
         } else if (annotation.type === "polygon") {
-          const flatCoords = annotation.coordinates.flatMap((p) => [p.x, p.y])
+          const flatCoords = annotation.coordinates.flatMap(
+            (p: { x: number; y: number }) => [p.x, p.y]
+          )
           cocoAnnotation.segmentation = [flatCoords]
 
           let area = 0

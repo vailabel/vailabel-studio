@@ -1,9 +1,12 @@
-export const isElectronEnv = () => {
+import pkg from "../../package.json"
+
+export const isElectron = () => {
   return (
     typeof window !== "undefined" &&
-    typeof window.process === "object" &&
     window.process &&
     window.process.versions &&
-    !!window.process.versions.electron
+    window.process.versions.electron
   )
 }
+export const APP_NAME = "Vai Studio"
+export const APP_VERSION = pkg.version

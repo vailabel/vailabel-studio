@@ -1,8 +1,19 @@
 {
-  "name": "@vai/core",
+  "name": "@vailabel/core",
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
+  "description": "Vailabel Studio Core",
+  "author": {
+    "name": "Vichea",
+    "email": "vichea@example.com"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "lint": "eslint . --ext .ts,.tsx",
+    "prepublishOnly": "npm run build"
+  },
   "dependencies": {
     "@azure/storage-blob": "^12.27.0",
     "aws-sdk": "^2.1692.0",

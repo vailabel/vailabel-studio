@@ -13,7 +13,7 @@
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\" --ignore-path .gitignore --ignore-path .prettierignore",
     "commit": "cz",
     "test": "jest --coverage --watchAll=false",
-    "dev": "concurrently \"yarn workspaces studio dev\" \"yarn workspaces desktop start\"",
+    "dev": "concurrently \"cd apps/studio && yarn dev\" \"cd apps/desktop && yarn dev\"",
     "build": "concurrently \"yarn workspaces studio build\" \"yarn workspaces desktop build\"",
     "dev:web": "yarn workspaces web dev",
     "build:web": "yarn workspaces web build"
@@ -21,6 +21,9 @@
   "keywords": [],
   "workspaces": [
     "apps/*"
+  ],
+  "nohoist": [
+    "**"
   ],
   "author": {
     "name": "Vichea Nath",

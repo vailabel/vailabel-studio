@@ -1,12 +1,12 @@
-import { IDataAccess } from "@vai/core/data/interface/IDataAccess"
+import { IDataAccess } from "@vailabel/core/src/data/interface/IDataAccess"
 import type {
   Project,
   ImageData,
   Annotation,
   Label,
   History,
-} from "@vai/core/models/types"
-import { ApiClient } from "@vai/core/data/sources/api/ApiClient"
+} from "@vailabel/core/src/models/types"
+import { ApiClient } from "@vailabel/core/src/data/sources/api/ApiClient"
 
 const api = new ApiClient()
 

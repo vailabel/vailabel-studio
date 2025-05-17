@@ -10,6 +10,8 @@ export interface Label {
   isAIGenerated?: boolean
   projectId: string
   color: string
+  createdAt: Date
+  updatedAt: Date
 }
 
 export interface Annotation {
@@ -27,6 +29,7 @@ export interface Annotation {
 }
 
 export interface History {
+  id: string
   labels: Label[]
   historyIndex: number
   canUndo: boolean
@@ -39,6 +42,7 @@ export interface ImageData {
   data: string
   width: number
   height: number
+  url?: string
   projectId: string
   createdAt: Date
 }
