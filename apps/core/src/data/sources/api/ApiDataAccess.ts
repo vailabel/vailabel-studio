@@ -5,7 +5,7 @@ import type {
   Annotation,
   Label,
   History,
-} from "@vailabel/core/src/models/types"
+} from "../../../models/types"
 import { ApiClient } from "@vailabel/core/src/data/sources/api/ApiClient"
 
 const api = new ApiClient()

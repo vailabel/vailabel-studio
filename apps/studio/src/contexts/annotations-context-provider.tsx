@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
 import { AnnotationsContext } from "./annotations-context"
-import type { Annotation, ImageData, Label } from "@/lib/types"
+import type { Annotation, ImageData, Label } from "@vailabel/core"
 import { useDataAccess } from "@/hooks/use-data-access"
 import Loading from "@/components/loading"
 

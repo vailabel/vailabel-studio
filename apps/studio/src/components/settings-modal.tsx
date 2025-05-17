@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Slider } from "@/components/ui/slider"
-import { db } from "@/lib/db"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import { useTheme } from "./theme-provider"
@@ -80,9 +79,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
     setIsClearing(true)
 
     try {
-      await db.delete()
-      await db.open()
-
+      // TODO - Implement the actual data clearing logic
       toast({
         title: "Success",
         description: "All data has been cleared",

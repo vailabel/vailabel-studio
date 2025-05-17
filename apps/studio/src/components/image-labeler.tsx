@@ -1,5 +1,5 @@
 import type React from "react"
-import type { ImageData, Project, Label } from "@/lib/types"
+import type { ImageData, Project, Label } from "@vailabel/core"
 import { useState, useEffect, useRef, useCallback } from "react"
 import { AnimatePresence } from "framer-motion"
 import {

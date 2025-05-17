@@ -1,4 +1,10 @@
-import type { Label, Project, ImageData, Annotation, History } from "./types"
+import type {
+  Label,
+  Project,
+  ImageData,
+  Annotation,
+  History,
+} from "@vailabel/core"
 
 // Define the interface for the Data Access Layer
 export interface IDataAccess {

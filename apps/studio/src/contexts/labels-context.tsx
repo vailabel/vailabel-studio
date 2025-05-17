@@ -1,5 +1,5 @@
 import { createContext, useContext, useState } from "react"
-import type { Label } from "@/lib/types"
+import type { Label } from "@vailabel/core"
 
 const LabelsContext = createContext<{
   labels: Label[]

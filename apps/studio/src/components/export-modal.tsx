@@ -9,8 +9,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useToast } from "@/hooks/use-toast"
 import { ExportService } from "@/lib/export-service"
 import { useDataAccess } from "@/hooks/use-data-access"
-import type { Annotation, Project } from "@/lib/types"
-
+import type { Annotation, Project } from "@vailabel/core"
 interface ExportModalProps {
   project: Project
   annotations: Annotation[]

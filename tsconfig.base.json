@@ -10,10 +10,9 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "strict": true,
-    "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "@vailabel/core/*": ["packages/core/src/*"]
+      "@vailabel/core/*": ["apps/core/src/*"]
     }
   }
 }
