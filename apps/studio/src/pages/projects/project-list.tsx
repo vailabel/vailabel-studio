@@ -4,15 +4,13 @@ import { useState, useEffect } from "react"
 import { ProjectDashboard } from "@/components/project-dashboard"
 import { useToast } from "@/hooks/use-toast"
 import type { Project } from "@vailabel/core"
-import MainLayout from "./main-layout"
 import { useDataAccess } from "@/hooks/use-data-access"
 
-export default function ImageLabelingApp() {
+export default function ProjectList() {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(true)
   const [projects, setProjects] = useState<Project[]>([])
   const { getProjects, deleteProject } = useDataAccess()
-  // Load projects and active project on initial render
   useEffect(() => {
     const loadProjects = async () => {
       try {
@@ -58,13 +56,11 @@ export default function ImageLabelingApp() {
   }
 
   return (
-    <MainLayout>
-      <ProjectDashboard
-        projects={projects}
-        isLoading={isLoading}
-        onProjectCreate={handleProjectCreate}
-        onProjectDelete={handleProjectDelete}
-      />
-    </MainLayout>
+    <ProjectDashboard
+      projects={projects}
+      isLoading={isLoading}
+      onProjectCreate={handleProjectCreate}
+      onProjectDelete={handleProjectDelete}
+    />
   )
 }
