@@ -37,9 +37,9 @@ export default function Header() {
           </div>
           <div className="flex items-center space-x-4">
             <Link
-              href="/documentation/getting-started"
+              href="/docs/getting-started"
               className={`${
-                isActive("/documentation")
+                isActive("/docs")
                   ? "text-gray-900 dark:text-white font-semibold"
                   : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
               }`}

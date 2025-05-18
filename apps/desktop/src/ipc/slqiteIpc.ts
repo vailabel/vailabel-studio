@@ -1,9 +1,10 @@
-import { ipcMain } from "electron"
+import { ipcMain, app } from "electron"
 import fs from "fs"
 import path from "path"
 import { runMigrations } from "../db/sqliteDb"
 
-const dbPath = path.join(__dirname, "database.sqlite")
+// Use Electron's userData directory for the database file
+const dbPath = path.join(app.getPath("userData"), "database.sqlite")
 const sqlite3 = require("sqlite3").verbose()
 
 const dbDir = path.dirname(dbPath)

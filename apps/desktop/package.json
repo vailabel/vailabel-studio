@@ -25,7 +25,8 @@
     "electron-builder": "^26.0.12"
   },
   "dependencies": {
-    "electron-updater": "^6.6.2"
+    "electron-updater": "^6.6.2",
+    "sqlite3": "^5.1.7"
   },
   "repository": {
     "type": "git",

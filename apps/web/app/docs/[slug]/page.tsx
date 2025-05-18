@@ -187,7 +187,7 @@ export default async function DocDetailPage({
         <div className="flex justify-between mt-12 pt-6 border-t">
           {prevDoc ? (
             <Link
-              href={`/documentation/${prevDoc.slug}`}
+              href={`/docs/${prevDoc.slug}`}
               className="inline-flex items-center gap-2 group border border-gray-200 dark:border-gray-700 rounded px-4 py-2 text-sm font-medium bg-white dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
             >
               <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
@@ -199,7 +199,7 @@ export default async function DocDetailPage({
 
           {nextDoc ? (
             <Link
-              href={`/documentation/${nextDoc.slug}`}
+              href={`/docs/${nextDoc.slug}`}
               className="inline-flex items-center gap-2 group rounded px-4 py-2 text-sm font-medium bg-gradient-to-r from-primary to-primary/90 text-white hover:from-primary/90 hover:to-primary/80 transition"
             >
               <span>{nextDoc.title}</span>

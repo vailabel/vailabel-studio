@@ -36,17 +36,19 @@ export async function getGitHubReleases() {
     },
   })
 
-  return res.data.map((release: any) => {
-    return {
-      id: release.id,
-      name: release.name,
-      tag_name: release.tag_name,
-      published_at: release.published_at,
-      body: release.body,
-      html_url: release.html_url,
-      assets: release.assets,
-    }
-  })
+  return res.data
+    .filter((release: any) => !release.draft)
+    .map((release: any) => {
+      return {
+        id: release.id,
+        name: release.name,
+        tag_name: release.tag_name,
+        published_at: release.published_at,
+        body: release.body,
+        html_url: release.html_url,
+        assets: release.assets,
+      }
+    })
 }
 
 export async function getGitHubStarsContributorsPullRequests() {
