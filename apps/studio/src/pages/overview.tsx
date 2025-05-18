@@ -1,9 +1,9 @@
 import { motion } from "framer-motion"
 import MainLayout from "./main-layout"
-import { useTheme } from "@/components/theme-provider"
 import { useEffect, useState } from "react"
 import { useDataAccess } from "@/hooks/use-data-access"
 import { useNavigate } from "react-router-dom"
+import { Users, Folder, Tag } from "lucide-react"
 
 interface RecentActivityItem {
   activity: string
@@ -12,7 +12,6 @@ interface RecentActivityItem {
 }
 
 const Overview = () => {
-  const { theme } = useTheme()
   const { getProjects, getLabels } = useDataAccess()
   const navigate = useNavigate()
   const [statistics, setStatistics] = useState({
@@ -26,8 +25,6 @@ const Overview = () => {
     const fetchData = async () => {
       const projects = await getProjects()
       const labels = await getLabels()
-      console.log("Projects:", projects)
-      console.log("Labels:", labels)
       setStatistics({
         totalProjects: projects.length,
         activeUsers: 120, // Placeholder value; replace with real data if available
@@ -48,45 +45,46 @@ const Overview = () => {
   return (
     <MainLayout>
       <div
-        className={`p-6 font-sans min-h-screen ${
-          theme === "dark"
-            ? "bg-gray-900 text-gray-100"
-            : "bg-gray-100 text-gray-800"
-        }`}
+        className={`p-6 font-sans min-h-screen transition-colors duration-300`}
       >
         <h1 className="text-4xl font-extrabold mb-8">Dashboard</h1>
-
-        {/* Statistics Section */}
         <section className="mb-12">
-          <h2 className="text-2xl font-semibold mb-6">Statistics</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
               {
                 title: "Total Projects",
                 value: statistics.totalProjects,
                 color: "bg-blue-500",
+                icon: <Folder className="w-8 h-8 opacity-80" />,
               },
               {
                 title: "Active Users",
                 value: statistics.activeUsers,
                 color: "bg-green-500",
+                icon: <Users className="w-8 h-8 opacity-80" />,
               },
               {
                 title: "Labels Created",
                 value: statistics.labelsCreated,
                 color: "bg-purple-500",
+                icon: <Tag className="w-8 h-8 opacity-80" />,
               },
-            ].map((stat, index) => (
-              <motion.div
-                key={index}
-                className={`p-6 rounded-lg shadow-lg text-white ${stat.color}`}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <h3 className="text-lg font-medium">{stat.title}</h3>
-                <p className="text-3xl font-bold">{stat.value}</p>
-              </motion.div>
-            ))}
+            ].map((stat, index) => {
+              return (
+                <motion.div
+                  key={index}
+                  className={`p-6 rounded-lg shadow-lg text-white ${stat.color} flex items-center gap-4`}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  {stat.icon}
+                  <div>
+                    <h3 className="text-lg font-medium">{stat.title}</h3>
+                    <p className="text-3xl font-bold">{stat.value}</p>
+                  </div>
+                </motion.div>
+              )
+            })}
           </div>
         </section>
 

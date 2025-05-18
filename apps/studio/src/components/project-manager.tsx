@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import type { Project, ImageData } from "@vailabel/core"
 import { useDataAccess } from "@/hooks/use-data-access"
+import { useStorage } from "@/hooks/use-stoage"
 
 interface ProjectManagerProps {
   onClose: () => void
@@ -25,6 +26,7 @@ export function ProjectManager({
   const [isUploading, setIsUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { createProject, createImage } = useDataAccess()
+  const { saveImage } = useStorage()
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
   }
@@ -163,6 +165,7 @@ export function ProjectManager({
       }))
       for (const img of projectImages) {
         await createImage(img)
+        await saveImage(img.id, img.data)
       }
 
       // 3. Notify parent with project and images
