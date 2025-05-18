@@ -11,7 +11,9 @@ import remarkGfm from "remark-gfm"
 // GitHub API types
 
 function formatDate(dateString: string) {
+  if (!dateString) return "Unknown date"
   const date = new Date(dateString)
+  if (isNaN(date.getTime())) return "Unknown date"
   return new Intl.DateTimeFormat("en-US", {
     year: "numeric",
     month: "long",
