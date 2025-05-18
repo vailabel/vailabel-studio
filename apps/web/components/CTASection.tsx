@@ -1,3 +1,5 @@
+"use client"
+
 import { motion } from "framer-motion"
 import { ArrowRight, Github } from "lucide-react"
 import React from "react"

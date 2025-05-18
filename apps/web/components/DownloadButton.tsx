@@ -1,3 +1,5 @@
+"use client"
+
 import React, { useEffect, useState } from "react"
 import { ChevronDown, Laptop, Monitor, Apple } from "lucide-react"
 import { getGitHubReleases } from "@/lib/api"
@@ -68,10 +70,13 @@ const DownloadButton: React.FC = () => {
   }, [])
 
   return (
-    <div className="relative flex items-center" style={{ minWidth: 220 }}>
+    <div
+      className="relative flex flex-col sm:flex-row items-stretch w-full max-w-full sm:max-w-md gap-2 sm:gap-0"
+      style={{ minWidth: 0 }}
+    >
       <a
         href={releaseAssets[platform] || undefined}
-        className={`flex-1 px-8 py-3 rounded-l-lg bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-medium hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors flex items-center gap-2 min-w-0 ${!releaseAssets[platform] ? "opacity-50 pointer-events-none" : ""}`}
+        className={`flex-1 flex items-center justify-center px-4 py-3 sm:px-6 rounded-lg sm:rounded-l-lg sm:rounded-r-none bg-blue-600 text-white font-semibold shadow-lg hover:bg-blue-700 transition-all duration-200 gap-2 sm:gap-3 text-base sm:text-lg min-w-0 ${!releaseAssets[platform] ? "opacity-50 pointer-events-none" : ""}`}
         style={{
           whiteSpace: "nowrap",
           overflow: "hidden",
@@ -79,35 +84,43 @@ const DownloadButton: React.FC = () => {
         }}
         download
       >
-        {platformIcons[platform]}{" "}
-        <span className="truncate">
-          Download for {platformLabels[platform]}
+        {platformIcons[platform]}
+        <span className="truncate font-semibold">Download</span>
+        <span className="truncate text-white/80 text-xs sm:text-base font-normal">
+          for {platformLabels[platform]}
         </span>
       </a>
       <button
         type="button"
-        className="h-full px-3 flex items-center justify-center rounded-r-lg bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 border-l border-gray-300 dark:border-gray-700 z-20"
+        className="flex items-center justify-center px-4 py-3 sm:px-6 rounded-lg sm:rounded-l-none sm:rounded-r-lg bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-semibold shadow-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-200 gap-2 sm:gap-3 text-base sm:text-lg border-0 sm:border-l sm:border-gray-300 dark:sm:border-gray-600 z-20 min-w-0"
         onClick={() => setDropdownOpen((v) => !v)}
         tabIndex={0}
         aria-label="Show other platforms"
         style={{ minWidth: 44 }}
       >
-        <ChevronDown className="w-4 h-4" />
+        <ChevronDown className="w-5 h-5" />
       </button>
       {dropdownOpen && (
-        <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-30">
+        <div
+          className="absolute left-0 right-0 top-full mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-2xl z-30 mx-auto animate-fade-in"
+          style={{ width: "100%" }}
+        >
           {(Object.keys(platformLabels) as Platform[])
             .filter((p) => p !== platform)
             .map((p) => (
               <a
                 key={p}
                 href={releaseAssets[p] || undefined}
-                className={`flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg break-words
-                  ${!releaseAssets[p] ? "opacity-50 pointer-events-none" : ""}`}
+                className={`flex items-center gap-2 sm:gap-3 px-4 py-3 sm:px-6 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 font-semibold rounded-lg transition-all duration-200 text-base sm:text-lg min-w-0 ${!releaseAssets[p] ? "opacity-50 pointer-events-none" : ""}`}
                 onClick={() => setDropdownOpen(false)}
                 download
+                style={{ marginBottom: 8 }}
               >
-                {platformIcons[p]} Download for {platformLabels[p]}
+                {platformIcons[p]}
+                <span className="truncate font-semibold">Download</span>
+                <span className="truncate text-gray-500 dark:text-gray-400 text-xs sm:text-base font-normal">
+                  for {platformLabels[p]}
+                </span>
               </a>
             ))}
         </div>
