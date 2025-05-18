@@ -20,9 +20,9 @@
   "license": "MIT",
   "devDependencies": {
     "@types/semver": "^7.7.0",
+    "@vailabel/core": "*",
     "electron": "36.2.1",
-    "electron-builder": "^26.0.12",
-    "@vailabel/core": "*"
+    "electron-builder": "^26.0.12"
   },
   "dependencies": {
     "electron-updater": "^6.6.2"

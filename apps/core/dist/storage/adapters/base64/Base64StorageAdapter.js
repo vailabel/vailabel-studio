@@ -11,17 +11,19 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Base64StorageAdapter = void 0;
 class Base64StorageAdapter {
-    constructor() {
-        this.prefix = "img_";
-    }
     saveImage(id, data) {
         return __awaiter(this, void 0, void 0, function* () {
-            localStorage.setItem(this.prefix + id, data);
+            try {
+                localStorage.setItem(Base64StorageAdapter.prefix + id, data);
+            }
+            catch (e) {
+                throw new Error("Failed to save image: " + e.message);
+            }
         });
     }
     loadImage(id) {
         return __awaiter(this, void 0, void 0, function* () {
-            const data = localStorage.getItem(this.prefix + id);
+            const data = localStorage.getItem(Base64StorageAdapter.prefix + id);
             if (!data)
                 throw new Error("Image not found");
             return data;
@@ -29,15 +31,16 @@ class Base64StorageAdapter {
     }
     deleteImage(id) {
         return __awaiter(this, void 0, void 0, function* () {
-            localStorage.removeItem(this.prefix + id);
+            localStorage.removeItem(Base64StorageAdapter.prefix + id);
         });
     }
     listImages() {
         return __awaiter(this, void 0, void 0, function* () {
             return Object.keys(localStorage)
-                .filter((key) => key.startsWith(this.prefix))
-                .map((key) => key.replace(this.prefix, ""));
+                .filter((key) => key.startsWith(Base64StorageAdapter.prefix))
+                .map((key) => key.replace(Base64StorageAdapter.prefix, ""));
         });
     }
 }
 exports.Base64StorageAdapter = Base64StorageAdapter;
+Base64StorageAdapter.prefix = "img_";

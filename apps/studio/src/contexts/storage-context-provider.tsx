@@ -26,13 +26,13 @@ const storageStrategies: Record<
   (props: StorageProviderProps) => IStorageAdapter | Promise<IStorageAdapter>
 > = {
   base64: () => new Base64StorageAdapter(),
-  filesystem: async (props) => {
+  filesystem: async () => {
     if (!isElectron()) {
       throw new Error(
         "FileSystem storage is only supported in Electron environment"
       )
     }
-    return new FileSystemStorageAdapter(props.directory ?? ".")
+    return new FileSystemStorageAdapter("images")
   },
   hybrid: () => {
     throw new Error("Hybrid storage is not implemented yet")
