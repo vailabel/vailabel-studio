@@ -140,10 +140,23 @@ class SQLiteDataAccess {
         ]);
     }
     getAnnotations(imageId) {
-        return window.ipc.invoke("sqlite:all", [
+        const result = window.ipc.invoke("sqlite:all", [
             "SELECT * FROM annotations WHERE imageId = ?",
             [imageId],
         ]);
+        result.then((rows) => {
+            rows.forEach((row) => {
+                if (row.coordinates && typeof row.coordinates === "string") {
+                    try {
+                        row.coordinates = JSON.parse(row.coordinates);
+                    }
+                    catch (e) {
+                        console.error("Failed to parse coordinates:", e);
+                    }
+                }
+            });
+        });
+        return result;
     }
     getAnnotationsWithFilter(imageId, filter) {
         const whereClause = Object.keys(filter)
@@ -164,7 +177,7 @@ class SQLiteDataAccess {
                 annotation.labelId,
                 annotation.name,
                 annotation.type,
-                annotation.coordinates,
+                JSON.stringify(annotation.coordinates),
                 annotation.color,
                 annotation.isAIGenerated,
                 annotation.createdAt,
@@ -176,7 +189,9 @@ class SQLiteDataAccess {
         const setClause = Object.keys(updates)
             .map((key) => `${key} = ?`)
             .join(", ");
-        const values = Object.values(updates);
+        const values = Object.keys(updates).map((key) => key === "coordinates" && updates.coordinates !== undefined
+            ? JSON.stringify(updates.coordinates)
+            : updates[key]);
         return window.ipc.invoke("sqlite:run", [
             `UPDATE annotations SET ${setClause} WHERE id = ?`,
             [...values, id],
