@@ -2,8 +2,44 @@ import { promises as fs } from "fs"
 import path from "path"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
-import { useRouter } from "next/router"
 import matter from "gray-matter"
+import { Metadata } from "next"
+
+export async function generateMetadata({
+  params,
+}: {
+  params: { slug: string }
+}): Promise<Metadata> {
+  const { slug } = params
+  const blogsDir = path.join(process.cwd(), "blogs")
+  const filePath = path.join(blogsDir, `${slug}.md`)
+
+  try {
+    const fileContent = await fs.readFile(filePath, "utf8")
+    const parsed = matter(fileContent)
+    const { title, description } = parsed.data
+    return {
+      title: title || "Blog Post",
+      description: description || "Read this blog post on our site.",
+      openGraph: {
+        title: title || "Blog Post",
+        description: description || "Read this blog post on our site.",
+        type: "article",
+        url: `/blogs/${slug}`,
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: title || "Blog Post",
+        description: description || "Read this blog post on our site.",
+      },
+    }
+  } catch {
+    return {
+      title: "Blog Not Found",
+      description: "The requested blog could not be found.",
+    }
+  }
+}
 
 export default async function BlogDetailPage({
   params,
@@ -21,7 +57,12 @@ export default async function BlogDetailPage({
     const fileContent = await fs.readFile(filePath, "utf8")
     const parsed = matter(fileContent)
     markdownContent = parsed.content
-    metadata = parsed.data
+    metadata = {
+      title: parsed.data.title || "",
+      description: parsed.data.description || "",
+      date: parsed.data.date || "",
+      author: parsed.data.author || "",
+    }
   } catch (error) {
     markdownContent =
       "# Blog Not Found\n\nThe requested blog could not be found."

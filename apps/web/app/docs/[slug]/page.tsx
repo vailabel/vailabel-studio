@@ -180,7 +180,7 @@ export default async function DocDetailPage({
         </div>
         {/* Main content */}
         <article className="prose dark:prose-invert max-w-none prose-headings:scroll-mt-20 prose-headings:font-semibold prose-h2:text-2xl prose-h3:text-xl prose-img:rounded-lg prose-img:shadow-md prose-a:text-primary hover:prose-a:text-primary/80 prose-blockquote:border-l-primary/50 prose-blockquote:bg-muted/50 prose-blockquote:py-1 prose-blockquote:pl-6 prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:before:content-none prose-code:after:content-none prose-pre:bg-zinc-900 dark:prose-pre:bg-zinc-900/90 prose-pre:text-zinc-50 prose-pre:rounded-lg prose-pre:p-4 prose-pre:shadow-sm">
-          <MarkdownRenderer content={content} />
+          <MarkdownRenderer>{content}</MarkdownRenderer>
         </article>
 
         {/* Navigation footer */}
