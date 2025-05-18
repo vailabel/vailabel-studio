@@ -105,11 +105,15 @@ Then open [http://localhost:3000](http://localhost:3000) 🚀
 - [x] ✏️ Free Drawing (Lasso Tool)
 - [x] 💾 Offline Project Storage
 - [x] 🖼️ Multi-Image Labeling Projects
-- [ ] 🤖 AI YOLOv8 Auto-Detection
-- [ ] 📤 Export Multiple Formats
-- [ ] 🏷️ Multi-Class Annotation (Class Picker)
+- [x] 🖥️ Desktop App (Electron)
+- [ ] 🤖 AI YOLOv8 Auto-Detection (In Progress)
+- [x] 📤 Export Multiple Formats
+- [x] 🏷️ Multi-Class Annotation (Class Picker)
 - [ ] 🎥 Video Frame-by-Frame Annotation
-- [ ] 👥 Collaborative Labeling (Team mode)
+- [ ] 🖼️ Image Segmentation (Polygon)
+- [ ] 🖼️ Text Annotation (OCR)
+- [ ] 👥 Collaborative Labeling (Team mode) - Cloud Self-host
+- [ ] ☁️ Cloud Storage Integration (S3, GCS, Azure)
 
 ---
 
