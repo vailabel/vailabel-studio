@@ -13,34 +13,33 @@ exports.FileSystemStorageAdapter = void 0;
 class FileSystemStorageAdapter {
     constructor(directory) {
         this.directory = directory;
-    }
-    getPath(id) {
-        return `${this.directory}/${id}.png`;
-    }
-    saveImage(id, data) {
-        return __awaiter(this, void 0, void 0, function* () {
+        this.saveImage = (id, data) => __awaiter(this, void 0, void 0, function* () {
             yield window.ipc.invoke("fs-save-image", { path: this.getPath(id), data });
         });
-    }
-    loadImage(id) {
-        return __awaiter(this, void 0, void 0, function* () {
+        this.loadImage = (id) => __awaiter(this, void 0, void 0, function* () {
             return window.ipc.invoke("fs-load-image", { path: this.getPath(id) });
         });
-    }
-    deleteImage(id) {
-        return __awaiter(this, void 0, void 0, function* () {
+        this.deleteImage = (id) => __awaiter(this, void 0, void 0, function* () {
             yield window.ipc.invoke("fs-delete-image", { path: this.getPath(id) });
         });
-    }
-    listImages() {
-        return __awaiter(this, void 0, void 0, function* () {
+        this.listImages = () => __awaiter(this, void 0, void 0, function* () {
             const files = yield window.ipc.invoke("fs-list-images", {
                 directory: this.directory,
             });
-            return files
+            const baseNames = yield Promise.all(files
                 .filter((f) => f.endsWith(".png"))
-                .map((f) => window.ipc.invoke("fs-get-base-name", { file: f }));
+                .map((f) => window.ipc.invoke("fs-get-base-name", { file: f })));
+            return baseNames;
         });
+        if (!directory) {
+            throw new Error("Directory is required");
+        }
+        this.directory = directory;
+        // Ensure the directory exists
+        window.ipc.invoke("fs-ensure-directory", { path: this.directory });
+    }
+    getPath(id) {
+        return `${this.directory}/${id}`;
     }
 }
 exports.FileSystemStorageAdapter = FileSystemStorageAdapter;
