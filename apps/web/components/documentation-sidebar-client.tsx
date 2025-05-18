@@ -67,7 +67,7 @@ export function DocumentationSidebarClient({ docs }: SidebarProps) {
                 {docsInCategory.map((doc) => (
                   <li key={doc.slug}>
                     <Link
-                      href={`/documentation/${doc.slug}`}
+                      href={`/docs/${doc.slug}`}
                       className="block px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-sm text-gray-800 dark:text-gray-100"
                     >
                       {doc.title}
