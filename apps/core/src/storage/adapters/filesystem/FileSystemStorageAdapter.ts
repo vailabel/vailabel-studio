@@ -4,7 +4,7 @@ export class FileSystemStorageAdapter implements IStorageAdapter {
   constructor(private directory: string) {}
 
   private getPath(id: string) {
-    return window.ipc.invoke("fs-get-path", { directory: this.directory })
+    return `${this.directory}/${id}.png`
   }
 
   async saveImage(id: string, data: Buffer): Promise<void> {
