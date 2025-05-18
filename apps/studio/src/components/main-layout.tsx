@@ -1,7 +1,6 @@
 import { Folder, Home, Settings2 } from "lucide-react"
-import React from "react"
 import { PolarGrid } from "recharts"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useOutlet } from "react-router-dom"
 import { ThemeToggle } from "@/components/theme-toggle"
 
 const navigation = [
@@ -10,12 +9,9 @@ const navigation = [
   { name: "Settings", href: "/settings", icon: Settings2 },
 ]
 
-export default function MainLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
+export default function MainLayout() {
   const navigate = useNavigate()
+  const outlet = useOutlet()
   return (
     <div className="flex min-h-screen">
       {/* Sidebar */}
@@ -47,7 +43,7 @@ export default function MainLayout({
             <ThemeToggle />
           </div>
         </header>
-        <main className="flex-1 p-4">{children}</main>
+        <main className="flex-1 p-4">{outlet}</main>
       </div>
     </div>
   )

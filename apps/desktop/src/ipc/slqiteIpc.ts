@@ -2,7 +2,6 @@ import { ipcMain } from "electron"
 import fs from "fs"
 import path from "path"
 import { runMigrations } from "../db/sqliteDb"
-import { promisify } from "util"
 
 const dbPath = path.join(__dirname, "database.sqlite")
 const sqlite3 = require("sqlite3").verbose()
