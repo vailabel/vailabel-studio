@@ -15,7 +15,7 @@ class FileSystemStorageAdapter {
         this.directory = directory;
     }
     getPath(id) {
-        return window.ipc.invoke("fs-get-path", { directory: this.directory });
+        return `${this.directory}/${id}.png`;
     }
     saveImage(id, data) {
         return __awaiter(this, void 0, void 0, function* () {
