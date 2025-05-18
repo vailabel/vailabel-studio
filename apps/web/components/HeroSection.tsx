@@ -1,3 +1,5 @@
+"use client"
+
 import React, { useEffect, useRef, useState } from "react"
 import { motion, AnimatePresence, useAnimation } from "framer-motion"
 import {
@@ -11,11 +13,6 @@ import {
   MousePointer,
   Check,
   Tag,
-  BluetoothSearching,
-  ChevronDown,
-  Laptop,
-  Monitor,
-  Apple,
 } from "lucide-react"
 import Image from "next/image"
 import { data } from "@/app/data"
