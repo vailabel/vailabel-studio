@@ -28,6 +28,14 @@ const config: Config = {
     "**/*.test.ts",
     "**/*.test.tsx",
   ],
+  collectCoverage: true,
+  collectCoverageFrom: [
+    "**/*.{ts,tsx}",
+    "!dist/**",
+    "!**/*.config.ts",
+    "!**/__tests__/**",
+    "!**/components/ui/**",
+  ],
 }
 
 export default config

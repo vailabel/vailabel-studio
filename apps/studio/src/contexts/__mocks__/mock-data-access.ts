@@ -34,11 +34,7 @@ export function createMockDataAccess({
     // Label
     createLabel: jest.fn().mockResolvedValue(undefined),
     getLabels: jest.fn().mockResolvedValue(labels),
-    getLabelById: jest
-      .fn()
-      .mockImplementation((id) =>
-        Promise.resolve(labels.find((l) => l.id === id))
-      ),
+    getLabelById: jest.fn().mockImplementation(undefined),
     updateLabel: jest.fn().mockResolvedValue(undefined),
     deleteLabel: jest.fn().mockResolvedValue(undefined),
     // Settings
