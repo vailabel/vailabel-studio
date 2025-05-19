@@ -9,7 +9,26 @@ import { DexieDataAccess } from "./DexieDataAccess"
 import { db } from "@vailabel/core/src/data/db/dexieDb"
 
 describe("DexieDataAccess", () => {
+  let dataAccess: DexieDataAccess
+  const createProject = (id: string, name?: string) => ({
+    id,
+    name: name || id,
+    createdAt: new Date(),
+    lastModified: new Date(),
+    images: [],
+  })
+  const createImage = (id: string, projectId: string, name?: string) => ({
+    id,
+    name: name || id,
+    data: "",
+    width: 1,
+    height: 1,
+    projectId,
+    createdAt: new Date(),
+  })
+
   beforeEach(async () => {
+    dataAccess = new DexieDataAccess()
     // Clear all tables before each test to avoid cross-test pollution
     await db.projects.clear()
     await db.images.clear()
@@ -25,14 +44,7 @@ describe("DexieDataAccess", () => {
 
   it("should add and retrieve a project", async () => {
     // Arrange
-    const dataAccess = new DexieDataAccess()
-    const project = {
-      id: "test-id",
-      name: "Test Project",
-      createdAt: new Date(),
-      lastModified: new Date(),
-      images: [],
-    }
+    const project = createProject("test-id", "Test Project")
     // Act
     await dataAccess.createProject(project)
     const projects = await dataAccess.getProjects()
@@ -45,14 +57,7 @@ describe("DexieDataAccess", () => {
   })
 
   it("should update a project", async () => {
-    const dataAccess = new DexieDataAccess()
-    const project = {
-      id: "p1",
-      name: "P1",
-      createdAt: new Date(),
-      lastModified: new Date(),
-      images: [],
-    }
+    const project = createProject("p1", "P1")
     await dataAccess.createProject(project)
     await dataAccess.updateProject("p1", { name: "P1-updated" })
     const updated = await dataAccess.getProjectById("p1")
@@ -60,14 +65,7 @@ describe("DexieDataAccess", () => {
   })
 
   it("should delete a project", async () => {
-    const dataAccess = new DexieDataAccess()
-    const project = {
-      id: "p2",
-      name: "P2",
-      createdAt: new Date(),
-      lastModified: new Date(),
-      images: [],
-    }
+    const project = createProject("p2", "P2")
     await dataAccess.createProject(project)
     await dataAccess.deleteProject("p2")
     const deleted = await dataAccess.getProjectById("p2")
@@ -75,24 +73,9 @@ describe("DexieDataAccess", () => {
   })
 
   it("should add and retrieve an image", async () => {
-    const dataAccess = new DexieDataAccess()
-    const project = {
-      id: "p3",
-      name: "P3",
-      createdAt: new Date(),
-      lastModified: new Date(),
-      images: [],
-    }
+    const project = createProject("p3", "P3")
     await dataAccess.createProject(project)
-    const image = {
-      id: "img1",
-      name: "img",
-      data: "",
-      width: 1,
-      height: 1,
-      projectId: "p3",
-      createdAt: new Date(),
-    }
+    const image = createImage("img1", "p3", "img")
     await dataAccess.createImage(image)
     const images = await dataAccess.getImages("p3")
     expect(images).toEqual(
@@ -101,24 +84,9 @@ describe("DexieDataAccess", () => {
   })
 
   it("should update and delete an image", async () => {
-    const dataAccess = new DexieDataAccess()
-    const project = {
-      id: "p4",
-      name: "P4",
-      createdAt: new Date(),
-      lastModified: new Date(),
-      images: [],
-    }
+    const project = createProject("p4", "P4")
     await dataAccess.createProject(project)
-    const image = {
-      id: "img2",
-      name: "img2",
-      data: "",
-      width: 1,
-      height: 1,
-      projectId: "p4",
-      createdAt: new Date(),
-    }
+    const image = createImage("img2", "p4", "img2")
     await dataAccess.createImage(image)
     await dataAccess.updateImage("img2", { name: "img2-upd" })
     let updated = await dataAccess.getImages("p4")
