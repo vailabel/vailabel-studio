@@ -76,17 +76,25 @@ export function ExportModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 dark:bg-black/70">
+    <motion.div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 dark:bg-black/70"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+    >
       <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.9 }}
-        className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg dark:bg-gray-800 dark:text-gray-100"
+        className="w-full max-w-md rounded-lg p-6 shadow-lg bg-white dark:bg-gray-800 dark:text-gray-100"
+        initial={{ scale: 0.9, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.9, y: 20 }}
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold">Export Project</h2>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
           </Button>
         </div>
 
@@ -175,6 +183,6 @@ export function ExportModal({
           </div>
         </div>
       </motion.div>
-    </div>
+    </motion.div>
   )
 }

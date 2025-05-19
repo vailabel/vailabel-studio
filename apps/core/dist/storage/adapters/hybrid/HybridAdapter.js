@@ -28,7 +28,6 @@ class HybridAdapter {
                 return typeof result === "string" ? Buffer.from(result) : result;
             }
             catch (e) {
-                console.warn(`Local load failed, falling back to remote: ${e}`);
                 const result = yield this.remote.loadImage(id);
                 return typeof result === "string" ? Buffer.from(result) : result;
             }

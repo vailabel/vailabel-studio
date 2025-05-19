@@ -1,6 +1,9 @@
 import { IDataAccess } from "@vailabel/core/src/data/interface/IDataAccess";
 import type { Project, ImageData, Annotation, Label, History } from "../../../models/types";
+import { ApiClient } from "@vailabel/core/src/data/sources/api/ApiClient";
 export declare class ApiDataAccess implements IDataAccess {
+    private api;
+    constructor(apiClient?: ApiClient);
     getProjectWithImages(id: string): Promise<Project | undefined>;
     getNextImageId(currentImageId: string): Promise<string | null>;
     getPreviousImageId(currentImageId: string): Promise<string | null>;

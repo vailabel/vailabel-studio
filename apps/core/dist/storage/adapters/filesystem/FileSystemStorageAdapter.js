@@ -17,18 +17,22 @@ class FileSystemStorageAdapter {
             yield window.ipc.invoke("fs-save-image", { path: this.getPath(id), data });
         });
         this.loadImage = (id) => __awaiter(this, void 0, void 0, function* () {
-            return window.ipc.invoke("fs-load-image", { path: this.getPath(id) });
+            return (yield window.ipc.invoke("fs-load-image", {
+                path: this.getPath(id),
+            }));
         });
         this.deleteImage = (id) => __awaiter(this, void 0, void 0, function* () {
             yield window.ipc.invoke("fs-delete-image", { path: this.getPath(id) });
         });
         this.listImages = () => __awaiter(this, void 0, void 0, function* () {
-            const files = yield window.ipc.invoke("fs-list-images", {
+            const files = (yield window.ipc.invoke("fs-list-images", {
                 directory: this.directory,
-            });
+            }));
             const baseNames = yield Promise.all(files
                 .filter((f) => f.endsWith(".png"))
-                .map((f) => window.ipc.invoke("fs-get-base-name", { file: f })));
+                .map((f) => window.ipc.invoke("fs-get-base-name", {
+                file: f,
+            })));
             return baseNames;
         });
         if (!directory) {
