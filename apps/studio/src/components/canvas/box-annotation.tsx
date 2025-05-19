@@ -1,6 +1,6 @@
 import React, { useMemo } from "react"
 import { motion } from "framer-motion"
-import { cn, rgbToRgba } from "@/lib/utils"
+import { cn, rgbToRgba } from "../../lib/utils"
 import type { Annotation } from "@vailabel/core"
 import { useCanvas } from "@/hooks/use-canvas"
 import { useAnnotations } from "@/hooks/use-annotations"

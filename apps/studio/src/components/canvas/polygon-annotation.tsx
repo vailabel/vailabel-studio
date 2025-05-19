@@ -1,5 +1,5 @@
 import { motion } from "framer-motion"
-import { rgbToRgba } from "@/lib/utils"
+import { rgbToRgba } from "../../lib/utils"
 import type { Annotation, Point } from "@vailabel/core"
 import { useAnnotations } from "@/hooks/use-annotations"
 import { useCanvas } from "@/hooks/use-canvas"

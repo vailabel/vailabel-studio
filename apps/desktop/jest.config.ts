@@ -1,9 +1,8 @@
 import type { Config } from "jest"
 
 const config: Config = {
-  displayName: "core",
-  preset: "ts-jest",
-  testEnvironment: "jsdom",
+  displayName: "desktop",
+  testEnvironment: "node",
   transform: {
     "^.+\\.tsx?$": "ts-jest",
   },
