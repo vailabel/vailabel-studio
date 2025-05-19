@@ -16,7 +16,6 @@ export class HybridAdapter implements IStorageAdapter {
       const result = await this.local.loadImage(id)
       return typeof result === "string" ? Buffer.from(result) : result
     } catch (e) {
-      console.warn(`Local load failed, falling back to remote: ${e}`)
       const result = await this.remote.loadImage(id)
       return typeof result === "string" ? Buffer.from(result) : result
     }
