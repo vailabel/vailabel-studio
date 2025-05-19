@@ -1,3 +1,4 @@
+/// <reference types="@vailabel/core/type" />
 import { IDataAccess } from "@vailabel/core/src/data/interface/IDataAccess";
 import { Project, ImageData, Annotation, Label, History } from "../../../models/types";
 export declare class SQLiteDataAccess implements IDataAccess {

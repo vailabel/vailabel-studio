@@ -12,5 +12,6 @@
     "composite": true,
     "noEmit": false
   },
-  "include": ["src/**/*"]
+  "include": ["src"],
+  "exclude": ["**/__tests__/*", "**/*.test.ts"]
 }
