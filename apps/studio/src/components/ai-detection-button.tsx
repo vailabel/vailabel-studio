@@ -92,7 +92,7 @@ export function AIDetectionButton({ image, disabled }: AIDetectionButtonProps) {
                 isAIGenerated: true,
                 confidence: confidence,
                 category: "AI",
-              } as Label,
+              } as unknown as Label,
               labelId: crypto.randomUUID(),
               color: getRandomColor(),
               isAIGenerated: true,

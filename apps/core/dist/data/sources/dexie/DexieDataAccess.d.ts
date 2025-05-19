@@ -3,7 +3,7 @@ import { Project, ImageData, Annotation, Label, History, AIModel, Settings } fro
 export declare class DexieDataAccess implements IDataAccess {
     getSetting(key: string): Promise<Settings | undefined>;
     getAvailableModels(): Promise<AIModel[]>;
-    uploadCustomModel(file: AIModel): Promise<void>;
+    uploadCustomModel(model: AIModel): Promise<void>;
     selectModel(modelId: string): Promise<void>;
     getSelectedModel(): Promise<AIModel | undefined>;
     deleteModel(modelId: string): Promise<void>;

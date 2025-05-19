@@ -9,7 +9,6 @@ export interface Label {
     isAIGenerated?: boolean;
     projectId: string;
     color: string;
-    confidence?: number;
     createdAt: Date;
     updatedAt: Date;
 }

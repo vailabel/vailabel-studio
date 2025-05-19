@@ -21,9 +21,6 @@ class AzureBlobStorageAdapter {
     constructor(containerClient) {
         this.containerClient = containerClient;
     }
-    uploadModel(file) {
-        throw new Error("Method not implemented.");
-    }
     saveImage(id, data) {
         return __awaiter(this, void 0, void 0, function* () {
             const blob = this.containerClient.getBlockBlobClient(id);

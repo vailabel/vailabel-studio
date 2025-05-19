@@ -26,22 +26,41 @@ export function createMockDataAccess({
     updateImage: jest.fn().mockResolvedValue(undefined),
     deleteImage: jest.fn().mockResolvedValue(undefined),
     // Annotation
-    getAnnotations: jest.fn().mockResolvedValue(annotations),
-    getAnnotationsWithFilter: jest.fn().mockResolvedValue(annotations),
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    getAnnotations: jest
+      .fn()
+      .mockImplementation((_imageId: string) => Promise.resolve(annotations)),
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    getAnnotationsWithFilter: jest
+      .fn()
+      .mockImplementation((_imageId: string, _filter: Partial<Annotation>) =>
+        Promise.resolve(annotations)
+      ),
     createAnnotation: jest.fn().mockResolvedValue(undefined),
     updateAnnotation: jest.fn().mockResolvedValue(undefined),
     deleteAnnotation: jest.fn().mockResolvedValue(undefined),
     // Label
     createLabel: jest.fn().mockResolvedValue(undefined),
     getLabels: jest.fn().mockResolvedValue(labels),
-    getLabelById: jest.fn().mockImplementation(undefined),
+    getLabelById: jest
+      .fn()
+      .mockImplementation((id: string) =>
+        Promise.resolve(labels.find((label) => label.id === id))
+      ),
     updateLabel: jest.fn().mockResolvedValue(undefined),
     deleteLabel: jest.fn().mockResolvedValue(undefined),
     // Settings
     getSettings: jest.fn().mockResolvedValue([]),
+    getSetting: jest.fn().mockResolvedValue(undefined),
     updateSetting: jest.fn().mockResolvedValue(undefined),
     // History
     getHistory: jest.fn().mockResolvedValue([]),
     updateHistory: jest.fn().mockResolvedValue(undefined),
+    // AI Model
+    getAvailableModels: jest.fn().mockResolvedValue([]),
+    uploadCustomModel: jest.fn().mockResolvedValue(undefined),
+    selectModel: jest.fn().mockResolvedValue(undefined),
+    getSelectedModel: jest.fn().mockResolvedValue(undefined),
+    deleteModel: jest.fn().mockResolvedValue(undefined),
   }
 }

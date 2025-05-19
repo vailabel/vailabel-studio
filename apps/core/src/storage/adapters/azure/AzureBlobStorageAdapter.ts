@@ -1,12 +1,8 @@
 import { ContainerClient } from "@azure/storage-blob"
-import { AIModel } from "@vailabel/core/models/types"
 import { IStorageAdapter } from "@vailabel/core/src/storage"
 
 export class AzureBlobStorageAdapter implements IStorageAdapter {
   constructor(private readonly containerClient: ContainerClient) {}
-  uploadModel(file: File): Promise<AIModel> {
-    throw new Error("Method not implemented.")
-  }
 
   async saveImage(id: string, data: Buffer): Promise<void> {
     const blob = this.containerClient.getBlockBlobClient(id)

@@ -1,4 +1,3 @@
-import { AIModel } from "@vailabel/core/models/types"
 import { IStorageAdapter } from "@vailabel/core/src/storage"
 
 export class FileSystemStorageAdapter implements IStorageAdapter {
@@ -7,40 +6,6 @@ export class FileSystemStorageAdapter implements IStorageAdapter {
       throw new Error("Directory is required")
     }
   }
-  uploadModel = async (file: File): Promise<AIModel> => {
-    console.log("Uploading model to filesystem", file)
-    await this.ensureDirectory()
-    const modelPath = this.getPath(file.name)
-    const fileWithPath = file as any
-    let uploadArgs: any = {
-      fileName: file.name,
-      fileType: file.type,
-      fileSize: file.size,
-      filePath: modelPath,
-      destinationPath: modelPath,
-    }
-    if (fileWithPath.path) {
-      uploadArgs.sourcePath = fileWithPath.path
-    } else {
-      // Fallback for browser File: read as buffer
-      const buffer = await file.arrayBuffer()
-      uploadArgs.data = Buffer.from(buffer)
-    }
-    await window.ipc.invoke("fs-upload-model", uploadArgs)
-    return {
-      id: file.name,
-      name: file.name,
-      description: "",
-      version: "1.0.0",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      modelPath,
-      configPath: "",
-      modelSize: file.size,
-      isCustom: true,
-    }
-  }
-
   private ensureDirectory = async () => {
     await window.ipc.invoke("fs-ensure-directory", { path: this.directory })
   }
