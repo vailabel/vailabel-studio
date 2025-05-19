@@ -57,11 +57,11 @@ function MockProviders({
   children,
   annotations,
   labels,
-}: {
+}: Readonly<{
   children: React.ReactNode
   annotations: Annotation[]
   labels: Label[]
-}) {
+}>) {
   const mockDataAccess = createMockDataAccess({ annotations, labels })
   return (
     <DataAccessContext.Provider value={{ dataAccess: mockDataAccess }}>
@@ -76,9 +76,15 @@ function MockProviders({
 beforeAll(() => {
   if (!window.ResizeObserver) {
     window.ResizeObserver = class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
+      observe() {
+        // mock implementation
+      }
+      unobserve() {
+        // mock implementation
+      }
+      disconnect() {
+        // mock implementation
+      }
     } as any
   }
 })

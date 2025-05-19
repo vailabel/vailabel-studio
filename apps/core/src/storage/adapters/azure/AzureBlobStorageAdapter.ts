@@ -2,7 +2,7 @@ import { ContainerClient } from "@azure/storage-blob"
 import { IStorageAdapter } from "@vailabel/core/src/storage"
 
 export class AzureBlobStorageAdapter implements IStorageAdapter {
-  constructor(private containerClient: ContainerClient) {}
+  constructor(private readonly containerClient: ContainerClient) {}
 
   async saveImage(id: string, data: Buffer): Promise<void> {
     const blob = this.containerClient.getBlockBlobClient(id)

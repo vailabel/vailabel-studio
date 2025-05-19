@@ -12,14 +12,14 @@ describe("DexieDataAccess", () => {
   let dataAccess: DexieDataAccess
   const createProject = (id: string, name?: string) => ({
     id,
-    name: name || id,
+    name: name ?? id,
     createdAt: new Date(),
     lastModified: new Date(),
     images: [],
   })
   const createImage = (id: string, projectId: string, name?: string) => ({
     id,
-    name: name || id,
+    name: name ?? id,
     data: "",
     width: 1,
     height: 1,
@@ -121,7 +121,7 @@ describe("DexieDataAccess", () => {
       imageId: "img3",
       labelId: "",
       name: "ann",
-      type: "box" as "box",
+      type: "box" as const,
       coordinates: [],
       color: "red",
       isAIGenerated: false,

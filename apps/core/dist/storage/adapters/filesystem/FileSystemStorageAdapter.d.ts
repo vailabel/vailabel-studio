@@ -1,3 +1,5 @@
+/// <reference types="node" />
+/// <reference types="node" />
 import { IStorageAdapter } from "@vailabel/core/src/storage";
 export declare class FileSystemStorageAdapter implements IStorageAdapter {
     private directory;
