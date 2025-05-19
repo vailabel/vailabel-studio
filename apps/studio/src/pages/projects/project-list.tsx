@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useEffect } from "react"
 import { ProjectDashboard } from "@/components/project-dashboard"
 import { useToast } from "@/hooks/use-toast"

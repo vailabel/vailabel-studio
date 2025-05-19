@@ -254,12 +254,8 @@ it("createLabel, updateLabel, deleteLabel update annotations and history", async
 })
 
 it("handles loading state", async () => {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  let contextValue: AnnotationsContextType | undefined
   function Consumer() {
-    contextValue = React.useContext(
-      AnnotationsContext
-    ) as AnnotationsContextType
+    React.useContext(AnnotationsContext) as AnnotationsContextType
     return null
   }
   mockDataAccess.getLabels.mockImplementationOnce(() => new Promise(() => {}))
