@@ -5,11 +5,13 @@
   "description": "Vailabel Studio Desktop",
   "main": "dist/main.js",
   "scripts": {
-    "prebuild": "copyfiles -u 3 \"../studio/dist/**/*\" ./dist",
-    "build": "tsc && npm run postbuild && electron-builder",
-    "postbuild": "copyfiles -u 3 src/db/migrations/**/* dist/db/migrations",
+    "copy-python": "copyfiles -u -1 ./src/ai/requirements.txt ./dist/ai && copyfiles -u -1 ./src/ai/yolo.py ./dist/ai",
+    "copy-static": "copyfiles -u 3 \"../studio/dist/**/*\" ./dist",
+    "prebuild": " yarn copy-static && yarn copy-python && yarn copy-migration",
+    "build": "tsc && npm run prebuild && electron-builder",
+    "copy-migration": "copyfiles -u 3 src/db/migrations/**/* dist/db/migrations",
     "build:publish": "yarn prebuild && tsc && npm run postbuild && electron-builder --publish always",
-    "dev": "tsc && npm run postbuild && electron . --trace-warnings"
+    "dev": "tsc && npm run prebuild && electron . --trace-warnings"
   },
   "keywords": [],
   "author": {

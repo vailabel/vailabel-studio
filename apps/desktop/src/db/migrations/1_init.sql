@@ -63,5 +63,11 @@ CREATE TABLE IF NOT EXISTS ai_models (
   id TEXT PRIMARY KEY,
   name TEXT,
   description TEXT,
-  isCustom BOOLEAN
+  isCustom BOOLEAN,
+  modelPath TEXT,
+  configPath TEXT,
+  modelSize INTEGER,
+  version TEXT,
+  createdAt DATETIME,
+  updatedAt DATETIME
 );

@@ -1,11 +1,10 @@
-import { ipcMain, app } from "electron"
+import { ipcMain, app, dialog } from "electron"
 import * as fs from "fs/promises"
 import * as path from "path"
 // Use Electron's userData directory for file operations
 function getUserDataPath(...segments: string[]) {
   return path.join(app.getPath("userData"), ...segments)
 }
-
 // Save image
 ipcMain.handle("fs-save-image", async (_event, { path: filePath, data }) => {
   let absPath = filePath
@@ -132,6 +131,34 @@ ipcMain.handle("fs-save-blob", async (_event, { path: filePath, blob }) => {
   await saveBlobToFile(absPath, buffer)
 })
 
+// Upload model (copy or save file)
+ipcMain.handle("fs-upload-model", async (_event, args) => {
+  const { sourcePath, destinationPath, data, filePath } = args
+  const dest = destinationPath || filePath
+  const destDir = path.dirname(dest)
+  await fs.mkdir(destDir, { recursive: true })
+  if (sourcePath) {
+    await fs.copyFile(sourcePath, dest)
+  } else if (typeof data === "string" && path.isAbsolute(data)) {
+    // If data is a string and is an absolute path, treat as file path
+    await fs.copyFile(data, dest)
+  } else {
+    throw new Error(
+      "No sourcePath or valid file path provided for model upload"
+    )
+  }
+})
+
 async function saveBlobToFile(filePath: string, blob: Buffer) {
   await fs.writeFile(filePath, blob)
 }
+
+// In your main process setup:
+ipcMain.handle("dialog:openModelFile", async () => {
+  const result = await dialog.showOpenDialog({
+    properties: ["openFile"],
+    filters: [{ name: "PyTorch Model", extensions: ["pt"] }],
+  })
+  if (result.canceled || result.filePaths.length === 0) return null
+  return result.filePaths[0] // Return the first selected file path
+})

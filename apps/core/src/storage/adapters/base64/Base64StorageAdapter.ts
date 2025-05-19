@@ -1,6 +1,10 @@
+import { AIModel } from "@vailabel/core/models/types"
 import { IStorageAdapter } from "@vailabel/core/src/storage"
 
 export class Base64StorageAdapter implements IStorageAdapter {
+  uploadModel(file: File): Promise<AIModel> {
+    throw new Error("Method not implemented.")
+  }
   private static readonly prefix = "img_"
 
   async saveImage(id: string, data: string): Promise<void> {

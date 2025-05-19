@@ -28,3 +28,4 @@ next-env.d.ts
 *.DS_Store
 dist
 coverage
+venv

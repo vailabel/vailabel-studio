@@ -7,6 +7,7 @@ import {
   ListObjectsV2Command,
 } from "@aws-sdk/client-s3"
 import { fromCognitoIdentityPool } from "@aws-sdk/credential-provider-cognito-identity"
+import { AIModel } from "@vailabel/core/models/types"
 
 export class S3StorageAdapter implements IStorageAdapter {
   private readonly s3: S3Client
@@ -24,6 +25,9 @@ export class S3StorageAdapter implements IStorageAdapter {
       // Fix for Vite/webpack/browser: avoid process polyfill error
       ...(typeof window !== "undefined" ? { runtime: "browser" } : {}),
     })
+  }
+  uploadModel(file: File): Promise<AIModel> {
+    throw new Error("Method not implemented.")
   }
 
   async saveImage(id: string, data: Buffer): Promise<void> {

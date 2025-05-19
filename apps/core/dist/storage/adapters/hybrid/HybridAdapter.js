@@ -15,6 +15,9 @@ class HybridAdapter {
         this.local = local;
         this.remote = remote;
     }
+    uploadModel(file) {
+        throw new Error("Method not implemented.");
+    }
     saveImage(id, data) {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.local.saveImage(id, data);
@@ -28,6 +31,7 @@ class HybridAdapter {
                 return typeof result === "string" ? Buffer.from(result) : result;
             }
             catch (e) {
+                console.info(`Local image not found, falling back to remote storage: ${e}`);
                 const result = yield this.remote.loadImage(id);
                 return typeof result === "string" ? Buffer.from(result) : result;
             }

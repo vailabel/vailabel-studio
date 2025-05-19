@@ -6,9 +6,29 @@ import {
   Annotation,
   Label,
   History,
+  AIModel,
+  Settings,
 } from "../../../models/types"
 
 export class DexieDataAccess implements IDataAccess {
+  getSetting(key: string): Promise<Settings | undefined> {
+    throw new Error("Method not implemented.")
+  }
+  getAvailableModels(): Promise<AIModel[]> {
+    throw new Error("Method not implemented.")
+  }
+  uploadCustomModel(file: AIModel): Promise<void> {
+    throw new Error("Method not implemented.")
+  }
+  selectModel(modelId: string): Promise<void> {
+    throw new Error("Method not implemented.")
+  }
+  getSelectedModel(): Promise<AIModel | undefined> {
+    throw new Error("Method not implemented.")
+  }
+  deleteModel(modelId: string): Promise<void> {
+    throw new Error("Method not implemented.")
+  }
   async getProjects(): Promise<Project[]> {
     return db.projects.toArray()
   }

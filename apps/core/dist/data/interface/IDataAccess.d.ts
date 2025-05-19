@@ -1,4 +1,4 @@
-import type { Project, ImageData, Annotation, Label, History } from "../../models/types";
+import type { Project, ImageData, Annotation, Label, History, AIModel, Settings } from "../../models/types";
 export interface IDataAccess {
     getProjects(): Promise<Project[]>;
     getProjectById(id: string): Promise<Project | undefined>;
@@ -23,11 +23,14 @@ export interface IDataAccess {
     getLabelById(id: string): Promise<Label | undefined>;
     updateLabel(id: string, updates: Partial<Label>): Promise<void>;
     deleteLabel(id: string): Promise<void>;
-    getSettings(): Promise<{
-        key: string;
-        value: string;
-    }[]>;
+    getSettings(): Promise<Settings[]>;
+    getSetting(key: string): Promise<Settings | undefined>;
     updateSetting(key: string, value: string): Promise<void>;
     getHistory(): Promise<History[]>;
     updateHistory(history: History): Promise<void>;
+    getAvailableModels(): Promise<AIModel[]>;
+    uploadCustomModel(file: AIModel): Promise<void>;
+    selectModel(modelId: string): Promise<void>;
+    getSelectedModel(): Promise<AIModel | undefined>;
+    deleteModel(modelId: string): Promise<void>;
 }
