@@ -3,7 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react"
 import { AnnotationRenderer } from "../annotation-renderer"
 import { CanvasProvider } from "@/contexts/canvas-context-provider"
 import { AnnotationsProvider } from "@/contexts/annotations-context-provider"
-import { createMockDataAccess } from "@/contexts/mock-data-access"
+import { createMockDataAccess } from "@/contexts/__mocks__/mock-data-access"
 import { DataAccessContext } from "@/contexts/data-access-context"
 import type { Annotation, Label } from "@vailabel/core"
 
