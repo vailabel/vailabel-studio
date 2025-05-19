@@ -27,7 +27,8 @@ export class VisionDatabase extends Dexie {
       settings: "key, value",
       annotations: "id, name, type, coordinates, imageId, createdAt",
       history: "id, labels, historyIndex, canUndo, canRedo",
-      aiModels: "id, name, description, version, createdAt, updatedAt, modelPath, configPath, modelSize, isCustom",
+      aiModels:
+        "id, name, description, version, createdAt, updatedAt, modelPath, configPath, modelSize, isCustom",
     })
   }
 }

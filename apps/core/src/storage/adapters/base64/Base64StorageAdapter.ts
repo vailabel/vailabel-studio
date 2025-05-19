@@ -1,7 +1,6 @@
 import { IStorageAdapter } from "@vailabel/core/src/storage"
 
 export class Base64StorageAdapter implements IStorageAdapter {
-
   private static readonly prefix = "img_"
 
   async saveImage(id: string, data: string): Promise<void> {
