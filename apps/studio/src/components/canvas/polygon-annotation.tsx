@@ -8,7 +8,9 @@ interface PolygonAnnotationProps {
   annotation: Annotation
 }
 
-export function PolygonAnnotation({ annotation }: PolygonAnnotationProps) {
+export function PolygonAnnotation({
+  annotation,
+}: Readonly<PolygonAnnotationProps>) {
   const { selectedAnnotation, updateAnnotation } = useAnnotations()
   const { zoom, selectedTool } = useCanvas()
 

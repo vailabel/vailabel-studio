@@ -47,7 +47,8 @@ describe("FileSystemStorageAdapter", () => {
     )
   })
 
-  it("should ensure directory exists on construction", () => {
+  it("should ensure directory exists on construction", async () => {
+    await adapter.saveImage("img1", Buffer.from("data"))
     expect(window.ipc.invoke).toHaveBeenCalledWith("fs-ensure-directory", {
       path: directory,
     })
@@ -63,6 +64,7 @@ describe("FileSystemStorageAdapter", () => {
 
   it("should load image via IPC", async () => {
     const mockBuffer = Buffer.from("imgdata")
+    ;(window.ipc.invoke as any).mockResolvedValueOnce(undefined) // for ensureDirectory
     ;(window.ipc.invoke as any).mockResolvedValueOnce(mockBuffer)
     const result = await adapter.loadImage("img2")
     expect(window.ipc.invoke).toHaveBeenCalledWith("fs-load-image", {
@@ -80,9 +82,11 @@ describe("FileSystemStorageAdapter", () => {
 
   it("should list images and return base names", async () => {
     ;(window.ipc.invoke as any)
-      .mockResolvedValueOnce(["a.png", "b.txt", "c.png"]) // fs-list-images
+      .mockResolvedValueOnce(undefined) // for ensureDirectory
+      .mockResolvedValueOnce(["a.png", "b.txt", "c.png", "b.svg"]) // fs-list-images
       .mockResolvedValueOnce("a") // fs-get-base-name for a.png
       .mockResolvedValueOnce("c") // fs-get-base-name for c.png
+      .mockResolvedValueOnce("b") // fs-get-base-name for b.svg
     const result = await adapter.listImages()
     expect(window.ipc.invoke).toHaveBeenCalledWith("fs-list-images", {
       directory,
@@ -90,9 +94,15 @@ describe("FileSystemStorageAdapter", () => {
     expect(window.ipc.invoke).toHaveBeenCalledWith("fs-get-base-name", {
       file: "a.png",
     })
+    expect(window.ipc.invoke).not.toHaveBeenCalledWith("fs-get-base-name", {
+      file: "b.txt",
+    })
     expect(window.ipc.invoke).toHaveBeenCalledWith("fs-get-base-name", {
       file: "c.png",
     })
-    expect(result).toEqual(["a", "c"])
+    expect(window.ipc.invoke).toHaveBeenCalledWith("fs-get-base-name", {
+      file: "b.svg",
+    })
+    expect(result).toEqual(["a", "c", "b"])
   })
 })

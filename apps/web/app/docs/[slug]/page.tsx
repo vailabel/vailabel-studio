@@ -119,7 +119,7 @@ export default async function DocDetailPage({
   try {
     docFiles = (await fs.readdir(docsDir))
       .filter((f) => f.endsWith(".md"))
-      .sort()
+      .sort((a, b) => a.localeCompare(b))
 
     docs = await Promise.all(
       docFiles.map(async (file) => {

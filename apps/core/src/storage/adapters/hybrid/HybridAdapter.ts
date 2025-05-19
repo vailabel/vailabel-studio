@@ -2,8 +2,8 @@ import { IStorageAdapter } from "@vailabel/core/src/storage"
 
 export class HybridAdapter implements IStorageAdapter {
   constructor(
-    private local: IStorageAdapter,
-    private remote: IStorageAdapter
+    private readonly local: IStorageAdapter,
+    private readonly remote: IStorageAdapter
   ) {}
 
   async saveImage(id: string, data: Buffer): Promise<void> {
@@ -16,6 +16,9 @@ export class HybridAdapter implements IStorageAdapter {
       const result = await this.local.loadImage(id)
       return typeof result === "string" ? Buffer.from(result) : result
     } catch (e) {
+      console.info(
+        `Local image not found, falling back to remote storage: ${e}`
+      )
       const result = await this.remote.loadImage(id)
       return typeof result === "string" ? Buffer.from(result) : result
     }
