@@ -12,7 +12,7 @@ export class ApiDataAccess implements IDataAccess {
   private api: ApiClient
 
   constructor(apiClient?: ApiClient) {
-    this.api = apiClient || new ApiClient()
+    this.api = apiClient ?? new ApiClient()
   }
 
   getProjectWithImages(id: string): Promise<Project | undefined> {

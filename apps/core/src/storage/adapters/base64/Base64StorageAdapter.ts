@@ -1,7 +1,7 @@
 import { IStorageAdapter } from "@vailabel/core/src/storage"
 
 export class Base64StorageAdapter implements IStorageAdapter {
-  private static prefix = "img_"
+  private static readonly prefix = "img_"
 
   async saveImage(id: string, data: string): Promise<void> {
     try {
@@ -25,9 +25,8 @@ export class Base64StorageAdapter implements IStorageAdapter {
     const keys: string[] = []
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i)
-      if (key && key.startsWith(Base64StorageAdapter.prefix)) {
+      key?.startsWith(Base64StorageAdapter.prefix) &&
         keys.push(key.replace(Base64StorageAdapter.prefix, ""))
-      }
     }
     return keys
   }

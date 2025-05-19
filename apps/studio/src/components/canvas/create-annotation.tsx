@@ -58,7 +58,7 @@ export function CreateAnnotation({
   onSubmit,
   isOpen,
   onClose,
-}: CreateAnnotationModalProps) {
+}: Readonly<CreateAnnotationModalProps>) {
   const [labelName, setLabelName] = useState("")
   const [color, setColor] = useState<string>(getRandomColor())
   const { labels } = useAnnotations()

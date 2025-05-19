@@ -26,7 +26,7 @@ function createWindow() {
     },
   })
 
-  const displayName = pkgJson.productName || pkgJson.name || "VAI Label Desktop"
+  const displayName = pkgJson.productName ?? pkgJson.name ?? "VAI Label Desktop"
 
   const menuTemplate: MenuItemConstructorOptions[] = []
 
@@ -154,7 +154,7 @@ function createWindow() {
           const { dialog } = require("electron")
           const path = require("path")
           const pkg = require("../package.json")
-          const displayName = pkg.productName || pkg.name || "VAI Label Desktop"
+          const displayName = pkg.productName ?? pkg.name ?? "VAI Label Desktop"
           // Try to use icon from package.json, fallback to a default app icon
           const iconPath = pkg.icon
             ? path.join(__dirname, "../", pkg.icon)

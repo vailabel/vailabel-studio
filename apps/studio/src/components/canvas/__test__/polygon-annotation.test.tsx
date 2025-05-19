@@ -10,11 +10,11 @@ function MockProviders({
   children,
   annotations,
   labels,
-}: {
+}: Readonly<{
   children: React.ReactNode
   annotations: Annotation[]
   labels: Label[]
-}) {
+}>) {
   const mockDataAccess = createMockDataAccess({ annotations, labels })
   return (
     <DataAccessContext.Provider value={{ dataAccess: mockDataAccess }}>
