@@ -166,21 +166,22 @@ describe("SQLiteDataAccess", () => {
     expect(result).toBeNull()
   })
 
-  it("getAnnotations parses coordinates if string", async () => {
+  it("getPreviousImageId returns id or null", async () => {
     // Arrange
-    ;(mockInvoke as any).mockResolvedValueOnce([
-      { id: "a", coordinates: JSON.stringify([1, 2]) },
-      { id: "b", coordinates: [3, 4] },
-    ])
+    ;(mockInvoke as any).mockResolvedValueOnce({ id: "img0" })
     // Act
-    const result = await adapter.getAnnotations("img1")
+    const result = await adapter.getPreviousImageId("img1")
     // Assert
-    expect(mockInvoke).toHaveBeenCalledWith("sqlite:all", [
-      "SELECT * FROM annotations WHERE imageId = ?",
+    expect(mockInvoke).toHaveBeenCalledWith("sqlite:get", [
+      "SELECT id FROM images WHERE id < ? ORDER BY id DESC LIMIT 1",
       ["img1"],
     ])
-    expect(result[0].coordinates).toEqual([1, 2])
-    expect(result[1].coordinates).toEqual([3, 4])
+    expect(result).toBe("img0")
+
+    // Arrange for null
+    ;(mockInvoke as any).mockResolvedValueOnce(undefined)
+    const resultNull = await adapter.getPreviousImageId("img1")
+    expect(resultNull).toBeNull()
   })
 
   it("createAnnotation stringifies coordinates", async () => {
@@ -380,5 +381,133 @@ describe("SQLiteDataAccess", () => {
       [],
     ])
     expect(result).toEqual([{ id: "p1" }])
+  })
+
+  it("createImage calls sqlite:run", async () => {
+    // Arrange
+    const image = {
+      id: "img1",
+      projectId: "p1",
+      name: "img",
+      data: "data",
+      width: 100,
+      height: 200,
+      url: "url",
+      createdAt: 123,
+    }
+    // Act
+    await adapter.createImage(image as any)
+    // Assert
+    expect(mockInvoke).toHaveBeenCalledWith("sqlite:run", [
+      expect.stringContaining("INSERT INTO images"),
+      expect.arrayContaining([
+        image.id,
+        image.projectId,
+        image.name,
+        image.data,
+        image.width,
+        image.height,
+        image.url,
+        image.createdAt,
+      ]),
+    ])
+  })
+
+  it("updateImage calls sqlite:run with correct SQL", async () => {
+    // Arrange
+    // Act
+    await adapter.updateImage("img1", { name: "new", width: 123 })
+    // Assert
+    expect(mockInvoke).toHaveBeenCalledWith("sqlite:run", [
+      "UPDATE images SET name = ?, width = ? WHERE id = ?",
+      ["new", 123, "img1"],
+    ])
+  })
+
+  it("deleteImage calls sqlite:run", async () => {
+    // Arrange
+    // Act
+    await adapter.deleteImage("img1")
+    // Assert
+    expect(mockInvoke).toHaveBeenCalledWith("sqlite:run", [
+      "DELETE FROM images WHERE id = ?",
+      ["img1"],
+    ])
+  })
+
+  it("getAnnotationsWithFilter calls sqlite:all with filter", async () => {
+    // Arrange
+    ;(mockInvoke as any).mockResolvedValueOnce([])
+    // Act
+    await adapter.getAnnotationsWithFilter("img1", { type: "box", name: "foo" })
+    // Assert
+    expect(mockInvoke).toHaveBeenCalledWith("sqlite:all", [
+      "SELECT * FROM annotations WHERE imageId = ? AND type = ? AND name = ?",
+      ["img1", "box", "foo"],
+    ])
+  })
+
+  it("getAnnotations handles JSON.parse error", async () => {
+    // Arrange
+    const badRow = { id: "a", coordinates: "not-json" }
+    ;(mockInvoke as any).mockResolvedValueOnce([badRow])
+    const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {})
+    // Act
+    const result = await adapter.getAnnotations("img1")
+    // Assert
+    expect(result[0].coordinates).toBe("not-json")
+    expect(errorSpy).toHaveBeenCalled()
+    errorSpy.mockRestore()
+  })
+
+  it("deleteProject handles no images branch", async () => {
+    // Arrange
+    ;(mockInvoke as any)
+      .mockResolvedValueOnce([]) // images
+      .mockResolvedValue(undefined)
+    // Act
+    await adapter.deleteProject("p1")
+    // Assert
+    expect(mockInvoke).toHaveBeenCalledWith("sqlite:all", [
+      "SELECT id FROM images WHERE projectId = ?",
+      ["p1"],
+    ])
+    expect(mockInvoke).not.toHaveBeenCalledWith(
+      "sqlite:run",
+      expect.arrayContaining([
+        expect.stringContaining("DELETE FROM annotations WHERE imageId IN"),
+      ])
+    )
+    expect(mockInvoke).toHaveBeenCalledWith("sqlite:run", [
+      "DELETE FROM images WHERE projectId = ?",
+      ["p1"],
+    ])
+    expect(mockInvoke).toHaveBeenCalledWith("sqlite:run", [
+      "DELETE FROM labels WHERE projectId = ?",
+      ["p1"],
+    ])
+    expect(mockInvoke).toHaveBeenCalledWith("sqlite:run", [
+      "DELETE FROM projects WHERE id = ?",
+      ["p1"],
+    ])
+  })
+
+  it("updateAnnotation handles multiple fields and stringifies coordinates only", async () => {
+    // Arrange
+    const points = [
+      { x: 1, y: 2 },
+      { x: 3, y: 4 },
+    ]
+    // Act
+    await adapter.updateAnnotation("a", {
+      coordinates: points,
+      name: "n",
+      color: "red",
+    })
+    // Assert
+    expect(mockInvoke).toHaveBeenCalledWith("sqlite:run", [
+      "UPDATE annotations SET coordinates = ?, name = ?, color = ? WHERE id = ?",
+      [JSON.stringify(points), "n", "red", "a"],
+    ])
   })
 })
