@@ -1,5 +1,5 @@
 import { render, waitFor } from "@testing-library/react"
-import { BoxAnnotation } from "./box-annotation"
+import { BoxAnnotation } from "../box-annotation"
 import { CanvasProvider } from "@/contexts/canvas-context-provider"
 import { AnnotationsProvider } from "@/contexts/annotations-context-provider"
 import { createMockDataAccess } from "@/contexts/mock-data-access"
