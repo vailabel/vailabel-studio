@@ -1,37 +1,23 @@
 name: Test and SonarCloud
-
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-permissions:
-    contents: read
-    security-events: write
+ push:
+   branches:
+     - master
+ pull_request:
+   types: [opened, synchronize, reopened]
 jobs:
-  test-and-sonarcloud:
+  sonarqube:
+    name: SonarQube
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v2
         with:
-          node-version: '20'
-
+          fetch-depth: 0 
       - name: Install dependencies
-        run: yarn install
-
-      - name: Run tests with coverage
-        run: yarn test --coverage
-
-      - name: Upload coverage to SonarCloud
-        uses: SonarSource/sonarcloud-github-action@v2
-        with:
-          args: >
-            -Dsonar.projectKey=${{ github.repository }}
-            -Dsonar.organization=vailabel
-            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+        run: yarn
+      - name: Test and coverage
+        run: yarn jest --coverage
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v4
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_TOKEN: ${{ secrets. SONAR_TOKEN }}
