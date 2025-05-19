@@ -288,4 +288,85 @@ describe("DexieDataAccess", () => {
     expect(next).toBe("imgB")
     expect(prev).toBe("imgA")
   })
+
+  it("should get project with images (project exists)", async () => {
+    const project = createProject("p10", "P10")
+    await dataAccess.createProject(project)
+    const image1 = createImage("img10a", "p10", "img10a")
+    const image2 = createImage("img10b", "p10", "img10b")
+    await dataAccess.createImage(image1)
+    await dataAccess.createImage(image2)
+    const result = await dataAccess.getProjectWithImages("p10")
+    expect(result).toBeDefined()
+    expect(result && result.images && result.images.length).toBe(2)
+    expect(
+      result && result.images && result.images.map((img) => img.id)
+    ).toEqual(expect.arrayContaining(["img10a", "img10b"]))
+  })
+
+  it("should get project with images (project does not exist)", async () => {
+    const result = await dataAccess.getProjectWithImages("doesnotexist")
+    expect(result).toBeUndefined()
+  })
+
+  it("should createLabel and update annotation labelId", async () => {
+    const label = {
+      id: "l2",
+      name: "Label2",
+      color: "green",
+      category: "cat2",
+      isAIGenerated: false,
+      projectId: "p11",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+    const project = createProject("p11", "P11")
+    await dataAccess.createProject(project)
+    const image = createImage("img11", "p11", "img11")
+    await dataAccess.createImage(image)
+    const annotation = {
+      id: "a11",
+      imageId: "img11",
+      labelId: "",
+      name: "ann11",
+      type: "box" as const,
+      coordinates: [],
+      color: "red",
+      isAIGenerated: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+    await dataAccess.createAnnotation(annotation)
+    await dataAccess.createLabel(label, ["a11"])
+    const anns = await dataAccess.getAnnotations("img11")
+    expect(anns[0].labelId).toBe("l2")
+  })
+
+  it("should return null for getNextImageId if image does not exist", async () => {
+    const result = await dataAccess.getNextImageId("doesnotexist")
+    expect(result).toBeNull()
+  })
+
+  it("should return null for getPreviousImageId if image does not exist", async () => {
+    const result = await dataAccess.getPreviousImageId("doesnotexist")
+    expect(result).toBeNull()
+  })
+
+  it("should return null for getNextImageId if no next image exists", async () => {
+    const project = createProject("p12", "P12")
+    await dataAccess.createProject(project)
+    const image = createImage("img12", "p12", "img12")
+    await dataAccess.createImage(image)
+    const result = await dataAccess.getNextImageId("img12")
+    expect(result).toBeNull()
+  })
+
+  it("should return null for getPreviousImageId if no previous image exists", async () => {
+    const project = createProject("p13", "P13")
+    await dataAccess.createProject(project)
+    const image = createImage("img13", "p13", "img13")
+    await dataAccess.createImage(image)
+    const result = await dataAccess.getPreviousImageId("img13")
+    expect(result).toBeNull()
+  })
 })
