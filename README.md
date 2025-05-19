@@ -16,6 +16,9 @@
     <a href="https://sonarcloud.io/summary/new_code?id=vailabel_vailabel-studio">
       <img src="https://sonarcloud.io/api/project_badges/measure?project=vailabel_vailabel-studio&metric=duplicated_lines_density" alt="Duplicated Lines (%)">
     </a>
+    <a href="https://sonarcloud.io/summary/new_code?id=vailabel_vailabel-studio">
+      <img src="https://sonarcloud.io/api/project_badges/measure?project=vailabel_vailabel-studio&metric=coverage" alt="Coverage">
+    </a>
   </span>
 </p>
 
@@ -77,8 +80,6 @@ yarn install
 # Run the development server
 yarn dev
 ```
-
-Then open [http://localhost:3000](http://localhost:3000) 🚀
 
 ---
 
