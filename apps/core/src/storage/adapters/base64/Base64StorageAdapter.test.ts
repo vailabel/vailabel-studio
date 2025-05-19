@@ -98,6 +98,11 @@ describe("Base64StorageAdapter", () => {
     // Act
     const result = await adapter.listImages()
     // Assert
-    expect(result.sort()).toEqual([idA, idB].sort())
+    const expected = [idA, idB]
+    expect(localStorage.key).toHaveBeenCalledTimes(2)
+    expect(result).toEqual(expected)
+    expect(result.length).toBe(2)
+    expect(result).toContain(idA)
+    expect(result).toContain(idB)
   })
 })

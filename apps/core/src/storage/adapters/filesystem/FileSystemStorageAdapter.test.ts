@@ -1,18 +1,39 @@
 import { describe, it, expect, beforeEach, jest } from "@jest/globals"
 import { FileSystemStorageAdapter } from "./FileSystemStorageAdapter"
 
+// Add a global type declaration for window.ipc
+export {} // Ensure this file is a module
+
+declare global {
+  interface Window {
+    ipc: {
+      invoke: (channel: string, ...args: any[]) => Promise<any>
+    }
+  }
+}
+
 // Arrange: mock window.ipc.invoke
 globalThis.window = Object.create(window)
-window.ipc = {
+;(window as any).ipc = {
   invoke: jest.fn(),
-} as any
+} as Window["ipc"]
 
 describe("FileSystemStorageAdapter", () => {
   const directory = "/mock/dir"
   let adapter: FileSystemStorageAdapter
 
   beforeEach(() => {
-    ;(window.ipc.invoke as any).mockClear()
+    ;(window.ipc.invoke as jest.Mock).mockClear()
+    // Default mock implementation for all calls
+    ;(window.ipc.invoke as jest.Mock).mockImplementation((...args: any[]) => {
+      const channel = args[0]
+      if (channel === "fs-load-image")
+        return Promise.resolve(Buffer.from("mock"))
+      if (channel === "fs-list-images")
+        return Promise.resolve(["a.png", "b.png"])
+      if (channel === "fs-get-base-name") return Promise.resolve("a")
+      return Promise.resolve()
+    })
     adapter = new FileSystemStorageAdapter(directory)
   })
 
