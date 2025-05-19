@@ -14,12 +14,19 @@ const config: Config = {
     "/coverage/",
     "__tests__",
     "__mocks__",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
   ],
   watchPathIgnorePatterns: [
     "/node_modules/",
     "/dist/",
     "/build/",
     "/coverage/",
+    "__tests__",
+    "__mocks__",
+    "**/*.test.ts",
+    "**/*.test.tsx",
   ],
 }
 
