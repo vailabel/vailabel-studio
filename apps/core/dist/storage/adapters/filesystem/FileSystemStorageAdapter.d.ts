@@ -1,9 +1,8 @@
-/// <reference types="node" />
-/// <reference types="node" />
 import { IStorageAdapter } from "@vailabel/core/src/storage";
 export declare class FileSystemStorageAdapter implements IStorageAdapter {
-    private directory;
+    private readonly directory;
     constructor(directory: string);
+    private ensureDirectory;
     private getPath;
     saveImage: (id: string, data: Buffer) => Promise<void>;
     loadImage: (id: string) => Promise<Buffer>;

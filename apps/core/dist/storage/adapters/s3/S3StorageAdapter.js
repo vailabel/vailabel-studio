@@ -15,9 +15,11 @@ const credential_provider_cognito_identity_1 = require("@aws-sdk/credential-prov
 class S3StorageAdapter {
     constructor(bucket, region, identityPoolId) {
         this.bucket = bucket;
-        this.s3 = new client_s3_1.S3Client(Object.assign({ region, credentials: (0, credential_provider_cognito_identity_1.fromCognitoIdentityPool)({
-                identityPoolId,
-                clientConfig: { region },
+        this.region = region;
+        this.identityPoolId = identityPoolId;
+        this.s3 = new client_s3_1.S3Client(Object.assign({ region: this.region, credentials: (0, credential_provider_cognito_identity_1.fromCognitoIdentityPool)({
+                identityPoolId: this.identityPoolId,
+                clientConfig: { region: this.region },
             }) }, (typeof window !== "undefined" ? { runtime: "browser" } : {})));
     }
     saveImage(id, data) {

@@ -1,9 +1,15 @@
 import { IDataAccess } from "@vailabel/core/src/data/interface/IDataAccess";
-import type { Project, ImageData, Annotation, Label, History } from "../../../models/types";
+import type { Project, ImageData, Annotation, Label, History, AIModel, Settings } from "../../../models/types";
 import { ApiClient } from "@vailabel/core/src/data/sources/api/ApiClient";
 export declare class ApiDataAccess implements IDataAccess {
     private api;
     constructor(apiClient?: ApiClient);
+    getSetting(key: string): Promise<Settings | undefined>;
+    getAvailableModels(): Promise<AIModel[]>;
+    uploadCustomModel(file: AIModel): Promise<void>;
+    selectModel(modelId: string): Promise<void>;
+    getSelectedModel(): Promise<AIModel | undefined>;
+    deleteModel(modelId: string): Promise<void>;
     getProjectWithImages(id: string): Promise<Project | undefined>;
     getNextImageId(currentImageId: string): Promise<string | null>;
     getPreviousImageId(currentImageId: string): Promise<string | null>;

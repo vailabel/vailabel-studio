@@ -12,14 +12,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ApiClient = void 0;
 class ApiClient {
     constructor(options = {}) {
-        var _a, _b;
+        var _a, _b, _c, _d;
         this.requestInterceptors = [];
         this.responseInterceptors = [];
-        this.baseUrl = options.baseUrl || "/api";
-        this.headers = options.headers || { "Content-Type": "application/json" };
+        this.baseUrl = (_a = options.baseUrl) !== null && _a !== void 0 ? _a : "/api";
+        this.headers = (_b = options.headers) !== null && _b !== void 0 ? _b : { "Content-Type": "application/json" };
         this.getAuthToken = options.getAuthToken;
-        this.cacheEnabled = (_a = options.cache) !== null && _a !== void 0 ? _a : false;
-        this.cacheDuration = (_b = options.cacheDuration) !== null && _b !== void 0 ? _b : 5 * 60 * 1000; // default 5 minutes
+        this.cacheEnabled = (_c = options.cache) !== null && _c !== void 0 ? _c : false;
+        this.cacheDuration = (_d = options.cacheDuration) !== null && _d !== void 0 ? _d : 5 * 60 * 1000; // default 5 minutes
         this.cacheStore = new Map();
     }
     addRequestInterceptor(interceptor) {

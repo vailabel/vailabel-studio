@@ -1,9 +1,7 @@
-/// <reference types="node" />
-/// <reference types="node" />
 import { IStorageAdapter } from "@vailabel/core/src/storage";
 export declare class HybridAdapter implements IStorageAdapter {
-    private local;
-    private remote;
+    private readonly local;
+    private readonly remote;
     constructor(local: IStorageAdapter, remote: IStorageAdapter);
     saveImage(id: string, data: Buffer): Promise<void>;
     loadImage(id: string): Promise<Buffer>;

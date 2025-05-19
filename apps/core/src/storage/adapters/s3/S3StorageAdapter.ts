@@ -25,7 +25,6 @@ export class S3StorageAdapter implements IStorageAdapter {
       ...(typeof window !== "undefined" ? { runtime: "browser" } : {}),
     })
   }
-
   async saveImage(id: string, data: Buffer): Promise<void> {
     await this.s3.send(
       new PutObjectCommand({

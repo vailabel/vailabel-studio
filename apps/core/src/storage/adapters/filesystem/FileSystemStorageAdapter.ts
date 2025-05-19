@@ -6,7 +6,6 @@ export class FileSystemStorageAdapter implements IStorageAdapter {
       throw new Error("Directory is required")
     }
   }
-
   private ensureDirectory = async () => {
     await window.ipc.invoke("fs-ensure-directory", { path: this.directory })
   }

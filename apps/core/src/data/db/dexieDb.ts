@@ -5,6 +5,7 @@ import type {
   ImageData,
   Annotation,
   History,
+  AIModel,
 } from "../../models/types"
 
 export class VisionDatabase extends Dexie {
@@ -14,6 +15,7 @@ export class VisionDatabase extends Dexie {
   annotations!: Table<Annotation>
   history!: Table<History>
   settings!: Table<{ key: string; value: string }>
+  aiModels!: Table<AIModel>
 
   constructor() {
     super("vision-ai-label-studio")
@@ -25,6 +27,8 @@ export class VisionDatabase extends Dexie {
       settings: "key, value",
       annotations: "id, name, type, coordinates, imageId, createdAt",
       history: "id, labels, historyIndex, canUndo, canRedo",
+      aiModels:
+        "id, name, description, version, createdAt, updatedAt, modelPath, configPath, modelSize, isCustom",
     })
   }
 }

@@ -1,9 +1,7 @@
-/// <reference types="node" />
-/// <reference types="node" />
 import { ContainerClient } from "@azure/storage-blob";
 import { IStorageAdapter } from "@vailabel/core/src/storage";
 export declare class AzureBlobStorageAdapter implements IStorageAdapter {
-    private containerClient;
+    private readonly containerClient;
     constructor(containerClient: ContainerClient);
     saveImage(id: string, data: Buffer): Promise<void>;
     loadImage(id: string): Promise<Buffer>;

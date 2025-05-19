@@ -92,7 +92,7 @@ export function ErrorBoundary({
         >
           If this keeps happening, please{" "}
           <a
-            href="https://github.com/vailabeling/vailabeling/issues"
+            href="https://github.com/vailabel/vailabel-studio/issues"
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-300 underline hover:text-blue-200 transition-colors"

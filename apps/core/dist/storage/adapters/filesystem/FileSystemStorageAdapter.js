@@ -13,24 +13,41 @@ exports.FileSystemStorageAdapter = void 0;
 class FileSystemStorageAdapter {
     constructor(directory) {
         this.directory = directory;
+        this.ensureDirectory = () => __awaiter(this, void 0, void 0, function* () {
+            yield window.ipc.invoke("fs-ensure-directory", { path: this.directory });
+        });
         this.saveImage = (id, data) => __awaiter(this, void 0, void 0, function* () {
+            yield this.ensureDirectory();
             yield window.ipc.invoke("fs-save-image", { path: this.getPath(id), data });
         });
         this.loadImage = (id) => __awaiter(this, void 0, void 0, function* () {
+            yield this.ensureDirectory();
             return (yield window.ipc.invoke("fs-load-image", {
                 path: this.getPath(id),
             }));
         });
         this.deleteImage = (id) => __awaiter(this, void 0, void 0, function* () {
+            yield this.ensureDirectory();
             yield window.ipc.invoke("fs-delete-image", { path: this.getPath(id) });
         });
         this.listImages = () => __awaiter(this, void 0, void 0, function* () {
+            yield this.ensureDirectory();
             const files = (yield window.ipc.invoke("fs-list-images", {
                 directory: this.directory,
             }));
-            const baseNames = yield Promise.all(files
-                .filter((f) => f.endsWith(".png"))
-                .map((f) => window.ipc.invoke("fs-get-base-name", {
+            // Only return image files (png, jpg, jpeg, gif, bmp, webp, tiff, svg)
+            const imageExtensions = [
+                ".png",
+                ".jpg",
+                ".jpeg",
+                ".gif",
+                ".bmp",
+                ".webp",
+                ".tiff",
+                ".svg",
+            ];
+            const imageFiles = files.filter((f) => imageExtensions.some((ext) => f.toLowerCase().endsWith(ext)));
+            const baseNames = yield Promise.all(imageFiles.map((f) => window.ipc.invoke("fs-get-base-name", {
                 file: f,
             })));
             return baseNames;
@@ -38,9 +55,6 @@ class FileSystemStorageAdapter {
         if (!directory) {
             throw new Error("Directory is required");
         }
-        this.directory = directory;
-        // Ensure the directory exists
-        window.ipc.invoke("fs-ensure-directory", { path: this.directory });
     }
     getPath(id) {
         return `${this.directory}/${id}`;

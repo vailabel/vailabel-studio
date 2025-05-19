@@ -10,9 +10,12 @@ import * as path from "path"
 import "./ipc/slqiteIpc"
 import "./ipc/filesystemIpc"
 import "./ipc/updateIpc"
+import "./ipc/aiIpc"
+
 import pkgJson from "../package.json"
 
 let mainWindow: BrowserWindow
+let loadingWindow: BrowserWindow | null = null
 const isDev = !app.isPackaged
 
 function createWindow() {
@@ -182,6 +185,33 @@ function createWindow() {
   }
 }
 
+function createLoadingWindow(message: string) {
+  loadingWindow = new BrowserWindow({
+    width: 400,
+    height: 200,
+    frame: false,
+    resizable: false,
+    movable: true,
+    alwaysOnTop: true,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false,
+    },
+  })
+  const html = `<!DOCTYPE html><html lang='en'><head><meta charset='UTF-8'><title>Loading...</title><style>html,body{height:100%;margin:0;padding:0;background:#fff;font-family:sans-serif;}body{display:flex;align-items:center;justify-content:center;height:100%;}.container{text-align:center;}.icon{font-size:2em;margin-bottom:1em;}</style></head><body><div class='container'><div class='icon'>⏳</div><div id='loading-message'>${message}</div></div></body></html>`
+  loadingWindow.loadURL(
+    "data:text/html;charset=utf-8," + encodeURIComponent(html)
+  )
+  loadingWindow.setMenu(null)
+}
+
+function closeLoadingWindow() {
+  if (loadingWindow) {
+    loadingWindow.close()
+    loadingWindow = null
+  }
+}
+
 function fakeAutoUpdate() {
   // Simulate update available after 2 seconds
   setTimeout(() => {
@@ -189,6 +219,9 @@ function fakeAutoUpdate() {
       version: "2.0.0",
       notes: "Fake update available!",
     })
+
+    // Show loading window for download
+    createLoadingWindow("Downloading update...")
 
     // Simulate download progress with detailed data
     let percent = 0
@@ -211,17 +244,34 @@ function fakeAutoUpdate() {
         // Simulate update downloaded
         setTimeout(() => {
           mainWindow.webContents.send("update-downloaded")
+          closeLoadingWindow()
         }, 500)
       }
     }, 500)
   }, 2000)
 }
 
+// Python environment setup for YOLO
+function setupPythonEnv() {
+  const { spawnSync } = require("child_process")
+  // Find python3 path
+  const pythonPathResult = spawnSync("which", ["python3"])
+  let pythonPath = "python3"
+  if (pythonPathResult.status === 0) {
+    pythonPath = pythonPathResult.stdout.toString().trim()
+  }
+  console.log("Using python path:", pythonPath)
+  // Optionally, you can export or return this path for later use
+  return pythonPath
+}
+
 app.whenReady().then(() => {
+  const pythonPath = setupPythonEnv()
+  // You can use pythonPath elsewhere if needed
   createWindow()
 
   if (isDev) {
-    fakeAutoUpdate() // Use fake auto update in development
+    // fakeAutoUpdate() // Use fake auto update in development
   } else {
     autoUpdater.checkForUpdates()
 
@@ -230,11 +280,15 @@ app.whenReady().then(() => {
     })
 
     autoUpdater.on("download-progress", (progress) => {
+      if (!loadingWindow) {
+        createLoadingWindow("Downloading update...")
+      }
       mainWindow.webContents.send("download-progress", progress)
     })
 
     autoUpdater.on("update-downloaded", () => {
       mainWindow.webContents.send("update-downloaded")
+      closeLoadingWindow()
     })
   }
 

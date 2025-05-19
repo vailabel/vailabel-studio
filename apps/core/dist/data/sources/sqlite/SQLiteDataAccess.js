@@ -11,6 +11,104 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SQLiteDataAccess = void 0;
 class SQLiteDataAccess {
+    getAvailableModels() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const rows = (yield window.ipc.invoke("sqlite:all", [
+                "SELECT * FROM ai_models",
+                [],
+            ])) || [];
+            if (!Array.isArray(rows)) {
+                console.error("Expected array from sqlite:all, got:", rows);
+                return [];
+            }
+            return rows.map((row) => ({
+                id: row.id,
+                name: row.name,
+                description: row.description,
+                version: row.version,
+                createdAt: new Date(row.createdAt),
+                updatedAt: new Date(row.updatedAt),
+                modelPath: row.modelPath,
+                configPath: row.configPath,
+                modelSize: row.modelSize,
+                isCustom: !!row.isCustom,
+            }));
+        });
+    }
+    uploadCustomModel(model) {
+        return __awaiter(this, void 0, void 0, function* () {
+            console.log("Uploading custom model:", model);
+            yield window.ipc.invoke("sqlite:run", [
+                `INSERT OR REPLACE INTO ai_models (id, name, description, version, createdAt, updatedAt, modelPath, configPath, modelSize, isCustom) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    model.id,
+                    model.name,
+                    model.description,
+                    model.version,
+                    model.createdAt.toISOString(),
+                    model.updatedAt.toISOString(),
+                    model.modelPath,
+                    model.configPath,
+                    model.modelSize,
+                    model.isCustom ? 1 : 0,
+                ],
+            ]);
+        });
+    }
+    selectModel(modelId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield window.ipc.invoke("sqlite:run", [
+                "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
+                ["selectedModelId", modelId],
+            ]);
+        });
+    }
+    getSelectedModel() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const row = (yield window.ipc.invoke("sqlite:get", [
+                "SELECT value FROM settings WHERE key = ?",
+                ["selectedModelId"],
+            ]));
+            if (!(row === null || row === void 0 ? void 0 : row.value))
+                return undefined;
+            const model = yield window.ipc.invoke("sqlite:get", [
+                "SELECT * FROM ai_models WHERE id = ?",
+                [row.value],
+            ]);
+            if (!model)
+                return undefined;
+            return {
+                id: model.id,
+                name: model.name,
+                description: model.description,
+                version: model.version,
+                createdAt: new Date(model.createdAt),
+                updatedAt: new Date(model.updatedAt),
+                modelPath: model.modelPath,
+                configPath: model.configPath,
+                modelSize: model.modelSize,
+                isCustom: !!model.isCustom,
+            };
+        });
+    }
+    deleteModel(modelId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield window.ipc.invoke("sqlite:run", [
+                "DELETE FROM ai_models WHERE id = ?",
+                [modelId],
+            ]);
+            const selected = (yield window.ipc.invoke("sqlite:get", [
+                "SELECT value FROM settings WHERE key = ?",
+                ["selectedModelId"],
+            ]));
+            if ((selected === null || selected === void 0 ? void 0 : selected.value) === modelId) {
+                yield window.ipc.invoke("sqlite:run", [
+                    "DELETE FROM settings WHERE key = ?",
+                    ["selectedModelId"],
+                ]);
+            }
+        });
+    }
     getProjectWithImages(id) {
         return __awaiter(this, void 0, void 0, function* () {
             const project = (yield window.ipc.invoke("sqlite:get", [
@@ -246,10 +344,16 @@ class SQLiteDataAccess {
     getSettings() {
         return window.ipc.invoke("sqlite:all", ["SELECT * FROM settings", []]);
     }
+    getSetting(key) {
+        return window.ipc.invoke("sqlite:get", [
+            "SELECT * FROM settings WHERE key = ?",
+            [key],
+        ]);
+    }
     updateSetting(key, value) {
         return window.ipc.invoke("sqlite:run", [
-            "UPDATE settings SET value = ? WHERE key = ?",
-            [value, key],
+            "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
+            [key, value],
         ]);
     }
     getHistory() {

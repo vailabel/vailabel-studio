@@ -6,9 +6,32 @@ import {
   Annotation,
   Label,
   History,
+  AIModel,
+  Settings,
 } from "../../../models/types"
 
 export class DexieDataAccess implements IDataAccess {
+  getSetting(key: string): Promise<Settings | undefined> {
+    return db.settings.get(key)
+  }
+  getAvailableModels(): Promise<AIModel[]> {
+    return db.aiModels.toArray()
+  }
+  uploadCustomModel(model: AIModel): Promise<void> {
+    return db.aiModels.add(model)
+  }
+  selectModel(modelId: string): Promise<void> {
+    return db.settings.put({ key: "selectedModel", value: modelId })
+  }
+  getSelectedModel(): Promise<AIModel | undefined> {
+    return db.settings.get("selectedModel").then((setting) => {
+      if (!setting) return undefined
+      return db.aiModels.get(setting.value)
+    })
+  }
+  deleteModel(modelId: string): Promise<void> {
+    return db.aiModels.delete(modelId)
+  }
   async getProjects(): Promise<Project[]> {
     return db.projects.toArray()
   }

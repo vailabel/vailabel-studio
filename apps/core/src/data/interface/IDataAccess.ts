@@ -4,6 +4,8 @@ import type {
   Annotation,
   Label,
   History,
+  AIModel,
+  Settings,
 } from "../../models/types"
 
 export interface IDataAccess {
@@ -46,10 +48,18 @@ export interface IDataAccess {
   deleteLabel(id: string): Promise<void>
 
   // Settings
-  getSettings(): Promise<{ key: string; value: string }[]>
+  getSettings(): Promise<Settings[]>
+  getSetting(key: string): Promise<Settings | undefined>
   updateSetting(key: string, value: string): Promise<void>
 
   // History
   getHistory(): Promise<History[]>
   updateHistory(history: History): Promise<void>
+
+  // AI Model
+  getAvailableModels(): Promise<AIModel[]>
+  uploadCustomModel(file: AIModel): Promise<void>
+  selectModel(modelId: string): Promise<void>
+  getSelectedModel(): Promise<AIModel | undefined>
+  deleteModel(modelId: string): Promise<void>
 }
