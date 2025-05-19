@@ -13,22 +13,26 @@ exports.DexieDataAccess = void 0;
 const dexieDb_1 = require("@vailabel/core/src/data/db/dexieDb");
 class DexieDataAccess {
     getSetting(key) {
-        throw new Error("Method not implemented.");
+        return dexieDb_1.db.settings.get(key);
     }
     getAvailableModels() {
-        throw new Error("Method not implemented.");
+        return dexieDb_1.db.aiModels.toArray();
     }
-    uploadCustomModel(file) {
-        throw new Error("Method not implemented.");
+    uploadCustomModel(model) {
+        return dexieDb_1.db.aiModels.add(model);
     }
     selectModel(modelId) {
-        throw new Error("Method not implemented.");
+        return dexieDb_1.db.settings.put({ key: "selectedModel", value: modelId });
     }
     getSelectedModel() {
-        throw new Error("Method not implemented.");
+        return dexieDb_1.db.settings.get("selectedModel").then((setting) => {
+            if (!setting)
+                return undefined;
+            return dexieDb_1.db.aiModels.get(setting.value);
+        });
     }
     deleteModel(modelId) {
-        throw new Error("Method not implemented.");
+        return dexieDb_1.db.aiModels.delete(modelId);
     }
     getProjects() {
         return __awaiter(this, void 0, void 0, function* () {

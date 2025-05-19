@@ -1,5 +1,5 @@
 import Dexie, { type Table } from "dexie";
-import type { Label, Project, ImageData, Annotation, History } from "../../models/types";
+import type { Label, Project, ImageData, Annotation, History, AIModel } from "../../models/types";
 export declare class VisionDatabase extends Dexie {
     projects: Table<Project>;
     images: Table<ImageData>;
@@ -10,6 +10,7 @@ export declare class VisionDatabase extends Dexie {
         key: string;
         value: string;
     }>;
+    aiModels: Table<AIModel>;
     constructor();
 }
 export declare const db: VisionDatabase;

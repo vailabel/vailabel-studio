@@ -15,9 +15,6 @@ class HybridAdapter {
         this.local = local;
         this.remote = remote;
     }
-    uploadModel(file) {
-        throw new Error("Method not implemented.");
-    }
     saveImage(id, data) {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.local.saveImage(id, data);

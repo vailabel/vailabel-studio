@@ -22,9 +22,6 @@ class S3StorageAdapter {
                 clientConfig: { region: this.region },
             }) }, (typeof window !== "undefined" ? { runtime: "browser" } : {})));
     }
-    uploadModel(file) {
-        throw new Error("Method not implemented.");
-    }
     saveImage(id, data) {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.s3.send(new client_s3_1.PutObjectCommand({

@@ -12,22 +12,25 @@ import {
 
 export class DexieDataAccess implements IDataAccess {
   getSetting(key: string): Promise<Settings | undefined> {
-    throw new Error("Method not implemented.")
+    return db.settings.get(key)
   }
   getAvailableModels(): Promise<AIModel[]> {
-    throw new Error("Method not implemented.")
+    return db.aiModels.toArray()
   }
-  uploadCustomModel(file: AIModel): Promise<void> {
-    throw new Error("Method not implemented.")
+  uploadCustomModel(model: AIModel): Promise<void> {
+    return db.aiModels.add(model)
   }
   selectModel(modelId: string): Promise<void> {
-    throw new Error("Method not implemented.")
+    return db.settings.put({ key: "selectedModel", value: modelId })
   }
   getSelectedModel(): Promise<AIModel | undefined> {
-    throw new Error("Method not implemented.")
+    return db.settings.get("selectedModel").then((setting) => {
+      if (!setting) return undefined
+      return db.aiModels.get(setting.value)
+    })
   }
   deleteModel(modelId: string): Promise<void> {
-    throw new Error("Method not implemented.")
+    return db.aiModels.delete(modelId)
   }
   async getProjects(): Promise<Project[]> {
     return db.projects.toArray()

@@ -150,6 +150,9 @@ ipcMain.handle("install-python-package", async (event, { pythonPath }) => {
   // Check if all requirements are already satisfied
   const requirementsPath = path.join(__dirname, "../ai/requirements.txt")
   try {
+    // update pip to the latest version
+    const updateCmd = `${pythonPath} -m pip install --upgrade pip`
+    execSync(updateCmd, { encoding: "utf-8" })
     // Use pip to check for missing requirements
     const checkCmd = `${pythonPath} -m pip install --dry-run -r "${requirementsPath}" --no-cache-dir`
     const checkResult = execSync(checkCmd, { encoding: "utf-8" })
