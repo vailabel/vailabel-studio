@@ -157,16 +157,14 @@ export const AnnotationsProvider = ({
 
   const getOrCreateLabel = useCallback(
     async (name: string, color: string) => {
-      // Check if the label already exists
+      // Check if the label already exists by name
       const existingLabels = await dataAccess.getLabels()
-      let label = existingLabels.find(
-        (lbl) => lbl.name === name && lbl.color === color
-      )
-      if (!label) {
-        // Create a new label if it doesn't exist
-        label = { id: crypto.randomUUID(), name, color } as Label
-        await dataAccess.createLabel(label, [])
+      const found = existingLabels.find((lbl) => lbl.name === name)
+      if (found) {
+        return found
       }
+      const label = { id: crypto.randomUUID(), name, color } as Label
+      await dataAccess.createLabel(label, [])
       return label
     },
     [dataAccess]

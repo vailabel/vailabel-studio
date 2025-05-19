@@ -9,7 +9,7 @@ interface PolygonAnnotationProps {
 }
 
 export function PolygonAnnotation({ annotation }: PolygonAnnotationProps) {
-  const { selectedAnnotation } = useAnnotations()
+  const { selectedAnnotation, updateAnnotation } = useAnnotations()
   const { zoom, selectedTool } = useCanvas()
 
   const styles = {
@@ -32,6 +32,35 @@ export function PolygonAnnotation({ annotation }: PolygonAnnotationProps) {
 
   const isSelected = selectedAnnotation?.id === annotation.id
   const isAIGenerated = annotation.isAIGenerated
+
+  // Helper to handle point drag
+  const handlePointMouseDown = (
+    e: React.MouseEvent<SVGCircleElement>,
+    index: number
+  ) => {
+    e.stopPropagation()
+    const svg = (e.target as SVGCircleElement).ownerSVGElement
+    if (!svg) return
+    const rect = svg.getBoundingClientRect()
+
+    function onMouseMove(moveEvent: MouseEvent) {
+      const newX = (moveEvent.clientX - rect.left) / zoom
+      const newY = (moveEvent.clientY - rect.top) / zoom
+      const newCoordinates = annotation.coordinates.map((p, i) =>
+        i === index ? { x: newX, y: newY } : p
+      )
+      updateAnnotation(annotation.id, {
+        coordinates: newCoordinates,
+        updatedAt: new Date(),
+      })
+    }
+    function onMouseUp() {
+      window.removeEventListener("mousemove", onMouseMove)
+      window.removeEventListener("mouseup", onMouseUp)
+    }
+    window.addEventListener("mousemove", onMouseMove)
+    window.addEventListener("mouseup", onMouseUp)
+  }
 
   return (
     <svg className="absolute left-0 top-0 h-full w-full pointer-events-none">
@@ -76,26 +105,8 @@ export function PolygonAnnotation({ annotation }: PolygonAnnotationProps) {
               cx={point.x}
               cy={point.y}
               r={4 / zoom}
-              className="fill-white stroke-gray-400 stroke-1 cursor-pointer"
-              onMouseDown={(e) => {
-                e.stopPropagation()
-                const onMouseMove = (moveEvent: MouseEvent) => {
-                  const rect = (
-                    e.target as SVGCircleElement
-                  ).ownerSVGElement?.getBoundingClientRect()
-                  if (rect) {
-                    const newX = (moveEvent.clientX - rect.left) / zoom
-                    const newY = (moveEvent.clientY - rect.top) / zoom
-                    annotation.coordinates[index] = { x: newX, y: newY }
-                  }
-                }
-                const onMouseUp = () => {
-                  window.removeEventListener("mousemove", onMouseMove)
-                  window.removeEventListener("mouseup", onMouseUp)
-                }
-                window.addEventListener("mousemove", onMouseMove)
-                window.addEventListener("mouseup", onMouseUp)
-              }}
+              className="fill-white stroke-gray-400 stroke-1 cursor-pointer pointer-events-auto"
+              onMouseDown={(e) => handlePointMouseDown(e, index)}
             />
           ))}
         </>

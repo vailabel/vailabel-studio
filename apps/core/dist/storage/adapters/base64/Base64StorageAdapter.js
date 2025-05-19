@@ -36,9 +36,14 @@ class Base64StorageAdapter {
     }
     listImages() {
         return __awaiter(this, void 0, void 0, function* () {
-            return Object.keys(localStorage)
-                .filter((key) => key.startsWith(Base64StorageAdapter.prefix))
-                .map((key) => key.replace(Base64StorageAdapter.prefix, ""));
+            const keys = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith(Base64StorageAdapter.prefix)) {
+                    keys.push(key.replace(Base64StorageAdapter.prefix, ""));
+                }
+            }
+            return keys;
         });
     }
 }
