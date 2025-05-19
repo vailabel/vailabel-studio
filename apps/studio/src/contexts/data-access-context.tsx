@@ -15,7 +15,8 @@ export const DataAccessContext = createContext<
   DataAccessContextType | undefined
 >(undefined)
 
-const dataAccessStrategies: Record<
+// Exported for testing
+export const dataAccessStrategies: Record<
   "api" | "dexie" | "sqlite",
   () => IDataAccess
 > = {
@@ -29,7 +30,8 @@ const dataAccessStrategies: Record<
   },
 }
 
-function getDefaultType(): "api" | "dexie" | "sqlite" {
+// Exported for testing
+export function getDefaultType(): "api" | "dexie" | "sqlite" {
   if (typeof window === "undefined") return "api" // Node.js/SSR/Cloud
   if (isElectron()) return "sqlite" // Electron desktop
   return "dexie" // Web browser (IndexedDB)

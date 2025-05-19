@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom"
 import { render, screen, waitFor } from "@testing-library/react"
-import { AnnotationRenderer } from "./annotation-renderer"
+import { AnnotationRenderer } from "../annotation-renderer"
 import { CanvasProvider } from "@/contexts/canvas-context-provider"
 import { AnnotationsProvider } from "@/contexts/annotations-context-provider"
 import { createMockDataAccess } from "@/contexts/mock-data-access"
