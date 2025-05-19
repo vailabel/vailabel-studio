@@ -22,8 +22,13 @@ export class Base64StorageAdapter implements IStorageAdapter {
   }
 
   async listImages(): Promise<string[]> {
-    return Object.keys(localStorage)
-      .filter((key) => key.startsWith(Base64StorageAdapter.prefix))
-      .map((key) => key.replace(Base64StorageAdapter.prefix, ""))
+    const keys: string[] = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key && key.startsWith(Base64StorageAdapter.prefix)) {
+        keys.push(key.replace(Base64StorageAdapter.prefix, ""))
+      }
+    }
+    return keys
   }
 }

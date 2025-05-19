@@ -12,7 +12,7 @@
     "prepare": "husky",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\" --ignore-path .gitignore --ignore-path .prettierignore",
     "commit": "cz",
-    "test": "jest --coverage --watchAll=false",
+    "test": "jest --coverage",
     "dev": "concurrently \"cd apps/studio && yarn dev\" \"cd apps/desktop && yarn dev\"",
     "build": "concurrently \"yarn workspaces studio build\" \"yarn workspaces desktop build\"",
     "dev:web": "yarn workspaces web dev",
