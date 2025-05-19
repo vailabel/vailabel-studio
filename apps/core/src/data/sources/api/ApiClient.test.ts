@@ -7,7 +7,7 @@ global.fetch = jest.fn() as any
 describe("ApiClient", () => {
   let client: ApiClient
   beforeEach(() => {
-    client = new ApiClient({ baseUrl: "http://test.local" })
+    client = new ApiClient({ baseUrl: "https://test.local" })
     ;(global.fetch as any).mockClear()
   })
 
@@ -23,7 +23,7 @@ describe("ApiClient", () => {
     })
     await client.get("/foo")
     expect(global.fetch).toHaveBeenCalledWith(
-      "http://test.local/foo",
+      "https://test.local/foo",
       expect.objectContaining({ method: "GET" })
     )
   })
@@ -36,7 +36,7 @@ describe("ApiClient", () => {
     })
     await client.post("/bar", { a: 1 })
     expect(global.fetch).toHaveBeenCalledWith(
-      "http://test.local/bar",
+      "https://test.local/bar",
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({ a: 1 }),
@@ -52,7 +52,7 @@ describe("ApiClient", () => {
     })
     await client.put("/baz", { b: 2 })
     expect(global.fetch).toHaveBeenCalledWith(
-      "http://test.local/baz",
+      "https://test.local/baz",
       expect.objectContaining({ method: "PUT", body: JSON.stringify({ b: 2 }) })
     )
   })
@@ -65,7 +65,7 @@ describe("ApiClient", () => {
     })
     await client.delete("/qux")
     expect(global.fetch).toHaveBeenCalledWith(
-      "http://test.local/qux",
+      "https://test.local/qux",
       expect.objectContaining({ method: "DELETE" })
     )
     // Optionally check that body is not set for DELETE
@@ -75,7 +75,7 @@ describe("ApiClient", () => {
 
   it("should cache GET requests if enabled", async () => {
     client = new ApiClient({
-      baseUrl: "http://test.local",
+      baseUrl: "https://test.local",
       cache: true,
       cacheDuration: 1000,
     })
@@ -140,7 +140,7 @@ describe("ApiClient", () => {
 
   it("should use getAuthToken if provided", async () => {
     const getAuthToken = () => Promise.resolve("token123")
-    client = new ApiClient({ baseUrl: "http://test.local", getAuthToken })
+    client = new ApiClient({ baseUrl: "https://test.local", getAuthToken })
     ;(global.fetch as any).mockResolvedValue({
       json: () => Promise.resolve({ ok: true }),
       status: 200,
@@ -153,7 +153,7 @@ describe("ApiClient", () => {
 
   it("should not set Authorization if getAuthToken returns null", async () => {
     const getAuthToken = () => Promise.resolve(null)
-    client = new ApiClient({ baseUrl: "http://test.local", getAuthToken })
+    client = new ApiClient({ baseUrl: "https://test.local", getAuthToken })
     ;(global.fetch as any).mockResolvedValue({
       json: () => Promise.resolve({ ok: true }),
       status: 200,
@@ -165,7 +165,7 @@ describe("ApiClient", () => {
   })
 
   it("should clear cache with clearCache", () => {
-    client = new ApiClient({ baseUrl: "http://test.local", cache: true })
+    client = new ApiClient({ baseUrl: "https://test.local", cache: true })
     // @ts-ignore
     client.cacheStore.set("foo", { value: 1, expires: Date.now() + 1000 })
     client.clearCache()
