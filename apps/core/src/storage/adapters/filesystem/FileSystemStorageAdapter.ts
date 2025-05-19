@@ -19,7 +19,9 @@ export class FileSystemStorageAdapter implements IStorageAdapter {
   }
 
   loadImage = async (id: string): Promise<Buffer> => {
-    return window.ipc.invoke("fs-load-image", { path: this.getPath(id) })
+    return (await window.ipc.invoke("fs-load-image", {
+      path: this.getPath(id),
+    })) as Buffer
   }
 
   deleteImage = async (id: string): Promise<void> => {
@@ -27,13 +29,18 @@ export class FileSystemStorageAdapter implements IStorageAdapter {
   }
 
   listImages = async (): Promise<string[]> => {
-    const files = await window.ipc.invoke("fs-list-images", {
+    const files = (await window.ipc.invoke("fs-list-images", {
       directory: this.directory,
-    })
+    })) as string[]
     const baseNames = await Promise.all(
       files
         .filter((f: string) => f.endsWith(".png"))
-        .map((f: string) => window.ipc.invoke("fs-get-base-name", { file: f }))
+        .map(
+          (f: string) =>
+            window.ipc.invoke("fs-get-base-name", {
+              file: f,
+            }) as Promise<string>
+        )
     )
     return baseNames
   }
