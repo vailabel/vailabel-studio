@@ -15,6 +15,7 @@ class VisionDatabase extends dexie_1.default {
             settings: "key, value",
             annotations: "id, name, type, coordinates, imageId, createdAt",
             history: "id, labels, historyIndex, canUndo, canRedo",
+            aiModels: "id, name, description, version, createdAt, updatedAt, modelPath, configPath, modelSize, isCustom",
         });
     }
 }

@@ -67,5 +67,16 @@ export interface AIModel {
   id: string
   name: string
   description: string
+  version: string
+  createdAt: Date
+  updatedAt: Date
+  modelPath: string
+  configPath: string
+  modelSize: number
   isCustom: boolean
+}
+
+export interface Settings {
+  key: string
+  value: string
 }

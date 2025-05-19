@@ -12,6 +12,28 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.DexieDataAccess = void 0;
 const dexieDb_1 = require("@vailabel/core/src/data/db/dexieDb");
 class DexieDataAccess {
+    getSetting(key) {
+        return dexieDb_1.db.settings.get(key);
+    }
+    getAvailableModels() {
+        return dexieDb_1.db.aiModels.toArray();
+    }
+    uploadCustomModel(model) {
+        return dexieDb_1.db.aiModels.add(model);
+    }
+    selectModel(modelId) {
+        return dexieDb_1.db.settings.put({ key: "selectedModel", value: modelId });
+    }
+    getSelectedModel() {
+        return dexieDb_1.db.settings.get("selectedModel").then((setting) => {
+            if (!setting)
+                return undefined;
+            return dexieDb_1.db.aiModels.get(setting.value);
+        });
+    }
+    deleteModel(modelId) {
+        return dexieDb_1.db.aiModels.delete(modelId);
+    }
     getProjects() {
         return __awaiter(this, void 0, void 0, function* () {
             return dexieDb_1.db.projects.toArray();

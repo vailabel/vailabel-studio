@@ -28,6 +28,7 @@ class HybridAdapter {
                 return typeof result === "string" ? Buffer.from(result) : result;
             }
             catch (e) {
+                console.info(`Local image not found, falling back to remote storage: ${e}`);
                 const result = yield this.remote.loadImage(id);
                 return typeof result === "string" ? Buffer.from(result) : result;
             }

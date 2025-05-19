@@ -340,8 +340,8 @@ describe("SQLiteDataAccess", () => {
     await adapter.updateSetting("k", "v")
     // Assert
     expect(mockInvoke).toHaveBeenCalledWith("sqlite:run", [
-      "UPDATE settings SET value = ? WHERE key = ?",
-      ["v", "k"],
+      "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
+      ["k", "v"],
     ])
   })
 

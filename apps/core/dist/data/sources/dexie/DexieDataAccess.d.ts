@@ -1,6 +1,12 @@
 import { IDataAccess } from "@vailabel/core/src/data/interface/IDataAccess";
-import { Project, ImageData, Annotation, Label, History } from "../../../models/types";
+import { Project, ImageData, Annotation, Label, History, AIModel, Settings } from "../../../models/types";
 export declare class DexieDataAccess implements IDataAccess {
+    getSetting(key: string): Promise<Settings | undefined>;
+    getAvailableModels(): Promise<AIModel[]>;
+    uploadCustomModel(model: AIModel): Promise<void>;
+    selectModel(modelId: string): Promise<void>;
+    getSelectedModel(): Promise<AIModel | undefined>;
+    deleteModel(modelId: string): Promise<void>;
     getProjects(): Promise<Project[]>;
     getProjectById(id: string): Promise<Project | undefined>;
     getProjectWithImages(id: string): Promise<Project | undefined>;

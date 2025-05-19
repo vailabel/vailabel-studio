@@ -1,9 +1,9 @@
-/// <reference types="node" />
-/// <reference types="node" />
 import { IStorageAdapter } from "@vailabel/core/src/storage/interfaces/IStorageAdapter";
 export declare class S3StorageAdapter implements IStorageAdapter {
-    private bucket;
-    private s3;
+    private readonly bucket;
+    private readonly region;
+    private readonly identityPoolId;
+    private readonly s3;
     constructor(bucket: string, region: string, identityPoolId: string);
     saveImage(id: string, data: Buffer): Promise<void>;
     loadImage(id: string): Promise<Buffer>;

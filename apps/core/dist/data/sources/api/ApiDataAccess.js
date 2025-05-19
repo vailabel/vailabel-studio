@@ -13,7 +13,25 @@ exports.ApiDataAccess = void 0;
 const ApiClient_1 = require("@vailabel/core/src/data/sources/api/ApiClient");
 class ApiDataAccess {
     constructor(apiClient) {
-        this.api = apiClient || new ApiClient_1.ApiClient();
+        this.api = apiClient !== null && apiClient !== void 0 ? apiClient : new ApiClient_1.ApiClient();
+    }
+    getSetting(key) {
+        return this.api.get(`/settings/${key}`);
+    }
+    getAvailableModels() {
+        return this.api.get("/models");
+    }
+    uploadCustomModel(file) {
+        return this.api.post("/models", file);
+    }
+    selectModel(modelId) {
+        return this.api.post(`/models/${modelId}/select`, {});
+    }
+    getSelectedModel() {
+        return this.api.get("/models/selected");
+    }
+    deleteModel(modelId) {
+        return this.api.delete(`/models/${modelId}`);
     }
     getProjectWithImages(id) {
         return this.api.get(`/projects/${id}`);
