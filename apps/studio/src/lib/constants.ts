@@ -1,5 +1,3 @@
-import pkg from "../../package.json"
-
 // Helper types for safe property access
 interface ElectronProcess {
   versions?: {
@@ -36,4 +34,4 @@ export const isElectron = () => {
 }
 
 export const APP_NAME = "Vai Studio"
-export const APP_VERSION = pkg.version
+export const APP_VERSION = "0.0.0" // TODO: Replace with actual version or inject at build time
