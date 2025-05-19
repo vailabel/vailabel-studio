@@ -8,14 +8,14 @@ export type ApiClientOptions = {
     cacheDuration?: number;
 };
 export declare class ApiClient {
-    private baseUrl;
-    private headers;
-    private requestInterceptors;
-    private responseInterceptors;
-    private getAuthToken?;
-    private cacheEnabled;
-    private cacheStore;
-    private cacheDuration;
+    private readonly baseUrl;
+    private readonly headers;
+    private readonly requestInterceptors;
+    private readonly responseInterceptors;
+    private readonly getAuthToken?;
+    private readonly cacheEnabled;
+    private readonly cacheStore;
+    private readonly cacheDuration;
     constructor(options?: ApiClientOptions);
     addRequestInterceptor(interceptor: RequestInterceptor): void;
     addResponseInterceptor(interceptor: ResponseInterceptor): void;

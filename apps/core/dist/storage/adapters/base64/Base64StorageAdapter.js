@@ -11,6 +11,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Base64StorageAdapter = void 0;
 class Base64StorageAdapter {
+    uploadModel(file) {
+        throw new Error("Method not implemented.");
+    }
     saveImage(id, data) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -39,9 +42,8 @@ class Base64StorageAdapter {
             const keys = [];
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
-                if (key && key.startsWith(Base64StorageAdapter.prefix)) {
+                (key === null || key === void 0 ? void 0 : key.startsWith(Base64StorageAdapter.prefix)) &&
                     keys.push(key.replace(Base64StorageAdapter.prefix, ""));
-                }
             }
             return keys;
         });

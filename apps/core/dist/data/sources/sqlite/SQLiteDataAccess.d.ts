@@ -1,7 +1,12 @@
 /// <reference types="@vailabel/core/type" />
 import { IDataAccess } from "@vailabel/core/src/data/interface/IDataAccess";
-import { Project, ImageData, Annotation, Label, History } from "../../../models/types";
+import { Project, ImageData, Annotation, Label, History, AIModel, Settings } from "../../../models/types";
 export declare class SQLiteDataAccess implements IDataAccess {
+    getAvailableModels(): Promise<AIModel[]>;
+    uploadCustomModel(model: AIModel): Promise<void>;
+    selectModel(modelId: string): Promise<void>;
+    getSelectedModel(): Promise<AIModel | undefined>;
+    deleteModel(modelId: string): Promise<void>;
     getProjectWithImages(id: string): Promise<(Project & {
         images: ImageData[];
     }) | undefined>;
@@ -26,10 +31,8 @@ export declare class SQLiteDataAccess implements IDataAccess {
     getLabelById(id: string): Promise<Label | undefined>;
     updateLabel(id: string, updates: Partial<Label>): Promise<void>;
     deleteLabel(id: string): Promise<void>;
-    getSettings(): Promise<{
-        key: string;
-        value: string;
-    }[]>;
+    getSettings(): Promise<Settings[]>;
+    getSetting(key: string): Promise<Settings | undefined>;
     updateSetting(key: string, value: string): Promise<void>;
     getHistory(): Promise<History[]>;
     updateHistory(history: History): Promise<void>;

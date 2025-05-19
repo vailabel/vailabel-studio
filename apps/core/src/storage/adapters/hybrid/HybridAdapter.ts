@@ -1,3 +1,4 @@
+import { AIModel } from "@vailabel/core/models/types"
 import { IStorageAdapter } from "@vailabel/core/src/storage"
 
 export class HybridAdapter implements IStorageAdapter {
@@ -5,6 +6,9 @@ export class HybridAdapter implements IStorageAdapter {
     private readonly local: IStorageAdapter,
     private readonly remote: IStorageAdapter
   ) {}
+  uploadModel(file: File): Promise<AIModel> {
+    throw new Error("Method not implemented.")
+  }
 
   async saveImage(id: string, data: Buffer): Promise<void> {
     await this.local.saveImage(id, data)

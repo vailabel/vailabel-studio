@@ -6,9 +6,103 @@ import {
   Annotation,
   Label,
   History,
+  AIModel,
+  Settings,
 } from "../../../models/types"
 
 export class SQLiteDataAccess implements IDataAccess {
+  async getAvailableModels(): Promise<AIModel[]> {
+    const rows =
+      (await window.ipc.invoke("sqlite:all", [
+        "SELECT * FROM ai_models",
+        [],
+      ])) || []
+    if (!Array.isArray(rows)) {
+      console.error("Expected array from sqlite:all, got:", rows)
+      return []
+    }
+    return rows.map((row: any) => ({
+      id: row.id,
+      name: row.name,
+      description: row.description,
+      version: row.version,
+      createdAt: new Date(row.createdAt),
+      updatedAt: new Date(row.updatedAt),
+      modelPath: row.modelPath,
+      configPath: row.configPath,
+      modelSize: row.modelSize,
+      isCustom: !!row.isCustom,
+    }))
+  }
+
+  async uploadCustomModel(model: AIModel): Promise<void> {
+    console.log("Uploading custom model:", model)
+    await window.ipc.invoke("sqlite:run", [
+      `INSERT OR REPLACE INTO ai_models (id, name, description, version, createdAt, updatedAt, modelPath, configPath, modelSize, isCustom) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        model.id,
+        model.name,
+        model.description,
+        model.version,
+        model.createdAt.toISOString(),
+        model.updatedAt.toISOString(),
+        model.modelPath,
+        model.configPath,
+        model.modelSize,
+        model.isCustom ? 1 : 0,
+      ],
+    ])
+  }
+
+  async selectModel(modelId: string): Promise<void> {
+    await window.ipc.invoke("sqlite:run", [
+      "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
+      ["selectedModelId", modelId],
+    ])
+  }
+
+  async getSelectedModel(): Promise<AIModel | undefined> {
+    const row = (await window.ipc.invoke("sqlite:get", [
+      "SELECT value FROM settings WHERE key = ?",
+      ["selectedModelId"],
+    ])) as { value?: string } | undefined
+    if (!row?.value) return undefined
+    const model = await window.ipc.invoke("sqlite:get", [
+      "SELECT * FROM ai_models WHERE id = ?",
+      [row.value],
+    ])
+    if (!model) return undefined
+    return {
+      id: model.id,
+      name: model.name,
+      description: model.description,
+      version: model.version,
+      createdAt: new Date(model.createdAt),
+      updatedAt: new Date(model.updatedAt),
+      modelPath: model.modelPath,
+      configPath: model.configPath,
+      modelSize: model.modelSize,
+      isCustom: !!model.isCustom,
+    }
+  }
+
+  async deleteModel(modelId: string): Promise<void> {
+    await window.ipc.invoke("sqlite:run", [
+      "DELETE FROM ai_models WHERE id = ?",
+      [modelId],
+    ])
+    const selected = (await window.ipc.invoke("sqlite:get", [
+      "SELECT value FROM settings WHERE key = ?",
+      ["selectedModelId"],
+    ])) as { value?: string } | undefined
+    if (selected?.value === modelId) {
+      await window.ipc.invoke("sqlite:run", [
+        "DELETE FROM settings WHERE key = ?",
+        ["selectedModelId"],
+      ])
+    }
+  }
+
   async getProjectWithImages(
     id: string
   ): Promise<(Project & { images: ImageData[] }) | undefined> {
@@ -267,14 +361,21 @@ export class SQLiteDataAccess implements IDataAccess {
     ])
   }
 
-  getSettings(): Promise<{ key: string; value: string }[]> {
+  getSettings(): Promise<Settings[]> {
     return window.ipc.invoke("sqlite:all", ["SELECT * FROM settings", []])
+  }
+
+  getSetting(key: string): Promise<Settings | undefined> {
+    return window.ipc.invoke("sqlite:get", [
+      "SELECT * FROM settings WHERE key = ?",
+      [key],
+    ])
   }
 
   updateSetting(key: string, value: string): Promise<void> {
     return window.ipc.invoke("sqlite:run", [
-      "UPDATE settings SET value = ? WHERE key = ?",
-      [value, key],
+      "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
+      [key, value],
     ])
   }
 

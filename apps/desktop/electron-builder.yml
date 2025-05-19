@@ -39,3 +39,21 @@ publish:
   provider: github
   owner: vailabel
   repo: vailabel-studio
+
+asarUnpack:
+  - dist/label-studio-frontend/static
+  - dist/label-studio-frontend/static/js
+  - dist/label-studio-frontend/static/css
+  - dist/label-studio-frontend/static/media
+  - dist/label-studio-frontend/static/fonts
+  - dist/label-studio-frontend/static/images
+  - dist/label-studio-frontend/static/icons
+  - dist/label-studio-frontend/static/locales
+  - ../studio/dist/label_studio/frontend/static
+  - ../studio/dist/label_studio/frontend/static/js
+  - ../studio/dist/label_studio/frontend/static/css
+  - ../studio/dist/label_studio/frontend/static/media
+  - ../studio/dist/label_studio/frontend/static/fonts
+  - ../studio/dist/label_studio/frontend/static/images
+  - ../studio/dist/label_studio/frontend/static/icons
+  - ../studio/dist/label_studio/frontend/static/locales

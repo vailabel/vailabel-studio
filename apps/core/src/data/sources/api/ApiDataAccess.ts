@@ -5,6 +5,8 @@ import type {
   Annotation,
   Label,
   History,
+  AIModel,
+  Settings,
 } from "../../../models/types"
 import { ApiClient } from "@vailabel/core/src/data/sources/api/ApiClient"
 
@@ -13,6 +15,24 @@ export class ApiDataAccess implements IDataAccess {
 
   constructor(apiClient?: ApiClient) {
     this.api = apiClient ?? new ApiClient()
+  }
+  getSetting(key: string): Promise<Settings | undefined> {
+    return this.api.get<Settings | undefined>(`/settings/${key}`)
+  }
+  getAvailableModels(): Promise<AIModel[]> {
+    return this.api.get<AIModel[]>("/models")
+  }
+  uploadCustomModel(file: AIModel): Promise<void> {
+    return this.api.post("/models", file)
+  }
+  selectModel(modelId: string): Promise<void> {
+    return this.api.post(`/models/${modelId}/select`, {})
+  }
+  getSelectedModel(): Promise<AIModel | undefined> {
+    return this.api.get<AIModel | undefined>("/models/selected")
+  }
+  deleteModel(modelId: string): Promise<void> {
+    return this.api.delete(`/models/${modelId}`)
   }
 
   getProjectWithImages(id: string): Promise<Project | undefined> {
