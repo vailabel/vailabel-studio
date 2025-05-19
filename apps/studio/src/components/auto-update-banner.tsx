@@ -16,7 +16,7 @@ export function AutoUpdateBanner() {
           <span>
             Update available:{" "}
             <span className="underline">
-              {updateAvailable.version || "New version"}
+              {updateAvailable.version ?? "New version"}
             </span>{" "}
             is being downloaded...
           </span>

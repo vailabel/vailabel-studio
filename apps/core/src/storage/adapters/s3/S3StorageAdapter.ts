@@ -9,17 +9,17 @@ import {
 import { fromCognitoIdentityPool } from "@aws-sdk/credential-provider-cognito-identity"
 
 export class S3StorageAdapter implements IStorageAdapter {
-  private s3: S3Client
+  private readonly s3: S3Client
   constructor(
-    private bucket: string,
-    region: string,
-    identityPoolId: string
+    private readonly bucket: string,
+    private readonly region: string,
+    private readonly identityPoolId: string
   ) {
     this.s3 = new S3Client({
-      region,
+      region: this.region,
       credentials: fromCognitoIdentityPool({
-        identityPoolId,
-        clientConfig: { region },
+        identityPoolId: this.identityPoolId,
+        clientConfig: { region: this.region },
       }),
       // Fix for Vite/webpack/browser: avoid process polyfill error
       ...(typeof window !== "undefined" ? { runtime: "browser" } : {}),

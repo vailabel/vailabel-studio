@@ -15,18 +15,18 @@ export type ApiClientOptions = {
 }
 
 export class ApiClient {
-  private baseUrl: string
-  private headers: Record<string, string>
-  private requestInterceptors: RequestInterceptor[] = []
-  private responseInterceptors: ResponseInterceptor[] = []
-  private getAuthToken?: () => Promise<string | null> | string | null
-  private cacheEnabled: boolean
-  private cacheStore: Map<string, { value: unknown; expires: number }>
-  private cacheDuration: number // in milliseconds
+  private readonly baseUrl: string
+  private readonly headers: Record<string, string>
+  private readonly requestInterceptors: RequestInterceptor[] = []
+  private readonly responseInterceptors: ResponseInterceptor[] = []
+  private readonly getAuthToken?: () => Promise<string | null> | string | null
+  private readonly cacheEnabled: boolean
+  private readonly cacheStore: Map<string, { value: unknown; expires: number }>
+  private readonly cacheDuration: number // in milliseconds
 
   constructor(options: ApiClientOptions = {}) {
-    this.baseUrl = options.baseUrl || "/api"
-    this.headers = options.headers || { "Content-Type": "application/json" }
+    this.baseUrl = options.baseUrl ?? "/api"
+    this.headers = options.headers ?? { "Content-Type": "application/json" }
     this.getAuthToken = options.getAuthToken
     this.cacheEnabled = options.cache ?? false
     this.cacheDuration = options.cacheDuration ?? 5 * 60 * 1000 // default 5 minutes

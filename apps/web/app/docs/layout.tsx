@@ -26,7 +26,7 @@ export default async function DocumentationLayout({
     try {
       const docFiles = (await fs.readdir(docsDir))
         .filter((f) => f.endsWith(".md"))
-        .sort()
+        .sort((a, b) => a.localeCompare(b))
 
       if (docFiles.length > 0) {
         docs = await Promise.all(

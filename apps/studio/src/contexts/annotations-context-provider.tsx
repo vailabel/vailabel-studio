@@ -7,12 +7,12 @@ import Loading from "@/components/loading"
 export type AnnotationsContextType = {
   annotations: Annotation[]
   setAnnotations: React.Dispatch<React.SetStateAction<Annotation[]>>
-  createAnnotation: (annotation: Annotation) => void
+  createAnnotation: (annotation: Annotation) => Promise<void>
   updateAnnotation: (id: string, updates: Partial<Annotation>) => void
-  deleteAnnotation: (id: string) => void
-  createLabel: (label: Label, annotationIds: string[]) => void
-  updateLabel: (id: string, updates: Partial<Label>) => void
-  deleteLabel: (id: string) => void
+  deleteAnnotation: (id: string) => Promise<void>
+  createLabel: (label: Label, annotationIds: string[]) => Promise<void>
+  updateLabel: (id: string, updates: Partial<Label>) => Promise<void>
+  deleteLabel: (id: string) => Promise<void>
   getOrCreateLabel: (name: string, color: string) => Promise<Label>
   undo: () => void
   redo: () => void
