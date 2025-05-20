@@ -7,7 +7,7 @@ if __name__ == "__main__":
     parser.add_argument("--model", required=True, help="Path to the YOLOv8 model (.pt) file")
     parser.add_argument("--source", help="Path to the input source file")
     parser.add_argument("--image-base64", help="Base64-encoded image string instead of file path")
-    parser.add_argument("--conf", type=float, default=0.50, help="Confidence threshold for predictions")
+    parser.add_argument("--conf", type=float, default=0.25, help="Confidence threshold for predictions")
     args = parser.parse_args()
 
     import base64
