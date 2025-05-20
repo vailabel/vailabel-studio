@@ -16,6 +16,9 @@ export class ApiDataAccess implements IDataAccess {
   constructor(apiClient?: ApiClient) {
     this.api = apiClient ?? new ApiClient()
   }
+  getAnnotationsByImageId(imageId: string): Promise<Annotation[]> {
+    return this.api.get<Annotation[]>(`/images/${imageId}/annotations`)
+  }
   getSetting(key: string): Promise<Settings | undefined> {
     return this.api.get<Settings | undefined>(`/settings/${key}`)
   }

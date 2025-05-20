@@ -11,6 +11,12 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SQLiteDataAccess = void 0;
 class SQLiteDataAccess {
+    getAnnotationsByImageId(imageId) {
+        return window.ipc.invoke("sqlite:all", [
+            "SELECT * FROM annotations WHERE imageId = ?",
+            [imageId],
+        ]);
+    }
     getAvailableModels() {
         return __awaiter(this, void 0, void 0, function* () {
             const rows = (yield window.ipc.invoke("sqlite:all", [
