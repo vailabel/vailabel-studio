@@ -1,5 +1,13 @@
 import * as React from "react"
-import { Brain, Cloud, Folder, Home, Layers2, Settings2 } from "lucide-react"
+import {
+  Brain,
+  Cloud,
+  Folder,
+  Home,
+  Layers2,
+  Settings2,
+  ArrowLeft,
+} from "lucide-react"
 import { PolarGrid } from "recharts"
 import { useNavigate, useOutlet, useLocation } from "react-router-dom"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -63,8 +71,8 @@ export default function MainLayout() {
 
   // Add user profile placeholder
   const user = {
-    name: "Jane Doe",
-    email: "jane.doe@example.com",
+    name: "Vichea Nath",
+    email: "vichea.nath@example.com",
     image: "", // If you have a user image URL, put it here
   }
 
@@ -154,8 +162,20 @@ export default function MainLayout() {
       <div className="flex-1 flex flex-col">
         {/* Header */}
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-white px-4 md:px-6 dark:bg-gray-900">
-          {/* Only show space for menu button on mobile, but button itself is fixed above */}
-          <div className="md:hidden w-10" />
+          <div className="flex items-center gap-2">
+            {/* Back button, hidden on root path */}
+            {location.pathname !== "/" && (
+              <button
+                onClick={() => navigate(-1)}
+                className="rounded-md p-2 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors"
+                aria-label="Go back"
+              >
+                <ArrowLeft className="h-6 w-6" />
+              </button>
+            )}
+            {/* Only show space for menu button on mobile, but button itself is fixed above */}
+            <div className="md:hidden w-10" />
+          </div>
           <h1 className="text-xl font-bold"></h1>
           <div className="flex items-center gap-4">
             <ThemeToggle />

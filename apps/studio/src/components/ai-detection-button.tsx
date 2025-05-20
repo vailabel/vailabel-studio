@@ -8,8 +8,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { useToast } from "@/hooks/use-toast"
-import type { Annotation, ImageData, Label } from "@vailabel/core"
+import type { Annotation, ImageData } from "@vailabel/core"
 import { useDataAccess } from "@/hooks/use-data-access"
+import { useAnnotations } from "@/hooks/use-annotations"
 import { getRandomColor } from "@/lib/utils"
 
 interface AIDetectionButtonProps {
@@ -21,7 +22,10 @@ export function AIDetectionButton({ image, disabled }: AIDetectionButtonProps) {
   const { toast } = useToast()
   const [isDetecting, setIsDetecting] = useState(false)
   const [progress, setProgress] = useState<string>("")
-  const { getSelectedModel, getSetting, createAnnotation } = useDataAccess()
+  const { getSelectedModel, getSetting, getAnnotationsByImageId } =
+    useDataAccess()
+  const { getOrCreateLabel, createAnnotation, setAnnotations } =
+    useAnnotations()
 
   useEffect(() => {
     if (!window.ipc?.on) return
@@ -61,45 +65,33 @@ export function AIDetectionButton({ image, disabled }: AIDetectionButtonProps) {
       console.log("AI detection result:", detections)
       // Render detections as annotations
       if (Array.isArray(detections)) {
-        detections.forEach(
-          (detection: {
-            box: { x1: number; y1: number; x2: number; y2: number }
-            name: string
-            confidence: number
-          }) => {
-            const { box, name: className, confidence } = detection
-            if (!box || typeof box !== "object") return
-            // Use box.x1, y1, x2, y2 from YOLO output
-            const x1 = box.x1
-            const y1 = box.y1
-            const x2 = box.x2
-            const y2 = box.y2
-            const annotation: Annotation = {
-              id: crypto.randomUUID(),
-              name: className,
-              type: "box",
-              coordinates: [
-                { x: x1, y: y1 },
-                { x: x2, y: y2 },
-              ],
-              imageId: image.id,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-              label: {
-                id: crypto.randomUUID(),
-                name: className,
-                projectId: image.projectId,
-                isAIGenerated: true,
-                confidence: confidence,
-                category: "AI",
-              } as unknown as Label,
-              labelId: crypto.randomUUID(),
-              color: getRandomColor(),
-              isAIGenerated: true,
-            }
-            createAnnotation(annotation)
+        for (const detection of detections) {
+          const { box, name: className } = detection
+          if (!box || typeof box !== "object") continue
+          const x1 = box.x1
+          const y1 = box.y1
+          const x2 = box.x2
+          const y2 = box.y2
+          // First create or get label
+          const label = await getOrCreateLabel(className, getRandomColor())
+          const annotation: Annotation = {
+            id: crypto.randomUUID(),
+            name: className,
+            type: "box",
+            coordinates: [
+              { x: x1, y: y1 },
+              { x: x2, y: y2 },
+            ],
+            imageId: image.id,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            label: label,
+            labelId: label.id,
+            color: label.color,
+            isAIGenerated: true,
           }
-        )
+          await createAnnotation(annotation)
+        }
       }
     } catch (error) {
       console.error("AI detection failed:", error)

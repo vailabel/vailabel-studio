@@ -1,6 +1,7 @@
 import { IDataAccess } from "@vailabel/core/src/data/interface/IDataAccess";
 import { Project, ImageData, Annotation, Label, History, AIModel, Settings } from "../../../models/types";
 export declare class DexieDataAccess implements IDataAccess {
+    getAnnotationsByImageId(imageId: string): Promise<Annotation[]>;
     getSetting(key: string): Promise<Settings | undefined>;
     getAvailableModels(): Promise<AIModel[]>;
     uploadCustomModel(model: AIModel): Promise<void>;

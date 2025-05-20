@@ -11,6 +11,12 @@ import {
 } from "../../../models/types"
 
 export class SQLiteDataAccess implements IDataAccess {
+  getAnnotationsByImageId(imageId: string): Promise<Annotation[]> {
+    return window.ipc.invoke("sqlite:all", [
+      "SELECT * FROM annotations WHERE imageId = ?",
+      [imageId],
+    ])
+  }
   async getAvailableModels(): Promise<AIModel[]> {
     const rows =
       (await window.ipc.invoke("sqlite:all", [
