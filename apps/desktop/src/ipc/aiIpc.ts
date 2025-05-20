@@ -3,6 +3,7 @@ const path = require("path")
 const { exec, execSync, spawn } = require("child_process")
 import fs from "fs"
 import { dialog } from "electron"
+import { resolveResource } from "../utils"
 
 export const getPythonPath = () => {
   try {
@@ -67,7 +68,7 @@ ipcMain.handle("list-python-envs", async () => {
 // Store selected python env in settings (simple file-based for now)
 ipcMain.handle("set-python-env", async (_event, { pythonPath }) => {
   const fs = require("fs")
-  const settingsPath = path.join(__dirname, "../user-settings.json")
+  const settingsPath = resolveResource("user-settings.json")
   try {
     fs.writeFileSync(settingsPath, JSON.stringify({ pythonPath }), "utf-8")
     return { success: true }
@@ -106,7 +107,7 @@ ipcMain.handle("get-python-info", async (_event, { pythonPath } = {}) => {
 ipcMain.handle("run-yolo", async (event, data) => {
   const { modelPath, imagePath, pythonPath } = data
 
-  const pythonScript = path.join(__dirname, "../ai/yolo.py")
+  const pythonScript = resolveResource("dist/ai/yolo.py")
   let cmd = `${pythonPath} "${pythonScript}" --model="${modelPath}" --image-base64="${imagePath}"`
 
   return new Promise((resolve, reject) => {
@@ -129,7 +130,6 @@ ipcMain.handle("run-yolo", async (event, data) => {
         const match = stdout.match(/(\[.*\]|\{.*\})/s)
         if (match) {
           json = JSON.parse(match[0])
-          console.log("Parsed JSON:", json)
         }
       } catch (e) {
         console.error("Failed to parse YOLO output JSON:", e)
@@ -148,7 +148,8 @@ ipcMain.handle("run-yolo", async (event, data) => {
 
 ipcMain.handle("install-python-package", async (event, { pythonPath }) => {
   // Check if all requirements are already satisfied
-  const requirementsPath = path.join(__dirname, "../ai/requirements.txt")
+  const requirementsPath = resolveResource("ai/requirements.txt")
+  console.log("Checking requirements at:", requirementsPath)
   try {
     // update pip to the latest version
     const updateCmd = `${pythonPath} -m pip install --upgrade pip`

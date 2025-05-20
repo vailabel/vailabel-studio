@@ -13,6 +13,7 @@ import "./ipc/updateIpc"
 import "./ipc/aiIpc"
 
 import pkgJson from "../package.json"
+import { resolveResource } from "./utils"
 
 let mainWindow: BrowserWindow
 let loadingWindow: BrowserWindow | null = null
@@ -26,6 +27,7 @@ function createWindow() {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: true,
     },
   })
 
