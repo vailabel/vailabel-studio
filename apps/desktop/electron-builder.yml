@@ -23,7 +23,8 @@ files:
       - "**/*.py"
 
 asarUnpack:
-  - "ai/requirements.txt"
+  - "dist/ai/requirements.txt"
+  - "dist/ai/yolo.py"
 mac:
   target: dmg
 dmg:

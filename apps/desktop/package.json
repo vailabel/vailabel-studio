@@ -6,11 +6,11 @@
   "main": "dist/main.js",
   "scripts": {
     "copy-python": "copyfiles -u -1 ./src/ai/requirements.txt ./dist/ai && copyfiles -u -1 ./src/ai/yolo.py ./dist/ai",
-    "build": "tsc &&  electron-builder",
+    "build": "tsc && yarn prebuild &&  electron-builder",
     "copy-migration": "copyfiles -u 3 src/db/migrations/**/* dist/db/migrations",
-    "pre-dev": "yarn copy-migration && yarn copy-python",
+    "prebuild": "yarn copy-migration && yarn copy-python",
     "build:publish": "yarn prebuild && tsc && electron-builder --publish always",
-    "dev": "tsc && yarn pre-dev && electron . --trace-warnings"
+    "dev": "tsc && yarn prebuild && electron . --trace-warnings"
   },
   "keywords": [],
   "author": {
