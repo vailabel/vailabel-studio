@@ -27,7 +27,7 @@ jest.mock("../../db/sqliteDb", () => ({ runMigrations }))
 const dbRun = jest.fn()
 const dbGet = jest.fn()
 const dbAll = jest.fn()
-const sqlite3Mock = {
+const sqlite3Mock: any = {
   Database: jest.fn(() => ({
     run: dbRun,
     get: dbGet,
