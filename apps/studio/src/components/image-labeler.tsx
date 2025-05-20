@@ -163,10 +163,31 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
     previousImage,
   ])
 
+  // Calculate progress: count images that have at least one annotation
+  const [imageAnnotationMap, setImageAnnotationMap] = useState<
+    Record<string, number>
+  >({})
+
+  useEffect(() => {
+    // Build a map of imageId -> annotation count
+    const fetchAllAnnotationCounts = async () => {
+      if (images.length === 0) return
+      const map: Record<string, number> = {}
+      for (const img of images) {
+        const anns = await dataAccess.getAnnotations(img.id)
+        map[img.id] = anns.length
+      }
+      setImageAnnotationMap(map)
+    }
+    fetchAllAnnotationCounts()
+  }, [images, dataAccess])
+
+  const labeledCount = Object.values(imageAnnotationMap).filter(
+    (count) => count > 0
+  ).length
   const overallProgress =
-    images.length > 0
-      ? Math.round((annotations.length / images.length) * 100)
-      : 0
+    images.length > 0 ? Math.round((labeledCount / images.length) * 100) : 0
+
   return (
     <div className="flex flex-col h-screen w-full overflow-hidden bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <header className="flex justify-between border-b px-4 py-1 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
@@ -179,7 +200,7 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
               {project.name}
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {annotations.length} of {images.length} images labeled
+              {labeledCount} of {images.length} images labeled
             </p>
           </div>
         </div>
@@ -218,7 +239,7 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
 
             <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
               <span>
-                {images.length} labeled ({overallProgress}%)
+                {labeledCount} labeled ({overallProgress}%)
               </span>
               <Separator orientation="vertical" className="h-4" />
             </div>
