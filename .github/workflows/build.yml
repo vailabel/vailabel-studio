@@ -31,4 +31,4 @@ jobs:
         run: yarn workspace studio build 
 
       - name: Build Electron app
-        run: yarn workspace desktop build:publish
+        run: yarn workspace desktop build --publish always
