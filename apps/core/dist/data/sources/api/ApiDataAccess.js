@@ -15,6 +15,9 @@ class ApiDataAccess {
     constructor(apiClient) {
         this.api = apiClient !== null && apiClient !== void 0 ? apiClient : new ApiClient_1.ApiClient();
     }
+    getAnnotationsByImageId(imageId) {
+        throw new Error("Method not implemented.");
+    }
     getSetting(key) {
         return this.api.get(`/settings/${key}`);
     }

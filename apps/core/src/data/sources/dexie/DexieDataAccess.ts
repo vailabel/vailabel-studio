@@ -11,6 +11,9 @@ import {
 } from "../../../models/types"
 
 export class DexieDataAccess implements IDataAccess {
+  getAnnotationsByImageId(imageId: string): Promise<Annotation[]> {
+    throw new Error("Method not implemented.")
+  }
   getSetting(key: string): Promise<Settings | undefined> {
     return db.settings.get(key)
   }

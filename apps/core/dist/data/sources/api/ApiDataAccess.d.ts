@@ -4,6 +4,7 @@ import { ApiClient } from "@vailabel/core/src/data/sources/api/ApiClient";
 export declare class ApiDataAccess implements IDataAccess {
     private api;
     constructor(apiClient?: ApiClient);
+    getAnnotationsByImageId(imageId: string): Promise<Annotation[]>;
     getSetting(key: string): Promise<Settings | undefined>;
     getAvailableModels(): Promise<AIModel[]>;
     uploadCustomModel(file: AIModel): Promise<void>;

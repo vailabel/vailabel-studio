@@ -12,6 +12,7 @@ import AIModelListPage from "./pages/ai-model"
 import CloudStorageConfigPage from "./pages/clould-storage"
 import TaskPage from "./pages/task"
 import CreateTaskPage from "./pages/create-task"
+import { ProjectCreate } from "./pages/projects/project-create"
 
 const AppRoutes = () => {
   return (
@@ -20,7 +21,11 @@ const AppRoutes = () => {
         <Route element={<MainLayout />}>
           <Route path="/" element={<Overview />} />
           <Route path="/projects" element={<ProjectList />} />
-          <Route path="/projects/:projectId" element={<ProjectDetails />} />
+          <Route path="/projects/create" element={<ProjectCreate />} />
+          <Route
+            path="/projects/detail/:projectId"
+            element={<ProjectDetails />}
+          />
           <Route path="/ai-models" element={<AIModelListPage />} />
           <Route path="/tasks" element={<TaskPage />} />
           <Route path="/tasks/create" element={<CreateTaskPage />} />
