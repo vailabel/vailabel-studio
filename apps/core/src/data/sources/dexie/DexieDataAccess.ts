@@ -11,6 +11,9 @@ import {
 } from "../../../models/types"
 
 export class DexieDataAccess implements IDataAccess {
+  getAnnotationsByImageId(imageId: string): Promise<Annotation[]> {
+    return db.annotations.where("imageId").equals(imageId).toArray()
+  }
   getSetting(key: string): Promise<Settings | undefined> {
     return db.settings.get(key)
   }

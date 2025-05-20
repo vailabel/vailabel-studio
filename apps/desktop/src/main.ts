@@ -26,6 +26,7 @@ function createWindow() {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: true,
     },
   })
 
@@ -212,63 +213,16 @@ function closeLoadingWindow() {
   }
 }
 
-function fakeAutoUpdate() {
-  // Simulate update available after 2 seconds
-  setTimeout(() => {
-    mainWindow.webContents.send("update-available", {
-      version: "2.0.0",
-      notes: "Fake update available!",
-    })
-
-    // Show loading window for download
-    createLoadingWindow("Downloading update...")
-
-    // Simulate download progress with detailed data
-    let percent = 0
-    const total = 50000000 // 50 MB for example
-    let transferred = 0
-    const bytesPerSecond = 5000000 // 5 MB/s
-
-    const progressInterval = setInterval(() => {
-      percent += 20
-      transferred = Math.min(total, transferred + total * 0.2)
-      const progress = {
-        percent,
-        transferred,
-        total,
-        bytesPerSecond,
-      }
-      mainWindow.webContents.send("download-progress", progress)
-      if (percent >= 100) {
-        clearInterval(progressInterval)
-        // Simulate update downloaded
-        setTimeout(() => {
-          mainWindow.webContents.send("update-downloaded")
-          closeLoadingWindow()
-        }, 500)
-      }
-    }, 500)
-  }, 2000)
-}
-
-// Python environment setup for YOLO
-function setupPythonEnv() {
-  const { spawnSync } = require("child_process")
-  // Find python3 path
-  const pythonPathResult = spawnSync("which", ["python3"])
-  let pythonPath = "python3"
-  if (pythonPathResult.status === 0) {
-    pythonPath = pythonPathResult.stdout.toString().trim()
-  }
-  console.log("Using python path:", pythonPath)
-  // Optionally, you can export or return this path for later use
-  return pythonPath
-}
-
 app.whenReady().then(() => {
-  const pythonPath = setupPythonEnv()
-  // You can use pythonPath elsewhere if needed
-  createWindow()
+  createLoadingWindow("Loading Vision AI Label...")
+
+  setTimeout(() => {
+    if (loadingWindow) {
+      loadingWindow.close()
+      loadingWindow = null
+    }
+    createWindow()
+  }, 2000) // Show splash for 2 seconds
 
   if (isDev) {
     // fakeAutoUpdate() // Use fake auto update in development

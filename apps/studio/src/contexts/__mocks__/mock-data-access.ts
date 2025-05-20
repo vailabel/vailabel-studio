@@ -36,6 +36,11 @@ export function createMockDataAccess({
       .mockImplementation((_imageId: string, _filter: Partial<Annotation>) =>
         Promise.resolve(annotations)
       ),
+    getAnnotationsByImageId: jest
+      .fn()
+      .mockImplementation((_imageId: string) =>
+        Promise.resolve(annotations.filter((a) => a.imageId === _imageId))
+      ),
     createAnnotation: jest.fn().mockResolvedValue(undefined),
     updateAnnotation: jest.fn().mockResolvedValue(undefined),
     deleteAnnotation: jest.fn().mockResolvedValue(undefined),

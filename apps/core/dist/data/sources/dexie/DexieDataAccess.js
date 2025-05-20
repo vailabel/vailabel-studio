@@ -12,6 +12,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.DexieDataAccess = void 0;
 const dexieDb_1 = require("@vailabel/core/src/data/db/dexieDb");
 class DexieDataAccess {
+    getAnnotationsByImageId(imageId) {
+        return dexieDb_1.db.annotations.where("imageId").equals(imageId).toArray();
+    }
     getSetting(key) {
         return dexieDb_1.db.settings.get(key);
     }

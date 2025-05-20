@@ -4,6 +4,7 @@ import { ThemeProvider } from "./components/theme-provider"
 import { DataAccessProvider } from "./contexts/data-access-context"
 import { ErrorBoundary } from "./ErrorBoundary"
 import { StorageProvider } from "./contexts/storage-context-provider"
+import { ConfirmDialogProvider } from "@/hooks/use-confirm-dialog"
 
 function App() {
   return (
@@ -11,7 +12,9 @@ function App() {
       <DataAccessProvider>
         <StorageProvider>
           <ErrorBoundary>
-            <AppRoutes />
+            <ConfirmDialogProvider>
+              <AppRoutes />
+            </ConfirmDialogProvider>
           </ErrorBoundary>
         </StorageProvider>
       </DataAccessProvider>

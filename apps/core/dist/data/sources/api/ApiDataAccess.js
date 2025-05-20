@@ -15,6 +15,9 @@ class ApiDataAccess {
     constructor(apiClient) {
         this.api = apiClient !== null && apiClient !== void 0 ? apiClient : new ApiClient_1.ApiClient();
     }
+    getAnnotationsByImageId(imageId) {
+        return this.api.get(`/images/${imageId}/annotations`);
+    }
     getSetting(key) {
         return this.api.get(`/settings/${key}`);
     }

@@ -15,6 +15,7 @@ export interface IDataAccess {
     deleteImage(id: string): Promise<void>;
     getAnnotations(imageId: string): Promise<Annotation[]>;
     getAnnotationsWithFilter(imageId: string, filter: Partial<Annotation>): Promise<Annotation[]>;
+    getAnnotationsByImageId(imageId: string): Promise<Annotation[]>;
     createAnnotation(annotation: Annotation): Promise<void>;
     updateAnnotation(id: string, updates: Partial<Annotation>): Promise<void>;
     deleteAnnotation(id: string): Promise<void>;
