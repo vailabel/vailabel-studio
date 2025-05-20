@@ -3,7 +3,7 @@ import { ImageLabeler } from "@/components/image-labeler"
 import { Project } from "@vailabel/core"
 import { useEffect, useState } from "react"
 import Loading from "@/components/loading"
-import { useParams } from "react-router-dom"
+import { useNavigate, useParams } from "react-router-dom"
 import { AnnotationsProvider } from "@/contexts/annotations-context-provider"
 import { CanvasProvider } from "@/contexts/canvas-context-provider"
 import { useDataAccess } from "@/hooks/use-data-access"
@@ -17,7 +17,7 @@ export default function ImageStudio() {
   const { getProjectById } = useDataAccess()
   const [isLoading, setIsLoading] = useState(true)
   const [currentProject, setCurrentProject] = useState<Project | null>(null)
-
+  const navigate = useNavigate()
   useEffect(() => {
     const fetchProject = async () => {
       setIsLoading(true)
@@ -42,7 +42,7 @@ export default function ImageStudio() {
             <ImageLabeler
               project={currentProject as Project}
               imageId={imageId ?? ""}
-              onClose={() => (window.location.href = `/projects/${projectId}`)}
+              onClose={() => navigate(-1)}
             />
           </AnnotationsProvider>
         </CanvasProvider>
