@@ -20,6 +20,11 @@ export function resolveUnpacked(relativePath: string): string {
   if (isDev) {
     return path.join(__dirname, "..", relativePath)
   } else {
-    return path.join(process.resourcesPath, "app.asar.unpacked", relativePath)
+    return path.join(
+      process.resourcesPath,
+      "app.asar.unpacked",
+      "dist",
+      relativePath
+    )
   }
 }

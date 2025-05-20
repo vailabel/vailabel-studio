@@ -107,7 +107,7 @@ ipcMain.handle("get-python-info", async (_event, { pythonPath } = {}) => {
 ipcMain.handle("run-yolo", async (event, data) => {
   const { modelPath, imagePath, pythonPath } = data
 
-  const pythonScript = resolveUnpacked("dist/ai/yolo.py")
+  const pythonScript = resolveUnpacked("ai/yolo.py")
   let cmd = `${pythonPath} "${pythonScript}" --model="${modelPath}" --image-base64="${imagePath}"`
 
   return new Promise((resolve, reject) => {
@@ -148,7 +148,7 @@ ipcMain.handle("run-yolo", async (event, data) => {
 
 ipcMain.handle("install-python-package", async (event, { pythonPath }) => {
   // Check if all requirements are already satisfied
-  const requirementsPath = resolveUnpacked("dist/ai/requirements.txt")
+  const requirementsPath = resolveUnpacked("ai/requirements.txt")
   console.log("Checking requirements at:", requirementsPath)
   try {
     // update pip to the latest version

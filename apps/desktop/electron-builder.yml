@@ -24,7 +24,7 @@ files:
 
 asarUnpack:
   - "dist/ai/requirements.txt"
-  - "dist/ai/yolo.py"
+  - "dist/ai/**"
 mac:
   target: dmg
 dmg:
