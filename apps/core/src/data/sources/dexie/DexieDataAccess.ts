@@ -12,7 +12,7 @@ import {
 
 export class DexieDataAccess implements IDataAccess {
   getAnnotationsByImageId(imageId: string): Promise<Annotation[]> {
-    throw new Error("Method not implemented.")
+    return db.annotations.where("imageId").equals(imageId).toArray()
   }
   getSetting(key: string): Promise<Settings | undefined> {
     return db.settings.get(key)

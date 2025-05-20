@@ -22,9 +22,9 @@ export function AIDetectionButton({ image, disabled }: AIDetectionButtonProps) {
   const { toast } = useToast()
   const [isDetecting, setIsDetecting] = useState(false)
   const [progress, setProgress] = useState<string>("")
-  const { getSelectedModel, getSetting, getAnnotationsByImageId } =
+  const { getSelectedModel, getSetting } =
     useDataAccess()
-  const { getOrCreateLabel, createAnnotation, setAnnotations } =
+  const { getOrCreateLabel, createAnnotation } =
     useAnnotations()
 
   useEffect(() => {
