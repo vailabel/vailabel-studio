@@ -23,8 +23,10 @@ files:
       - "**/*.py"
 
 asarUnpack:
-  - "dist/ai/requirements.txt"
-  - "dist/ai/**"
+  - "src/ai/requirements.txt"
+  - "src/ai/**"
+  - "src/ai/**/*.py"
+  - "src/db/migrations/**"
 mac:
   target: dmg
 dmg:

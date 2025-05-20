@@ -7,9 +7,9 @@
   "scripts": {
     "copy-python": "copyfiles -u -1 ./src/ai/requirements.txt ./dist/ai && copyfiles -u -1 ./src/ai/yolo.py ./dist/ai",
     "copy-migration": "copyfiles -u 3 src/db/migrations/**/* dist/db/migrations",
-    "prebuild": "yarn copy-python && yarn copy-migration",
-    "build": "tsc  &&  electron-builder",
-    "dev": "tsc && electron . --trace-warnings",
+    "pre-dev": "yarn copy-python && yarn copy-migration",
+    "build": "tsc && electron-builder",
+    "dev": "yarn pre-dev && tsc && electron . --trace-warnings",
     "test": "jest"
   },
   "keywords": [],
