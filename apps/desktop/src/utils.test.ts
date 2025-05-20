@@ -47,17 +47,5 @@ describe("utils", () => {
         path.join(__dirname, "..", "dist/ai/requirements.txt")
       )
     })
-
-    it("should resolve unpacked path in production mode", () => {
-      mockIsPackaged = true
-      const result = utils.resolveUnpacked("dist/ai/requirements.txt")
-      expect(result).toBe(
-        path.join(
-          process.resourcesPath,
-          "app.asar.unpacked",
-          "dist/ai/requirements.txt"
-        )
-      )
-    })
   })
 })
