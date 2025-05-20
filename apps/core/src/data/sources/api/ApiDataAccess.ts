@@ -17,7 +17,7 @@ export class ApiDataAccess implements IDataAccess {
     this.api = apiClient ?? new ApiClient()
   }
   getAnnotationsByImageId(imageId: string): Promise<Annotation[]> {
-    throw new Error("Method not implemented.")
+    return this.api.get<Annotation[]>(`/images/${imageId}/annotations`)
   }
   getSetting(key: string): Promise<Settings | undefined> {
     return this.api.get<Settings | undefined>(`/settings/${key}`)
