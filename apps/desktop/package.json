@@ -10,7 +10,8 @@
     "copy-migration": "copyfiles -u 3 src/db/migrations/**/* dist/db/migrations",
     "prebuild": "yarn copy-migration && yarn copy-python",
     "build:publish": "yarn prebuild && tsc && electron-builder --publish always",
-    "dev": "tsc && yarn prebuild && electron . --trace-warnings"
+    "dev": "tsc && yarn prebuild && electron . --trace-warnings",
+    "test": "jest"
   },
   "keywords": [],
   "author": {
