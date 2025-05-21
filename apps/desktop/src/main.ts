@@ -11,7 +11,7 @@ import "./ipc/slqiteIpc"
 import "./ipc/filesystemIpc"
 import "./ipc/updateIpc"
 import "./ipc/aiIpc"
-
+import "./ipc/index"
 import pkgJson from "../package.json"
 
 let mainWindow: BrowserWindow
@@ -26,7 +26,7 @@ function createWindow() {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true,
+      sandbox: false,
     },
   })
 
