@@ -1,6 +1,6 @@
 <h1 align="center">🌟 Vision AI Label Studio 🌟</h1>
 <p align="center">
-  <img src="/docs/logo.png" alt="Logo" width="200">
+  <img src="/apps/web/public/logo.png" alt="Logo" width="200">
 </p>
 <p align="center">
   <span style="display: flex; flex-direction: row; align-items: center; justify-content: center;">
