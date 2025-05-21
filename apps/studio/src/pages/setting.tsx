@@ -1,124 +1,66 @@
 import { useState } from "react"
-import { Moon, Sun, Trash2 } from "lucide-react"
-import { Slider } from "@/components/ui/slider"
-import { Switch } from "@/components/ui/switch"
-import { useTheme } from "@/components/theme-provider"
-import { useToast } from "@/hooks/use-toast"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import GeneralSettings from "@/components/settings/general-settings"
+import { KeyboardShortcuts } from "@/components/settings/keyboard-shortcuts"
+import { ModelSelection } from "@/components/settings/model-selection"
+import InstallPythonPackage from "@/components/settings/install-python-pakage"
+import AdvancedSettings from "@/components/settings/advanced-settings"
 
 export default function Setting() {
-  const { theme, setTheme } = useTheme()
-  const { toast } = useToast()
-  const [brightness, setBrightness] = useState(100)
-  const [contrast, setContrast] = useState(100)
-  const [isClearing, setIsClearing] = useState(false)
-
-  const handleClearAllData = async () => {
-    if (
-      !confirm(
-        "Are you sure you want to clear all data? This action cannot be undone."
-      )
-    ) {
-      return
-    }
-
-    setIsClearing(true)
-    try {
-      // Simulate clearing data
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      toast({
-        title: "Success",
-        description: "All data has been cleared.",
-      })
-    } catch (error) {
-      console.error("Failed to clear data:", error)
-      toast({
-        title: "Error",
-        description: "Failed to clear data.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsClearing(false)
-    }
-  }
+  const [tab, setTab] = useState("general")
 
   return (
     <div className="container mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6">Settings</h1>
-      <div className="space-y-6">
-        {/* Dark Mode */}
-        <div className="flex items-center justify-between">
-          <div>
-            <label htmlFor="dark-mode" className="text-base font-medium">
-              Dark Mode
-            </label>
+      <Tabs value={tab} onValueChange={setTab} className="w-full">
+        <TabsList className="mb-6">
+          <TabsTrigger value="general">General</TabsTrigger>
+          <TabsTrigger value="python">Python Setup</TabsTrigger>
+          <TabsTrigger value="model">Model Selection</TabsTrigger>
+          <TabsTrigger value="shortcuts">Keyboard Shortcuts</TabsTrigger>
+          <TabsTrigger value="advanced">Advanced</TabsTrigger>
+        </TabsList>
+        <TabsContent value="general">
+          <GeneralSettings />
+        </TabsContent>
+        <TabsContent value="python">
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold">Python Setup</h2>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Use dark theme for the application
+              Configure your Python environment for advanced features and
+              scripting.
             </p>
+            <InstallPythonPackage />
           </div>
-          <Switch
-            id="dark-mode"
-            checked={theme === "dark"}
-            onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
-          />
-        </div>
-
-        {/* Brightness */}
-        <div>
-          <label htmlFor="brightness" className="text-base font-medium">
-            Brightness
-          </label>
-          <div className="flex items-center gap-2 mt-2">
-            <Sun className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-            <Slider
-              id="brightness"
-              min={50}
-              max={150}
-              step={1}
-              value={[brightness]}
-              onValueChange={(value) => setBrightness(value[0])}
-              className="flex-1"
-            />
-            <span className="w-8 text-right text-sm">{brightness}%</span>
+        </TabsContent>
+        <TabsContent value="model">
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold">Model Selection</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Choose your default AI model for detection and analysis.
+            </p>
+            <ModelSelection />
           </div>
-        </div>
-
-        {/* Contrast */}
-        <div>
-          <label htmlFor="contrast" className="text-base font-medium">
-            Contrast
-          </label>
-          <div className="flex items-center gap-2 mt-2">
-            <Moon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-            <Slider
-              id="contrast"
-              min={50}
-              max={150}
-              step={1}
-              value={[contrast]}
-              onValueChange={(value) => setContrast(value[0])}
-              className="flex-1"
-            />
-            <span className="w-8 text-right text-sm">{contrast}%</span>
+        </TabsContent>
+        <TabsContent value="shortcuts">
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold">Keyboard Shortcuts</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Customize your keyboard shortcuts for faster workflow.
+            </p>
+            <KeyboardShortcuts />
           </div>
-        </div>
-
-        {/* Clear Data */}
-        <div className="border-t pt-4">
-          <h4 className="font-medium">Clear All Data</h4>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            This will delete all data from your browser's local storage. This
-            action cannot be undone.
-          </p>
-          <button
-            onClick={handleClearAllData}
-            disabled={isClearing}
-            className="mt-4 px-4 py-2 text-white bg-red-600 rounded hover:bg-red-700 disabled:bg-red-400"
-          >
-            <Trash2 className="inline-block mr-2 h-4 w-4" />
-            {isClearing ? "Clearing..." : "Clear All Data"}
-          </button>
-        </div>
-      </div>
+        </TabsContent>
+        <TabsContent value="advanced">
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold">Advanced Settings</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Configure advanced settings and options.
+            </p>
+            <AdvancedSettings />
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
