@@ -20,19 +20,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
 contextBridge.exposeInMainWorld("ipc", {
   invoke: (channel: string, ...args: any[]) =>
     ipcRenderer.invoke(channel, ...args),
-})
-
-ipcMain.handle("dialog:openModelFile", async () => {
-  const result = await dialog.showOpenDialog({
-    properties: ["openFile"],
-    filters: [
-      { name: "Model Files", extensions: ["pt", "pth", "onnx"] },
-      { name: "All Files", extensions: ["*"] },
-    ],
-  })
-  if (result.canceled) {
-    return null
-  } else {
-    return result.filePaths[0]
-  }
+  on: (channel: string, listener: (...args: any[]) => void) =>
+    ipcRenderer.on(channel, (_event, ...args) => listener(...args)),
+  off: (channel: string, listener: (...args: any[]) => void) =>
+    ipcRenderer.removeListener(channel, listener),
 })

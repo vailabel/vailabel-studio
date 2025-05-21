@@ -10,7 +10,8 @@
     "pre-dev": "yarn copy-python && yarn copy-migration",
     "build": "tsc && electron-builder",
     "dev": "yarn pre-dev && tsc && electron . --trace-warnings",
-    "test": "jest"
+    "test": "jest",
+    "prebuild": "npx electron-icon-maker --input=./assets/icon.png --output=./assets/icon"
   },
   "keywords": [],
   "author": {
@@ -27,6 +28,7 @@
   },
   "dependencies": {
     "electron-updater": "^6.6.2",
+    "keytar": "^7.9.0",
     "sqlite3": "^5.1.7"
   },
   "repository": {

@@ -18,7 +18,7 @@ export function resolveUnpacked(relativePath: string): string {
   const isDev = !app.isPackaged
 
   if (isDev) {
-    return path.join(__dirname, "..", relativePath)
+    return path.join(__dirname, "..", "dist", relativePath)
   } else {
     return path.join(
       process.resourcesPath,
