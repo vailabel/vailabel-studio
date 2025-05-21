@@ -23,7 +23,7 @@ import { LabelListPanel } from "@/components/label-list-panel"
 import { ResizablePanel } from "@/components/resizable-panel"
 import { SettingsModal } from "@/components/settings-modal"
 import { ExportModal } from "@/components/export-modal"
-import { AIModelModal } from "@/components/ai-model-modal"
+import { AIModelSelectModal } from "@/components/ai-model-modal"
 import { ContextMenu } from "@/components/context-menu"
 import { ThemeToggle } from "./theme-toggle"
 import { useDataAccess } from "@/hooks/use-data-access"
@@ -344,7 +344,7 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
 
       <AnimatePresence>
         {showAISettings && (
-          <AIModelModal onClose={() => setShowAISettings(false)} />
+          <AIModelSelectModal onClose={() => setShowAISettings(false)} />
         )}
       </AnimatePresence>
     </div>
