@@ -1,6 +1,7 @@
 appId: com.vailabel.studio
 productName: Vision AI Label Studio
 asar: true
+icon: icons/icon
 files:
   - "package.json"
   - from: "dist"

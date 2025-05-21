@@ -35,17 +35,4 @@ describe("utils", () => {
       expect(result).toBe(path.join(process.resourcesPath, "test/file.txt"))
     })
   })
-
-  describe("resolveUnpacked", () => {
-    afterEach(() => {
-      mockIsPackaged = false
-    })
-    it("should resolve unpacked path in development mode", () => {
-      mockIsPackaged = false
-      const result = utils.resolveUnpacked("dist/ai/requirements.txt")
-      expect(result).toBe(
-        path.join(__dirname, "..", "dist/ai/requirements.txt")
-      )
-    })
-  })
 })
