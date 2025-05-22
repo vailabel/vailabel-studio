@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from "react"
 import { AnnotationsContext } from "./annotations-context"
 import type { Annotation, ImageData, Label } from "@vailabel/core"
+import type { IDataAccess } from "@vailabel/core/src/data"
 import { useDataAccess } from "@/hooks/use-data-access"
 import Loading from "@/components/loading"
+import debounce from "lodash/debounce"
 
 export type AnnotationsContextType = {
   annotations: Annotation[]
@@ -27,6 +29,23 @@ export type AnnotationsContextType = {
 }
 
 const MAX_HISTORY = 100
+
+// Debounced sync of annotations to database using lodash debounce
+// syncAnnotationsToDb is defined outside of the component to avoid hook dependency issues
+function syncAnnotationsToDb(
+  annotations: Annotation[],
+  dataAccess: IDataAccess
+) {
+  debounce(async () => {
+    try {
+      for (const annotation of annotations) {
+        await dataAccess.updateAnnotation(annotation.id, annotation)
+      }
+    } catch (err) {
+      console.error("Failed to sync annotations to database:", err)
+    }
+  }, 500)()
+}
 
 export const AnnotationsProvider = ({
   children,
@@ -187,9 +206,10 @@ export const AnnotationsProvider = ({
     const fetchData = async () => {
       try {
         const [labels, annotations] = await Promise.all([
-          dataAccess.getLabels(),
+          dataAccess.getLabelsByProjectId(currentImage?.projectId ?? ""),
           dataAccess.getAnnotations(currentImage?.id ?? ""),
         ])
+        console.log("Fetched labels and annotations:", labels, annotations)
         setLabels(labels)
         setAnnotations(annotations)
       } catch (error) {
@@ -200,23 +220,23 @@ export const AnnotationsProvider = ({
     }
     fetchData()
   }, [currentImage, dataAccess, setCurrentImage])
-  if (loading) {
-    return <Loading />
-  }
+  useEffect(() => {
+    if (!currentImage) return
+    syncAnnotationsToDb(annotations, dataAccess)
+  }, [annotations, currentImage, dataAccess])
+  if (loading) return <Loading />
   return (
     <AnnotationsContext.Provider
       value={{
-        labels,
-        setLabels,
         annotations,
         setAnnotations,
         createAnnotation,
         updateAnnotation,
-        getOrCreateLabel,
+        deleteAnnotation,
         createLabel,
         updateLabel,
         deleteLabel,
-        deleteAnnotation,
+        getOrCreateLabel,
         undo,
         redo,
         canUndo,
@@ -225,6 +245,8 @@ export const AnnotationsProvider = ({
         setCurrentImage,
         setSelectedAnnotation,
         selectedAnnotation,
+        labels,
+        setLabels,
       }}
     >
       {children}

@@ -2,7 +2,7 @@ import { motion } from "framer-motion"
 import { rgbToRgba } from "../../lib/utils"
 import type { Annotation, Point } from "@vailabel/core"
 import { useAnnotations } from "@/hooks/use-annotations"
-import { useCanvas } from "@/hooks/use-canvas"
+import { useCanvasStore } from "@/hooks/canvas-store"
 
 interface PolygonAnnotationProps {
   annotation: Annotation
@@ -12,7 +12,7 @@ export function PolygonAnnotation({
   annotation,
 }: Readonly<PolygonAnnotationProps>) {
   const { selectedAnnotation, updateAnnotation } = useAnnotations()
-  const { zoom, selectedTool } = useCanvas()
+  const { zoom, selectedTool } = useCanvasStore()
 
   const styles = {
     fill: {

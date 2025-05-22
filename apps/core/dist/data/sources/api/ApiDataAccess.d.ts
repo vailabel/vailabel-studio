@@ -4,6 +4,12 @@ import { ApiClient } from "@vailabel/core/src/data/sources/api/ApiClient";
 export declare class ApiDataAccess implements IDataAccess {
     private api;
     constructor(apiClient?: ApiClient);
+    get(): Promise<any[]>;
+    getById(id: string): Promise<any>;
+    create(item: any): Promise<void>;
+    update(id: string, updates: Partial<any>): Promise<void>;
+    delete(id: string): Promise<void>;
+    paginate(offset: number, limit: number): Promise<any[]>;
     getAnnotationsByImageId(imageId: string): Promise<Annotation[]>;
     getSetting(key: string): Promise<Settings | undefined>;
     getAvailableModels(): Promise<AIModel[]>;

@@ -13,6 +13,7 @@ import "./ipc/updateIpc"
 import "./ipc/aiIpc"
 import "./ipc/index"
 import pkgJson from "../package.json"
+import { jsonSetting } from "./utils"
 
 let mainWindow: BrowserWindow
 let loadingWindow: BrowserWindow | null = null
@@ -147,6 +148,26 @@ function createWindow() {
     label: "Help",
     submenu: [
       {
+        label: "Check for Updates",
+        click: () => {
+          getAutoUpdater().checkForUpdates()
+        },
+      },
+      {
+        label: "Skip This Version",
+        click: () => {
+          const { dialog } = require("electron")
+          const version = pkgJson.version
+          const settings = jsonSetting()
+          settings.setValue("skippedVersion", version)
+          dialog.showMessageBox({
+            type: "info",
+            message: `Version ${version} will be skipped for updates.`,
+            buttons: ["OK"],
+          })
+        },
+      },
+      {
         label: "Learn More",
         click: () => {
           shell.openExternal("https://vailabel.com")
@@ -213,6 +234,114 @@ function closeLoadingWindow() {
   }
 }
 
+function fakeAutoUpdate() {
+  // Simulate update available after 2 seconds
+  setTimeout(() => {
+    mainWindow.webContents.send("update-available", {
+      version: "2.0.0",
+      notes: "Fake update available!",
+    })
+
+    // Simulate download progress with detailed data
+    let percent = 0
+    const total = 50000000 // 50 MB for example
+    let transferred = 0
+    const bytesPerSecond = 5000000 // 5 MB/s
+
+    const progressInterval = setInterval(() => {
+      percent += 20
+      transferred = Math.min(total, transferred + total * 0.2)
+      const progress = {
+        percent,
+        transferred,
+        total,
+        bytesPerSecond,
+      }
+      mainWindow.webContents.send("download-progress", progress)
+      if (percent >= 100) {
+        clearInterval(progressInterval)
+        // Simulate update downloaded
+        setTimeout(() => {
+          mainWindow.webContents.send("update-downloaded")
+        }, 500)
+      }
+    }, 500)
+  }, 2000)
+}
+
+// Helper to get the correct autoUpdater (mock in dev, real in prod)
+function getAutoUpdater() {
+  return isDev ? mockAutoUpdater : autoUpdater
+}
+
+// Before showing update dialogs, check if the version is skipped
+function isVersionSkipped(version: string) {
+  const settings = jsonSetting()
+  return settings.getValue("skippedVersion", null) === version
+}
+
+const mockAutoUpdater = {
+  checkForUpdates: () => {
+    setTimeout(() => {
+      const info = {
+        version: "2.0.0",
+        releaseNotes: "- New features and improvements!",
+      }
+      if (!isVersionSkipped(info.version)) {
+        const { dialog } = require("electron")
+        dialog
+          .showMessageBox({
+            type: "info",
+            title: "Update Available (Mock)",
+            message: `A new version (${info.version}) is available.\n\nRelease notes:\n${info.releaseNotes}\n\nWould you like to update now or skip this version?`,
+            buttons: ["Update", "Skip"],
+            defaultId: 0,
+            cancelId: 1,
+          })
+          .then((result: { response: number }) => {
+            if (result.response === 0) {
+              // Simulate update available event
+              mainWindow.webContents.send("update-available", {
+                version: info.version,
+                notes: info.releaseNotes,
+              })
+              // Simulate download progress
+              let percent = 0
+              const total = 50000000 // 50 MB
+              let transferred = 0
+              const bytesPerSecond = 5000000 // 5 MB/s
+              const progressInterval = setInterval(() => {
+                percent += 20
+                transferred = Math.min(total, transferred + total * 0.2)
+                const progress = {
+                  percent,
+                  transferred,
+                  total,
+                  bytesPerSecond,
+                }
+                mainWindow.webContents.send("download-progress", progress)
+                if (percent >= 100) {
+                  clearInterval(progressInterval)
+                  setTimeout(() => {
+                    mainWindow.webContents.send("update-downloaded")
+                  }, 500)
+                }
+              }, 500)
+            } else {
+              const settings = jsonSetting()
+              settings.setValue("skippedVersion", info.version)
+            }
+          })
+      }
+    }, 1000)
+  },
+  downloadUpdate: () => {
+    setTimeout(() => {
+      mainWindow.webContents.send("update-downloaded")
+    }, 1000)
+  },
+}
+
 app.whenReady().then(() => {
   createLoadingWindow("Loading Vision AI Label...")
 
@@ -225,24 +354,50 @@ app.whenReady().then(() => {
   }, 2000) // Show splash for 2 seconds
 
   if (isDev) {
-    // fakeAutoUpdate() // Use fake auto update in development
+    fakeAutoUpdate()
   } else {
     autoUpdater.checkForUpdates()
-
     autoUpdater.on("update-available", (info) => {
-      mainWindow.webContents.send("update-available", info)
+      if (!isVersionSkipped(info.version)) {
+        const { dialog } = require("electron")
+        const releaseNotes =
+          typeof info.releaseNotes === "string"
+            ? info.releaseNotes
+            : Array.isArray(info.releaseNotes)
+              ? info.releaseNotes.map((n) => n.note || n).join("\n")
+              : ""
+        dialog
+          .showMessageBox({
+            type: "info",
+            title: "Update Available",
+            message: `A new version (${info.version}) is available.\n\nRelease notes:\n${releaseNotes}\n\nWould you like to update now or skip this version?`,
+            buttons: ["Update", "Skip"],
+            defaultId: 0,
+            cancelId: 1,
+          })
+          .then((result: { response: number }) => {
+            if (result.response === 0) {
+              autoUpdater.downloadUpdate()
+            } else {
+              const settings = jsonSetting()
+              settings.setValue("skippedVersion", info.version)
+            }
+          })
+      }
     })
-
     autoUpdater.on("download-progress", (progress) => {
       if (!loadingWindow) {
         createLoadingWindow("Downloading update...")
       }
       mainWindow.webContents.send("download-progress", progress)
     })
-
     autoUpdater.on("update-downloaded", () => {
       mainWindow.webContents.send("update-downloaded")
       closeLoadingWindow()
+      // Install update on restart
+      app.once("before-quit", () => {
+        autoUpdater.quitAndInstall()
+      })
     })
   }
 
@@ -250,5 +405,12 @@ app.whenReady().then(() => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow()
     }
+  })
+
+  // Listen for restart-app from renderer to trigger update install
+  const { ipcMain } = require("electron")
+  ipcMain.on("restart-app", () => {
+    app.quit()
+    // autoUpdater.quitAndInstall() will be called on before-quit
   })
 })

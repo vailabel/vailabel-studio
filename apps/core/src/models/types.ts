@@ -1,10 +1,13 @@
 // Re-export all types for use in other modules
-export interface Point {
+export interface JsonData {}
+export interface Modal {}
+
+export interface Point extends JsonData {
   x: number
   y: number
 }
 
-export interface Label {
+export interface Label extends Modal {
   id: string
   name: string
   category?: string
@@ -15,7 +18,7 @@ export interface Label {
   updatedAt: Date
 }
 
-export interface Annotation {
+export interface Annotation extends Modal {
   id: string
   labelId: string
   label?: Label // Made optional to avoid circular dependencies
@@ -29,7 +32,7 @@ export interface Annotation {
   isAIGenerated?: boolean
 }
 
-export interface History {
+export interface History extends Modal {
   id: string
   labels: Label[]
   historyIndex: number
@@ -37,7 +40,7 @@ export interface History {
   canRedo: boolean
 }
 
-export interface ImageData {
+export interface ImageData extends Modal {
   id: string
   name: string
   data: string
@@ -48,7 +51,7 @@ export interface ImageData {
   createdAt: Date
 }
 
-export interface Project {
+export interface Project extends Modal {
   id: string
   name: string
   images?: ImageData[] // Made optional to allow lazy loading
@@ -56,14 +59,14 @@ export interface Project {
   lastModified: Date
 }
 
-export interface ExportFormat {
+export interface ExportFormat extends Modal {
   id: string
   name: string
   description: string
   extension: string
 }
 
-export interface AIModel {
+export interface AIModel extends Modal {
   id: string
   name: string
   description: string

@@ -10,7 +10,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { Label } from "@vailabel/core"
-import { useAnnotations } from "@/hooks/use-annotations"
+import { useAnnotationsStore } from "@/hooks/annotation-store"
 
 interface LabelListPanelProps {
   onLabelSelect: (label: Label) => void
@@ -18,7 +18,7 @@ interface LabelListPanelProps {
 
 export function LabelListPanel({ onLabelSelect }: LabelListPanelProps) {
   const [labelsOpen, setLabelsOpen] = useState(true)
-  const { labels } = useAnnotations()
+  const { labels } = useAnnotationsStore()
   useEffect(() => {
     if (labels.length > 0) {
       setLabelsOpen(true)

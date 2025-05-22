@@ -56,7 +56,7 @@ ipcMain.handle(
     try {
       return await dbPromise("get", sql, params)
     } catch (error) {
-      return { error: getErrorMessage(error) }
+      throw error
     }
   }
 )
@@ -68,7 +68,7 @@ ipcMain.handle(
     try {
       return await dbPromise("all", sql, params)
     } catch (error) {
-      return { error: getErrorMessage(error) }
+      throw error
     }
   }
 )
@@ -80,7 +80,7 @@ ipcMain.handle(
     try {
       return await dbPromise("run", sql, params)
     } catch (error) {
-      return { error: getErrorMessage(error) }
+      throw error
     }
   }
 )

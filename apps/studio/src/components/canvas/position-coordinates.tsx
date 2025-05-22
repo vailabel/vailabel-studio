@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react"
-import { useCanvas } from "@/hooks/use-canvas"
+import { useCanvasStore } from "@/hooks/canvas-store"
 
 export const PositionCoordinates: React.FC = () => {
-  const { zoom, panOffset, cursorPosition, canvasRef } = useCanvas()
+  const { zoom, panOffset, cursorPosition, canvasRef } = useCanvasStore()
   const [tooltipPosition, setTooltipPosition] = useState({ left: 0, top: 0 })
 
   useEffect(() => {

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef } from "react"
 import { cn } from "@/lib/utils"
-import { useCanvas } from "@/hooks/use-canvas"
 import { AnnotationRenderer } from "@/components/canvas/annotation-renderer"
 import { PositionCoordinates } from "@/components/canvas/position-coordinates"
 import { useCanvasHandlers } from "@/hooks/use-canvas-handlers"
@@ -8,7 +7,8 @@ import { type Annotation, type ImageData } from "@vailabel/core"
 import { Crosshair } from "@/components/canvas/crosshair"
 import { TempAnnotation } from "@/components/canvas/temp-annotation"
 import { CreateAnnotation } from "@/components/canvas/create-annotation"
-import { useAnnotations } from "@/hooks/use-annotations"
+import { useAnnotationsStore } from "@/hooks/annotation-store"
+import { useCanvasStore } from "@/hooks/canvas-store"
 
 interface CanvasProps {
   image: ImageData
@@ -16,9 +16,10 @@ interface CanvasProps {
 }
 
 export const Canvas = ({ image, annotations }: CanvasProps) => {
-  const { zoom, panOffset, selectedTool, setCanvasRef } = useCanvas()
-  const canvasRef = useRef<HTMLDivElement>(null!)
-  const { createAnnotation, getOrCreateLabel } = useAnnotations()
+  const { zoom, panOffset, selectedTool, setCanvasRef } = useCanvasStore()
+  const { createAnnotation, getOrCreateLabel } = useAnnotationsStore()
+
+  const canvasRef = useRef<HTMLDivElement | null>(null)
   const {
     handleMouseDown,
     handleMouseMove,
@@ -29,7 +30,7 @@ export const Canvas = ({ image, annotations }: CanvasProps) => {
     showLabelInput,
     setShowLabelInput,
     setTempAnnotation,
-  } = useCanvasHandlers(canvasRef as React.RefObject<HTMLDivElement>)
+  } = useCanvasHandlers()
 
   const handleCreateAnnotation = useCallback(
     async (name: string, color: string) => {

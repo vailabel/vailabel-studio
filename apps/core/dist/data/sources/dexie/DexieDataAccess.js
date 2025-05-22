@@ -12,6 +12,24 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.DexieDataAccess = void 0;
 const dexieDb_1 = require("@vailabel/core/src/data/db/dexieDb");
 class DexieDataAccess {
+    get() {
+        throw new Error("Method not implemented.");
+    }
+    getById(id) {
+        throw new Error("Method not implemented.");
+    }
+    create(item) {
+        throw new Error("Method not implemented.");
+    }
+    update(id, updates) {
+        throw new Error("Method not implemented.");
+    }
+    delete(id) {
+        throw new Error("Method not implemented.");
+    }
+    paginate(offset, limit) {
+        throw new Error("Method not implemented.");
+    }
     getAnnotationsByImageId(imageId) {
         return dexieDb_1.db.annotations.where("imageId").equals(imageId).toArray();
     }

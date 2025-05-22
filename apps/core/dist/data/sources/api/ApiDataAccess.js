@@ -15,6 +15,24 @@ class ApiDataAccess {
     constructor(apiClient) {
         this.api = apiClient !== null && apiClient !== void 0 ? apiClient : new ApiClient_1.ApiClient();
     }
+    get() {
+        throw new Error("Method not implemented.");
+    }
+    getById(id) {
+        throw new Error("Method not implemented.");
+    }
+    create(item) {
+        throw new Error("Method not implemented.");
+    }
+    update(id, updates) {
+        throw new Error("Method not implemented.");
+    }
+    delete(id) {
+        throw new Error("Method not implemented.");
+    }
+    paginate(offset, limit) {
+        throw new Error("Method not implemented.");
+    }
     getAnnotationsByImageId(imageId) {
         return this.api.get(`/images/${imageId}/annotations`);
     }

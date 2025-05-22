@@ -2,8 +2,9 @@ import React, { useMemo } from "react"
 import { motion } from "framer-motion"
 import { cn, rgbToRgba } from "../../lib/utils"
 import type { Annotation } from "@vailabel/core"
-import { useCanvas } from "@/hooks/use-canvas"
 import { useAnnotations } from "@/hooks/use-annotations"
+import { useCanvasStore } from "@/hooks/canvas-store"
+import { useAnnotationsStore } from "@/hooks/annotation-store"
 
 interface BoxAnnotationProps {
   annotation: Annotation
@@ -12,8 +13,8 @@ interface BoxAnnotationProps {
 export const BoxAnnotation = React.memo(function BoxAnnotation({
   annotation,
 }: BoxAnnotationProps) {
-  const { selectedTool } = useCanvas()
-  const { selectedAnnotation } = useAnnotations()
+  const { selectedTool } = useCanvasStore()
+  const { selectedAnnotation } = useAnnotationsStore()
 
   const isSelected = selectedAnnotation?.id === annotation.id
   const annotationStyles = useMemo(

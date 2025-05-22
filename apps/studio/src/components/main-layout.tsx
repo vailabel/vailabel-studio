@@ -8,10 +8,8 @@ import {
   Settings2,
   ArrowLeft,
 } from "lucide-react"
-import { PolarGrid } from "recharts"
 import { useNavigate, useOutlet, useLocation } from "react-router-dom"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { Avatar } from "@/components/ui/avatar"
 import {
   Sheet,
   SheetContent,
@@ -69,20 +67,17 @@ export default function MainLayout() {
     return () => document.removeEventListener("keydown", handleKey)
   }, [profileMenuOpen])
 
-  // Add user profile placeholder
-  const user = {
-    name: "Vichea Nath",
-    email: "vichea.nath@example.com",
-    image: "", // If you have a user image URL, put it here
-  }
-
   return (
     <div className="flex min-h-screen">
       {/* Sidebar for md+ */}
       <aside className="hidden md:block w-64 bg-gray-100 dark:bg-gray-800 p-4">
         <div className="flex items-center gap-2 mb-6">
-          <PolarGrid className="h-6 w-6 text-primary" />
-          <span className="text-xl font-bold">ProjectHub</span>
+          <img
+            src="/logo.png"
+            alt="Vision AI Label Studio Logo"
+            className="h-7 w-7"
+          />
+          <span className="text-xl font-bold">VAI Studio</span>
         </div>
         <nav className="space-y-2">
           {navigation.map((item) => {
@@ -127,7 +122,7 @@ export default function MainLayout() {
             <SheetTitle>Main navigation</SheetTitle>
           </VisuallyHidden>
           <div className="flex items-center gap-2 mb-6 p-4">
-            <PolarGrid className="h-6 w-6 text-primary" />
+            <img src="/logo.png" alt="ProjectHub Logo" className="h-7 w-7" />
             <span className="text-xl font-bold">ProjectHub</span>
           </div>
           <nav className="space-y-2 p-4">
@@ -162,7 +157,7 @@ export default function MainLayout() {
       <div className="flex-1 flex flex-col">
         {/* Header */}
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-white px-4 md:px-6 dark:bg-gray-900">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {/* Back button, hidden on root path */}
             {location.pathname !== "/" && (
               <button
@@ -175,45 +170,26 @@ export default function MainLayout() {
             )}
             {/* Only show space for menu button on mobile, but button itself is fixed above */}
             <div className="md:hidden w-10" />
+            {/* Removed logo and app name from header */}
           </div>
-          <h1 className="text-xl font-bold"></h1>
           <div className="flex items-center gap-4">
             <ThemeToggle />
-            {/* User Profile Dropdown */}
+            {/* Redesigned Profile Dropdown */}
             <div className="relative" ref={profileMenuRef}>
               <button
-                className="flex items-center gap-2 px-3 py-1 rounded-full border border-gray-300 dark:border-gray-700 bg-background hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow shadow-sm"
+                className="px-4 py-2 rounded-md border border-gray-300 dark:border-gray-700 bg-background hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow shadow-sm font-semibold text-base text-primary"
                 aria-haspopup="menu"
                 aria-expanded={profileMenuOpen}
                 onClick={() => setProfileMenuOpen((v) => !v)}
                 onBlur={(e) => {
-                  // Only close if focus moves outside the menu
                   if (!e.currentTarget.contains(e.relatedTarget)) {
                     setProfileMenuOpen(false)
                   }
                 }}
               >
-                <Avatar className="h-8 w-8">
-                  {user.image ? (
-                    <img
-                      src={user.image}
-                      alt={user.name}
-                      className="rounded-full w-full h-full object-cover"
-                    />
-                  ) : (
-                    <span className="flex items-center justify-center w-full h-full bg-gray-300 text-gray-700 font-bold uppercase">
-                      {user.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
-                    </span>
-                  )}
-                </Avatar>
-                <span className="hidden md:inline text-sm font-medium">
-                  {user.name}
-                </span>
+                enugeth
                 <svg
-                  className="ml-1 h-4 w-4 text-muted-foreground"
+                  className="ml-2 h-4 w-4 text-muted-foreground inline-block align-middle"
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2"
@@ -233,6 +209,11 @@ export default function MainLayout() {
                   role="menu"
                   tabIndex={-1}
                 >
+                  <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+                    <span className="block font-bold text-lg text-primary">
+                      enugeth
+                    </span>
+                  </div>
                   <ul className="py-1">
                     <li>
                       <button

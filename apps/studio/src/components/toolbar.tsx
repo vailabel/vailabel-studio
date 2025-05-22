@@ -26,8 +26,8 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { AIDetectionButton } from "@/components/ai-detection-button"
 import type { ImageData } from "@vailabel/core"
-import { useAnnotations } from "@/hooks/use-annotations"
-import { useCanvas } from "@/hooks/use-canvas"
+import { useCanvasStore } from "@/hooks/canvas-store"
+import { useAnnotationsStore } from "@/hooks/annotation-store"
 
 interface ToolbarProps {
   currentImage: ImageData | null
@@ -53,8 +53,8 @@ interface AdditionalTool {
 }
 
 export function Toolbar({ currentImage, onOpenAISettings }: ToolbarProps) {
-  const { selectedTool, setSelectedTool, resetView, zoom } = useCanvas()
-  const { undo, redo, canUndo, canRedo } = useAnnotations()
+  const { selectedTool, setSelectedTool, resetView, zoom } = useCanvasStore()
+  const { undo, redo, canUndo, canRedo } = useAnnotationsStore()
 
   const selectedTools: Tool[] = [
     {

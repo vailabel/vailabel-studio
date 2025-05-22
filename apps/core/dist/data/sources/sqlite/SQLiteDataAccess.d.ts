@@ -1,6 +1,15 @@
 import { IDataAccess } from "@vailabel/core/src/data/interface/IDataAccess";
 import { Project, ImageData, Annotation, Label, History, AIModel, Settings } from "../../../models/types";
-export declare class SQLiteDataAccess implements IDataAccess {
+export declare class SQLiteDataAccess implements IDataAccess<any> {
+    protected table: string;
+    constructor(table: string);
+    get<T>(): Promise<T[]>;
+    getById<T>(id: string): Promise<T | null>;
+    create<T extends object>(item: T): Promise<void>;
+    update<T>(id: string, updates: Partial<T>): Promise<void>;
+    delete(id: string): Promise<void>;
+    paginate<T>(offset: number, limit: number): Promise<T[]>;
+    getLabelsByProjectId(projectId: string): Promise<Label[]>;
     getAnnotationsByImageId(imageId: string): Promise<Annotation[]>;
     getAvailableModels(): Promise<AIModel[]>;
     uploadCustomModel(model: AIModel): Promise<void>;
