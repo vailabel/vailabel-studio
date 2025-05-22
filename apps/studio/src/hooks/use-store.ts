@@ -62,7 +62,7 @@ type ProjectsStoreState = {
   getHistory: () => Promise<void>
   updateHistory: (historyObj: History) => Promise<void>
 
-  getAvailableModels: () => Promise<void>
+  getAvailableModels: () => Promise<AIModel[]>
   uploadCustomModel: (file: AIModel) => Promise<void>
   selectModel: (modelId: string) => Promise<void>
   fetchSelectedModel: () => Promise<void>
@@ -135,8 +135,13 @@ export const useProjectsStore = create<ProjectsStoreState>((set, get) => ({
         const images = db.images
           ? (await db.images.get()).filter((img) => img.projectId === id)
           : []
-        set({ currentProject: { ...project, images } })
+        if (project && project.id) {
+          set({ currentProject: { ...project, images } as Project })
+        } else {
+          set({ currentProject: null })
+        }
       }
+
       return get().currentProject
     } catch (error) {
       console.error("getProjectWithImages error:", error)
@@ -179,7 +184,7 @@ export const useProjectsStore = create<ProjectsStoreState>((set, get) => ({
       throw error
     }
   },
-  getImages: async (projectId) => {
+  getImages: async (projectId: string) => {
     try {
       const db = get().dbContext
       if (db) {
@@ -213,7 +218,7 @@ export const useProjectsStore = create<ProjectsStoreState>((set, get) => ({
       const db = get().dbContext
       if (db) {
         await db.images.create(image)
-        if (image.projectId) await get().getImages(image.projectId)
+        if (image.projectId) await db.images.getById(image.projectId)
       }
     } catch (error) {
       console.error("createImage error:", error)
@@ -259,7 +264,10 @@ export const useProjectsStore = create<ProjectsStoreState>((set, get) => ({
       throw error
     }
   },
-  getAnnotationsWithFilter: async (imageId, filter: Partial<Annotation>) => {
+  getAnnotationsWithFilter: async (
+    imageId: string,
+    filter: Partial<Annotation>
+  ) => {
     try {
       const db = get().dbContext
       if (db) {
@@ -350,7 +358,8 @@ export const useProjectsStore = create<ProjectsStoreState>((set, get) => ({
     try {
       const db = get().dbContext
       if (db) {
-        return await db.labels.getById(id)
+        const label = await db.labels.getById(id)
+        return label === null ? undefined : label
       }
       return undefined
     } catch (error) {
@@ -427,7 +436,7 @@ export const useProjectsStore = create<ProjectsStoreState>((set, get) => ({
         const all = await db.settings.get()
         const setting = all.find((s) => s.key === key)
         if (setting) {
-          await db.settings.update(setting.id, { value })
+          await db.settings.update(setting.key, { value })
           await get().getSettings()
         }
       }
@@ -467,6 +476,7 @@ export const useProjectsStore = create<ProjectsStoreState>((set, get) => ({
         const aiModels = await db.aiModels.get()
         set({ aiModels })
       }
+      return get().aiModels
     } catch (error) {
       console.error("getAvailableModels error:", error)
       throw error

@@ -8,24 +8,21 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useToast } from "@/hooks/use-toast"
 import { ExportService } from "@/lib/export-service"
-import { useDataAccess } from "@/hooks/use-data-access"
 import type { Annotation, Project } from "@vailabel/core"
+import { useProjectsStore } from "@/hooks/use-store"
+import { IDBContext } from "@vailabel/core/src/data/sources/sqlite/SQLiteDBContext"
 interface ExportModalProps {
   project: Project
   annotations: Annotation[]
   onClose: () => void
 }
 
-export function ExportModal({
-  project,
-  annotations,
-  onClose,
-}: ExportModalProps) {
+export function ExportModal({ project, onClose }: ExportModalProps) {
   const { toast } = useToast()
   const [exportFormat, setExportFormat] = useState<string>("json")
   const [isExporting, setIsExporting] = useState(false)
-  const dataAccess = useDataAccess()
-  const exportService = new ExportService(dataAccess)
+  const { dbContext } = useProjectsStore()
+  const exportService = new ExportService(dbContext as IDBContext)
 
   const handleExport = async () => {
     if (!project) return
@@ -37,23 +34,16 @@ export function ExportModal({
 
       switch (exportFormat) {
         case "json":
-          await exportService.exportToJson(
-            project.id,
-            `${fileName}-export.json`
-          )
+          await exportService.exportToJson(project.id, `${fileName}-export`)
           break
         case "coco":
           await exportService.exportToCoco(project.id, `${fileName}-coco.json`)
           break
         case "pascal":
-          exportService.exportToPascalVoc(
-            project,
-            annotations,
-            `${fileName}-pascal`
-          )
+          exportService.exportToPascalVoc(project.id, `${fileName}-pascal`)
           break
         case "yolo":
-          exportService.exportToYolo(project, annotations, `${fileName}-yolo`)
+          exportService.exportToYolo(project.id, `${fileName}-yolo`)
           break
       }
 

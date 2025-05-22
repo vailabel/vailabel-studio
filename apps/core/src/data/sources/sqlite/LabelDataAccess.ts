@@ -1,9 +1,9 @@
 import { Label } from "../../../models/types"
-import { ILabelDataAccess } from "../../interface/IDataAccess"
-import { SQLiteDataAccess } from "./SQLiteDataAccess"
+import { DataAccess } from "../../contracts/DataAccess"
+import { ILabelDataAccess } from "../../contracts/IDataAccess"
 
 export class LabelDataAccess
-  extends SQLiteDataAccess
+  extends DataAccess<Label>
   implements ILabelDataAccess
 {
   constructor() {

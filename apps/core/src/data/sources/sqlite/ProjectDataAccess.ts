@@ -1,7 +1,5 @@
-import { IDataAccess } from "@vailabel/core/src/data"
+import { DataAccess, IProjectDataAccess } from "@vailabel/core/src/data"
 import { Project } from "../../../models/types"
-import { IProjectDataAccess } from "../../interface/IDataAccess"
-import { DataAccess } from "./DataAccess"
 
 export class ProjectDataAccess
   extends DataAccess<Project>

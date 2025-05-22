@@ -1,7 +1,6 @@
 import { History } from "../../../models/types"
-import { IHistoryDataAccess } from "../../interface/IDataAccess"
-import { DataAccess } from "./DataAccess"
-import { SQLiteDataAccess } from "./SQLiteDataAccess"
+import { DataAccess } from "../../contracts/DataAccess"
+import { IHistoryDataAccess } from "../../contracts/IDataAccess"
 
 export class HistoryDataAccess
   extends DataAccess<History>

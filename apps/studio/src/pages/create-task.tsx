@@ -1,5 +1,4 @@
 import { useEffect, useState, useRef } from "react"
-import { useDataAccess } from "@/hooks/use-data-access"
 import type { Project, ImageData } from "@vailabel/core/src/models/types"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -25,6 +24,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox"
 import ImageWithLoader from "@/components/image-loader"
 import { useNavigate } from "react-router-dom"
+import { useProjectsStore } from "@/hooks/use-store"
 
 const TaskSchema = z.object({
   name: z.string().min(1, "Task name is required"),
@@ -44,7 +44,7 @@ type AnnotationTask = {
 }
 
 export default function CreateTaskPage() {
-  const dataAccess = useDataAccess()
+  const dataAccess = useProjectsStore()
   const [projects, setProjects] = useState<Project[]>([])
   const [images, setImages] = useState<ImageData[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -73,16 +73,8 @@ export default function CreateTaskPage() {
       .getProjects()
       .then(setProjects)
       .catch((e) => setError(e.message || "Failed to load projects"))
+    setImages([])
   }, [dataAccess])
-
-  // Load images when project changes
-  useEffect(() => {
-    if (!watchedProjectId) return
-    dataAccess
-      .getImages(watchedProjectId)
-      .then(setImages)
-      .catch((e) => setError(e.message || "Failed to load images"))
-  }, [watchedProjectId, dataAccess])
 
   // Indeterminate state for select all
   useEffect(() => {

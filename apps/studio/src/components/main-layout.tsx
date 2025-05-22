@@ -7,6 +7,7 @@ import {
   Layers2,
   Settings2,
   ArrowLeft,
+  ChevronDown,
 } from "lucide-react"
 import { useNavigate, useOutlet, useLocation } from "react-router-dom"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -187,21 +188,8 @@ export default function MainLayout() {
                   }
                 }}
               >
-                enugeth
-                <svg
-                  className="ml-2 h-4 w-4 text-muted-foreground inline-block align-middle"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
+                Vichea Nath
+                <ChevronDown className="ml-2 h-4 w-4 text-muted-foreground inline-block align-middle" />
               </button>
               {profileMenuOpen && (
                 <div
@@ -211,7 +199,7 @@ export default function MainLayout() {
                 >
                   <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
                     <span className="block font-bold text-lg text-primary">
-                      enugeth
+                      Vichea Nath
                     </span>
                   </div>
                   <ul className="py-1">

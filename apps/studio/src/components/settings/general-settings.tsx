@@ -5,9 +5,9 @@ import { Switch } from "@/components/ui/switch"
 import { useTheme } from "@/components/theme-provider"
 import { ChromePicker } from "react-color"
 import { Check } from "lucide-react"
-import { useDataAccess } from "@/hooks/use-data-access"
 import debounce from "lodash/debounce"
 import { ElectronFileInput } from "@/components/electron-file"
+import { useProjectsStore } from "@/hooks/use-store"
 
 const DEFAULTS = {
   brightness: 100,
@@ -46,7 +46,7 @@ export default function GeneralSettings() {
   const customBtnRef = useRef<HTMLButtonElement>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
 
-  const { updateSetting } = useDataAccess()
+  const { updateSetting } = useProjectsStore()
 
   // Close popover on outside click
   useEffect(() => {

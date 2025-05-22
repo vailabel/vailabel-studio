@@ -1,6 +1,6 @@
 import { Annotation } from "../../../models/types";
-import { IAnnotationDataAccess } from "../../interface/IDataAccess";
-import { DataAccess } from "./DataAccess";
+import { DataAccess } from "../../contracts/DataAccess";
+import { IAnnotationDataAccess } from "../../contracts/IDataAccess";
 export declare class AnnotationDataAccess extends DataAccess<Annotation> implements IAnnotationDataAccess {
     constructor();
 }

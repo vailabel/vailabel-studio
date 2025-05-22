@@ -11,7 +11,7 @@ import { Slider } from "@/components/ui/slider"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import { useTheme } from "./theme-provider"
-import { useDataAccess } from "@/hooks/use-data-access"
+import { useProjectsStore } from "@/hooks/use-store"
 
 interface SettingsModalProps {
   onClose: () => void
@@ -25,7 +25,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   const { toast } = useToast()
   const [isClearing, setIsClearing] = useState(false)
   const { theme, setTheme } = useTheme()
-  const data = useDataAccess()
+  const data = useProjectsStore()
 
   const [, setSettings] = useState<Settings>({})
   const [showRulers, setShowRulers] = useState(true)

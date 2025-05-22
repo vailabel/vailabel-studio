@@ -1,5 +1,6 @@
-import { ILabelDataAccess } from "../../interface/IDataAccess";
-import { SQLiteDataAccess } from "./SQLiteDataAccess";
-export declare class LabelDataAccess extends SQLiteDataAccess implements ILabelDataAccess {
+import { Label } from "../../../models/types";
+import { DataAccess } from "../../contracts/DataAccess";
+import { ILabelDataAccess } from "../../contracts/IDataAccess";
+export declare class LabelDataAccess extends DataAccess<Label> implements ILabelDataAccess {
     constructor();
 }

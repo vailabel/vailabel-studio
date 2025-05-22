@@ -1,5 +1,4 @@
-import { AIModel, Annotation, Label, Project, Settings, History, ImageData } from "@vailabel/core/models/types";
-import { IDataAccess } from "../../interface/IDataAccess";
+import { AIModel, Annotation, Label, Project, Settings, History, ImageData } from "../../../models/types";
 import { AIModelDataAccess } from "./AIModelDataAccess";
 import { AnnotationDataAccess } from "./AnnotationDataAccess";
 import { HistoryDataAccess } from "./HistoryDataAccess";
@@ -7,6 +6,7 @@ import { ImageDataAccess } from "./ImageDataAccess";
 import { LabelDataAccess } from "./LabelDataAccess";
 import { ProjectDataAccess } from "./ProjectDataAccess";
 import { SettingsDataAccess } from "./SettingsDataAccess";
+import { IDataAccess } from "../../contracts/IDataAccess";
 export interface IDBContext {
     projects: IDataAccess<Project>;
     images: IDataAccess<ImageData>;

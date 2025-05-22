@@ -1,5 +1,5 @@
-import { IDataAccess } from "@vailabel/core/src/data/interface/IDataAccess";
 import { Project, ImageData, Annotation, Label, History, AIModel, Settings } from "../../../models/types";
+import { IDataAccess } from "../../contracts/IDataAccess";
 export declare class SQLiteDataAccess implements IDataAccess<any> {
     protected table: string;
     constructor(table: string);

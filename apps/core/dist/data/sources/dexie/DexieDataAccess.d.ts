@@ -1,5 +1,5 @@
-import { IDataAccess } from "@vailabel/core/src/data/interface/IDataAccess";
 import { Project, ImageData, Annotation, Label, History, AIModel, Settings } from "../../../models/types";
+import { IDataAccess } from "../../contracts/IDataAccess";
 export declare class DexieDataAccess implements IDataAccess {
     get(): Promise<any[]>;
     getById(id: string): Promise<any>;
