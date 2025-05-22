@@ -5,7 +5,7 @@ import { CornerDownLeft, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { getRandomColor, rgbToRgba } from "@/lib/utils"
-import { useAnnotations } from "@/hooks/use-annotations"
+import { useAnnotationsStore } from "@/hooks/annotation-store"
 
 interface CreateAnnotationModalProps {
   onSubmit: (name: string, color: string) => void
@@ -61,7 +61,7 @@ export function CreateAnnotation({
 }: Readonly<CreateAnnotationModalProps>) {
   const [labelName, setLabelName] = useState("")
   const [color, setColor] = useState<string>(getRandomColor())
-  const { labels } = useAnnotations()
+  const { labels } = useAnnotationsStore()
 
   useEffect(() => {
     if (isOpen) {

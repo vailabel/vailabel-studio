@@ -16,6 +16,24 @@ export class ApiDataAccess implements IDataAccess {
   constructor(apiClient?: ApiClient) {
     this.api = apiClient ?? new ApiClient()
   }
+  get(): Promise<any[]> {
+    throw new Error("Method not implemented.")
+  }
+  getById(id: string): Promise<any> {
+    throw new Error("Method not implemented.")
+  }
+  create(item: any): Promise<void> {
+    throw new Error("Method not implemented.")
+  }
+  update(id: string, updates: Partial<any>): Promise<void> {
+    throw new Error("Method not implemented.")
+  }
+  delete(id: string): Promise<void> {
+    throw new Error("Method not implemented.")
+  }
+  paginate(offset: number, limit: number): Promise<any[]> {
+    throw new Error("Method not implemented.")
+  }
   getAnnotationsByImageId(imageId: string): Promise<Annotation[]> {
     return this.api.get<Annotation[]>(`/images/${imageId}/annotations`)
   }

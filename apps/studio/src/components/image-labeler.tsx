@@ -1,6 +1,5 @@
 import type React from "react"
-import type { ImageData, Project, Label } from "@vailabel/core"
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { AnimatePresence } from "framer-motion"
 import {
   ArrowLeft,
@@ -26,122 +25,68 @@ import { ExportModal } from "@/components/export-modal"
 import { AIModelSelectModal } from "@/components/ai-model-modal"
 import { ContextMenu } from "@/components/context-menu"
 import { ThemeToggle } from "./theme-toggle"
-import { useDataAccess } from "@/hooks/use-data-access"
-import { useAnnotations } from "@/hooks/use-annotations"
 import { useNavigate } from "react-router-dom"
+import { useProjectsStore } from "@/hooks/use-store"
+import { useCanvasStore } from "@/hooks/canvas-store"
 
-interface ImageLabelerProps {
-  project: Project
-  imageId?: string
-  onClose: () => void
-}
-
-export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
+export function ImageLabeler() {
   const navigate = useNavigate()
-  const dataAccess = useDataAccess()
+  const {
+    contextMenuProps,
+    setContextMenuProps,
+    canvasContainerRef,
+    containerRect,
+    setContainerRect,
+  } = useCanvasStore()
   const [showSettings, setShowSettings] = useState(false)
   const [showExport, setShowExport] = useState(false)
   const [showAISettings, setShowAISettings] = useState(false)
-  const [showLabelEditor, setShowLabelEditor] = useState(false)
-  const [, setSelectedLabel] = useState<Label | null>(null)
-  const [contextMenuProps, setContextMenuProps] = useState({
-    isOpen: false,
-    x: 0,
-    y: 0,
-  })
-  const { currentImage, setCurrentImage, setAnnotations, annotations } =
-    useAnnotations()
-  const [images, setImages] = useState<ImageData[]>([])
+  const { currentImage, setAnnotations, annotations, getAnnotations } =
+    useProjectsStore()
 
-  const canvasContainerRef = useRef<HTMLDivElement>(null)
-  const [containerRect, setContainerRect] = useState<DOMRect | null>(null)
+  const nextImage = useCallback(() => {}, [])
 
-  const nextImage = useCallback(() => {
-    if (images.length === 0) return
-
-    const currentIndex = images.findIndex((img) => img.id === currentImage?.id)
-    const nextIndex = (currentIndex + 1) % images.length
-    const nextImage = images[nextIndex]
-
-    setCurrentImage(nextImage)
-    navigate(`/projects/${project.id}/studio/${nextImage.id}`)
-  }, [images, setCurrentImage, navigate, project.id, currentImage?.id])
-
-  const previousImage = useCallback(() => {
-    if (images.length === 0) return
-
-    const currentIndex = images.findIndex((img) => img.id === currentImage?.id)
-    const prevIndex = (currentIndex - 1 + images.length) % images.length
-    const prevImage = images[prevIndex]
-
-    setCurrentImage(prevImage)
-    navigate(`/projects/${project.id}/studio/${prevImage.id}`)
-  }, [images, setCurrentImage, navigate, project.id, currentImage?.id])
-
-  useEffect(() => {
-    if (imageId) {
-      const fetchImagesAndSetCurrentImage = async () => {
-        const images = await dataAccess.getImages(project.id)
-        setImages(images)
-        const currentImage = images.find((img) => img.id === imageId) as
-          | ImageData
-          | undefined
-        if (currentImage) {
-          setCurrentImage(currentImage)
-        }
-      }
-      fetchImagesAndSetCurrentImage()
-    }
-  }, [project.id, imageId, dataAccess, setCurrentImage])
+  const previousImage = useCallback(() => {}, [])
 
   useEffect(() => {
     const fetchAnnotationsOnFirstRender = async () => {
       if (currentImage) {
-        const annotationsData = await dataAccess.getAnnotations(currentImage.id)
+        const annotationsData = await getAnnotations(currentImage.id)
         setAnnotations(annotationsData)
       }
     }
     fetchAnnotationsOnFirstRender()
-  }, [currentImage, setAnnotations, dataAccess])
+  }, [currentImage, setAnnotations, getAnnotations])
 
   const handleExportProject = () => {
     setShowExport(true)
   }
 
-  const handleLabelSelect = (label: Label) => {
-    setSelectedLabel(label)
-    setShowLabelEditor(true)
-  }
-
-  // Handle right-click for context menu
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault()
-
-    // Update container rect for accurate positioning
     if (canvasContainerRef.current) {
       setContainerRect(canvasContainerRef.current.getBoundingClientRect())
     }
-
     setContextMenuProps({
       isOpen: true,
       x: e.clientX,
       y: e.clientY,
     })
-
     return false
   }
-
-  // Close context menu when clicking elsewhere
   const handleCloseContextMenu = () => {
-    setContextMenuProps((prev) => ({ ...prev, isOpen: false }))
+    setContextMenuProps({
+      isOpen: false,
+      x: 0,
+      y: 0,
+    })
   }
 
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Only process if no modals are open
-      if (showSettings || showLabelEditor || showExport || showAISettings)
-        return
+      if (showSettings || showExport || showAISettings) return
 
       if (e.key === "ArrowRight" || e.code === "ArrowRight") {
         nextImage()
@@ -154,40 +99,16 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [
     currentImage?.id,
-    images.length,
     showSettings,
-    showLabelEditor,
     showExport,
     showAISettings,
     nextImage,
     previousImage,
   ])
 
-  // Calculate progress: count images that have at least one annotation
-  const [imageAnnotationMap, setImageAnnotationMap] = useState<
-    Record<string, number>
-  >({})
-
-  useEffect(() => {
-    // Build a map of imageId -> annotation count
-    const fetchAllAnnotationCounts = async () => {
-      if (images.length === 0) return
-      const map: Record<string, number> = {}
-      for (const img of images) {
-        const anns = await dataAccess.getAnnotations(img.id)
-        map[img.id] = anns.length
-      }
-      setImageAnnotationMap(map)
-    }
-    fetchAllAnnotationCounts()
-  }, [images, dataAccess])
-
-  const labeledCount = Object.values(imageAnnotationMap).filter(
-    (count) => count > 0
-  ).length
-  const overallProgress =
-    images.length > 0 ? Math.round((labeledCount / images.length) * 100) : 0
-
+  const onClose = () => {
+    navigate("/projects")
+  }
   return (
     <div className="flex flex-col h-screen w-full overflow-hidden bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <header className="flex justify-between border-b px-4 py-1 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
@@ -197,10 +118,10 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
           </Button>
           <div>
             <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">
-              {project.name}
+              AAAA
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {labeledCount} of {images.length} images labeled
+              111 of 123 images labeled
             </p>
           </div>
         </div>
@@ -238,9 +159,7 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
             </div>
 
             <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-              <span>
-                {labeledCount} labeled ({overallProgress}%)
-              </span>
+              <span>111 labeled (50%)</span>
               <Separator orientation="vertical" className="h-4" />
             </div>
           </div>
@@ -284,7 +203,7 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
           maxSize={400}
           className="h-full"
         >
-          <LabelListPanel onLabelSelect={handleLabelSelect} />
+          <LabelListPanel onLabelSelect={() => {}} />
         </ResizablePanel>
 
         {/* Middle panel - Canvas */}
@@ -332,7 +251,7 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
+      {/* <AnimatePresence>
         {showExport && (
           <ExportModal
             project={project}
@@ -340,7 +259,7 @@ export function ImageLabeler({ project, imageId, onClose }: ImageLabelerProps) {
             onClose={() => setShowExport(false)}
           />
         )}
-      </AnimatePresence>
+      </AnimatePresence> */}
 
       <AnimatePresence>
         {showAISettings && (

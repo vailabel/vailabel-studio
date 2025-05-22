@@ -3,15 +3,15 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useNavigate, useParams } from "react-router-dom"
 import Loading from "@/components/loading"
-import { useDataAccess } from "@/hooks/use-data-access"
 import { useToast } from "@/hooks/use-toast"
 import ImageWithLoader from "@/components/image-loader"
+import { useProjectsStore } from "@/hooks/use-store"
 
 export default function ProjectDetails() {
   const { projectId } = useParams<{ projectId: string }>()
   const { toast } = useToast()
   const [project, setProject] = useState<Project | null>(null)
-  const { getProjectWithImages } = useDataAccess()
+  const { getProjectWithImages } = useProjectsStore()
   const images = Array.isArray(project?.images) ? project.images : []
   const navigate = useNavigate()
   useEffect(() => {
@@ -19,6 +19,7 @@ export default function ProjectDetails() {
       if (!projectId) return
       try {
         const projectData = await getProjectWithImages(projectId)
+        console.log("Fetched project data:", projectData)
         if (projectData) {
           setProject(projectData)
         } else {

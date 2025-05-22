@@ -1,66 +1,26 @@
-import type {
-  Project,
-  ImageData,
-  Annotation,
-  Label,
-  History,
+import {
   AIModel,
+  Annotation,
+  History,
+  ImageData,
+  Label,
+  Project,
   Settings,
-} from "../../models/types"
+} from "@vailabel/core/models/types"
 
-export interface IDataAccess {
-  // Project
-  getProjects(): Promise<Project[]>
-  getProjectById(id: string): Promise<Project | undefined>
-  getProjectWithImages(id: string): Promise<Project | undefined>
-  createProject(project: Project): Promise<void>
-  updateProject(id: string, updates: Partial<Project>): Promise<void>
-  deleteProject(id: string): Promise<void>
-
-  // Image
-  getImages(projectId: string): Promise<ImageData[]>
-  getImagesWithPagination(
-    projectId: string,
-    offset: number,
-    limit: number
-  ): Promise<ImageData[]>
-  getNextImageId(currentImageId: string): Promise<string | null>
-  getPreviousImageId(currentImageId: string): Promise<string | null>
-  createImage(image: ImageData): Promise<void>
-  updateImage(id: string, updates: Partial<ImageData>): Promise<void>
-  deleteImage(id: string): Promise<void>
-
-  // Annotation
-  getAnnotations(imageId: string): Promise<Annotation[]>
-  getAnnotationsWithFilter(
-    imageId: string,
-    filter: Partial<Annotation>
-  ): Promise<Annotation[]>
-  getAnnotationsByImageId(imageId: string): Promise<Annotation[]>
-  createAnnotation(annotation: Annotation): Promise<void>
-  updateAnnotation(id: string, updates: Partial<Annotation>): Promise<void>
-  deleteAnnotation(id: string): Promise<void>
-
-  // Label
-  createLabel(label: Label, annotationIds: string[]): Promise<void>
-  getLabels(): Promise<Label[]>
-  getLabelById(id: string): Promise<Label | undefined>
-  updateLabel(id: string, updates: Partial<Label>): Promise<void>
-  deleteLabel(id: string): Promise<void>
-
-  // Settings
-  getSettings(): Promise<Settings[]>
-  getSetting(key: string): Promise<Settings | undefined>
-  updateSetting(key: string, value: string): Promise<void>
-
-  // History
-  getHistory(): Promise<History[]>
-  updateHistory(history: History): Promise<void>
-
-  // AI Model
-  getAvailableModels(): Promise<AIModel[]>
-  uploadCustomModel(file: AIModel): Promise<void>
-  selectModel(modelId: string): Promise<void>
-  getSelectedModel(): Promise<AIModel | undefined>
-  deleteModel(modelId: string): Promise<void>
+export interface IDataAccess<T = any> {
+  get(): Promise<T[]>
+  getById(id: string): Promise<T | null>
+  create(item: T): Promise<void>
+  update(id: string, updates: Partial<T>): Promise<void>
+  delete(id: string): Promise<void>
+  paginate(offset: number, limit: number): Promise<T[]>
 }
+
+export interface IImageDataAccess extends IDataAccess<ImageData> {}
+export interface IProjectDataAccess extends IDataAccess<Project> {}
+export interface IAnnotationDataAccess extends IDataAccess<Annotation> {}
+export interface ILabelDataAccess extends IDataAccess<Label> {}
+export interface ISettingsDataAccess extends IDataAccess<Settings> {}
+export interface IHistoryDataAccess extends IDataAccess<History> {}
+export interface IAIModelDataAccess extends IDataAccess<AIModel> {}

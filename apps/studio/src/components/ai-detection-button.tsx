@@ -9,9 +9,9 @@ import {
 } from "@/components/ui/tooltip"
 import { useToast } from "@/hooks/use-toast"
 import type { Annotation, ImageData } from "@vailabel/core"
-import { useDataAccess } from "@/hooks/use-data-access"
-import { useAnnotations } from "@/hooks/use-annotations"
 import { getRandomColor } from "@/lib/utils"
+import { useProjectsStore } from "@/hooks/use-store"
+import { useAnnotationsStore } from "@/hooks/annotation-store"
 
 interface AIDetectionButtonProps {
   image: ImageData | null
@@ -22,8 +22,8 @@ export function AIDetectionButton({ image, disabled }: AIDetectionButtonProps) {
   const { toast } = useToast()
   const [isDetecting, setIsDetecting] = useState(false)
   const [progress, setProgress] = useState<string>("")
-  const { getSelectedModel, getSetting } = useDataAccess()
-  const { getOrCreateLabel, createAnnotation } = useAnnotations()
+  const { getSelectedModel, getSetting } = useProjectsStore()
+  const { getOrCreateLabel, createAnnotation } = useAnnotationsStore()
 
   useEffect(() => {
     if (!window.ipc?.on) return

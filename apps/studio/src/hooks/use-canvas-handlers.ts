@@ -1,10 +1,10 @@
 import { useCallback, useState, useEffect } from "react"
 import type { Point, Annotation } from "@vailabel/core"
-import { useCanvas } from "@/hooks/use-canvas"
-import { useAnnotations } from "@/hooks/use-annotations"
 import { calculatePolygonCentroid, isPointInPolygon } from "@/lib/canvas-utils"
+import { useCanvasStore } from "./canvas-store"
+import { useAnnotationsStore } from "./annotation-store"
 
-export function useCanvasHandlers(canvasRef: React.RefObject<HTMLDivElement>) {
+export function useCanvasHandlers() {
   const {
     zoom,
     panOffset,
@@ -13,7 +13,9 @@ export function useCanvasHandlers(canvasRef: React.RefObject<HTMLDivElement>) {
     setCursorPosition,
     setSelectedTool,
     setZoom,
-  } = useCanvas()
+  } = useCanvasStore()
+
+  const { canvasRef } = useCanvasStore()
 
   const {
     annotations,
@@ -22,7 +24,7 @@ export function useCanvasHandlers(canvasRef: React.RefObject<HTMLDivElement>) {
     currentImage,
     selectedAnnotation,
     setSelectedAnnotation,
-  } = useAnnotations()
+  } = useAnnotationsStore()
   const [isDragging, setIsDragging] = useState(false)
   const [startPoint, setStartPoint] = useState<Point | null>(null)
   const [currentPoint, setCurrentPoint] = useState<Point | null>(null)
@@ -368,8 +370,6 @@ export function useCanvasHandlers(canvasRef: React.RefObject<HTMLDivElement>) {
       // Handle drawing
       if (isDragging && startPoint) {
         setCurrentPoint(point)
-
-        // Update tempAnnotation in real-time to show the dotted box on the UI
         const coordinates = [
           {
             x: Math.min(startPoint.x, point.x),
@@ -480,7 +480,7 @@ export function useCanvasHandlers(canvasRef: React.RefObject<HTMLDivElement>) {
       setTempAnnotation({
         type: "polygon",
         coordinates: polygonPoints,
-        imageId: currentImage?.id || "",
+        imageId: currentImage?.id,
       })
       setShowLabelInput(true)
       setPolygonPoints([])
@@ -490,7 +490,7 @@ export function useCanvasHandlers(canvasRef: React.RefObject<HTMLDivElement>) {
   const handleWheel = useCallback(
     (e: React.WheelEvent) => {
       if (e.ctrlKey || e.metaKey) {
-        e.preventDefault() // Prevent default scrolling behavior
+        // e.preventDefault() // Prevent default scrolling behavior
         const delta = e.deltaY > 0 ? -0.1 : 0.1
         const newZoom = Math.max(0.1, Math.min(5, zoom + delta))
 
