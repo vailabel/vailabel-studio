@@ -1,9 +1,9 @@
 import { promises as fs } from "fs"
 import path from "path"
-import ReactMarkdown from "react-markdown"
-import remarkGfm from "remark-gfm"
 import matter from "gray-matter"
 import { Metadata } from "next"
+import BlogSidebar from "../BlogSidebar"
+import { MarkdownRenderer } from "@/components/markdown-renderer"
 
 export async function generateMetadata({
   params,
@@ -70,19 +70,18 @@ export default async function BlogDetailPage({
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <header className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">{metadata.title}</h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            {metadata.date} • {metadata.author}
-          </p>
-        </header>
-        <article className="prose dark:prose-invert prose-blue max-w-none">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {markdownContent}
-          </ReactMarkdown>
-        </article>
-      </main>
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 flex flex-col lg:flex-row gap-12">
+        <main className="flex-1">
+          <header className="mb-8">
+            <h1 className="text-4xl font-bold mb-2">{metadata.title}</h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              {metadata.date} • {metadata.author}
+            </p>
+          </header>
+          <MarkdownRenderer>{markdownContent}</MarkdownRenderer>
+        </main>
+        <BlogSidebar />
+      </div>
     </div>
   )
 }
