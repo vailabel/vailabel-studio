@@ -1,7 +1,6 @@
 import { Settings } from "../../../models/types"
-import { ISettingsDataAccess } from "../../interface/IDataAccess"
-import { DataAccess } from "./DataAccess"
-import { SQLiteDataAccess } from "./SQLiteDataAccess"
+import { DataAccess } from "../../contracts/DataAccess"
+import { ISettingsDataAccess } from "../../contracts/IDataAccess"
 
 export class SettingsDataAccess
   extends DataAccess<Settings>

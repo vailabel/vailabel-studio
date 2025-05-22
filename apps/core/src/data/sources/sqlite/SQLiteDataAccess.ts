@@ -1,5 +1,4 @@
 /// <reference path='../../../type.d.ts' />
-import { IDataAccess } from "@vailabel/core/src/data/interface/IDataAccess"
 import {
   Project,
   ImageData,
@@ -9,6 +8,7 @@ import {
   AIModel,
   Settings,
 } from "../../../models/types"
+import { IDataAccess } from "../../contracts/IDataAccess"
 
 export class SQLiteDataAccess implements IDataAccess<any> {
   protected table: string

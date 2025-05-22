@@ -17,8 +17,28 @@ class DataAccess {
     // Generic CRUD methods
     get() {
         return __awaiter(this, void 0, void 0, function* () {
-            return window.ipc.invoke("sqlite:all", [`SELECT * FROM ${this.table}`, []]);
+            const rows = window.ipc.invoke("sqlite:all", [
+                `SELECT * FROM ${this.table}`,
+                [],
+            ]);
+            const parsedRows = yield rows;
+            for (const row of parsedRows) {
+                for (const [key, value] of Object.entries(row)) {
+                    if (this.isJson(value)) {
+                        try {
+                            row[key] = JSON.parse(value);
+                        }
+                        catch (e) {
+                            console.error(`Failed to parse JSON for key ${key}:`, e);
+                        }
+                    }
+                }
+            }
+            return parsedRows;
         });
+    }
+    isJson(data) {
+        return (typeof data === "string" && (data.startsWith("{") || data.startsWith("[")));
     }
     getById(id) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -26,6 +46,19 @@ class DataAccess {
                 `SELECT * FROM ${this.table} WHERE id = ?`,
                 [id],
             ]);
+            // if data is json, parse it
+            if (row) {
+                for (const [key, value] of Object.entries(row)) {
+                    if (this.isJson(value)) {
+                        try {
+                            row[key] = JSON.parse(value);
+                        }
+                        catch (e) {
+                            console.error(`Failed to parse JSON for key ${key}:`, e);
+                        }
+                    }
+                }
+            }
             return row || null;
         });
     }
@@ -35,12 +68,13 @@ class DataAccess {
             for (const [key, value] of Object.entries(item)) {
                 if (typeof value !== "object" || // Keep primitives
                     value === null || // Allow null
-                    value instanceof Date ||
-                    key === "coordinates") {
+                    value instanceof Date) {
                     flatItem[key] = value;
                 }
+                else if (key === "coordinates") {
+                    flatItem[key] = JSON.stringify(value);
+                }
             }
-            console.log("flatItem", flatItem);
             const keys = Object.keys(flatItem);
             const values = Object.values(flatItem);
             const placeholders = keys.map(() => "?").join(", ");

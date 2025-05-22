@@ -1,6 +1,6 @@
-import { IDataAccess } from "@vailabel/core/src/data/interface/IDataAccess";
 import type { Project, ImageData, Annotation, Label, History, AIModel, Settings } from "../../../models/types";
 import { ApiClient } from "@vailabel/core/src/data/sources/api/ApiClient";
+import { IDataAccess } from "../../contracts/IDataAccess";
 export declare class ApiDataAccess implements IDataAccess {
     private api;
     constructor(apiClient?: ApiClient);

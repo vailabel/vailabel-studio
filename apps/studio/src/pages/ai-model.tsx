@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react"
-import { useDataAccess } from "@/hooks/use-data-access"
 import type { AIModel } from "@vailabel/core/src/models/types"
 import {
   Dialog,

@@ -1,6 +1,6 @@
 import { AIModel } from "../../../models/types"
-import { IAIModelDataAccess } from "../../interface/IDataAccess"
-import { DataAccess } from "./DataAccess"
+import { DataAccess } from "../../contracts/DataAccess"
+import { IAIModelDataAccess } from "../../contracts/IDataAccess"
 
 export class AIModelDataAccess
   extends DataAccess<AIModel>

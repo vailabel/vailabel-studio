@@ -1,4 +1,5 @@
-import { IDataAccess } from "../../interface/IDataAccess"
+import { IDataAccess } from "./IDataAccess"
+
 export class DataAccess<T extends object = any> implements IDataAccess<T> {
   protected table: string
 

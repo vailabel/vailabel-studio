@@ -6,7 +6,7 @@ import {
   Label,
   Project,
   Settings,
-} from "@vailabel/core/models/types"
+} from "../../models/types"
 
 export interface IDataAccess<T = any> {
   get(): Promise<T[]>

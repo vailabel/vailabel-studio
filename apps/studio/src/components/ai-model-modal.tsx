@@ -13,9 +13,9 @@ import {
   TableCell,
 } from "@/components/ui/table"
 import { useToast } from "@/hooks/use-toast"
-import { useDataAccess } from "@/hooks/use-data-access"
 import { AIModel } from "@vailabel/core"
 import { ElectronFileInput } from "./electron-file"
+import { useProjectsStore } from "@/hooks/use-store"
 
 interface AIModelModalProps {
   onClose: () => void
@@ -28,41 +28,8 @@ export function AIModelSelectModal({ onClose }: AIModelModalProps) {
     undefined
   )
   const [isSaving, setIsSaving] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-  const {
-    getAvailableModels,
-    uploadCustomModel,
-    selectModel,
-    updateSetting,
-    getSelectedModel,
-  } = useDataAccess()
-
-  useState(() => {
-    const loadModels = async () => {
-      try {
-        const [models, selected] = await Promise.all([
-          getAvailableModels(),
-          getSelectedModel?.(),
-        ])
-        setAvailableModels(models)
-        if (selected && models.some((m) => m.id === selected.id)) {
-          setSelectedModelId(selected.id)
-        } else if (models.length > 0) {
-          setSelectedModelId(models[0].id)
-        }
-      } catch (error) {
-        console.error("Failed to load models:", error)
-        toast({
-          title: "Error",
-          description: "Failed to load available models",
-          variant: "destructive",
-        })
-      } finally {
-        setIsLoading(false)
-      }
-    }
-    loadModels()
-  })
+  const { getAvailableModels, uploadCustomModel, selectModel, updateSetting } =
+    useProjectsStore()
 
   const handleModelSave = async (
     e: React.ChangeEvent<HTMLInputElement> | { target: { files: string[] } }
@@ -198,71 +165,64 @@ export function AIModelSelectModal({ onClose }: AIModelModalProps) {
               Select a pre-trained model or select your own custom YOLOv8 model
               (.pt file)
             </p>
-            {isLoading ? (
-              <div className="my-8 flex justify-center">
-                <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600 dark:border-gray-600 dark:border-t-blue-400"></div>
-              </div>
-            ) : (
-              <RadioGroup
-                value={selectedModelId}
-                onValueChange={handleRadioChange}
-              >
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-gray-100 dark:bg-gray-800">
-                        <TableHead className="p-2 font-semibold text-left">
-                          Select
-                        </TableHead>
-                        <TableHead className="p-2 font-semibold text-left">
-                          Name
-                        </TableHead>
-                        <TableHead className="p-2 font-semibold text-left">
-                          File Path
-                        </TableHead>
+
+            <RadioGroup
+              value={selectedModelId}
+              onValueChange={handleRadioChange}
+            >
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-gray-100 dark:bg-gray-800">
+                      <TableHead className="p-2 font-semibold text-left">
+                        Select
+                      </TableHead>
+                      <TableHead className="p-2 font-semibold text-left">
+                        Name
+                      </TableHead>
+                      <TableHead className="p-2 font-semibold text-left">
+                        File Path
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {availableModels.map((model) => (
+                      <TableRow
+                        key={model.id}
+                        className={
+                          selectedModelId === model.id
+                            ? "bg-blue-50 dark:bg-blue-900"
+                            : ""
+                        }
+                      >
+                        <TableCell className="p-2 align-middle">
+                          <RadioGroupItem
+                            value={model.id}
+                            id={model.id}
+                            aria-label={`Select ${model.name}`}
+                            className="mt-0.5"
+                          />
+                        </TableCell>
+                        <TableCell className="p-2 align-middle">
+                          <Label htmlFor={model.id} className="cursor-pointer">
+                            {model.name}
+                          </Label>
+                        </TableCell>
+                        <TableCell className="p-2 align-middle">
+                          {model.modelPath || "-"}
+                        </TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {availableModels.map((model) => (
-                        <TableRow
-                          key={model.id}
-                          className={
-                            selectedModelId === model.id
-                              ? "bg-blue-50 dark:bg-blue-900"
-                              : ""
-                          }
-                        >
-                          <TableCell className="p-2 align-middle">
-                            <RadioGroupItem
-                              value={model.id}
-                              id={model.id}
-                              aria-label={`Select ${model.name}`}
-                              className="mt-0.5"
-                            />
-                          </TableCell>
-                          <TableCell className="p-2 align-middle">
-                            <Label
-                              htmlFor={model.id}
-                              className="cursor-pointer"
-                            >
-                              {model.name}
-                            </Label>
-                          </TableCell>
-                          <TableCell className="p-2 align-middle">
-                            {model.modelPath || "-"}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-                <p className="mt-2 text-xs text-yellow-600 dark:text-yellow-400">
-                  <strong>Note:</strong> All models must remain in their
-                  specific file path. If you delete or move a model file, it
-                  will no longer work in the app.
-                </p>
-              </RadioGroup>
-            )}
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <p className="mt-2 text-xs text-yellow-600 dark:text-yellow-400">
+                <strong>Note:</strong> All models must remain in their specific
+                file path. If you delete or move a model file, it will no longer
+                work in the app.
+              </p>
+            </RadioGroup>
+
             <div className="mt-8">
               <Label
                 htmlFor="model-save"
@@ -287,7 +247,7 @@ export function AIModelSelectModal({ onClose }: AIModelModalProps) {
           </Button>
           <Button
             onClick={handleModelSelect}
-            disabled={!selectedModelId || isSaving || isLoading}
+            disabled={!selectedModelId || isSaving}
           >
             {isSaving ? (
               <>

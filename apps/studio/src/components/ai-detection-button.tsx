@@ -8,10 +8,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { useToast } from "@/hooks/use-toast"
-import type { Annotation, ImageData } from "@vailabel/core"
-import { getRandomColor } from "@/lib/utils"
-import { useProjectsStore } from "@/hooks/use-store"
-import { useAnnotationsStore } from "@/hooks/annotation-store"
+import type { ImageData } from "@vailabel/core"
 
 interface AIDetectionButtonProps {
   image: ImageData | null
@@ -22,8 +19,6 @@ export function AIDetectionButton({ image, disabled }: AIDetectionButtonProps) {
   const { toast } = useToast()
   const [isDetecting, setIsDetecting] = useState(false)
   const [progress, setProgress] = useState<string>("")
-  const { getSelectedModel, getSetting } = useProjectsStore()
-  const { getOrCreateLabel, createAnnotation } = useAnnotationsStore()
 
   useEffect(() => {
     if (!window.ipc?.on) return
@@ -48,59 +43,59 @@ export function AIDetectionButton({ image, disabled }: AIDetectionButtonProps) {
     }
     setIsDetecting(true)
     setProgress("")
-    try {
-      const modelPath = await getSelectedModel().then(
-        (model) => model?.modelPath
-      )
-      const pythonPath = await getSetting("pythonPath").then(
-        (setting) => setting?.value
-      )
-      const detections = await window.ipc.invoke("run-yolo", {
-        modelPath,
-        imagePath: image.data, // base64 string
-        pythonPath,
-      })
-      console.log("AI detection result:", detections)
-      // Render detections as annotations
-      if (Array.isArray(detections)) {
-        for (const detection of detections) {
-          const { box, name: className } = detection
-          if (!box || typeof box !== "object") continue
-          const x1 = box.x1
-          const y1 = box.y1
-          const x2 = box.x2
-          const y2 = box.y2
-          // First create or get label
-          const label = await getOrCreateLabel(className, getRandomColor())
-          const annotation: Annotation = {
-            id: crypto.randomUUID(),
-            name: className,
-            type: "box",
-            coordinates: [
-              { x: x1, y: y1 },
-              { x: x2, y: y2 },
-            ],
-            imageId: image.id,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            label: label,
-            labelId: label.id,
-            color: label.color,
-            isAIGenerated: true,
-          }
-          await createAnnotation(annotation)
-        }
-      }
-    } catch (error) {
-      console.error("AI detection failed:", error)
-      toast({
-        title: "Detection failed",
-        description: "Failed to run AI detection on this image",
-        variant: "destructive",
-      })
-    } finally {
-      setIsDetecting(false)
-    }
+    // try {
+    //   const modelPath = await getSelectedModel().then(
+    //     (model : AIModel) => model?.modelPath
+    //   )
+    //   const pythonPath = await getSetting("pythonPath").then(
+    //     (setting) => setting?.value
+    //   )
+    //   const detections = await window.ipc.invoke("run-yolo", {
+    //     modelPath,
+    //     imagePath: image.data, // base64 string
+    //     pythonPath,
+    //   })
+    //   console.log("AI detection result:", detections)
+    //   // Render detections as annotations
+    //   if (Array.isArray(detections)) {
+    //     for (const detection of detections) {
+    //       const { box, name: className } = detection
+    //       if (!box || typeof box !== "object") continue
+    //       const x1 = box.x1
+    //       const y1 = box.y1
+    //       const x2 = box.x2
+    //       const y2 = box.y2
+    //       // First create or get label
+    //       const label = await getOrCreateLabel(className, getRandomColor())
+    //       const annotation: Annotation = {
+    //         id: crypto.randomUUID(),
+    //         name: className,
+    //         type: "box",
+    //         coordinates: [
+    //           { x: x1, y: y1 },
+    //           { x: x2, y: y2 },
+    //         ],
+    //         imageId: image.id,
+    //         createdAt: new Date(),
+    //         updatedAt: new Date(),
+    //         label: label,
+    //         labelId: label.id,
+    //         color: label.color,
+    //         isAIGenerated: true,
+    //       }
+    //       await createAnnotation(annotation)
+    //     }
+    //   }
+    // } catch (error) {
+    //   console.error("AI detection failed:", error)
+    //   toast({
+    //     title: "Detection failed",
+    //     description: "Failed to run AI detection on this image",
+    //     variant: "destructive",
+    //   })
+    // } finally {
+    //   setIsDetecting(false)
+    // }
   }
 
   return (

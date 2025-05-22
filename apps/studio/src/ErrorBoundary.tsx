@@ -1,5 +1,5 @@
 import React, { useState } from "react"
-import { motion } from "framer-motion"
+import { Button } from "@/components/ui/button"
 
 export function ErrorBoundary({
   children,
@@ -12,7 +12,14 @@ export function ErrorBoundary({
       try {
         return <>{props.children}</>
       } catch (err) {
-        setError(err as Error)
+        // Display the actual error object as JSON if not an Error instance
+        if (err instanceof Error) {
+          setError(err)
+        } else {
+          setError(
+            new Error(typeof err === "string" ? err : JSON.stringify(err))
+          )
+        }
         return null
       }
     },
@@ -21,18 +28,8 @@ export function ErrorBoundary({
 
   if (error) {
     return (
-      <motion.div
-        className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-red-400 via-gray-800 to-gray-900 text-white"
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
-      >
-        <motion.div
-          initial={{ rotate: -10, scale: 0.8 }}
-          animate={{ rotate: 0, scale: 1 }}
-          transition={{ type: "spring", stiffness: 200, damping: 10 }}
-          className="mb-6"
-        >
+      <div className="min-h-screen flex flex-col items-center justify-center bg-white dark:bg-gray-900 text-gray-900 dark:text-white p-6">
+        <div className="mb-6 flex flex-col items-center">
           <svg
             width="96"
             height="96"
@@ -51,57 +48,46 @@ export function ErrorBoundary({
             <rect x="36" y="20" width="8" height="28" rx="4" fill="#fff" />
             <rect x="36" y="54" width="8" height="8" rx="4" fill="#fff" />
           </svg>
-        </motion.div>
-        <motion.h1
-          className="text-4xl md:text-5xl font-bold tracking-wide mt-2"
-          initial={{ y: 40, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.2, duration: 0.5 }}
-        >
+        </div>
+        <h1 className="text-4xl md:text-5xl font-bold tracking-wide mt-2">
           Oops! Something went wrong
-        </motion.h1>
-        <motion.p
-          className="text-yellow-200 mt-4 text-lg md:text-xl max-w-xl text-center"
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.3, duration: 0.5 }}
-        >
+        </h1>
+        <p className="text-yellow-600 dark:text-yellow-200 mt-4 text-lg md:text-xl max-w-xl text-center">
           {error.message}
-        </motion.p>
-        <motion.pre
-          className="bg-black/40 text-yellow-200 p-4 rounded-lg mt-6 max-w-2xl overflow-x-auto text-xs md:text-sm font-mono shadow-lg"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4, duration: 0.5 }}
-        >
-          {error.stack}
-        </motion.pre>
-        <motion.button
-          className="mt-8 px-8 py-3 rounded-lg bg-gradient-to-r from-blue-600 to-blue-400 text-white text-lg font-semibold shadow-md hover:scale-105 hover:from-blue-500 hover:to-blue-300 transition-transform duration-200"
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.97 }}
-          onClick={() => window.location.reload()}
-        >
-          🔄 Reload Page
-        </motion.button>
-        <motion.p
-          className="mt-8 text-gray-300 text-base"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6, duration: 0.5 }}
-        >
+        </p>
+        <pre className="bg-black/10 dark:bg-black/40 text-yellow-700 dark:text-yellow-200 p-4 rounded-lg mt-6 max-w-2xl overflow-x-auto text-xs md:text-sm font-mono shadow-lg">
+          {typeof error.stack === "string" && error.stack.trim() !== ""
+            ? error.stack
+            : JSON.stringify(error, null, 2)}
+        </pre>
+        <div className="flex gap-4 mt-8">
+          <Button
+            onClick={() => window.location.reload()}
+            className="bg-blue-600 text-white text-lg font-semibold shadow-md hover:bg-blue-500 transition-transform duration-200"
+          >
+            🔄 Reload Page
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => window.history.back()}
+            className="text-gray-900 dark:text-white border-gray-300 dark:border-white hover:bg-gray-100 dark:hover:bg-white/10"
+          >
+            ← Back
+          </Button>
+        </div>
+        <p className="mt-8 text-gray-500 dark:text-gray-300 text-base">
           If this keeps happening, please{" "}
           <a
             href="https://github.com/vailabel/vailabel-studio/issues"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-300 underline hover:text-blue-200 transition-colors"
+            className="text-blue-600 dark:text-blue-300 underline hover:text-blue-400 dark:hover:text-blue-200 transition-colors"
           >
             report an issue
           </a>
           .
-        </motion.p>
-      </motion.div>
+        </p>
+      </div>
     )
   }
   return <ErrorCatcher>{children}</ErrorCatcher>
