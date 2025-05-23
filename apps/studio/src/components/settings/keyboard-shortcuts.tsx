@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Undo2, Pencil } from "lucide-react"
 import { Combobox } from "@/components/ui/combobox"
-import { useDataAccess } from "@/hooks/use-data-access"
+import { useSettingsStore } from "@/hooks/use-settings-store"
 
 interface KeyboardShortcut {
   category: string
@@ -31,7 +31,7 @@ const CATEGORIES = [
 ]
 
 export function KeyboardShortcuts() {
-  const { getSetting, updateSetting } = useDataAccess()
+  const { getSetting, updateSetting } = useSettingsStore()
   const [shortcuts, setShortcuts] =
     useState<KeyboardShortcut[]>(DEFAULT_SHORTCUTS)
   const [editingIdx, setEditingIdx] = useState<number | null>(null)

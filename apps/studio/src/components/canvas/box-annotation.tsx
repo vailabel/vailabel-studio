@@ -1,9 +1,9 @@
 import React, { useMemo } from "react"
 import { motion } from "framer-motion"
-import { cn, rgbToRgba } from "../../lib/utils"
+import { cn, getContentBoxColor } from "@/lib/utils"
 import type { Annotation } from "@vailabel/core"
-import { useCanvas } from "@/hooks/use-canvas"
-import { useAnnotations } from "@/hooks/use-annotations"
+import { useCanvasStore } from "@/hooks/canvas-store"
+import { useAnnotationsStore } from "@/hooks/annotation-store"
 
 interface BoxAnnotationProps {
   annotation: Annotation
@@ -12,8 +12,8 @@ interface BoxAnnotationProps {
 export const BoxAnnotation = React.memo(function BoxAnnotation({
   annotation,
 }: BoxAnnotationProps) {
-  const { selectedTool } = useCanvas()
-  const { selectedAnnotation } = useAnnotations()
+  const { selectedTool } = useCanvasStore()
+  const { selectedAnnotation } = useAnnotationsStore()
 
   const isSelected = selectedAnnotation?.id === annotation.id
   const annotationStyles = useMemo(
@@ -22,19 +22,18 @@ export const BoxAnnotation = React.memo(function BoxAnnotation({
       top: annotation.coordinates[0].y,
       width: annotation.coordinates[1].x - annotation.coordinates[0].x,
       height: annotation.coordinates[1].y - annotation.coordinates[0].y,
-      backgroundColor: rgbToRgba(annotation.color ?? "blue", 0.2),
-      borderColor: annotation.color ?? "blue",
+      backgroundColor: getContentBoxColor(annotation.color ?? "#333", 0.2),
+      borderColor: annotation.color,
     }),
     [annotation]
   )
 
   const labelStyles = useMemo(
     () => ({
-      backgroundColor: annotation.color ?? "blue",
+      backgroundColor: annotation.color,
     }),
     [annotation.color]
   )
-
   return (
     <motion.div
       className={cn(

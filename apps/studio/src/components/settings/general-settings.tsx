@@ -5,8 +5,9 @@ import { Switch } from "@/components/ui/switch"
 import { useTheme } from "@/components/theme-provider"
 import { ChromePicker } from "react-color"
 import { Check } from "lucide-react"
-import { useDataAccess } from "@/hooks/use-data-access"
 import debounce from "lodash/debounce"
+import { ElectronFileInput } from "@/components/electron-file"
+import { useSettingsStore } from "@/hooks/use-settings-store"
 
 const DEFAULTS = {
   brightness: 100,
@@ -41,10 +42,11 @@ export default function GeneralSettings() {
   const [snapToGrid, setSnapToGrid] = useState(DEFAULTS.snapToGrid)
   const [autoSave, setAutoSave] = useState(DEFAULTS.autoSave)
   const [showCustomColor, setShowCustomColor] = useState(false)
+  const [dataDir, setDataDir] = useState<string>("")
   const customBtnRef = useRef<HTMLButtonElement>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
 
-  const { updateSetting } = useDataAccess()
+  const { updateSetting } = useSettingsStore()
 
   // Close popover on outside click
   useEffect(() => {
@@ -62,12 +64,6 @@ export default function GeneralSettings() {
     document.addEventListener("mousedown", handleClick)
     return () => document.removeEventListener("mousedown", handleClick)
   }, [showCustomColor])
-
-  // Optionally, load from persisted settings here
-  useEffect(() => {
-    // ...load persisted settings if needed...
-  }, [])
-
   const handleReset = () => {
     setBrightness(DEFAULTS.brightness)
     setContrast(DEFAULTS.contrast)
@@ -116,6 +112,36 @@ export default function GeneralSettings() {
 
   return (
     <div className="space-y-6">
+      {/* Data Directory */}
+      <div>
+        <label htmlFor="data-directory" className="text-base font-medium">
+          Application Data Directory
+        </label>
+        <div className="flex flex-col sm:flex-row gap-2 mt-2 items-center">
+          <ElectronFileInput
+            onChange={(e) => {
+              const dir = e.target.files[0]
+              if (dir) {
+                setDataDir(dir)
+                updateSetting("dataDirectory", dir)
+              }
+            }}
+            accept=""
+            multiple={false}
+            className="flex-1"
+            placeholder="Select a folder..."
+          />
+        </div>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          This is the folder where application data (e.g., downloaded files)
+          will be stored.
+        </p>
+        {dataDir && (
+          <div className="mt-1 text-xs text-gray-700 dark:text-gray-200 break-all">
+            Selected: {dataDir}
+          </div>
+        )}
+      </div>
       {/* Dark Mode */}
       <div className="flex items-center justify-between">
         <div>

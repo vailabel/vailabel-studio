@@ -6,7 +6,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import type { Project, ImageData } from "@vailabel/core"
-import { useDataAccess } from "@/hooks/use-data-access"
 import { useStorage } from "@/hooks/use-stoage"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -19,11 +18,9 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-// Extend Project type locally to support labels
-interface ProjectWithLabels extends Project {
-  labels: { name: string; color: string }[]
-  description?: string
-}
+import { useProjectStore } from "@/hooks/use-project-store"
+import { useLabelStore } from "@/hooks/use-label-store"
+import { useImageDataStore } from "@/hooks/use-image-data-store"
 
 const ProjectDetailSchema = z.object({
   name: z.string().min(1, "Project name is required"),
@@ -46,7 +43,9 @@ export function ProjectCreate() {
   const [step, setStep] = useState<"details" | "dataset">("details")
   const [activeTab, setActiveTab] = useState<"form" | "json">("form")
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const { createProject, createImage, createLabel } = useDataAccess()
+  const { createProject } = useProjectStore()
+  const { createImage } = useImageDataStore()
+  const { createLabel } = useLabelStore()
   const { saveImage } = useStorage()
   const navigate = useNavigate()
 
@@ -222,29 +221,23 @@ export function ProjectCreate() {
     }
     try {
       const projectId = crypto.randomUUID()
-      const newProject: ProjectWithLabels = {
+      const newProject: Project = {
         id: projectId,
         name: details.name.trim(),
         images: [],
         createdAt: new Date(),
         lastModified: new Date(),
-        labels: details.labels,
-        description: details.description,
       }
       await createProject(newProject as Project)
-      // Create labels in the database
       for (const label of details.labels) {
-        await createLabel(
-          {
-            id: crypto.randomUUID(),
-            name: label.name,
-            color: label.color,
-            projectId,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-          []
-        )
+        await createLabel({
+          id: crypto.randomUUID(),
+          name: label.name,
+          color: label.color,
+          projectId,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
       }
       const projectImages = images.map((img) => ({ ...img, projectId }))
       for (const img of projectImages) {

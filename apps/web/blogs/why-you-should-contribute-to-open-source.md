@@ -3,7 +3,6 @@ title: "Why You Need to Start Contributing to Open Source"
 description: "Discover the benefits of contributing to open source, from real-world experience to career growth and community impact."
 date: "2025-05-15"
 author: "Vichea Nath"
-image: "https://blog.openreplay.com/images/getting-started-with-open-source-how-to-contribute/images/hero.png"
 tags: ["Open Source", "Career", "Community", "Software Development"]
 ---
 

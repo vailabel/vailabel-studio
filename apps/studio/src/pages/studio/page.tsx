@@ -1,52 +1,40 @@
 "use client"
 import { ImageLabeler } from "@/components/image-labeler"
-import { Project } from "@vailabel/core"
-import { useEffect, useState } from "react"
-import Loading from "@/components/loading"
-import { useNavigate, useParams } from "react-router-dom"
-import { AnnotationsProvider } from "@/contexts/annotations-context-provider"
-import { CanvasProvider } from "@/contexts/canvas-context-provider"
-import { useDataAccess } from "@/hooks/use-data-access"
+import { useCanvasStore } from "@/hooks/canvas-store"
+import { useImageDataStore } from "@/hooks/use-image-data-store"
+import { useLabelStore } from "@/hooks/use-label-store"
+import { useEffect } from "react"
+import { useParams } from "react-router-dom"
 
 export default function ImageStudio() {
   const { projectId, imageId } = useParams<{
     projectId: string
     imageId: string
   }>()
-
-  const { getProjectById } = useDataAccess()
-  const [isLoading, setIsLoading] = useState(true)
-  const [currentProject, setCurrentProject] = useState<Project | null>(null)
-  const navigate = useNavigate()
+  const { getLabelsByProjectId, setLabels } = useLabelStore()
+  const { getImage } = useImageDataStore()
+  const { setCurrentImage } = useCanvasStore()
   useEffect(() => {
+    if (!projectId || !imageId) return
     const fetchProject = async () => {
-      setIsLoading(true)
-      try {
-        const project = await getProjectById(projectId ?? "")
-        setCurrentProject(project ?? null)
-      } catch (error) {
-        console.error("Error loading project:", error)
-      } finally {
-        setIsLoading(false)
+      const image = await getImage(imageId)
+      const labels = await getLabelsByProjectId(projectId)
+      if (image) {
+        setCurrentImage(image)
+      }
+      if (labels) {
+        setLabels(labels)
       }
     }
 
     fetchProject()
-  }, [projectId, getProjectById])
-  return (
-    <>
-      {isLoading && <Loading />}
-      {!isLoading && (currentProject as Project) && (
-        <CanvasProvider>
-          <AnnotationsProvider>
-            <ImageLabeler
-              project={currentProject as Project}
-              imageId={imageId ?? ""}
-              onClose={() => navigate(-1)}
-            />
-          </AnnotationsProvider>
-        </CanvasProvider>
-      )}
-    </>
-  )
+  }, [
+    projectId,
+    imageId,
+    getImage,
+    getLabelsByProjectId,
+    setCurrentImage,
+    setLabels,
+  ])
+  return <ImageLabeler />
 }

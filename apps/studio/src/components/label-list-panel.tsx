@@ -1,6 +1,4 @@
-import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
-import { ChevronRight, ChevronDown, Tag } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -10,20 +8,24 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { Label } from "@vailabel/core"
-import { useAnnotations } from "@/hooks/use-annotations"
+import { useLabelStore } from "@/hooks/use-label-store"
 
 interface LabelListPanelProps {
   onLabelSelect: (label: Label) => void
 }
 
 export function LabelListPanel({ onLabelSelect }: LabelListPanelProps) {
-  const [labelsOpen, setLabelsOpen] = useState(true)
-  const { labels } = useAnnotations()
-  useEffect(() => {
-    if (labels.length > 0) {
-      setLabelsOpen(true)
-    }
-  }, [labels])
+  const { labels } = useLabelStore()
+  const groupedLabels: Record<string, Label[]> = labels.reduce(
+    (acc, label) => {
+      const category = label.category || "Uncategorized"
+      if (!acc[category]) acc[category] = []
+      acc[category].push(label)
+      return acc
+    },
+    {} as Record<string, Label[]>
+  )
+
   return (
     <div
       className={cn(
@@ -47,92 +49,84 @@ export function LabelListPanel({ onLabelSelect }: LabelListPanelProps) {
 
       <ScrollArea className="h-[calc(100%-65px)]">
         <div className="p-2 ">
-          <Collapsible open={labelsOpen} onOpenChange={setLabelsOpen}>
-            <CollapsibleTrigger asChild>
-              <Button
-                variant="ghost"
-                className="flex w-full items-center justify-between p-2"
-              >
-                <div className="flex items-center">
-                  <Tag className="mr-2 h-4 w-4" />
-                  <span>All Labels</span>
-                </div>
-                {labelsOpen ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <div className="space-y-1">
-                {labels.map((label) => (
-                  <motion.div
-                    key={label.id}
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="rounded-md border p-2 cursor-pointer dark:border-gray-700 dark:hover:bg-gray-700 border-gray-200 hover:bg-gray-50"
-                    onClick={() => onLabelSelect(label)}
+          <div className="space-y-4">
+            {Object.entries(groupedLabels).map(([category, group]) => (
+              <Collapsible key={category} defaultOpen className="mb-4">
+                <CollapsibleTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="w-full flex items-center justify-between px-2 py-1 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2 pl-1 gap-2"
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <div
-                          style={{
-                            backgroundColor: label.color,
-                          }}
-                          className={cn(
-                            "mr-2 h-3 w-3 rounded-full",
-                            label.isAIGenerated ? "bg-green-500" : ``
-                          )}
-                        />
-                        <span className="text-sm font-medium">
-                          {label.name}
-                        </span>
-                      </div>
+                    <div className="flex items-center gap-2">
+                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600"></span>
+                      {category}
                     </div>
-                    <p
-                      className={cn(
-                        "mt-1 text-xs truncate",
-                        "dark:text-gray-400",
-                        "text-gray-500"
-                      )}
-                    >
-                      {label.isAIGenerated && "🤖 "}
-                    </p>
-                  </motion.div>
-                ))}
-              </div>
-
-              {labels.length === 0 && (
-                <div
-                  className={cn(
-                    "mt-2 rounded-md border border-dashed p-4 text-center",
-                    "dark:border-gray-700",
-                    "border-gray-300"
-                  )}
-                >
-                  <p
-                    className={cn(
-                      "text-sm",
-                      "dark:text-gray-400",
-                      "text-gray-500"
-                    )}
-                  >
-                    No labels created yet
-                  </p>
-                  <p
-                    className={cn(
-                      "text-xs",
-                      "dark:text-gray-500",
-                      "text-gray-400"
-                    )}
-                  >
-                    Use the drawing tools to create labels
-                  </p>
-                </div>
+                    <span className="text-xs">{group.length}</span>
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="space-y-2">
+                    {group.map((label) => (
+                      <motion.div
+                        key={label.id}
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className={cn(
+                          "rounded-lg border p-3 cursor-pointer flex flex-col gap-1 transition-colors duration-150",
+                          "dark:border-gray-700 dark:hover:bg-gray-700 border-gray-200 hover:bg-gray-50",
+                          label.isAIGenerated
+                            ? "ring-2 ring-green-200 dark:ring-green-700"
+                            : ""
+                        )}
+                        onClick={() => onLabelSelect(label)}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div
+                            style={{ backgroundColor: label.color }}
+                            className={cn(
+                              "h-4 w-4 rounded-full border-2 border-white shadow-sm",
+                              label.isAIGenerated
+                                ? "ring-2 ring-green-400 dark:ring-green-600"
+                                : ""
+                            )}
+                          />
+                          <span className="text-sm font-medium truncate max-w-[120px]">
+                            {label.name}
+                          </span>
+                          {label.isAIGenerated && (
+                            <span className="ml-2 px-2 py-0.5 rounded bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 text-xs font-semibold flex items-center gap-1">
+                              <span className="text-base leading-none">🤖</span>{" "}
+                              AI
+                            </span>
+                          )}
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            ))}
+          </div>
+          {labels.length === 0 && (
+            <div
+              className={cn(
+                "mt-2 rounded-md border border-dashed p-4 text-center",
+                "dark:border-gray-700",
+                "border-gray-300"
               )}
-            </CollapsibleContent>
-          </Collapsible>
+            >
+              <p
+                className={cn("text-sm", "dark:text-gray-400", "text-gray-500")}
+              >
+                No labels created yet
+              </p>
+              <p
+                className={cn("text-xs", "dark:text-gray-500", "text-gray-400")}
+              >
+                Use the drawing tools to create labels
+              </p>
+            </div>
+          )}
         </div>
       </ScrollArea>
     </div>

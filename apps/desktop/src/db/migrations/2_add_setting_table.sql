@@ -1,4 +1,5 @@
 CREATE TABLE IF NOT EXISTS settings (
-  key TEXT PRIMARY KEY,
-  value TEXT
+  id TEXT PRIMARY KEY,
+  key TEXT NOT NULL,
+  value TEXT NOT NULL
 );

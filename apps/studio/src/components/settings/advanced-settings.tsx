@@ -38,45 +38,41 @@ export default function AdvancedSettings() {
   }
 
   return (
-    <section className="space-y-8">
-      <h2 className="text-xl font-bold text-red-700 dark:text-red-300 mb-2">
-        Advanced / Danger Zone
-      </h2>
-      <div className="bg-red-50 dark:bg-red-950 border border-red-300 dark:border-red-700 rounded-lg p-6 flex flex-col items-start gap-3 shadow-sm w-full">
-        <div className="flex items-center gap-2">
-          <Trash2
-            className="h-6 w-6 text-red-600 dark:text-red-400"
-            aria-hidden="true"
-          />
-          <span className="text-lg font-bold text-red-700 dark:text-red-300">
-            Clear All Data
-          </span>
-        </div>
-        <p className="text-sm text-red-700 dark:text-red-300 font-medium">
-          This will{" "}
-          <span className="font-bold underline">permanently delete</span> all
-          data from your browser's local storage and any other storage used by
-          the app.
-          <br />
-          <span className="font-bold">This action cannot be undone.</span>
-        </p>
-        <button
-          type="button"
-          onClick={handleClearAllData}
-          disabled={isClearing}
-          className="mt-2 w-full flex items-center justify-center gap-2 px-5 py-3 text-base font-semibold rounded-lg bg-red-600 hover:bg-red-700 focus:ring-2 focus:ring-red-400 focus:outline-none text-white shadow transition disabled:bg-red-400 disabled:cursor-not-allowed"
-          aria-label="Clear all data"
-          aria-disabled={isClearing}
-          aria-describedby="clear-data-warning"
-          data-testid="clear-all-data-btn"
-        >
-          <Trash2 className="h-5 w-5" />
-          {isClearing ? "Clearing..." : "Clear All Data"}
-        </button>
-        <span id="clear-data-warning" className="sr-only">
-          Warning: This action is irreversible and will delete all your data.
+    <div className="bg-muted dark:bg-muted/40 rounded-xl p-6 flex flex-col items-start gap-4 shadow-sm w-full">
+      <div className="flex items-center gap-3 mb-1">
+        <Trash2 className="h-6 w-6 text-destructive" aria-hidden="true" />
+        <span className="text-lg font-semibold text-foreground">
+          Clear All Data
         </span>
       </div>
-    </section>
+      <p className="text-sm text-muted-foreground font-medium">
+        This will{" "}
+        <span className="font-bold underline text-destructive">
+          permanently delete
+        </span>{" "}
+        all data from your browser's local storage and any other storage used by
+        the app.
+        <br />
+        <span className="font-bold text-destructive">
+          This action cannot be undone.
+        </span>
+      </p>
+      <button
+        type="button"
+        onClick={handleClearAllData}
+        disabled={isClearing}
+        className="mt-2 w-full flex items-center justify-center gap-2 px-5 py-3 text-base font-semibold rounded-lg bg-destructive hover:bg-destructive/90 focus:ring-2 focus:ring-destructive/40 focus:outline-none text-white shadow-sm transition disabled:bg-destructive/40 disabled:cursor-not-allowed"
+        aria-label="Clear all data"
+        aria-disabled={isClearing}
+        aria-describedby="clear-data-warning"
+        data-testid="clear-all-data-btn"
+      >
+        <Trash2 className="h-5 w-5" />
+        {isClearing ? "Clearing..." : "Clear All Data"}
+      </button>
+      <span id="clear-data-warning" className="sr-only">
+        Warning: This action is irreversible and will delete all your data.
+      </span>
+    </div>
   )
 }

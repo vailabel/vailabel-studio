@@ -1,5 +1,4 @@
 /// <reference path='../../../type.d.ts' />
-import { IDataAccess } from "@vailabel/core/src/data/interface/IDataAccess"
 import {
   Project,
   ImageData,
@@ -9,8 +8,83 @@ import {
   AIModel,
   Settings,
 } from "../../../models/types"
+import { IDataAccess } from "../../contracts/IDataAccess"
 
-export class SQLiteDataAccess implements IDataAccess {
+export class SQLiteDataAccess implements IDataAccess<any> {
+  protected table: string
+
+  constructor(table: string) {
+    this.table = table
+  }
+
+  // Generic CRUD methods
+  async get<T>(): Promise<T[]> {
+    return window.ipc.invoke("sqlite:all", [`SELECT * FROM ${this.table}`, []])
+  }
+
+  async getById<T>(id: string): Promise<T | null> {
+    const row = await window.ipc.invoke("sqlite:get", [
+      `SELECT * FROM ${this.table} WHERE id = ?`,
+      [id],
+    ])
+    return row || null
+  }
+
+  async create<T extends object>(item: T): Promise<void> {
+    const flatItem: Record<string, any> = {}
+
+    for (const [key, value] of Object.entries(item)) {
+      if (key === "JsonData") {
+        flatItem[key] = JSON.stringify(value)
+      } else if (
+        typeof value !== "object" || // Keep primitives
+        value === null || // Allow null
+        value instanceof Date // Allow Date if needed
+      ) {
+        flatItem[key] = value
+      }
+    }
+
+    const keys = Object.keys(flatItem)
+    const values = Object.values(flatItem)
+    const placeholders = keys.map(() => "?").join(", ")
+
+    const sql = `INSERT INTO ${this.table} (${keys.join(", ")}) VALUES (${placeholders})`
+
+    await window.ipc.invoke("sqlite:run", [sql, values])
+  }
+
+  async update<T>(id: string, updates: Partial<T>): Promise<void> {
+    const setClause = Object.keys(updates)
+      .map((key) => `${key} = ?`)
+      .join(", ")
+    const values = Object.values(updates)
+    await window.ipc.invoke("sqlite:run", [
+      `UPDATE ${this.table} SET ${setClause} WHERE id = ?`,
+      [...values, id],
+    ])
+  }
+
+  async delete(id: string): Promise<void> {
+    await window.ipc.invoke("sqlite:run", [
+      `DELETE FROM ${this.table} WHERE id = ?`,
+      [id],
+    ])
+  }
+
+  async paginate<T>(offset: number, limit: number): Promise<T[]> {
+    return window.ipc.invoke("sqlite:all", [
+      `SELECT * FROM ${this.table} LIMIT ? OFFSET ?`,
+      [limit, offset],
+    ])
+  }
+
+  getLabelsByProjectId(projectId: string): Promise<Label[]> {
+    return window.ipc.invoke("sqlite:all", [
+      "SELECT * FROM labels WHERE projectId = ?",
+      [projectId],
+    ])
+  }
   getAnnotationsByImageId(imageId: string): Promise<Annotation[]> {
     return window.ipc.invoke("sqlite:all", [
       "SELECT * FROM annotations WHERE imageId = ?",

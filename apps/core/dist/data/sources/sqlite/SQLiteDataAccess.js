@@ -11,6 +11,79 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SQLiteDataAccess = void 0;
 class SQLiteDataAccess {
+    constructor(table) {
+        this.table = table;
+    }
+    // Generic CRUD methods
+    get() {
+        return __awaiter(this, void 0, void 0, function* () {
+            return window.ipc.invoke("sqlite:all", [`SELECT * FROM ${this.table}`, []]);
+        });
+    }
+    getById(id) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const row = yield window.ipc.invoke("sqlite:get", [
+                `SELECT * FROM ${this.table} WHERE id = ?`,
+                [id],
+            ]);
+            return row || null;
+        });
+    }
+    create(item) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const flatItem = {};
+            for (const [key, value] of Object.entries(item)) {
+                if (key === "JsonData") {
+                    flatItem[key] = JSON.stringify(value);
+                }
+                else if (typeof value !== "object" || // Keep primitives
+                    value === null || // Allow null
+                    value instanceof Date // Allow Date if needed
+                ) {
+                    flatItem[key] = value;
+                }
+            }
+            const keys = Object.keys(flatItem);
+            const values = Object.values(flatItem);
+            const placeholders = keys.map(() => "?").join(", ");
+            const sql = `INSERT INTO ${this.table} (${keys.join(", ")}) VALUES (${placeholders})`;
+            yield window.ipc.invoke("sqlite:run", [sql, values]);
+        });
+    }
+    update(id, updates) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const setClause = Object.keys(updates)
+                .map((key) => `${key} = ?`)
+                .join(", ");
+            const values = Object.values(updates);
+            yield window.ipc.invoke("sqlite:run", [
+                `UPDATE ${this.table} SET ${setClause} WHERE id = ?`,
+                [...values, id],
+            ]);
+        });
+    }
+    delete(id) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield window.ipc.invoke("sqlite:run", [
+                `DELETE FROM ${this.table} WHERE id = ?`,
+                [id],
+            ]);
+        });
+    }
+    paginate(offset, limit) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return window.ipc.invoke("sqlite:all", [
+                `SELECT * FROM ${this.table} LIMIT ? OFFSET ?`,
+                [limit, offset],
+            ]);
+        });
+    }
+    getLabelsByProjectId(projectId) {
+        return window.ipc.invoke("sqlite:all", [
+            "SELECT * FROM labels WHERE projectId = ?",
+            [projectId],
+        ]);
+    }
     getAnnotationsByImageId(imageId) {
         return window.ipc.invoke("sqlite:all", [
             "SELECT * FROM annotations WHERE imageId = ?",
