@@ -84,3 +84,17 @@ export interface Settings {
   key: string
   value: string
 }
+
+export interface Task extends Modal {
+  id: string
+  name: string
+  description: string
+  projectId: string
+  assignedTo?: string // user id or name
+  status: "pending" | "in_progress" | "completed" | "review" | "archived"
+  createdAt: Date
+  updatedAt: Date
+  dueDate?: Date
+  labels?: Label[]
+  annotations?: Annotation[]
+}

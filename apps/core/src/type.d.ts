@@ -10,7 +10,6 @@ declare global {
   interface Window {
     ipc: IpcWithEvents
     db: DataAccess
-    process: NodeJS.Process
   }
 }
 
