@@ -35,7 +35,10 @@ export function getContentBoxColor(color: string, alpha: number): string {
   return rgbToRgba(color, alpha)
 }
 
-export function rgbToRgba(rgb: string, alpha: number): string {
+export function rgbToRgba(rgb: string | undefined, alpha: number): string {
+  if (!rgb) {
+    return "rgba(0, 0, 0, 0)" // Default to transparent black if rgb is null
+  }
   // Extract all numbers from the rgb string
   const rgbValues = rgb.match(/\d+/g)?.map(Number)
 

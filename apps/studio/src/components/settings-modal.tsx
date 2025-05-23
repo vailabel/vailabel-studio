@@ -25,7 +25,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   const { toast } = useToast()
   const [isClearing, setIsClearing] = useState(false)
   const { theme, setTheme } = useTheme()
-  const { getSettings, setSettings } = useSettingsStore()
+  const { getSettings, updateSetting } = useSettingsStore()
 
   const [showRulers, setShowRulers] = useState(true)
   const [showCrosshairs, setShowCrosshairs] = useState(true)
@@ -45,24 +45,23 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
         },
         {} as Settings
       )
-      setSettings(loadedSettings)
+      // Only update local state, not the store, to avoid type mismatch
       setShowRulers(Boolean(loadedSettings.showRulers ?? true))
       setShowCrosshairs(Boolean(loadedSettings.showCrosshairs ?? true))
       setShowCoordinates(Boolean(loadedSettings.showCoordinates ?? true))
       setBrightness(Number(loadedSettings.brightness ?? 100))
       setContrast(Number(loadedSettings.contrast ?? 100))
     })()
-  }, [data])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Unified handler for toggles and sliders
   const handleChangeSetting = (
     key: string,
     value: string | number | boolean
   ) => {
-    setSettings((prevSettings) => ({
-      ...prevSettings,
-      [key]: value,
-    }))
+    // Convert value to string for updateSetting
+    updateSetting(key, String(value))
     toast({
       title: "Setting updated",
       description: `${key} has been updated to ${value}`,

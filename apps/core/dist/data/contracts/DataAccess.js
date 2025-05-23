@@ -62,19 +62,24 @@ class DataAccess {
             return row || null;
         });
     }
+    flattenItem(item) {
+        const flatItem = {};
+        for (const [key, value] of Object.entries(item)) {
+            if (typeof value !== "object" || // Keep primitives
+                value === null || // Allow null
+                value instanceof Date) {
+                flatItem[key] = value;
+            }
+            else if (key === "coordinates") {
+                flatItem[key] = JSON.stringify(value);
+            }
+            // Ignore relationships (objects/arrays except 'coordinates')
+        }
+        return flatItem;
+    }
     create(item) {
         return __awaiter(this, void 0, void 0, function* () {
-            const flatItem = {};
-            for (const [key, value] of Object.entries(item)) {
-                if (typeof value !== "object" || // Keep primitives
-                    value === null || // Allow null
-                    value instanceof Date) {
-                    flatItem[key] = value;
-                }
-                else if (key === "coordinates") {
-                    flatItem[key] = JSON.stringify(value);
-                }
-            }
+            const flatItem = this.flattenItem(item);
             const keys = Object.keys(flatItem);
             const values = Object.values(flatItem);
             const placeholders = keys.map(() => "?").join(", ");
@@ -86,10 +91,11 @@ class DataAccess {
     }
     update(id, updates) {
         return __awaiter(this, void 0, void 0, function* () {
-            const setClause = Object.keys(updates)
+            const flatUpdates = this.flattenItem(updates);
+            const setClause = Object.keys(flatUpdates)
                 .map((key) => `${key} = ?`)
                 .join(", ");
-            const values = Object.values(updates);
+            const values = Object.values(flatUpdates);
             yield window.ipc.invoke("sqlite:run", [
                 `UPDATE ${this.table} SET ${setClause} WHERE id = ?`,
                 [...values, id],

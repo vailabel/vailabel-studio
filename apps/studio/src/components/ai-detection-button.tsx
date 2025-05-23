@@ -8,7 +8,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { useToast } from "@/hooks/use-toast"
-import type { AIModel, Annotation, ImageData } from "@vailabel/core"
+import type { Annotation, ImageData } from "@vailabel/core"
 import { useAIModelStore } from "@/hooks/use-ai-model-store"
 import { useSettingsStore } from "@/hooks/use-settings-store"
 import { useLabelStore } from "@/hooks/use-label-store"

@@ -18,7 +18,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { useProjectsStore3 } from "@/hooks/use-store"
 import { useProjectStore } from "@/hooks/use-project-store"
 import { useLabelStore } from "@/hooks/use-label-store"
 import { useImageDataStore } from "@/hooks/use-image-data-store"

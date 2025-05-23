@@ -8,9 +8,8 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useToast } from "@/hooks/use-toast"
 import { ExportService } from "@/lib/export-service"
-import type { Annotation, Project } from "@vailabel/core"
-import { useProjectsStore } from "@/hooks/use-store"
-import { IDBContext } from "@vailabel/core/src/data/sources/sqlite/SQLiteDBContext"
+import type { Annotation, IDBContext, Project } from "@vailabel/core"
+import { useProjectStore } from "@/hooks/use-project-store"
 interface ExportModalProps {
   project: Project
   annotations: Annotation[]
@@ -21,7 +20,7 @@ export function ExportModal({ project, onClose }: ExportModalProps) {
   const { toast } = useToast()
   const [exportFormat, setExportFormat] = useState<string>("json")
   const [isExporting, setIsExporting] = useState(false)
-  const { dbContext } = useProjectsStore()
+  const { dbContext } = useProjectStore()
   const exportService = new ExportService(dbContext as IDBContext)
 
   const handleExport = async () => {

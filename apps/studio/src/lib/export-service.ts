@@ -1,5 +1,4 @@
-import type { Annotation } from "@vailabel/core"
-import { IDBContext } from "@vailabel/core/src/data/sources/sqlite/SQLiteDBContext"
+import type { Annotation, IDBContext } from "@vailabel/core"
 import JSZip from "jszip"
 
 export class ExportService {
