@@ -1,8 +1,12 @@
-export interface Point {
+export interface JsonData {
+}
+export interface Modal {
+}
+export interface Point extends JsonData {
     x: number;
     y: number;
 }
-export interface Label {
+export interface Label extends Modal {
     id: string;
     name: string;
     category?: string;
@@ -12,7 +16,7 @@ export interface Label {
     createdAt: Date;
     updatedAt: Date;
 }
-export interface Annotation {
+export interface Annotation extends Modal {
     id: string;
     labelId: string;
     label?: Label;
@@ -25,14 +29,14 @@ export interface Annotation {
     color?: string;
     isAIGenerated?: boolean;
 }
-export interface History {
+export interface History extends Modal {
     id: string;
     labels: Label[];
     historyIndex: number;
     canUndo: boolean;
     canRedo: boolean;
 }
-export interface ImageData {
+export interface ImageData extends Modal {
     id: string;
     name: string;
     data: string;
@@ -42,20 +46,20 @@ export interface ImageData {
     projectId: string;
     createdAt: Date;
 }
-export interface Project {
+export interface Project extends Modal {
     id: string;
     name: string;
     images?: ImageData[];
     createdAt: Date;
     lastModified: Date;
 }
-export interface ExportFormat {
+export interface ExportFormat extends Modal {
     id: string;
     name: string;
     description: string;
     extension: string;
 }
-export interface AIModel {
+export interface AIModel extends Modal {
     id: string;
     name: string;
     description: string;
@@ -68,6 +72,20 @@ export interface AIModel {
     isCustom: boolean;
 }
 export interface Settings {
+    id: string;
     key: string;
     value: string;
+}
+export interface Task extends Modal {
+    id: string;
+    name: string;
+    description: string;
+    projectId: string;
+    assignedTo?: string;
+    status: "pending" | "in_progress" | "completed" | "review" | "archived";
+    createdAt: Date;
+    updatedAt: Date;
+    dueDate?: Date;
+    labels?: Label[];
+    annotations?: Annotation[];
 }

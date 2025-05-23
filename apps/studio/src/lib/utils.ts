@@ -13,7 +13,32 @@ export function getRandomColor(): string {
   return `rgb(${r}, ${g}, ${b})`
 }
 
-export function rgbToRgba(rgb: string = "#333", alpha: number): string {
+export function hxToRgb(hex: string): string {
+  // Remove the hash at the start if it's there
+  hex = hex.replace(/^#/, "")
+  // Parse r, g, b values
+  const bigint = parseInt(hex, 16)
+  const r = (bigint >> 16) & 255
+  const g = (bigint >> 8) & 255
+  const b = bigint & 255
+  // Return rgb string
+  return `rgb(${r}, ${g}, ${b})`
+}
+
+export function getContentBoxColor(color: string, alpha: number): string {
+  // Check if the color is in hex format
+  if (color.startsWith("#")) {
+    const rgb = hxToRgb(color)
+    return rgbToRgba(rgb, alpha)
+  }
+  // If it's not hex, assume it's already in rgb format
+  return rgbToRgba(color, alpha)
+}
+
+export function rgbToRgba(rgb: string | undefined, alpha: number): string {
+  if (!rgb) {
+    return "rgba(0, 0, 0, 0)" // Default to transparent black if rgb is null
+  }
   // Extract all numbers from the rgb string
   const rgbValues = rgb.match(/\d+/g)?.map(Number)
 

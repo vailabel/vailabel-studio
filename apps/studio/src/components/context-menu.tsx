@@ -11,7 +11,7 @@ import {
   Pencil,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useCanvas } from "@/hooks/use-canvas"
+import { useCanvasStore } from "@/hooks/canvas-store"
 
 interface ContextMenuProps {
   x: number
@@ -27,7 +27,7 @@ export function ContextMenu({
   onClose,
 }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null)
-  const { setSelectedTool, resetView } = useCanvas()
+  const { setSelectedTool, resetView } = useCanvasStore()
 
   // Close menu when clicking outside
   useEffect(() => {

@@ -384,7 +384,7 @@ export default function CloudStorageConfigPage() {
         })
         let activeId = null
         try {
-          activeId = await window.ipc.invoke("command:safeStorage:get", {
+          activeId = await window.ipc.invoke("query:safeStorage:get", {
             key: ACTIVE_CONFIG_KEY,
           })
         } catch {

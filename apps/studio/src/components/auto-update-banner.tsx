@@ -48,33 +48,25 @@ export function AutoUpdateBanner() {
             </span>
             )
           </div>
-          <Button
-            onClick={() => {
-              // @ts-expect-error electronAPI is injected by preload
-              window.electronAPI?.restartApp?.()
-            }}
-            className="mt-4 w-full bg-green-500 hover:bg-green-600 text-white font-bold rounded-lg shadow"
-          >
-            <RotateCcw className="w-4 h-4 mr-2 inline-block" />
-            Restart & Install Update
-          </Button>
         </div>
       )}
       {updateDownloaded && !progress && (
         <>
           <div className="mt-2 font-semibold text-lg text-green-200 flex items-center gap-2">
             <CheckCircle2 className="w-5 h-5 text-green-300" />
-            Update downloaded! Restart the app to apply the update.
+            Update downloaded successfully! Restart the app to install the
+            update.
           </div>
           <Button
             onClick={() => {
               // @ts-expect-error electronAPI is injected by preload
               window.electronAPI?.restartApp?.()
+              // Optionally, you can also send an IPC event to trigger update installation if needed
             }}
             className="mt-4 w-full bg-green-500 hover:bg-green-600 text-white font-bold rounded-lg shadow"
           >
             <RotateCcw className="w-4 h-4 mr-2 inline-block" />
-            Restart Now
+            Restart and Update
           </Button>
         </>
       )}

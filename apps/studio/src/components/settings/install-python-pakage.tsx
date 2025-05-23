@@ -2,9 +2,9 @@ import { useState, useEffect } from "react"
 import { Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
-import { useDataAccess } from "@/hooks/use-data-access"
 import { isElectron } from "@/lib/constants"
 import ExternalLink from "../exteral-link"
+import { useSettingsStore } from "@/hooks/use-settings-store"
 
 interface PythonInfo {
   pythonPath: string | null
@@ -27,7 +27,7 @@ export const InstallPythonPackage = () => {
     error: null,
   })
 
-  const { updateSetting } = useDataAccess()
+  const { updateSetting } = useSettingsStore()
   // Detect Python info on mount (Electron only)
   useEffect(() => {
     if (isElectron()) {

@@ -1,8 +1,8 @@
 import React from "react"
-import { useCanvas } from "@/hooks/use-canvas"
+import { useCanvasStore } from "@/hooks/canvas-store"
 
 export const Crosshair: React.FC = () => {
-  const { cursorPosition, zoom, panOffset } = useCanvas()
+  const { cursorPosition, zoom, panOffset } = useCanvasStore()
 
   if (!cursorPosition) return null
 

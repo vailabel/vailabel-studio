@@ -11,7 +11,7 @@ import { Slider } from "@/components/ui/slider"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import { useTheme } from "./theme-provider"
-import { useDataAccess } from "@/hooks/use-data-access"
+import { useSettingsStore } from "@/hooks/use-settings-store"
 
 interface SettingsModalProps {
   onClose: () => void
@@ -25,9 +25,8 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   const { toast } = useToast()
   const [isClearing, setIsClearing] = useState(false)
   const { theme, setTheme } = useTheme()
-  const data = useDataAccess()
+  const { getSettings, updateSetting } = useSettingsStore()
 
-  const [, setSettings] = useState<Settings>({})
   const [showRulers, setShowRulers] = useState(true)
   const [showCrosshairs, setShowCrosshairs] = useState(true)
   const [showCoordinates, setShowCoordinates] = useState(true)
@@ -38,7 +37,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   useEffect(() => {
     ;(async () => {
       const settingsArray: { key: string; value: string }[] =
-        await data.getSettings()
+        await getSettings()
       const loadedSettings: Settings = settingsArray.reduce(
         (acc, { key, value }) => {
           acc[key] = value
@@ -46,21 +45,23 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
         },
         {} as Settings
       )
-      setSettings(loadedSettings)
+      // Only update local state, not the store, to avoid type mismatch
       setShowRulers(Boolean(loadedSettings.showRulers ?? true))
       setShowCrosshairs(Boolean(loadedSettings.showCrosshairs ?? true))
       setShowCoordinates(Boolean(loadedSettings.showCoordinates ?? true))
       setBrightness(Number(loadedSettings.brightness ?? 100))
       setContrast(Number(loadedSettings.contrast ?? 100))
     })()
-  }, [data])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Unified handler for toggles and sliders
   const handleChangeSetting = (
     key: string,
     value: string | number | boolean
   ) => {
-    data.updateSetting(key, String(value))
+    // Convert value to string for updateSetting
+    updateSetting(key, String(value))
     toast({
       title: "Setting updated",
       description: `${key} has been updated to ${value}`,

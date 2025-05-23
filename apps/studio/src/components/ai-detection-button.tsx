@@ -9,9 +9,11 @@ import {
 } from "@/components/ui/tooltip"
 import { useToast } from "@/hooks/use-toast"
 import type { Annotation, ImageData } from "@vailabel/core"
-import { useDataAccess } from "@/hooks/use-data-access"
-import { useAnnotations } from "@/hooks/use-annotations"
+import { useAIModelStore } from "@/hooks/use-ai-model-store"
+import { useSettingsStore } from "@/hooks/use-settings-store"
+import { useLabelStore } from "@/hooks/use-label-store"
 import { getRandomColor } from "@/lib/utils"
+import { useAnnotationsStore } from "@/hooks/annotation-store"
 
 interface AIDetectionButtonProps {
   image: ImageData | null
@@ -22,9 +24,11 @@ export function AIDetectionButton({ image, disabled }: AIDetectionButtonProps) {
   const { toast } = useToast()
   const [isDetecting, setIsDetecting] = useState(false)
   const [progress, setProgress] = useState<string>("")
-  const { getSelectedModel, getSetting } = useDataAccess()
-  const { getOrCreateLabel, createAnnotation } = useAnnotations()
 
+  const { getSelectedModel, selectedModel } = useAIModelStore()
+  const { getSetting } = useSettingsStore()
+  const { getOrCreateLabel } = useLabelStore()
+  const { createAnnotation } = useAnnotationsStore()
   useEffect(() => {
     if (!window.ipc?.on) return
     const handler = (_event: unknown, msg: string) => {
@@ -36,6 +40,17 @@ export function AIDetectionButton({ image, disabled }: AIDetectionButtonProps) {
       setProgress("")
     }
   }, [])
+
+  useEffect(() => {
+    ;(async () => {
+      const model = await getSelectedModel()
+      if (model) {
+        setProgress(`Selected model: ${model.name}`)
+      } else {
+        setProgress("No model selected")
+      }
+    })()
+  }, [getSelectedModel])
 
   const handleDetection = async () => {
     if (!image) {
@@ -49,12 +64,8 @@ export function AIDetectionButton({ image, disabled }: AIDetectionButtonProps) {
     setIsDetecting(true)
     setProgress("")
     try {
-      const modelPath = await getSelectedModel().then(
-        (model) => model?.modelPath
-      )
-      const pythonPath = await getSetting("pythonPath").then(
-        (setting) => setting?.value
-      )
+      const modelPath = selectedModel?.modelPath
+      const pythonPath = await getSetting("pythonPath")
       const detections = await window.ipc.invoke("run-yolo", {
         modelPath,
         imagePath: image.data, // base64 string

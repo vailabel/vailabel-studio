@@ -12,6 +12,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
   onUpdateDownloaded: (callback: () => void) => {
     ipcRenderer.on("update-downloaded", () => callback())
   },
+  onInstallUpdate: (callback: () => void) => {
+    ipcRenderer.on("install-update", () => callback())
+  },
   restartApp: () => {
     ipcRenderer.send("restart-app")
   },

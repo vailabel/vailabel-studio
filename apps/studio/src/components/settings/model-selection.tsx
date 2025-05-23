@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import {
@@ -10,129 +10,38 @@ import {
   TableCell,
 } from "@/components/ui/table"
 import { useToast } from "@/hooks/use-toast"
-import { useDataAccess } from "@/hooks/use-data-access"
 import { AIModel } from "@vailabel/core"
-import { ElectronFileInput } from "@/components/electron-file"
+import { useAIModelStore } from "@/hooks/use-ai-model-store"
 
 export function ModelSelection() {
   const { toast } = useToast()
+  const { getAIModels, getSelectedModel } = useAIModelStore()
   const [availableModels, setAvailableModels] = useState<AIModel[]>([])
-  const [selectedModelId, setSelectedModelId] = useState<string | undefined>(
-    undefined
-  )
-  const [isLoading, setIsLoading] = useState(true)
-  const {
-    getAvailableModels,
-    uploadCustomModel,
-    selectModel,
-    getSelectedModel,
-  } = useDataAccess()
+  const [selectedModelId, setSelectedModelId] = useState<string>("")
 
-  useState(() => {
-    const loadModels = async () => {
+  useEffect(() => {
+    // Load models on mount
+    const fetchModels = async () => {
       try {
-        const [models, selected] = await Promise.all([
-          getAvailableModels(),
-          getSelectedModel?.(),
-        ])
+        const models = await getAIModels()
         setAvailableModels(models)
-        if (selected && models.some((m) => m.id === selected.id)) {
-          setSelectedModelId(selected.id)
-        } else if (models.length > 0) {
-          setSelectedModelId(models[0].id)
-        }
-      } catch (error) {
-        console.error("Failed to load models:", error)
+        const selected = await getSelectedModel()
+        if (selected) setSelectedModelId(selected.id)
+      } catch {
         toast({
           title: "Error",
-          description: "Failed to load available models",
+          description: "Failed to load models.",
           variant: "destructive",
         })
-      } finally {
-        setIsLoading(false)
       }
     }
-    loadModels()
-  })
+    fetchModels()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-  const handleModelSave = async (
-    e: React.ChangeEvent<HTMLInputElement> | { target: { files: string[] } }
-  ) => {
-    // Support both Electron proxy and web input events
-    let filePath: string | undefined
-    if (e?.target?.files) {
-      // ElectronFileInput: files is an array of file paths (string)
-      // Web: files is a FileList
-      if (typeof e.target.files[0] === "string") {
-        filePath = e.target.files[0]
-      } else if (e.target.files[0] instanceof File) {
-        // For web, get the path or name (web doesn't have path, so use name)
-        filePath = (e.target.files[0] as File).name
-      }
-    }
-    if (!filePath) {
-      toast({
-        title: "No file selected",
-        description: "Please select a .pt model file.",
-        variant: "destructive",
-      })
-      return
-    }
-    // Extract file name from path
-    const fileName = filePath.split(/[\\/]/).pop() || "model.pt"
-    if (!fileName.endsWith(".pt")) {
-      toast({
-        title: "Invalid file",
-        description: "Please select a valid PyTorch model file (.pt)",
-        variant: "destructive",
-      })
-      return
-    }
-    try {
-      const now = new Date()
-      const model: AIModel = {
-        id: fileName,
-        name: fileName,
-        description: "",
-        version: "1.0.0",
-        createdAt: now,
-        updatedAt: now,
-        modelPath: filePath,
-        configPath: "",
-        modelSize: 0, // Size unknown unless you fetch it via Node
-        isCustom: true,
-      }
-      await uploadCustomModel(model)
-      const models = await getAvailableModels()
-      setAvailableModels(models)
-      const saved =
-        models.find((m) => m.name === fileName) || models[models.length - 1]
-      setSelectedModelId(saved?.id)
-      toast({
-        title: "Model saved",
-        description: `Saved model ${fileName}\nFile path: ${filePath}`,
-      })
-    } catch (error) {
-      console.error("Failed to save model:", error)
-      toast({
-        title: "Save failed",
-        description: "Failed to save the model",
-        variant: "destructive",
-      })
-    }
-  }
-
-  const handleRadioChange = async (modelId: string) => {
+  const handleRadioChange = (modelId: string) => {
     setSelectedModelId(modelId)
-    try {
-      await selectModel(modelId)
-    } catch {
-      toast({
-        title: "Error",
-        description: "Failed to update selected model in settings.",
-        variant: "destructive",
-      })
-    }
+    // Optionally, persist the selected model if your store supports it
   }
 
   return (
@@ -140,71 +49,63 @@ export function ModelSelection() {
       <div className="flex flex-col md:flex-row gap-8 flex-1">
         <div className="flex-1 min-w-[300px]">
           <p className="text-base text-gray-600 dark:text-gray-400 mb-4">
-            Select a pre-trained model or select your own custom YOLOv8 model
-            (.pt file)
+            Select a pre-trained model from the list below.
           </p>
-          {isLoading ? (
-            <div className="my-8 flex justify-center">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600 dark:border-gray-600 dark:border-t-blue-400"></div>
-            </div>
-          ) : (
-            <RadioGroup
-              value={selectedModelId}
-              onValueChange={handleRadioChange}
-            >
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-gray-100 dark:bg-gray-800">
-                      <TableHead className="p-2 font-semibold text-left">
-                        Select
-                      </TableHead>
-                      <TableHead className="p-2 font-semibold text-left">
-                        Name
-                      </TableHead>
-                      <TableHead className="p-2 font-semibold text-left">
-                        File Path
-                      </TableHead>
+
+          <RadioGroup value={selectedModelId} onValueChange={handleRadioChange}>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gray-100 dark:bg-gray-800">
+                    <TableHead className="p-2 font-semibold text-left">
+                      Select
+                    </TableHead>
+                    <TableHead className="p-2 font-semibold text-left">
+                      Name
+                    </TableHead>
+                    <TableHead className="p-2 font-semibold text-left">
+                      File Path
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {availableModels.map((model) => (
+                    <TableRow
+                      key={model.id}
+                      className={
+                        selectedModelId === model.id
+                          ? "bg-blue-50 dark:bg-blue-900"
+                          : ""
+                      }
+                    >
+                      <TableCell className="p-2 align-middle">
+                        <RadioGroupItem
+                          value={model.id}
+                          id={model.id}
+                          aria-label={`Select ${model.name}`}
+                          className="mt-0.5"
+                        />
+                      </TableCell>
+                      <TableCell className="p-2 align-middle">
+                        <Label htmlFor={model.id} className="cursor-pointer">
+                          {model.name}
+                        </Label>
+                      </TableCell>
+                      <TableCell className="p-2 align-middle">
+                        {model.modelPath || "-"}
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {availableModels.map((model) => (
-                      <TableRow
-                        key={model.id}
-                        className={
-                          selectedModelId === model.id
-                            ? "bg-blue-50 dark:bg-blue-900"
-                            : ""
-                        }
-                      >
-                        <TableCell className="p-2 align-middle">
-                          <RadioGroupItem
-                            value={model.id}
-                            id={model.id}
-                            aria-label={`Select ${model.name}`}
-                            className="mt-0.5"
-                          />
-                        </TableCell>
-                        <TableCell className="p-2 align-middle">
-                          <Label htmlFor={model.id} className="cursor-pointer">
-                            {model.name}
-                          </Label>
-                        </TableCell>
-                        <TableCell className="p-2 align-middle">
-                          {model.modelPath || "-"}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-              <p className="mt-2 text-xs text-yellow-600 dark:text-yellow-400">
-                <strong>Note:</strong> All models must remain in their specific
-                file path. If you delete or move a model file, it will no longer
-                work in the app.
-              </p>
-            </RadioGroup>
-          )}
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            <p className="mt-2 text-xs text-yellow-600 dark:text-yellow-400">
+              <strong>Note:</strong> All models must remain in their specific
+              file path. If you delete or move a model file, it will no longer
+              work in the app.
+            </p>
+          </RadioGroup>
+
           <div className="mt-8">
             <Label
               htmlFor="model-save"
@@ -212,14 +113,9 @@ export function ModelSelection() {
             >
               Save custom model path
             </Label>
-            <ElectronFileInput
-              onChange={handleModelSave}
-              accept=".pt"
-              className="flex-1 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
-            />
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Only YOLOv8 PyTorch models (.pt) are supported
-            </p>
+            <div className="text-gray-400 text-xs mt-2">
+              Custom model upload is not available in this build.
+            </div>
           </div>
         </div>
       </div>
