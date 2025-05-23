@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { isElectron } from "@/lib/constants"
 import ExternalLink from "../exteral-link"
-import { useProjectsStore } from "@/hooks/use-store"
+import { useSettingsStore } from "@/hooks/use-settings-store"
 
 interface PythonInfo {
   pythonPath: string | null
@@ -27,7 +27,7 @@ export const InstallPythonPackage = () => {
     error: null,
   })
 
-  const { updateSetting } = useProjectsStore()
+  const { updateSetting } = useSettingsStore()
   // Detect Python info on mount (Electron only)
   useEffect(() => {
     if (isElectron()) {

@@ -72,6 +72,7 @@ export interface AIModel extends Modal {
     isCustom: boolean;
 }
 export interface Settings {
+    id: string;
     key: string;
     value: string;
 }

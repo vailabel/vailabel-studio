@@ -54,9 +54,8 @@ export class DataAccess<T extends object = any> implements IDataAccess<T> {
     return row || null
   }
 
-  async create(item: T): Promise<void> {
+  private flattenItem(item: Record<string, any>): Record<string, any> {
     const flatItem: Record<string, any> = {}
-
     for (const [key, value] of Object.entries(item)) {
       if (
         typeof value !== "object" || // Keep primitives
@@ -67,7 +66,13 @@ export class DataAccess<T extends object = any> implements IDataAccess<T> {
       } else if (key === "coordinates") {
         flatItem[key] = JSON.stringify(value)
       }
+      // Ignore relationships (objects/arrays except 'coordinates')
     }
+    return flatItem
+  }
+
+  async create(item: T): Promise<void> {
+    const flatItem: Record<string, any> = this.flattenItem(item)
 
     const keys = Object.keys(flatItem)
     const values = Object.values(flatItem)
@@ -79,10 +84,11 @@ export class DataAccess<T extends object = any> implements IDataAccess<T> {
   }
 
   async update(id: string, updates: Partial<T>): Promise<void> {
-    const setClause = Object.keys(updates)
+    const flatUpdates = this.flattenItem(updates as Record<string, any>)
+    const setClause = Object.keys(flatUpdates)
       .map((key) => `${key} = ?`)
       .join(", ")
-    const values = Object.values(updates)
+    const values = Object.values(flatUpdates)
     await window.ipc.invoke("sqlite:run", [
       `UPDATE ${this.table} SET ${setClause} WHERE id = ?`,
       [...values, id],

@@ -1,19 +1,17 @@
-import { Annotation, Label, ImageData as ImageModal } from "@vailabel/core"
-import { IDBContext } from "@vailabel/core/src/data/sources/sqlite/SQLiteDBContext"
+import { Annotation, ImageData as ImageModal } from "@vailabel/core"
+import { IDBContext } from "@vailabel/core"
 import { create } from "zustand"
+import { exceptionMiddleware } from "./exception-middleware"
 
 type AnnotationsContextType = {
-  dbContext: IDBContext | null
+  dbContext: IDBContext
   initDBContext: (dbContext: IDBContext) => void
   annotations: Annotation[]
+  getAnnotationsByImageId: (imageId: string) => Annotation[]
   setAnnotations: (annotations: Annotation[]) => void
   createAnnotation: (annotation: Annotation) => Promise<void>
   updateAnnotation: (id: string, updates: Partial<Annotation>) => void
   deleteAnnotation: (id: string) => Promise<void>
-  createLabel: (label: Label, annotationIds: string[]) => Promise<void>
-  updateLabel: (id: string, updates: Partial<Label>) => Promise<void>
-  deleteLabel: (id: string) => Promise<void>
-  getOrCreateLabel: (name: string, color: string) => Promise<Label>
   undo: () => void
   redo: () => void
   canUndo: boolean
@@ -22,16 +20,22 @@ type AnnotationsContextType = {
   setCurrentImage: (image: ImageModal | null) => void
   setSelectedAnnotation: (annotation: Annotation | null) => void
   selectedAnnotation: Annotation | null
-  labels: Label[]
-  setLabels: (labels: Label[]) => void
 }
 
 export const useAnnotationsStore = create<AnnotationsContextType>(
-  (set, get) => ({
-    dbContext: null,
+  exceptionMiddleware((set, get) => ({
+    dbContext: {} as IDBContext,
     initDBContext: (ctx) => set({ dbContext: ctx }),
     annotations: [],
     setAnnotations: (annotations) => set({ annotations }),
+    getAnnotationsByImageId: (imageId) => {
+      const { dbContext, annotations } = get()
+      dbContext.annotations.get().then((allAnnotations: Annotation[]) => {
+        set({ annotations: allAnnotations })
+      })
+
+      return annotations.filter((annotation) => annotation.imageId === imageId)
+    },
     createAnnotation: async (annotation) => {
       const { annotations, dbContext } = get()
       set({ annotations: [...annotations, annotation] })
@@ -58,76 +62,6 @@ export const useAnnotationsStore = create<AnnotationsContextType>(
       if (dbContext) {
         await dbContext.annotations.delete(id)
       }
-    },
-    createLabel: async (label, annotationIds) => {
-      const { labels, annotations, dbContext } = get()
-      const newLabel = { ...label, id: crypto.randomUUID() }
-      const updatedLabels = [...labels, newLabel]
-      set({ labels: updatedLabels })
-      const updatedAnnotations = annotations.map((annotation) => {
-        if (annotationIds.includes(annotation.id)) {
-          return { ...annotation, labelId: newLabel.id }
-        }
-        return annotation
-      })
-      set({ annotations: updatedAnnotations })
-      if (dbContext) {
-        await dbContext.labels.create(newLabel)
-        for (const annotation of updatedAnnotations) {
-          await dbContext.annotations.update(annotation.id, annotation)
-        }
-      }
-    },
-    updateLabel: async (id, updates) => {
-      const { labels, dbContext } = get()
-      const updatedLabels = labels.map((label) =>
-        label.id === id ? { ...label, ...updates } : label
-      )
-      set({ labels: updatedLabels })
-      if (dbContext) {
-        await dbContext.labels.update(id, updates)
-      }
-    },
-    deleteLabel: async (id) => {
-      const { labels, annotations, dbContext } = get()
-      const updatedLabels = labels.filter((label) => label.id !== id)
-      set({ labels: updatedLabels })
-      const updatedAnnotations = annotations.map((annotation) => {
-        if (annotation.labelId === id) {
-          return { ...annotation, labelId: "" }
-        }
-        return annotation
-      })
-      set({ annotations: updatedAnnotations })
-      if (dbContext) {
-        await dbContext.labels.delete(id)
-        for (const annotation of updatedAnnotations) {
-          await dbContext.annotations.update(annotation.id, annotation)
-        }
-      }
-    },
-    getOrCreateLabel: async (name, color) => {
-      const { labels, dbContext } = get()
-      const existingLabel = labels.find((label) => label.name === name)
-      if (existingLabel) {
-        return existingLabel
-      }
-      // Fill all required Label fields
-      const newLabel: Label = {
-        id: crypto.randomUUID(),
-        name,
-        color,
-        projectId: "", // Set appropriately if you have project context
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        category: "", // Set appropriately if needed
-        isAIGenerated: false,
-      }
-      set({ labels: [...labels, newLabel] })
-      if (dbContext) {
-        await dbContext.labels.create(newLabel)
-      }
-      return newLabel
     },
     undo: () => {
       const { annotations, canUndo } = get()
@@ -156,7 +90,5 @@ export const useAnnotationsStore = create<AnnotationsContextType>(
     setSelectedAnnotation: (annotation) =>
       set({ selectedAnnotation: annotation }),
     selectedAnnotation: null,
-    labels: [],
-    setLabels: (labels) => set({ labels }),
-  })
+  }))
 )

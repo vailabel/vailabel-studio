@@ -12,7 +12,6 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { AIModel } from "@vailabel/core"
 import { ElectronFileInput } from "@/components/electron-file"
-import { useProjectsStore } from "@/hooks/use-store"
 
 export function ModelSelection() {
   const { toast } = useToast()
@@ -20,6 +19,12 @@ export function ModelSelection() {
   const [selectedModelId, setSelectedModelId] = useState<string | undefined>(
     undefined
   )
+  // Mock useProjectsStore with empty functions for testing
+  const useProjectsStore = () => ({
+    getAvailableModels: async () => [],
+    uploadCustomModel: async (_model: AIModel) => {},
+    selectModel: async (_modelId: string) => {},
+  })
   const { getAvailableModels, uploadCustomModel, selectModel } =
     useProjectsStore()
 

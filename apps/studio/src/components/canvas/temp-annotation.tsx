@@ -8,7 +8,7 @@ interface TempAnnotationProps {
 
 export function TempAnnotation({ annotation }: Readonly<TempAnnotationProps>) {
   const styles = {
-    fill: rgbToRgba(annotation.color, 0.2),
+    fill: rgbToRgba(annotation.color ?? "#333", 0.2),
     stroke: annotation.color,
   }
 

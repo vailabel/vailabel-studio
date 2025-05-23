@@ -1,4 +1,4 @@
-import { Point } from "@vailabel/core"
+import { ImageData, Point } from "@vailabel/core"
 import React from "react"
 import { create } from "zustand"
 
@@ -29,6 +29,13 @@ type CanvasStore = {
   resetView: () => void
   setCanvasRef: (ref: React.RefObject<HTMLDivElement | null>) => void
   canvasRef: React.RefObject<HTMLDivElement | null>
+
+  currentImage: ImageData | null
+  setCurrentImage: (image: ImageData | null) => void
+  showCrosshair: boolean
+  setShowCrosshair: (show: boolean) => void
+  showCoordinates: boolean
+  setShowCoordinates: (show: boolean) => void
 }
 
 export const useCanvasStore = create<CanvasStore>((set) => ({
@@ -60,4 +67,10 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
   resetView: () => set({ zoom: 1, panOffset: { x: 0, y: 0 } }),
   setCanvasRef: (ref) => set({ canvasRef: ref }),
   canvasRef: React.createRef<HTMLDivElement>(),
+  currentImage: null,
+  setCurrentImage: (image) => set({ currentImage: image }),
+  showCrosshair: false,
+  setShowCrosshair: (show) => set({ showCrosshair: show }),
+  showCoordinates: false,
+  setShowCoordinates: (show) => set({ showCoordinates: show }),
 }))

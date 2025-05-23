@@ -80,6 +80,7 @@ export interface AIModel extends Modal {
 }
 
 export interface Settings {
+  id: string
   key: string
   value: string
 }

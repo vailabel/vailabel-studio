@@ -12,12 +12,12 @@ import {
 } from "@/components/ui/card"
 import { useNavigate } from "react-router-dom"
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog"
-import { useProjectsStore } from "@/hooks/use-store"
+import { useProjectStore } from "@/hooks/use-project-store"
 
 export default function ProjectList() {
   const navigate = useNavigate()
   const { toast } = useToast()
-  const { getProjects, deleteProject, projects } = useProjectsStore()
+  const { getProjects, deleteProject, projects } = useProjectStore()
   const confirm = useConfirmDialog()
 
   useEffect(() => {

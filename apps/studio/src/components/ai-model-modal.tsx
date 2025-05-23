@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { X, Check } from "lucide-react"
+import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -14,8 +14,8 @@ import {
 } from "@/components/ui/table"
 import { useToast } from "@/hooks/use-toast"
 import { AIModel } from "@vailabel/core"
-import { ElectronFileInput } from "./electron-file"
-import { useProjectsStore } from "@/hooks/use-store"
+import { useAIModelStore } from "@/hooks/use-ai-model-store"
+import { useSettingsStore } from "@/hooks/use-settings-store"
 
 interface AIModelModalProps {
   onClose: () => void
@@ -23,115 +23,64 @@ interface AIModelModalProps {
 
 export function AIModelSelectModal({ onClose }: AIModelModalProps) {
   const { toast } = useToast()
+  const { getAIModels } = useAIModelStore()
+  const { updateSetting, getSetting } = useSettingsStore()
+
   const [availableModels, setAvailableModels] = useState<AIModel[]>([])
-  const [selectedModelId, setSelectedModelId] = useState<string | undefined>(
-    undefined
-  )
-  const [isSaving, setIsSaving] = useState(false)
-  const { getAvailableModels, uploadCustomModel, selectModel, updateSetting } =
-    useProjectsStore()
+  const [selectedModelId, setSelectedModelId] = useState<string>("")
 
-  const handleModelSave = async (
-    e: React.ChangeEvent<HTMLInputElement> | { target: { files: string[] } }
-  ) => {
-    // Support both Electron proxy and web input events
-    let filePath: string | undefined
-    if (e?.target?.files) {
-      // ElectronFileInput: files is an array of file paths (string)
-      // Web: files is a FileList
-      if (typeof e.target.files[0] === "string") {
-        filePath = e.target.files[0]
-      } else if (e.target.files[0] instanceof File) {
-        // For web, get the path or name (web doesn't have path, so use name)
-        filePath = (e.target.files[0] as File).name
-      }
-    }
-    if (!filePath) {
-      toast({
-        title: "No file selected",
-        description: "Please select a .pt model file.",
-        variant: "destructive",
-      })
-      return
-    }
-    // Extract file name from path
-    const fileName = filePath.split(/[\\/]/).pop() || "model.pt"
-    if (!fileName.endsWith(".pt")) {
-      toast({
-        title: "Invalid file",
-        description: "Please select a valid PyTorch model file (.pt)",
-        variant: "destructive",
-      })
-      return
-    }
-    setIsSaving(true)
-    try {
-      const now = new Date()
-      const model: AIModel = {
-        id: fileName,
-        name: fileName,
-        description: "",
-        version: "1.0.0",
-        createdAt: now,
-        updatedAt: now,
-        modelPath: filePath,
-        configPath: "",
-        modelSize: 0, // Size unknown unless you fetch it via Node
-        isCustom: true,
-      }
-      await uploadCustomModel(model)
-      const models = await getAvailableModels()
+  // Fetch models and selected model on mount
+  useState(() => {
+    ;(async () => {
+      const models = await getAIModels()
       setAvailableModels(models)
-      const saved =
-        models.find((m) => m.name === fileName) || models[models.length - 1]
-      setSelectedModelId(saved?.id)
-      toast({
-        title: "Model saved",
-        description: `Saved model ${fileName}\nFile path: ${filePath}`,
-      })
-    } catch (error) {
-      console.error("Failed to save model:", error)
-      toast({
-        title: "Save failed",
-        description: "Failed to save the model",
-        variant: "destructive",
-      })
-    } finally {
-      setIsSaving(false)
-    }
-  }
+      let selected = ""
+      try {
+        const modalSelected = await getSetting("modalSelected")
+        // modalSelected may be an object, so get the value if needed
+        const selectedId =
+          typeof modalSelected === "string"
+            ? modalSelected
+            : modalSelected?.value || ""
+        if (selectedId && models.some((m) => m.id === selectedId)) {
+          selected = selectedId
+        } else if (models.length > 0) {
+          selected = models[0].id
+        }
+      } catch {
+        if (models.length > 0) {
+          selected = models[0].id
+        }
+      }
+      setSelectedModelId(selected)
+    })()
+  })
 
-  const handleModelSelect = async () => {
-    if (!selectedModelId) return
+  const handleRadioChange = async (id: string) => {
+    setSelectedModelId(id)
     try {
-      await selectModel(selectedModelId)
-      await updateSetting?.("modalSelected", selectedModelId)
-      const selectedModel = availableModels.find(
-        (m) => m.id === selectedModelId
-      )
-      toast({
-        title: "Model selected",
-        description: `Now using ${selectedModel?.name || selectedModelId} for detection`,
-      })
-      onClose()
-    } catch (error) {
-      console.error("Failed to select model:", error)
-      toast({
-        title: "Error",
-        description: "Failed to select the model",
-        variant: "destructive",
-      })
-    }
-  }
-
-  const handleRadioChange = async (modelId: string) => {
-    setSelectedModelId(modelId)
-    try {
-      await updateSetting?.("modalSelected", modelId)
+      await updateSetting("modalSelected", id)
     } catch {
       toast({
         title: "Error",
         description: "Failed to update selected model in settings.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleSave = async () => {
+    if (!selectedModelId) return
+    try {
+      await updateSetting("modalSelected", selectedModelId)
+      toast({
+        title: "Model saved",
+        description: `Selected model has been saved!`,
+      })
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to save selected model.",
         variant: "destructive",
       })
     }
@@ -222,23 +171,6 @@ export function AIModelSelectModal({ onClose }: AIModelModalProps) {
                 work in the app.
               </p>
             </RadioGroup>
-
-            <div className="mt-8">
-              <Label
-                htmlFor="model-save"
-                className="dark:text-gray-300 flex items-center"
-              >
-                Save custom model path
-              </Label>
-              <ElectronFileInput
-                onChange={handleModelSave}
-                accept=".pt"
-                className="flex-1 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
-              />
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Only YOLOv8 PyTorch models (.pt) are supported
-              </p>
-            </div>
           </div>
         </div>
         <div className="mt-8 flex justify-end space-x-2">
@@ -246,20 +178,11 @@ export function AIModelSelectModal({ onClose }: AIModelModalProps) {
             Cancel
           </Button>
           <Button
-            onClick={handleModelSelect}
-            disabled={!selectedModelId || isSaving}
+            variant="default"
+            onClick={handleSave}
+            disabled={!selectedModelId}
           >
-            {isSaving ? (
-              <>
-                <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                Saving...
-              </>
-            ) : (
-              <>
-                <Check className="mr-2 h-4 w-4" />
-                Use Selected Model
-              </>
-            )}
+            Save
           </Button>
         </div>
       </motion.div>

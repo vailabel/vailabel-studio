@@ -9,6 +9,7 @@ import { TempAnnotation } from "@/components/canvas/temp-annotation"
 import { CreateAnnotation } from "@/components/canvas/create-annotation"
 import { useAnnotationsStore } from "@/hooks/annotation-store"
 import { useCanvasStore } from "@/hooks/canvas-store"
+import { useLabelStore } from "@/hooks/use-label-store"
 
 interface CanvasProps {
   image: ImageData
@@ -17,7 +18,8 @@ interface CanvasProps {
 
 export const Canvas = ({ image, annotations }: CanvasProps) => {
   const { zoom, panOffset, selectedTool, setCanvasRef } = useCanvasStore()
-  const { createAnnotation, getOrCreateLabel } = useAnnotationsStore()
+  const { createAnnotation } = useAnnotationsStore()
+  const { getOrCreateLabel, labels } = useLabelStore()
 
   const canvasRef = useRef<HTMLDivElement | null>(null)
   const {
@@ -134,6 +136,7 @@ export const Canvas = ({ image, annotations }: CanvasProps) => {
         </div>
       </div>
       <CreateAnnotation
+        labels={labels}
         onSubmit={handleCreateAnnotation}
         isOpen={showLabelInput}
         onClose={handleCloseCreateAnnotationModal}

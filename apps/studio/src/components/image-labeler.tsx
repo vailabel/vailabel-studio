@@ -25,8 +25,8 @@ import { AIModelSelectModal } from "@/components/ai-model-modal"
 import { ContextMenu } from "@/components/context-menu"
 import { ThemeToggle } from "./theme-toggle"
 import { useNavigate } from "react-router-dom"
-import { useProjectsStore } from "@/hooks/use-store"
 import { useCanvasStore } from "@/hooks/canvas-store"
+import { useAnnotationsStore } from "@/hooks/annotation-store"
 
 export function ImageLabeler() {
   const navigate = useNavigate()
@@ -40,8 +40,10 @@ export function ImageLabeler() {
   const [showSettings, setShowSettings] = useState(false)
   const [showExport, setShowExport] = useState(false)
   const [showAISettings, setShowAISettings] = useState(false)
-  const { currentImage, setAnnotations, annotations, getAnnotations } =
-    useProjectsStore()
+  const { currentImage } = useCanvasStore()
+
+  const { setAnnotations, annotations, getAnnotationsByImageId } =
+    useAnnotationsStore()
 
   const nextImage = useCallback(() => {}, [])
 
@@ -50,12 +52,12 @@ export function ImageLabeler() {
   useEffect(() => {
     const fetchAnnotationsOnFirstRender = async () => {
       if (currentImage) {
-        const annotationsData = await getAnnotations(currentImage.id)
+        const annotationsData = await getAnnotationsByImageId(currentImage.id)
         setAnnotations(annotationsData)
       }
     }
     fetchAnnotationsOnFirstRender()
-  }, [currentImage, setAnnotations, getAnnotations])
+  }, [currentImage, setAnnotations, getAnnotationsByImageId])
 
   const handleExportProject = () => {
     setShowExport(true)

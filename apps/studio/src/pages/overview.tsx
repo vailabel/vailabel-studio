@@ -2,7 +2,8 @@ import { motion } from "framer-motion"
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Users, Folder, Tag } from "lucide-react"
-import { useProjectsStore } from "@/hooks/use-store"
+import { useProjectStore } from "@/hooks/use-project-store"
+import { useLabelStore } from "@/hooks/use-label-store"
 
 interface RecentActivityItem {
   activity: string
@@ -11,7 +12,8 @@ interface RecentActivityItem {
 }
 
 const Overview = () => {
-  const { getProjects, getLabels } = useProjectsStore()
+  const { getProjects } = useProjectStore()
+  const { getLabels } = useLabelStore()
   const navigate = useNavigate()
   const [statistics, setStatistics] = useState({
     totalProjects: 0,
