@@ -18,7 +18,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { useProjectsStore } from "@/hooks/use-store"
+import { useProjectsStore3 } from "@/hooks/use-store"
+import { useProjectStore } from "@/hooks/use-project-store"
+import { useLabelStore } from "@/hooks/use-label-store"
+import { useImageDataStore } from "@/hooks/use-image-data-store"
 
 const ProjectDetailSchema = z.object({
   name: z.string().min(1, "Project name is required"),
@@ -41,7 +44,9 @@ export function ProjectCreate() {
   const [step, setStep] = useState<"details" | "dataset">("details")
   const [activeTab, setActiveTab] = useState<"form" | "json">("form")
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const { createProject, createImage, createLabel } = useProjectsStore()
+  const { createProject } = useProjectStore()
+  const { createImage } = useImageDataStore()
+  const { createLabel } = useLabelStore()
   const { saveImage } = useStorage()
   const navigate = useNavigate()
 

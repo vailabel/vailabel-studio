@@ -8,7 +8,12 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { useToast } from "@/hooks/use-toast"
-import type { ImageData } from "@vailabel/core"
+import type { AIModel, Annotation, ImageData } from "@vailabel/core"
+import { useAIModelStore } from "@/hooks/use-ai-model-store"
+import { useSettingsStore } from "@/hooks/use-settings-store"
+import { useLabelStore } from "@/hooks/use-label-store"
+import { getRandomColor } from "@/lib/utils"
+import { useAnnotationsStore } from "@/hooks/annotation-store"
 
 interface AIDetectionButtonProps {
   image: ImageData | null
@@ -20,6 +25,10 @@ export function AIDetectionButton({ image, disabled }: AIDetectionButtonProps) {
   const [isDetecting, setIsDetecting] = useState(false)
   const [progress, setProgress] = useState<string>("")
 
+  const { getSelectedModel, selectedModel } = useAIModelStore()
+  const { getSetting } = useSettingsStore()
+  const { getOrCreateLabel } = useLabelStore()
+  const { createAnnotation } = useAnnotationsStore()
   useEffect(() => {
     if (!window.ipc?.on) return
     const handler = (_event: unknown, msg: string) => {
@@ -32,6 +41,17 @@ export function AIDetectionButton({ image, disabled }: AIDetectionButtonProps) {
     }
   }, [])
 
+  useEffect(() => {
+    ;(async () => {
+      const model = await getSelectedModel()
+      if (model) {
+        setProgress(`Selected model: ${model.name}`)
+      } else {
+        setProgress("No model selected")
+      }
+    })()
+  }, [getSelectedModel])
+
   const handleDetection = async () => {
     if (!image) {
       toast({
@@ -43,59 +63,55 @@ export function AIDetectionButton({ image, disabled }: AIDetectionButtonProps) {
     }
     setIsDetecting(true)
     setProgress("")
-    // try {
-    //   const modelPath = await getSelectedModel().then(
-    //     (model : AIModel) => model?.modelPath
-    //   )
-    //   const pythonPath = await getSetting("pythonPath").then(
-    //     (setting) => setting?.value
-    //   )
-    //   const detections = await window.ipc.invoke("run-yolo", {
-    //     modelPath,
-    //     imagePath: image.data, // base64 string
-    //     pythonPath,
-    //   })
-    //   console.log("AI detection result:", detections)
-    //   // Render detections as annotations
-    //   if (Array.isArray(detections)) {
-    //     for (const detection of detections) {
-    //       const { box, name: className } = detection
-    //       if (!box || typeof box !== "object") continue
-    //       const x1 = box.x1
-    //       const y1 = box.y1
-    //       const x2 = box.x2
-    //       const y2 = box.y2
-    //       // First create or get label
-    //       const label = await getOrCreateLabel(className, getRandomColor())
-    //       const annotation: Annotation = {
-    //         id: crypto.randomUUID(),
-    //         name: className,
-    //         type: "box",
-    //         coordinates: [
-    //           { x: x1, y: y1 },
-    //           { x: x2, y: y2 },
-    //         ],
-    //         imageId: image.id,
-    //         createdAt: new Date(),
-    //         updatedAt: new Date(),
-    //         label: label,
-    //         labelId: label.id,
-    //         color: label.color,
-    //         isAIGenerated: true,
-    //       }
-    //       await createAnnotation(annotation)
-    //     }
-    //   }
-    // } catch (error) {
-    //   console.error("AI detection failed:", error)
-    //   toast({
-    //     title: "Detection failed",
-    //     description: "Failed to run AI detection on this image",
-    //     variant: "destructive",
-    //   })
-    // } finally {
-    //   setIsDetecting(false)
-    // }
+    try {
+      const modelPath = selectedModel?.modelPath
+      const pythonPath = await getSetting("pythonPath")
+      const detections = await window.ipc.invoke("run-yolo", {
+        modelPath,
+        imagePath: image.data, // base64 string
+        pythonPath,
+      })
+      console.log("AI detection result:", detections)
+      // Render detections as annotations
+      if (Array.isArray(detections)) {
+        for (const detection of detections) {
+          const { box, name: className } = detection
+          if (!box || typeof box !== "object") continue
+          const x1 = box.x1
+          const y1 = box.y1
+          const x2 = box.x2
+          const y2 = box.y2
+          // First create or get label
+          const label = await getOrCreateLabel(className, getRandomColor())
+          const annotation: Annotation = {
+            id: crypto.randomUUID(),
+            name: className,
+            type: "box",
+            coordinates: [
+              { x: x1, y: y1 },
+              { x: x2, y: y2 },
+            ],
+            imageId: image.id,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            label: label,
+            labelId: label.id,
+            color: label.color,
+            isAIGenerated: true,
+          }
+          await createAnnotation(annotation)
+        }
+      }
+    } catch (error) {
+      console.error("AI detection failed:", error)
+      toast({
+        title: "Detection failed",
+        description: "Failed to run AI detection on this image",
+        variant: "destructive",
+      })
+    } finally {
+      setIsDetecting(false)
+    }
   }
 
   return (

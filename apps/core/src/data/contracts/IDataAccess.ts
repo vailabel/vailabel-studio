@@ -21,6 +21,10 @@ export interface IImageDataAccess extends IDataAccess<ImageData> {}
 export interface IProjectDataAccess extends IDataAccess<Project> {}
 export interface IAnnotationDataAccess extends IDataAccess<Annotation> {}
 export interface ILabelDataAccess extends IDataAccess<Label> {}
-export interface ISettingsDataAccess extends IDataAccess<Settings> {}
+export interface ISettingsDataAccess extends IDataAccess<Settings> {
+  getByKey(key: string): Promise<Settings | null>
+  updateByKey(key: string, value: any): Promise<void>
+  deleteByKey(key: string): Promise<void>
+}
 export interface IHistoryDataAccess extends IDataAccess<History> {}
 export interface IAIModelDataAccess extends IDataAccess<AIModel> {}

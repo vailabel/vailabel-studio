@@ -7,7 +7,7 @@ import { ChromePicker } from "react-color"
 import { Check } from "lucide-react"
 import debounce from "lodash/debounce"
 import { ElectronFileInput } from "@/components/electron-file"
-import { useProjectsStore } from "@/hooks/use-store"
+import { useSettingsStore } from "@/hooks/use-settings-store"
 
 const DEFAULTS = {
   brightness: 100,
@@ -46,7 +46,7 @@ export default function GeneralSettings() {
   const customBtnRef = useRef<HTMLButtonElement>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
 
-  const { updateSetting } = useProjectsStore()
+  const { updateSetting } = useSettingsStore()
 
   // Close popover on outside click
   useEffect(() => {

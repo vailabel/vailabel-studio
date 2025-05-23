@@ -8,7 +8,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Link } from "react-router-dom"
 import { Combobox } from "@/components/ui/combobox"
-import { useProjectsStore } from "@/hooks/use-store"
 
 interface Task {
   id: string
@@ -27,39 +26,6 @@ export default function TaskPage() {
   const [annotations, setAnnotations] = useState<Annotation[]>([])
   const [error, setError] = useState<string | null>(null)
   const [tasks, setTasks] = useState<Task[]>([])
-
-  // Load projects on mount
-  useEffect(() => {
-    ;(async () => {
-      try {
-        // Use the store's getProjects method if available
-        if (
-          typeof useProjectsStore.getState === "function" &&
-          useProjectsStore.getState().getProjects
-        ) {
-          const projectsData = await useProjectsStore.getState().getProjects()
-          setProjects(Array.isArray(projectsData) ? projectsData : [])
-        } else {
-          setProjects([])
-        }
-      } catch {
-        setError("Failed to load projects")
-      }
-    })()
-    setImages([])
-  }, [])
-
-  // Load tasks from localStorage (simulate backend)
-  useEffect(() => {
-    const saved = localStorage.getItem("annotationTasks")
-    if (saved) {
-      try {
-        setTasks(JSON.parse(saved))
-      } catch {
-        setTasks([])
-      }
-    }
-  }, [])
 
   return (
     <div className="max-w-4xl mx-auto py-8">

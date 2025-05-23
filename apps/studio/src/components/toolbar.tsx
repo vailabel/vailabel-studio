@@ -49,11 +49,22 @@ interface AdditionalTool {
   name: string
   icon: React.ElementType
   shortcut: string
+  active?: boolean
   action: () => void
 }
 
 export function Toolbar({ currentImage, onOpenAISettings }: ToolbarProps) {
-  const { selectedTool, setSelectedTool, resetView, zoom } = useCanvasStore()
+  const {
+    selectedTool,
+    setSelectedTool,
+    resetView,
+    setZoom,
+    zoom,
+    setShowCrosshair,
+    setShowCoordinates,
+    showCrosshair,
+    showCoordinates,
+  } = useCanvasStore()
   const { undo, redo, canUndo, canRedo } = useAnnotationsStore()
 
   const selectedTools: Tool[] = [
@@ -119,14 +130,20 @@ export function Toolbar({ currentImage, onOpenAISettings }: ToolbarProps) {
       name: "Crosshair",
       icon: Crosshair,
       shortcut: "C",
-      action: () => {},
+      active: showCrosshair,
+      action: () => {
+        setShowCrosshair(!showCrosshair)
+      },
     },
     {
       id: "coordinates",
       name: "Coordinates",
       icon: MousePointer,
       shortcut: "Alt+Shift+C",
-      action: () => {},
+      active: showCoordinates,
+      action: () => {
+        setShowCoordinates(!showCoordinates)
+      },
     },
   ]
 
@@ -225,15 +242,12 @@ export function Toolbar({ currentImage, onOpenAISettings }: ToolbarProps) {
                 variant="outline"
                 size="sm"
                 className="h-8 w-8"
-                onClick={() => {
-                  const zoomInEvent = new CustomEvent("zoom-in")
-                  window.dispatchEvent(zoomInEvent)
-                }}
+                onClick={() => setZoom(zoom - 0.1)}
               >
-                <Plus className="h-4 w-4" />
+                <Minus className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom">Zoom In</TooltipContent>
+            <TooltipContent side="bottom">Zoom Out</TooltipContent>
           </Tooltip>
           <p className="text-sm text-gray-700 dark:text-gray-200">
             {(zoom * 100).toFixed(0)}%
@@ -244,15 +258,12 @@ export function Toolbar({ currentImage, onOpenAISettings }: ToolbarProps) {
                 variant="outline"
                 size="sm"
                 className="h-8 w-8"
-                onClick={() => {
-                  const zoomOutEvent = new CustomEvent("zoom-out")
-                  window.dispatchEvent(zoomOutEvent)
-                }}
+                onClick={() => setZoom(zoom + 0.1)}
               >
-                <Minus className="h-4 w-4" />
+                <Plus className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom">Zoom Out</TooltipContent>
+            <TooltipContent side="bottom">Zoom In</TooltipContent>
           </Tooltip>
         </TooltipProvider>
 
@@ -287,13 +298,19 @@ export function Toolbar({ currentImage, onOpenAISettings }: ToolbarProps) {
                   size="sm"
                   className={cn(
                     "h-8 w-8",
-                    tool.id === "crosshair" || tool.id === "coordinates"
-                      ? "bg-blue-50 text-blue-500 dark:bg-blue-900 dark:text-blue-300"
-                      : ""
+                    tool.active
+                      ? "bg-blue-50 text-blue-500 dark:bg-blue-900 dark:text-blue-300 border-2 border-blue-500 dark:border-blue-400 shadow"
+                      : "hover:bg-gray-100 dark:hover:bg-gray-700"
                   )}
                   onClick={tool.action}
+                  aria-pressed={tool.active}
                 >
-                  <tool.icon className="h-4 w-4" />
+                  <tool.icon
+                    className={cn("h-4 w-4", tool.active ? "scale-110" : "")}
+                  />
+                  {tool.active && (
+                    <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-blue-500 dark:bg-blue-300 animate-pulse" />
+                  )}
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom">

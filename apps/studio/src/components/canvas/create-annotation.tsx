@@ -5,12 +5,12 @@ import { CornerDownLeft, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { getRandomColor, rgbToRgba } from "@/lib/utils"
-import { useAnnotationsStore } from "@/hooks/annotation-store"
 
 interface CreateAnnotationModalProps {
-  onSubmit: (name: string, color: string) => void
+  onSubmit: (name: string, color: string, category?: string) => void
   isOpen: boolean
   onClose: () => void
+  labels: Label[]
 }
 
 interface Label {
@@ -26,20 +26,17 @@ function filterLabels(labelName: string, labels: Label[]) {
   )
 }
 
-function handleLabelClick(
-  label: Label,
-  saveLabel: (name: string, color: string) => void
-) {
-  saveLabel(label.name, label.color)
-}
-
-function renderLabelButtons(
-  labelFilter: Label[],
-  saveLabel: (name: string, color: string) => void
-) {
-  return labelFilter.map((label) => (
+// --- LabelButton component ---
+function LabelButton({
+  label,
+  onClick,
+}: {
+  label: Label
+  onClick: (name: string, color: string) => void
+}) {
+  return (
     <button
-      onClick={() => handleLabelClick(label, saveLabel)}
+      onClick={() => onClick(label.name, label.color)}
       key={label.id}
       className="flex items-center justify-between p-2 border rounded-md cursor-pointer hover:shadow-md dark:border-gray-600"
       style={{
@@ -51,17 +48,34 @@ function renderLabelButtons(
         {label.name}
       </span>
     </button>
-  ))
+  )
+}
+
+// --- LabelButtonList component ---
+function LabelButtonList({
+  labels,
+  onClick,
+}: {
+  labels: Label[]
+  onClick: (name: string, color: string) => void
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      {labels.map((label) => (
+        <LabelButton key={label.id} label={label} onClick={onClick} />
+      ))}
+    </div>
+  )
 }
 
 export function CreateAnnotation({
   onSubmit,
   isOpen,
   onClose,
+  labels,
 }: Readonly<CreateAnnotationModalProps>) {
   const [labelName, setLabelName] = useState("")
   const [color, setColor] = useState<string>(getRandomColor())
-  const { labels } = useAnnotationsStore()
 
   useEffect(() => {
     if (isOpen) {
@@ -85,8 +99,9 @@ export function CreateAnnotation({
   )
 
   const handleSubmit = useCallback(
-    (e: React.FormEvent) => {
-      e.preventDefault()
+    (e?: React.FormEvent | React.MouseEvent) => {
+      if (e) e.preventDefault()
+      if (!labelName.trim()) return
       saveLabel(labelName.trim(), color)
     },
     [color, labelName, saveLabel]
@@ -95,13 +110,18 @@ export function CreateAnnotation({
   const handleChangeName = useCallback(
     (name: string) => {
       setLabelName(name)
-      if (name.trim() && labelFilter.length > 0) {
-        setColor(labelFilter[0]?.color ?? getRandomColor())
-      } else {
+      if (name.trim() && labels.length > 0) {
+        const found = labels.find(
+          (l) => l.name.toLowerCase() === name.trim().toLowerCase()
+        )
+        if (found) {
+          setColor(found.color)
+        }
+      } else if (!name.trim()) {
         setColor(getRandomColor())
       }
     },
-    [labelFilter]
+    [labels]
   )
 
   if (!isOpen) return null
@@ -153,22 +173,23 @@ export function CreateAnnotation({
           </div>
           <div className="mt-4">
             {labelFilter.length > 0 ? (
-              <div className="grid grid-cols-2 gap-2">
-                {renderLabelButtons(labelFilter, saveLabel)}
-              </div>
+              <LabelButtonList labels={labelFilter} onClick={saveLabel} />
             ) : (
-              <button
-                onClick={handleSubmit}
-                className="flex items-center justify-between p-2 border rounded-md cursor-pointer hover:shadow-md dark:border-gray-600"
-                style={{
-                  backgroundColor: rgbToRgba(color, 0.2),
-                  borderColor: color,
-                }}
-              >
-                <span className="truncate text-sm font-medium text-gray-200 dark:text-gray-200">
-                  Create New {labelName}
-                </span>
-              </button>
+              labelName.trim() && (
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  className="flex items-center justify-between p-2 border rounded-md cursor-pointer hover:shadow-md dark:border-gray-600"
+                  style={{
+                    backgroundColor: rgbToRgba(color, 0.2),
+                    borderColor: color,
+                  }}
+                >
+                  <span className="truncate text-sm font-medium text-gray-800 dark:text-gray-200">
+                    Create New {labelName}
+                  </span>
+                </button>
+              )
             )}
           </div>
         </form>

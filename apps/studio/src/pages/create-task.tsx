@@ -24,7 +24,6 @@ import {
 import { Checkbox } from "@/components/ui/checkbox"
 import ImageWithLoader from "@/components/image-loader"
 import { useNavigate } from "react-router-dom"
-import { useProjectsStore } from "@/hooks/use-store"
 
 const TaskSchema = z.object({
   name: z.string().min(1, "Task name is required"),
@@ -44,7 +43,6 @@ type AnnotationTask = {
 }
 
 export default function CreateTaskPage() {
-  const dataAccess = useProjectsStore()
   const [projects, setProjects] = useState<Project[]>([])
   const [images, setImages] = useState<ImageData[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -66,15 +64,6 @@ export default function CreateTaskPage() {
   })
   const watchedProjectId = watch("projectId")
   const watchedImageIds = watch("imageIds")
-
-  // Load projects on mount
-  useEffect(() => {
-    dataAccess
-      .getProjects()
-      .then(setProjects)
-      .catch((e) => setError(e.message || "Failed to load projects"))
-    setImages([])
-  }, [dataAccess])
 
   // Indeterminate state for select all
   useEffect(() => {
