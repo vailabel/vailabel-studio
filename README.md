@@ -22,6 +22,8 @@
   </span>
 </p>
 
+<a href="https://www.producthunt.com/posts/vision-ai-label-studio?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-vision&#0045;ai&#0045;label&#0045;studio" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=966886&theme=light&t=1748298189007" alt="Vision&#0032;AI&#0032;Label&#0032;Studio - Label&#0032;images&#0032;manually&#0044;&#0032;Free&#0044;&#0032;offline&#0044;&#0032;and&#0032;open&#0045;source | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
+
 <p align="center">
   A powerful, modern <strong>image labeling tool</strong> built with <strong>React.js</strong>, <strong>TypeScript</strong>, <strong>TailwindCSS</strong>, <strong>Framer Motion</strong>, and <strong>Dexie.js</strong>, designed for creating high-quality datasets for machine learning models. Supports manual annotation, free drawing, and <strong>AI-assisted labeling</strong> using <strong>YOLOv8</strong> models.
 </p>
