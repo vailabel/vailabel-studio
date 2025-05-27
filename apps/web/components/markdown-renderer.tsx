@@ -6,6 +6,9 @@ import remarkGfm from "remark-gfm"
 import rehypeHighlight from "rehype-highlight"
 import "highlight.js/styles/github.css"
 import "highlight.js/styles/github-dark.css"
+import rehypeRaw from "rehype-raw"
+import rehypeStringify from "rehype-stringify"
+import remarkMermaidPlugin from "remark-mermaid-plugin"
 
 export function MarkdownRenderer({ children }: { children: string }) {
   return (
@@ -13,8 +16,12 @@ export function MarkdownRenderer({ children }: { children: string }) {
       <div className={"hljs-dark"}>
         <style>{`pre { padding: 0 !important; }`}</style>
         <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          rehypePlugins={[[rehypeHighlight, { ignoreMissing: true }]]}
+          remarkPlugins={[remarkGfm, remarkMermaidPlugin]}
+          rehypePlugins={[
+            [rehypeHighlight, { ignoreMissing: true }],
+            rehypeRaw,
+            rehypeStringify,
+          ]}
           components={
             {
               a: ({ node, ...props }: { node?: any; href?: string }) => {
