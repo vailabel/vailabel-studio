@@ -17,10 +17,29 @@ export interface IDataAccess<T = any> {
   paginate(offset: number, limit: number): Promise<T[]>
 }
 
-export interface IImageDataAccess extends IDataAccess<ImageData> {}
+export interface IImageDataAccess extends IDataAccess<ImageData> {
+  countByProjectId(projectId: string): Promise<number>
+  getByProjectId(projectId: string): Promise<ImageData[]>
+  getNext(
+    projectId: string,
+    currentImageId: string
+  ): Promise<{ id: string | undefined; hasNext: boolean }>
+  getPrevious(
+    projectId: string,
+    currentImageId: string
+  ): Promise<{ id: string | undefined; hasPrevious: boolean }>
+
+  getImageWithAnnotations(imageId: string): Promise<ImageData | null>
+}
 export interface IProjectDataAccess extends IDataAccess<Project> {}
-export interface IAnnotationDataAccess extends IDataAccess<Annotation> {}
-export interface ILabelDataAccess extends IDataAccess<Label> {}
+export interface IAnnotationDataAccess extends IDataAccess<Annotation> {
+  countByProjectId(projectId: string): Promise<number>
+  getByProjectId(projectId: string): Promise<Annotation[]>
+}
+export interface ILabelDataAccess extends IDataAccess<Label> {
+  countByProjectId(projectId: string): Promise<number>
+  getByProjectId(projectId: string): Promise<Label[]>
+}
 export interface ISettingsDataAccess extends IDataAccess<Settings> {
   getByKey(key: string): Promise<Settings | null>
   updateByKey(key: string, value: any): Promise<void>

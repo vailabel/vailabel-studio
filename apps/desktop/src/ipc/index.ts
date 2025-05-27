@@ -8,6 +8,8 @@ import { SafeStorageSetCommand } from "./command/SafeStorageSetCommand"
 import { SafeStorageDeleteCommand } from "./command/SafeStorageDeleteCommand"
 import { SafeStorageGetQuery } from "./queries/SafeStorageGetQuery"
 import { SafeStorageListQuery } from "./queries/SafeStorageListQuery"
+import { RunYoloCommand } from "./command/RunYoloCommand"
+import { SelectPythonVenvCommand } from "./command/SelectPythonVenvCommand"
 
 export function registerHandlers(handlers: IpcHandler[]) {
   for (const handler of handlers) {
@@ -16,12 +18,19 @@ export function registerHandlers(handlers: IpcHandler[]) {
 }
 
 const handlers: IpcHandler[] = []
-handlers.push(new GetPythonVersionQuery())
+
+// Register commands
+handlers.push(new RunYoloCommand())
 handlers.push(new InstallPythonPackageCommand())
-handlers.push(new OpenModelFileQuery())
+handlers.push(new SelectPythonVenvCommand())
 handlers.push(new OpenExternalLinkCommand())
 handlers.push(new SafeStorageSetCommand())
 handlers.push(new SafeStorageDeleteCommand())
+// Register queries
+
 handlers.push(new SafeStorageGetQuery())
 handlers.push(new SafeStorageListQuery())
+
+handlers.push(new GetPythonVersionQuery())
+handlers.push(new OpenModelFileQuery())
 registerHandlers(handlers)

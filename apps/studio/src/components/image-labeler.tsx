@@ -1,5 +1,4 @@
-import type React from "react"
-import { useState, useEffect, useCallback } from "react"
+import React, { useState, useEffect, useCallback, useMemo } from "react"
 import { AnimatePresence } from "framer-motion"
 import {
   ArrowLeft,
@@ -27,8 +26,15 @@ import { ThemeToggle } from "./theme-toggle"
 import { useNavigate } from "react-router-dom"
 import { useCanvasStore } from "@/hooks/canvas-store"
 import { useAnnotationsStore } from "@/hooks/annotation-store"
+import { useProjectStore } from "@/hooks/use-project-store"
+import { useImageDataStore } from "@/hooks/use-image-data-store"
 
-export function ImageLabeler() {
+interface ImageLabelerProps {
+  projectId?: string
+  imageId?: string
+}
+
+export function ImageLabeler({ projectId, imageId }: ImageLabelerProps) {
   const navigate = useNavigate()
   const {
     contextMenuProps,
@@ -41,23 +47,85 @@ export function ImageLabeler() {
   const [showExport, setShowExport] = useState(false)
   const [showAISettings, setShowAISettings] = useState(false)
   const { currentImage } = useCanvasStore()
-
-  const { setAnnotations, annotations, getAnnotationsByImageId } =
-    useAnnotationsStore()
-
-  const nextImage = useCallback(() => {}, [])
-
-  const previousImage = useCallback(() => {}, [])
+  const {
+    currentProject,
+    getNextImage,
+    getPreviousImage,
+    nextImage,
+    previousImage,
+  } = useProjectStore()
+  const { setAnnotations, annotations } = useAnnotationsStore()
 
   useEffect(() => {
-    const fetchAnnotationsOnFirstRender = async () => {
-      if (currentImage) {
-        const annotationsData = await getAnnotationsByImageId(currentImage.id)
-        setAnnotations(annotationsData)
+    if (!projectId || !imageId) return
+    const fetchProject = async () => {
+      const image = await getImageWithAnnotations(imageId)
+      const project = await getProject(projectId)
+
+      if (image) {
+        setCurrentImage(image)
+        setAnnotations(image.annotations || [])
+      }
+      if (project) {
+        setCurrentProject(project)
       }
     }
-    fetchAnnotationsOnFirstRender()
-  }, [currentImage, setAnnotations, getAnnotationsByImageId])
+
+    fetchProject()
+  }, [currentImage, projectId, imageId])
+
+  const { getImageWithAnnotations } = useImageDataStore()
+  const { setCurrentImage } = useCanvasStore()
+  const { setCurrentProject, getProject } = useProjectStore()
+
+  // Memoize currentProject name and label counts to avoid unnecessary renders
+  const projectName = useMemo(
+    () => currentProject?.name || "Project Name",
+    [currentProject?.name]
+  )
+  const labelCount = useMemo(
+    () => currentProject?.labelCount || 0,
+    [currentProject?.labelCount]
+  )
+  const imageCount = useMemo(
+    () => currentProject?.imageCount || 0,
+    [currentProject?.imageCount]
+  )
+
+  // Memoize navigation handlers
+  const goNextImage = useCallback(async () => {
+    if (currentProject && currentImage) {
+      const nextImageId = await getNextImage(currentProject.id, currentImage.id)
+      if (nextImageId) {
+        navigate(`/projects/${currentProject.id}/studio/${nextImageId.id}`)
+      }
+    }
+  }, [currentProject, currentImage, getNextImage, navigate])
+
+  const goPreviousImage = useCallback(async () => {
+    if (currentProject && currentImage) {
+      const previousImageId = await getPreviousImage(
+        currentProject.id,
+        currentImage.id
+      )
+      if (previousImageId) {
+        navigate(`/projects/${currentProject.id}/studio/${previousImageId.id}`)
+      }
+    }
+  }, [currentProject, currentImage, getPreviousImage, navigate])
+
+  // Memoize annotation data for Canvas
+  const memoizedAnnotations = useMemo(() => annotations, [annotations])
+  const memoizedCurrentImage = useMemo(() => currentImage, [currentImage])
+
+  useEffect(() => {
+    ;(async () => {
+      if (currentImage && currentProject) {
+        await getNextImage(currentProject.id, currentImage.id)
+        await getPreviousImage(currentProject.id, currentImage.id)
+      }
+    })()
+  }, [currentImage, currentProject, getNextImage, getPreviousImage])
 
   const handleExportProject = () => {
     setShowExport(true)
@@ -90,22 +158,15 @@ export function ImageLabeler() {
       if (showSettings || showExport || showAISettings) return
 
       if (e.key === "ArrowRight" || e.code === "ArrowRight") {
-        nextImage()
+        goNextImage()
       } else if (e.key === "ArrowLeft" || e.code === "ArrowLeft") {
-        previousImage()
+        goPreviousImage()
       }
     }
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [
-    currentImage?.id,
-    showSettings,
-    showExport,
-    showAISettings,
-    nextImage,
-    previousImage,
-  ])
+  }, [showSettings, showExport, showAISettings, goNextImage, goPreviousImage])
 
   const onClose = () => {
     navigate("/projects")
@@ -119,10 +180,10 @@ export function ImageLabeler() {
           </Button>
           <div>
             <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">
-              AAAA
+              {projectName}
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              111 of 123 images labeled
+              {labelCount} of {imageCount} images labeled
             </p>
           </div>
         </div>
@@ -132,7 +193,12 @@ export function ImageLabeler() {
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="outline" size="sm" onClick={previousImage}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={goPreviousImage}
+                      disabled={!previousImage.hasPrevious}
+                    >
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
@@ -145,7 +211,12 @@ export function ImageLabeler() {
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="outline" size="sm" onClick={nextImage}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={goNextImage}
+                      disabled={!nextImage.hasNext}
+                    >
                       <ChevronRight className="h-4 w-4 ml-1" />
                     </Button>
                   </TooltipTrigger>
@@ -216,14 +287,17 @@ export function ImageLabeler() {
           onClick={handleCloseContextMenu}
         >
           <Toolbar
-            currentImage={currentImage || null}
+            currentImage={memoizedCurrentImage || null}
             onOpenSettings={() => setShowSettings(true)}
             onOpenAISettings={() => setShowAISettings(true)}
           />
 
           <div className="relative flex-1 overflow-hidden">
-            {currentImage ? (
-              <Canvas image={currentImage} annotations={annotations} />
+            {memoizedCurrentImage ? (
+              <Canvas
+                image={memoizedCurrentImage}
+                annotations={memoizedAnnotations}
+              />
             ) : (
               <div className="flex h-full items-center justify-center bg-gray-100 dark:bg-gray-900">
                 <p className="text-gray-500 dark:text-gray-400">

@@ -34,9 +34,9 @@ export function AIDetectionButton({ image, disabled }: AIDetectionButtonProps) {
     const handler = (_event: unknown, msg: string) => {
       setProgress((prev) => prev + msg)
     }
-    window.ipc.on("yolo-progress", handler)
+    window.ipc.on("event:run-yolo-progress", handler)
     return () => {
-      if (window.ipc?.off) window.ipc.off("yolo-progress", handler)
+      if (window.ipc?.off) window.ipc.off("event:run-yolo-progress", handler)
       setProgress("")
     }
   }, [])
@@ -66,7 +66,7 @@ export function AIDetectionButton({ image, disabled }: AIDetectionButtonProps) {
     try {
       const modelPath = selectedModel?.modelPath
       const pythonPath = await getSetting("pythonPath")
-      const detections = await window.ipc.invoke("run-yolo", {
+      const detections = await window.ipc.invoke("command:runYolo", {
         modelPath,
         imagePath: image.data, // base64 string
         pythonPath,

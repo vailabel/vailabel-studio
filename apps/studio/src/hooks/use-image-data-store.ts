@@ -9,6 +9,7 @@ type ImageDataStoreType = {
   image: ImageData | undefined
   getImages: () => ImageData[]
   getImage: (id: string) => Promise<ImageData | undefined>
+  getImageWithAnnotations: (imageId: string) => Promise<ImageData>
   getImagesByProjectId: (projectId: string) => ImageData[]
   setImages: (images: ImageData[]) => void
   createImage: (image: ImageData) => Promise<void>
@@ -53,6 +54,14 @@ export const useImageDataStore = create<ImageDataStoreType>(
       })
 
       return images
+    },
+    getImageWithAnnotations: async (imageId) => {
+      const { dbContext } = get()
+      const image = await dbContext.images.getImageWithAnnotations(imageId)
+      if (!image) {
+        throw new Error(`Image with id ${imageId} not found`)
+      }
+      return image
     },
     getImage: async (id) => {
       const { dbContext, images } = get()
