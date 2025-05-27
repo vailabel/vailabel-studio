@@ -72,7 +72,7 @@ export function ImageLabeler({ projectId, imageId }: ImageLabelerProps) {
     }
 
     fetchProject()
-  }, [currentImage, projectId, imageId])
+  }, [])
 
   const { getImageWithAnnotations } = useImageDataStore()
   const { setCurrentImage } = useCanvasStore()
@@ -94,25 +94,45 @@ export function ImageLabeler({ projectId, imageId }: ImageLabelerProps) {
 
   // Memoize navigation handlers
   const goNextImage = useCallback(async () => {
-    if (currentProject && currentImage) {
-      const nextImageId = await getNextImage(currentProject.id, currentImage.id)
-      if (nextImageId) {
-        navigate(`/projects/${currentProject.id}/studio/${nextImageId.id}`)
+    if (currentProject && nextImage && nextImage.hasNext && nextImage.id) {
+      const image = await getImageWithAnnotations(nextImage.id)
+      if (image) {
+        setCurrentImage(image)
+        setAnnotations(image.annotations || [])
+        navigate(`/projects/${currentProject.id}/studio/${nextImage.id}`)
       }
     }
-  }, [currentProject, currentImage, getNextImage, navigate])
+  }, [
+    currentProject,
+    nextImage,
+    navigate,
+    getImageWithAnnotations,
+    setCurrentImage,
+    setAnnotations,
+  ])
 
   const goPreviousImage = useCallback(async () => {
-    if (currentProject && currentImage) {
-      const previousImageId = await getPreviousImage(
-        currentProject.id,
-        currentImage.id
-      )
-      if (previousImageId) {
-        navigate(`/projects/${currentProject.id}/studio/${previousImageId.id}`)
+    if (
+      currentProject &&
+      previousImage &&
+      previousImage.hasPrevious &&
+      previousImage.id
+    ) {
+      const image = await getImageWithAnnotations(previousImage.id)
+      if (image) {
+        setCurrentImage(image)
+        setAnnotations(image.annotations || [])
+        navigate(`/projects/${currentProject.id}/studio/${previousImage.id}`)
       }
     }
-  }, [currentProject, currentImage, getPreviousImage, navigate])
+  }, [
+    currentProject,
+    previousImage,
+    navigate,
+    getImageWithAnnotations,
+    setCurrentImage,
+    setAnnotations,
+  ])
 
   // Memoize annotation data for Canvas
   const memoizedAnnotations = useMemo(() => annotations, [annotations])

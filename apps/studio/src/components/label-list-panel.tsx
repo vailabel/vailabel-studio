@@ -28,11 +28,12 @@ export function LabelListPanel({ onLabelSelect }: LabelListPanelProps) {
     },
     {} as Record<string, Label[]>
   )
-
   useEffect(() => {
-    if (currentProject) {
-      getLabelsByProjectId(currentProject.id)
-    }
+    ;(async () => {
+      if (currentProject) {
+        await getLabelsByProjectId(currentProject.id)
+      }
+    })()
   }, [currentProject, getLabelsByProjectId])
 
   return (

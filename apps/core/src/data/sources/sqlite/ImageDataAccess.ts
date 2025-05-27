@@ -67,13 +67,10 @@ export class ImageDataAccess
     }
   }
   getByProjectId(projectId: string): Promise<ImageData[]> {
-    const result = window.ipc.invoke("sqlite:get", [
+    return window.ipc.invoke("sqlite:all", [
       `SELECT * FROM ${this.table} WHERE projectId = ?`,
       [projectId],
     ])
-    return result.then((data) =>
-      data.map((item: any) => ({ ...item, data: item.data }))
-    )
   }
   countByProjectId(projectId: string): Promise<number> {
     const result = window.ipc.invoke("sqlite:get", [

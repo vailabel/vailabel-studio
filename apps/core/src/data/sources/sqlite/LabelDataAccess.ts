@@ -17,7 +17,7 @@ export class LabelDataAccess
     return result.then((data) => data.count)
   }
   getByProjectId(projectId: string): Promise<Label[]> {
-    const result = window.ipc.invoke("sqlite:get", [
+    const result = window.ipc.invoke("sqlite:all", [
       `SELECT * FROM ${this.table} WHERE projectId = ?`,
       [projectId],
     ])

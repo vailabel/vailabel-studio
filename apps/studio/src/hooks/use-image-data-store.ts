@@ -7,10 +7,10 @@ type ImageDataStoreType = {
   initDBContext: (dbContext: IDBContext) => void
   images: ImageData[]
   image: ImageData | undefined
-  getImages: () => ImageData[]
+  getImages: () => Promise<ImageData[]>
   getImage: (id: string) => Promise<ImageData | undefined>
   getImageWithAnnotations: (imageId: string) => Promise<ImageData>
-  getImagesByProjectId: (projectId: string) => ImageData[]
+  getImagesByProjectId: (projectId: string) => Promise<ImageData[]>
   setImages: (images: ImageData[]) => void
   createImage: (image: ImageData) => Promise<void>
   updateImage: (id: string, updates: Partial<ImageData>) => Promise<void>
@@ -38,20 +38,15 @@ export const useImageDataStore = create<ImageDataStoreType>(
         await dbContext.images.create(image)
       }
     },
-    getImagesByProjectId: (projectId) => {
-      const { dbContext, images } = get()
-      dbContext.images.get().then((allImages: ImageData[]) => {
-        set({ images: allImages })
-      })
-
-      return images.filter((image) => image.projectId === projectId)
+    getImagesByProjectId: async (projectId: string) => {
+      const { dbContext, setImages } = get()
+      const imageList = await dbContext.images.getByProjectId(projectId)
+      setImages(imageList)
+      return imageList
     },
-    getImages: () => {
-      const { dbContext, setImages, images } = get()
-
-      dbContext.images.get().then((allImages: ImageData[]) => {
-        setImages(allImages)
-      })
+    getImages: async () => {
+      const { dbContext, images } = get()
+      const allImages = await dbContext.images.get()
 
       return images
     },
