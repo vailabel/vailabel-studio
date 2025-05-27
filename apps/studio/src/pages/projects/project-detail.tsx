@@ -1,8 +1,6 @@
-import { Project } from "@vailabel/core"
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import Loading from "@/components/loading"
-import { useToast } from "@/hooks/use-toast"
 import ImageWithLoader from "@/components/image-loader"
 import { useProjectStore } from "@/hooks/use-project-store"
 import { useImageDataStore } from "@/hooks/use-image-data-store"
@@ -11,41 +9,19 @@ import { useLabelStore } from "@/hooks/use-label-store"
 
 export default function ProjectDetails() {
   const { projectId } = useParams<{ projectId: string }>()
-  const { toast } = useToast()
-  const [project, setProject] = useState<Project | null>(null)
-  const { getProject } = useProjectStore()
+  const { getProject, currentProject } = useProjectStore()
   const { getImagesByProjectId, images } = useImageDataStore()
-  const { getLabelsByProjectId, labels } = useLabelStore()
+  const { labels } = useLabelStore()
   const navigate = useNavigate()
   useEffect(() => {
     const fetchProject = async () => {
       if (!projectId) return
-      try {
-        const projectData = await getProject(projectId)
-        await getImagesByProjectId(projectId)
-        await getLabelsByProjectId(projectId)
-        if (projectData) {
-          setProject(projectData)
-        } else {
-          toast({
-            title: "Project not found",
-            description: `No project found with ID: ${projectId}`,
-            variant: "destructive",
-          })
-        }
-      } catch (error) {
-        console.error("Error fetching project:", error)
-        toast({
-          title: "Error fetching project",
-          description: "An error occurred while fetching the project.",
-          variant: "destructive",
-        })
-      }
+      await getProject(projectId)
+      await getImagesByProjectId(projectId)
     }
 
     fetchProject()
-  }, [getImagesByProjectId, getProject, projectId, toast])
-
+  }, [projectId])
   if (!projectId) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -54,14 +30,14 @@ export default function ProjectDetails() {
     )
   }
 
-  if (!project) {
+  if (!currentProject) {
     return <Loading />
   }
 
   return (
     <>
       <div className="mb-6 border-b pb-4">
-        <h1 className="text-2xl font-bold mb-1">{project.name}</h1>
+        <h1 className="text-2xl font-bold mb-1">{currentProject.name}</h1>
         <p className="text-gray-500 text-sm">Project ID: {projectId}</p>
       </div>
       <Tabs defaultValue="images" className="w-full">

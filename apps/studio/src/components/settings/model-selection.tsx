@@ -12,10 +12,13 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { AIModel } from "@vailabel/core"
 import { useAIModelStore } from "@/hooks/use-ai-model-store"
+import { useSettingsStore } from "@/hooks/use-settings-store"
+import { Button } from "@/components/ui/button"
 
 export function ModelSelection() {
   const { toast } = useToast()
   const { getAIModels, getSelectedModel } = useAIModelStore()
+  const { updateSetting } = useSettingsStore()
   const [availableModels, setAvailableModels] = useState<AIModel[]>([])
   const [selectedModelId, setSelectedModelId] = useState<string>("")
 
@@ -42,6 +45,23 @@ export function ModelSelection() {
   const handleRadioChange = (modelId: string) => {
     setSelectedModelId(modelId)
     // Optionally, persist the selected model if your store supports it
+  }
+
+  const handleSave = () => {
+    const selectedModel = availableModels.find((m) => m.id === selectedModelId)
+    if (selectedModel) {
+      updateSetting("modelPath", selectedModel.modelPath)
+      toast({
+        title: "Model Saved",
+        description: `Model path saved to settings: ${selectedModel.modelPath}`,
+      })
+    } else {
+      toast({
+        title: "No Model Selected",
+        description: "Please select a model before saving.",
+        variant: "destructive",
+      })
+    }
   }
 
   return (
@@ -118,6 +138,11 @@ export function ModelSelection() {
             </div>
           </div>
         </div>
+      </div>
+      <div className="mt-4 flex justify-end">
+        <Button onClick={handleSave} disabled={!selectedModelId}>
+          Save
+        </Button>
       </div>
     </div>
   )

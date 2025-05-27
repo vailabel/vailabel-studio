@@ -32,103 +32,7 @@ export const InstallPythonPackage = () => {
     error: null,
   })
 
-  const { updateSetting, settings } = useSettingsStore()
-  // Helper to get pythonPath and pythonVenv from settings array
-  const storedPythonPath = settings.find((s) => s.key === "pythonPath")?.value
-  const storedPythonVenv = settings.find((s) => s.key === "pythonVenv")?.value
-
-  console.log("Stored Python Path:", storedPythonPath)
-  // Detect Python info on mount (Electron only)
-  useEffect(() => {
-    if (!isElectron()) return
-    // Prefer pythonVenv if available
-    if (storedPythonVenv) {
-      setIsDetectingPython(true)
-      window.ipc
-        .invoke("command:selectPythonVenv", { venvDir: storedPythonVenv })
-        .then((venvResult: SelectedPythonVenv) => {
-          if (venvResult && venvResult.pythonPath) {
-            // Always update pythonPath in settings to the venv's pythonPath
-            updateSetting("pythonPath", venvResult.pythonPath)
-            return window.ipc
-              .invoke("query:getPythonVersion", {
-                pythonPath: venvResult.pythonPath,
-              })
-              .then((info) => {
-                const pyInfo = info as PythonInfo
-                setPythonInfo({
-                  pythonPath: pyInfo.pythonPath || venvResult.pythonPath,
-                  version: pyInfo.version || null,
-                  pipVersion: pyInfo.pipVersion || null,
-                  error: pyInfo.error || null,
-                })
-                setIsDetectingPython(false)
-              })
-          } else {
-            setPythonInfo({
-              pythonPath: null,
-              version: null,
-              pipVersion: null,
-              error: "Invalid Python venv in settings.",
-            })
-            setIsDetectingPython(false)
-          }
-        })
-        .catch((error: unknown) => {
-          setPythonInfo({
-            pythonPath: null,
-            version: null,
-            pipVersion: null,
-            error: error instanceof Error ? error.message : String(error),
-          })
-          setIsDetectingPython(false)
-        })
-    } else if (storedPythonPath) {
-      setIsDetectingPython(true)
-      window.ipc
-        .invoke("query:getPythonVersion", { pythonPath: storedPythonPath })
-        .then((info) => {
-          const pyInfo = info as PythonInfo
-          setPythonInfo({
-            pythonPath: pyInfo.pythonPath || storedPythonPath,
-            version: pyInfo.version || null,
-            pipVersion: pyInfo.pipVersion || null,
-            error: pyInfo.error || null,
-          })
-          setIsDetectingPython(false)
-        })
-        .catch((error: unknown) => {
-          setPythonInfo({
-            pythonPath: storedPythonPath,
-            version: null,
-            pipVersion: null,
-            error: error instanceof Error ? error.message : String(error),
-          })
-          setIsDetectingPython(false)
-        })
-    } else {
-      setIsDetectingPython(true)
-      window.ipc
-        .invoke("query:getPythonVersion")
-        .then((info) => {
-          const pyInfo = info as PythonInfo
-          setPythonInfo(pyInfo)
-          setIsDetectingPython(false)
-          if (pyInfo.pythonPath && updateSetting) {
-            updateSetting("pythonPath", pyInfo.pythonPath)
-          }
-        })
-        .catch((error: unknown) => {
-          setPythonInfo({
-            pythonPath: null,
-            version: null,
-            pipVersion: null,
-            error: error instanceof Error ? error.message : String(error),
-          })
-          setIsDetectingPython(false)
-        })
-    }
-  }, [updateSetting, settings, storedPythonPath, storedPythonVenv])
+  const { updateSetting } = useSettingsStore()
 
   // Listen for python install progress (Electron only)
   useEffect(() => {
@@ -152,6 +56,37 @@ export const InstallPythonPackage = () => {
     return () => {
       window.ipc.off?.("event:pythonInstallProgress", handler)
       setInstallProgress("")
+    }
+  }, [])
+
+  // On mount, load pythonPath from settings and fetch version info if present
+  useEffect(() => {
+    const storedPythonPath = useSettingsStore
+      .getState()
+      .settings.find((s) => s.key === "pythonPath")?.value
+    if (storedPythonPath) {
+      setIsDetectingPython(true)
+      window.ipc
+        .invoke("query:getPythonVersion", { pythonPath: storedPythonPath })
+        .then((info) => {
+          const pyInfo = info as PythonInfo
+          setPythonInfo({
+            pythonPath: pyInfo.pythonPath || storedPythonPath,
+            version: pyInfo.version || null,
+            pipVersion: pyInfo.pipVersion || null,
+            error: pyInfo.error || null,
+          })
+          setIsDetectingPython(false)
+        })
+        .catch((error: unknown) => {
+          setPythonInfo({
+            pythonPath: storedPythonPath,
+            version: null,
+            pipVersion: null,
+            error: error instanceof Error ? error.message : String(error),
+          })
+          setIsDetectingPython(false)
+        })
     }
   }, [])
 
@@ -250,9 +185,51 @@ export const InstallPythonPackage = () => {
         error: pyInfo.error || null,
       })
       setIsDetectingPython(false)
-      // Always save the pythonPath from the selected venv to settings
+      // Only update pythonPath in settings to the venv's pythonPath
       updateSetting("pythonPath", result.pythonPath)
-      updateSetting("pythonVenv", result.venvPath)
+    } catch (error) {
+      setPythonError(error instanceof Error ? error.message : String(error))
+      setIsDetectingPython(false)
+    }
+  }
+
+  // Handler for selecting a Python executable directly
+  const handlePythonBinaryChange = async (event: {
+    target: { files: FileList | string[] }
+  }) => {
+    try {
+      const files = event.target.files
+      let filePath: string | undefined
+      if (Array.isArray(files)) {
+        filePath = files[0]
+      } else if (files && files.length > 0) {
+        const fileObj = files[0]
+        if (hasPathProp(fileObj)) {
+          filePath = fileObj.path
+        } else if (typeof fileObj === "string") {
+          filePath = fileObj
+        }
+      }
+      if (!filePath) {
+        setPythonError("No file selected.")
+        return
+      }
+      setPythonError(null)
+      setIsDetectingPython(true)
+      // Query Python version info for the selected pythonPath
+      const info = await window.ipc.invoke("query:getPythonVersion", {
+        pythonPath: filePath,
+      })
+      const pyInfo = info as PythonInfo
+      setPythonInfo({
+        pythonPath: pyInfo.pythonPath || filePath,
+        version: pyInfo.version || null,
+        pipVersion: pyInfo.pipVersion || null,
+        error: pyInfo.error || null,
+      })
+      setIsDetectingPython(false)
+      // Update settings: set pythonPath
+      updateSetting("pythonPath", filePath)
     } catch (error) {
       setPythonError(error instanceof Error ? error.message : String(error))
       setIsDetectingPython(false)
@@ -329,6 +306,21 @@ export const InstallPythonPackage = () => {
                 {
                   name: "Python Virtual Environments",
                   extensions: ["venv", "pyenv", "virtualenv"],
+                },
+                { name: "All Files", extensions: ["*"] },
+              ],
+            }}
+          />
+          <span className="text-xs text-gray-500">or</span>
+          <ElectronFileInput
+            placeholder="Select Python executable"
+            onChange={handlePythonBinaryChange}
+            options={{
+              properties: ["openFile"],
+              filters: [
+                {
+                  name: "Python Executable",
+                  extensions: ["exe", "bin", "py", "*python*"],
                 },
                 { name: "All Files", extensions: ["*"] },
               ],

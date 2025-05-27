@@ -23,6 +23,7 @@ export class RunYoloCommand
     const pythonScript = resolveUnpacked("ai/yolo.py")
     let cmd = `${pythonPath} "${pythonScript}" --model="${modelPath}" --image-base64="${imagePath}"`
 
+    console.log("Running YOLO command:", modelPath, pythonPath)
     return new Promise((resolve, reject) => {
       const proc = exec(cmd)
       let stdout = ""
