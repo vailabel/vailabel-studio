@@ -14,7 +14,7 @@ class LabelDataAccess extends DataAccess_1.DataAccess {
         return result.then((data) => data.count);
     }
     getByProjectId(projectId) {
-        const result = window.ipc.invoke("sqlite:get", [
+        const result = window.ipc.invoke("sqlite:all", [
             `SELECT * FROM ${this.table} WHERE projectId = ?`,
             [projectId],
         ]);

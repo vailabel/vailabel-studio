@@ -25,12 +25,11 @@ class ImageDataAccess extends DataAccess_1.DataAccess {
             if (!image)
                 return null;
             // Fetch all annotations for this image
-            const annotations = yield window.ipc.invoke("sqlite:get", [
+            const annotations = yield window.ipc.invoke("sqlite:all", [
                 `SELECT * FROM annotations WHERE imageId = ?`,
                 [imageId],
             ]);
-            console.log("Fetched annotations:", annotations);
-            return Object.assign(Object.assign({}, image), { data: image.data, annotations: Array.isArray(annotations)
+            return Object.assign(Object.assign({}, image), { annotations: Array.isArray(annotations)
                     ? annotations.map((a) => (Object.assign(Object.assign({}, a), { coordinates: a.coordinates ? JSON.parse(a.coordinates) : undefined })))
                     : [] });
         });
@@ -70,11 +69,10 @@ class ImageDataAccess extends DataAccess_1.DataAccess {
         });
     }
     getByProjectId(projectId) {
-        const result = window.ipc.invoke("sqlite:get", [
+        return window.ipc.invoke("sqlite:all", [
             `SELECT * FROM ${this.table} WHERE projectId = ?`,
             [projectId],
         ]);
-        return result.then((data) => data.map((item) => (Object.assign(Object.assign({}, item), { data: item.data }))));
     }
     countByProjectId(projectId) {
         const result = window.ipc.invoke("sqlite:get", [
