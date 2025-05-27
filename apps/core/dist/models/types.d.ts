@@ -43,6 +43,7 @@ export interface ImageData extends Modal {
     width: number;
     height: number;
     url?: string;
+    annotations?: Annotation[];
     projectId: string;
     createdAt: Date;
 }
