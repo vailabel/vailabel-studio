@@ -45,10 +45,9 @@ export const useImageDataStore = create<ImageDataStoreType>(
       return imageList
     },
     getImages: async () => {
-      const { dbContext, images } = get()
+      const { dbContext } = get()
       const allImages = await dbContext.images.get()
-
-      return images
+      return allImages
     },
     getImageWithAnnotations: async (imageId) => {
       const { dbContext } = get()

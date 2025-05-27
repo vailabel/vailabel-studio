@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Brain, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -46,7 +46,7 @@ export function AIDetectionButton({ image, disabled }: AIDetectionButtonProps) {
         pythonPath: pythonPath?.value,
       })
       // Render detections as annotations
-      if (Array.isArray(detections)) {
+      if (Array.isArray(detections) && currentProject) {
         for (const detection of detections) {
           const { box, name: className } = detection
           if (!box || typeof box !== "object") continue
