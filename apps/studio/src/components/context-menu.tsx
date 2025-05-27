@@ -9,6 +9,7 @@ import {
   Trash2,
   ZoomIn,
   Pencil,
+  Brain,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useCanvasStore } from "@/hooks/canvas-store"
@@ -74,6 +75,17 @@ export function ContextMenu({
       style={{ left: adjustedX, top: adjustedY }}
     >
       <div className="py-1">
+        <button
+          className={cn(
+            "flex w-full items-center px-4 py-2 text-sm",
+            "dark:text-gray-300 dark:hover:bg-gray-700",
+            "text-gray-700 hover:bg-gray-100"
+          )}
+          onClick={() => handleToolSelect("select")}
+        >
+          <Brain className="mr-2 h-4 w-4" />
+          AI Detection
+        </button>
         <button
           className={cn(
             "flex w-full items-center px-4 py-2 text-sm",

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Brain, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -9,11 +9,11 @@ import {
 } from "@/components/ui/tooltip"
 import { useToast } from "@/hooks/use-toast"
 import type { Annotation, ImageData } from "@vailabel/core"
-import { useAIModelStore } from "@/hooks/use-ai-model-store"
 import { useSettingsStore } from "@/hooks/use-settings-store"
 import { useLabelStore } from "@/hooks/use-label-store"
 import { getRandomColor } from "@/lib/utils"
 import { useAnnotationsStore } from "@/hooks/annotation-store"
+import { useProjectStore } from "@/hooks/use-project-store"
 
 interface AIDetectionButtonProps {
   image: ImageData | null
@@ -23,35 +23,10 @@ interface AIDetectionButtonProps {
 export function AIDetectionButton({ image, disabled }: AIDetectionButtonProps) {
   const { toast } = useToast()
   const [isDetecting, setIsDetecting] = useState(false)
-  const [progress, setProgress] = useState<string>("")
-
-  const { getSelectedModel, selectedModel } = useAIModelStore()
   const { getSetting } = useSettingsStore()
   const { getOrCreateLabel } = useLabelStore()
   const { createAnnotation } = useAnnotationsStore()
-  useEffect(() => {
-    if (!window.ipc?.on) return
-    const handler = (_event: unknown, msg: string) => {
-      setProgress((prev) => prev + msg)
-    }
-    window.ipc.on("yolo-progress", handler)
-    return () => {
-      if (window.ipc?.off) window.ipc.off("yolo-progress", handler)
-      setProgress("")
-    }
-  }, [])
-
-  useEffect(() => {
-    ;(async () => {
-      const model = await getSelectedModel()
-      if (model) {
-        setProgress(`Selected model: ${model.name}`)
-      } else {
-        setProgress("No model selected")
-      }
-    })()
-  }, [getSelectedModel])
-
+  const { currentProject } = useProjectStore()
   const handleDetection = async () => {
     if (!image) {
       toast({
@@ -62,18 +37,16 @@ export function AIDetectionButton({ image, disabled }: AIDetectionButtonProps) {
       return
     }
     setIsDetecting(true)
-    setProgress("")
     try {
-      const modelPath = selectedModel?.modelPath
+      const modelPath = await getSetting("modelPath")
       const pythonPath = await getSetting("pythonPath")
-      const detections = await window.ipc.invoke("run-yolo", {
-        modelPath,
-        imagePath: image.data, // base64 string
-        pythonPath,
+      const detections = await window.ipc.invoke("command:runYolo", {
+        modelPath: modelPath?.value,
+        imagePath: image.data,
+        pythonPath: pythonPath?.value,
       })
-      console.log("AI detection result:", detections)
       // Render detections as annotations
-      if (Array.isArray(detections)) {
+      if (Array.isArray(detections) && currentProject) {
         for (const detection of detections) {
           const { box, name: className } = detection
           if (!box || typeof box !== "object") continue
@@ -82,7 +55,11 @@ export function AIDetectionButton({ image, disabled }: AIDetectionButtonProps) {
           const x2 = box.x2
           const y2 = box.y2
           // First create or get label
-          const label = await getOrCreateLabel(className, getRandomColor())
+          const label = await getOrCreateLabel(
+            className,
+            getRandomColor(),
+            currentProject?.id
+          )
           const annotation: Annotation = {
             id: crypto.randomUUID(),
             name: className,
@@ -137,11 +114,7 @@ export function AIDetectionButton({ image, disabled }: AIDetectionButtonProps) {
         </TooltipContent>
       </Tooltip>
       {/* Progress output */}
-      {isDetecting && progress && (
-        <pre className="mt-2 max-h-32 overflow-y-auto text-xs bg-black text-green-200 rounded p-2 whitespace-pre-wrap border border-gray-700">
-          {progress}
-        </pre>
-      )}
+      {/* No progress output, just loading spinner */}
     </TooltipProvider>
   )
 }

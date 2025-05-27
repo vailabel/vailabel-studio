@@ -20,7 +20,11 @@ function App() {
   const { initDBContext: initAnnotationsContext } = useAnnotationsStore()
   const { initDBContext: initLabelsContext } = useLabelStore()
   const { initDBContext: initImageDataStore } = useImageDataStore()
-  const { initDBContext: initSettingsContext } = useSettingsStore()
+  const {
+    initDBContext: initSettingsContext,
+    getSettings,
+    settings,
+  } = useSettingsStore()
   const { initDBContext: initAiModelsContext } = useAIModelStore()
   useEffect(() => {
     const db = new SQLiteDBContext()
@@ -38,6 +42,15 @@ function App() {
     initSettingsContext,
     initAiModelsContext,
   ])
+
+  useEffect(() => {
+    ;(async () => {
+      if (settings.length === 0) {
+        await getSettings()
+      }
+    })()
+  }, [settings, getSettings])
+
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
       <StorageProvider>

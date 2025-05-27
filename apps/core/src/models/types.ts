@@ -47,6 +47,7 @@ export interface ImageData extends Modal {
   width: number
   height: number
   url?: string
+  annotations?: Annotation[]
   projectId: string
   createdAt: Date
 }
@@ -54,7 +55,7 @@ export interface ImageData extends Modal {
 export interface Project extends Modal {
   id: string
   name: string
-  images?: ImageData[] // Made optional to allow lazy loading
+  images?: ImageData[]
   createdAt: Date
   lastModified: Date
 }
