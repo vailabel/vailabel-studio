@@ -8,11 +8,15 @@ type LabelStoreType = {
   labels: Label[]
   setLabels: (labels: Label[]) => void
   getLabels: () => Label[]
-  getLabelsByProjectId: (projectId: string) => Label[]
+  getLabelsByProjectId: (projectId: string) => Promise<Label[]>
   createLabel: (label: Label) => Promise<void>
   updateLabel: (id: string, updates: Partial<Label>) => Promise<void>
   deleteLabel: (id: string) => Promise<void>
-  getOrCreateLabel: (name: string, color: string) => Promise<Label>
+  getOrCreateLabel: (
+    name: string,
+    color: string,
+    projectId: string
+  ) => Promise<Label>
 }
 
 export const useLabelStore = create<LabelStoreType>(
@@ -34,19 +38,11 @@ export const useLabelStore = create<LabelStoreType>(
       }
       return labels
     },
-    getLabelsByProjectId: (projectId) => {
-      const { dbContext, labels, setLabels } = get()
-      if (
-        dbContext &&
-        dbContext.labels &&
-        typeof dbContext.labels.get === "function"
-      ) {
-        dbContext.labels.get().then((allLabels: Label[]) => {
-          setLabels(allLabels)
-        })
-      }
-      // Always return from the in-memory store
-      return labels.filter((label) => label.projectId === projectId)
+    getLabelsByProjectId: async (projectId) => {
+      const { dbContext } = get()
+      const allLabel = await dbContext.labels.getByProjectId(projectId)
+      set({ labels: allLabel })
+      return allLabel
     },
     createLabel: async (label) => {
       const { labels, dbContext } = get()
@@ -73,7 +69,7 @@ export const useLabelStore = create<LabelStoreType>(
         await dbContext.labels.delete(id)
       }
     },
-    getOrCreateLabel: async (name, color) => {
+    getOrCreateLabel: async (name, color, projectId) => {
       const { labels } = get()
       let label = labels.find((label) => label.name === name)
       if (!label) {
@@ -82,7 +78,7 @@ export const useLabelStore = create<LabelStoreType>(
           id: crypto.randomUUID(),
           name,
           color,
-          projectId: "", // Set appropriately
+          projectId,
           createdAt: new Date(),
           updatedAt: new Date(),
         }

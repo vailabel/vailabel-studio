@@ -9,13 +9,16 @@ import {
 } from "@/components/ui/collapsible"
 import { Label } from "@vailabel/core"
 import { useLabelStore } from "@/hooks/use-label-store"
+import { useProjectStore } from "@/hooks/use-project-store"
+import { useEffect } from "react"
 
 interface LabelListPanelProps {
   onLabelSelect: (label: Label) => void
 }
 
 export function LabelListPanel({ onLabelSelect }: LabelListPanelProps) {
-  const { labels } = useLabelStore()
+  const { labels, getLabelsByProjectId } = useLabelStore()
+  const { currentProject } = useProjectStore()
   const groupedLabels: Record<string, Label[]> = labels.reduce(
     (acc, label) => {
       const category = label.category || "Uncategorized"
@@ -25,6 +28,13 @@ export function LabelListPanel({ onLabelSelect }: LabelListPanelProps) {
     },
     {} as Record<string, Label[]>
   )
+  useEffect(() => {
+    ;(async () => {
+      if (currentProject) {
+        await getLabelsByProjectId(currentProject.id)
+      }
+    })()
+  }, [currentProject, getLabelsByProjectId])
 
   return (
     <div

@@ -1,13 +1,14 @@
 import { useRef, useState } from "react"
 import { isElectron } from "@/lib/constants"
 import { File as FileIcon } from "lucide-react"
-
+import { OpenDialogOptions } from "electron"
 interface ElectronFileInputProps {
   onChange: (event: { target: { files: string[] } }) => void
   accept?: string
   multiple?: boolean
   className?: string
   placeholder?: string
+  options?: OpenDialogOptions
 }
 
 export function ElectronFileInput({
@@ -16,6 +17,7 @@ export function ElectronFileInput({
   multiple = false,
   className = "",
   placeholder = "Select file...",
+  options,
 }: ElectronFileInputProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [selectedFiles, setSelectedFiles] = useState<string[]>([])
@@ -23,17 +25,11 @@ export function ElectronFileInput({
   const handleClick = async () => {
     if (isElectron()) {
       const result = await window.ipc.invoke("query:openModelDialog", {
-        options: {
+        options: options || {
+          properties: multiple ? ["openFile", "multiSelections"] : ["openFile"],
           filters: accept
-            ? [
-                {
-                  name: "Accepted Files",
-                  extensions: accept.replace(/\./g, "").split(","),
-                },
-                { name: "All Files", extensions: ["*"] },
-              ]
-            : undefined,
-          properties: [multiple ? "openFile" : "openFile"],
+            ? [{ name: "Files", extensions: accept.split(",") }]
+            : [{ name: "All Files", extensions: ["*"] }],
         },
       })
       if (result && result.content) {
