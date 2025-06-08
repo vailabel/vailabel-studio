@@ -30,6 +30,9 @@
   "dependencies": {
     "electron-updater": "^6.6.2",
     "keytar": "^7.9.0",
+    "reflect-metadata": "^0.2.2",
+    "sequelize": "^6.37.7",
+    "sequelize-typescript": "^2.1.6",
     "sqlite3": "^5.1.7"
   },
   "repository": {
