@@ -1,4 +1,4 @@
-import { ImageData } from "../../../models/types";
+import { ImageData } from "../../../models";
 import { DataAccess } from "../../contracts/DataAccess";
 import { IImageDataAccess } from "../../contracts/IDataAccess";
 export declare class ImageDataAccess extends DataAccess<ImageData> implements IImageDataAccess {

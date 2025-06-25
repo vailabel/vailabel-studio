@@ -1,6 +1,5 @@
-import { Annotation } from "../../../models"
-import { DataAccess } from "../../contracts/DataAccess"
-import { IAnnotationDataAccess } from "../../contracts/IDataAccess"
+import { Annotation } from "@vailabel/core"
+import { DataAccess, IAnnotationDataAccess } from "@vailabel/core/data"
 
 export class AnnotationDataAccess
   extends DataAccess<Annotation>

@@ -1,6 +1,6 @@
-import { History } from "../../../models"
-import { DataAccess } from "../../contracts/DataAccess"
-import { IHistoryDataAccess } from "../../contracts/IDataAccess"
+import { History } from "@vailabel/core"
+import { DataAccess } from "@vailabel/core/data"
+import { IHistoryDataAccess } from "@vailabel/core/data"
 
 export class HistoryDataAccess
   extends DataAccess<History>

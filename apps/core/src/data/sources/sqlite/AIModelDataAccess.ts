@@ -1,4 +1,4 @@
-import { AIModel } from "../../../models/types"
+import { AIModel } from "../../../models"
 import { DataAccess } from "../../contracts/DataAccess"
 import { IAIModelDataAccess } from "../../contracts/IDataAccess"
 
@@ -7,6 +7,6 @@ export class AIModelDataAccess
   implements IAIModelDataAccess
 {
   constructor() {
-    super("ai_models")
+    super(AIModel)
   }
 }

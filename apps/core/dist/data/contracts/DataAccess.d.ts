@@ -1,13 +1,12 @@
+import { Model, ModelCtor } from "sequelize-typescript";
 import { IDataAccess } from "./IDataAccess";
 export declare class DataAccess<T extends object = any> implements IDataAccess<T> {
-    protected table: string;
-    constructor(table: string);
-    get<T>(): Promise<T[]>;
-    private isJson;
-    getById<T>(id: string): Promise<T | null>;
-    private flattenItem;
+    protected model: ModelCtor<Model<any, any>>;
+    constructor(model: ModelCtor<Model<any, any>>);
+    get(): Promise<T[]>;
+    getById(id: string): Promise<T | null>;
     create(item: T): Promise<void>;
     update(id: string, updates: Partial<T>): Promise<void>;
     delete(id: string): Promise<void>;
-    paginate<T>(offset: number, limit: number): Promise<T[]>;
+    paginate(offset: number, limit: number): Promise<T[]>;
 }
