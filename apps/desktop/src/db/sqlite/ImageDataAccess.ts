@@ -1,6 +1,6 @@
-import { ImageData, Annotation } from "../../../models"
-import { DataAccess } from "../../contracts/DataAccess"
-import { IImageDataAccess } from "../../contracts/IDataAccess"
+import { ImageData, Annotation } from "@vailabel/core"
+import { DataAccess } from "@vailabel/core/data"
+import { IImageDataAccess } from "@vailabel/core/data"
 
 export class ImageDataAccess
   extends DataAccess<ImageData>

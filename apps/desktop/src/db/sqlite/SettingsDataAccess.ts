@@ -1,6 +1,6 @@
-import { Settings } from "../../../models"
-import { DataAccess } from "../../contracts/DataAccess"
-import { ISettingsDataAccess } from "../../contracts/IDataAccess"
+import { Settings } from "@vailabel/core"
+import { DataAccess } from "@vailabel/core/data"
+import { ISettingsDataAccess } from "@vailabel/core/data"
 
 export class SettingsDataAccess
   extends DataAccess<Settings>

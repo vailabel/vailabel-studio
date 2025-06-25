@@ -19,4 +19,3 @@ __exportStar(require("./contracts/DataAccess"), exports);
 __exportStar(require("./contracts/IDataAccess"), exports);
 __exportStar(require("./contracts/IDBContext"), exports);
 __exportStar(require("./sources/api/ApiClient"), exports);
-__exportStar(require("./sources/sqlite/SQLiteDataAccess"), exports);

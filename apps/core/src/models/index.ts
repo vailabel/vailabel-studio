@@ -9,284 +9,284 @@ import {
   ForeignKey,
   HasMany,
   BelongsTo,
-} from 'sequelize-typescript';
+} from "sequelize-typescript"
 
 @Table
 export class Point extends Model {
   @Column(DataType.FLOAT)
-  x!: number;
+  x!: number
 
   @Column(DataType.FLOAT)
-  y!: number;
+  y!: number
 }
 
 @Table
 export class Project extends Model {
   @PrimaryKey
   @Column(DataType.STRING)
-  id!: string;
+  id!: string
 
   @Column(DataType.STRING)
-  name!: string;
+  name!: string
 
   @HasMany(() => Label)
-  labels!: Label[];
+  labels!: Label[]
 
   @HasMany(() => ImageData)
-  images!: ImageData[];
+  images!: ImageData[]
 
   @HasMany(() => Task)
-  tasks!: Task[];
+  tasks!: Task[]
 
   @CreatedAt
   @Column
-  createdAt!: Date;
+  createdAt!: Date
 
   @UpdatedAt
   @Column
-  lastModified!: Date;
+  lastModified!: Date
 }
 
 @Table
 export class Label extends Model {
   @PrimaryKey
   @Column(DataType.STRING)
-  id!: string;
+  id!: string
 
   @Column(DataType.STRING)
-  name!: string;
+  name!: string
 
   @Column(DataType.STRING)
-  category?: string;
+  category?: string
 
   @Column(DataType.BOOLEAN)
-  isAIGenerated?: boolean;
+  isAIGenerated?: boolean
 
   @ForeignKey(() => Project)
   @Column(DataType.STRING)
-  projectId!: string;
+  projectId!: string
 
   @BelongsTo(() => Project)
-  project!: Project;
+  project!: Project
 
   @HasMany(() => Annotation)
-  annotations!: Annotation[];
+  annotations!: Annotation[]
 
   @Column(DataType.STRING)
-  color!: string;
+  color!: string
 
   @CreatedAt
   @Column
-  createdAt!: Date;
+  createdAt!: Date
 
   @UpdatedAt
   @Column
-  updatedAt!: Date;
+  updatedAt!: Date
 }
 
 @Table
 export class ImageData extends Model {
   @PrimaryKey
   @Column(DataType.STRING)
-  id!: string;
+  id!: string
 
   @Column(DataType.STRING)
-  name!: string;
+  name!: string
 
   @Column(DataType.TEXT)
-  data!: string;
+  data!: string
 
   @Column(DataType.INTEGER)
-  width!: number;
+  width!: number
 
   @Column(DataType.INTEGER)
-  height!: number;
+  height!: number
 
   @Column(DataType.STRING)
-  url?: string;
+  url?: string
 
   @ForeignKey(() => Project)
   @Column(DataType.STRING)
-  projectId!: string;
+  projectId!: string
 
   @BelongsTo(() => Project)
-  project!: Project;
+  project!: Project
 
   @HasMany(() => Annotation)
-  annotations!: Annotation[];
+  annotations!: Annotation[]
 
   @CreatedAt
   @Column
-  createdAt!: Date;
+  createdAt!: Date
 }
 
 @Table
 export class Annotation extends Model {
   @PrimaryKey
   @Column(DataType.STRING)
-  id!: string;
+  id!: string
 
   @ForeignKey(() => Label)
   @Column(DataType.STRING)
-  labelId!: string;
+  labelId!: string
 
   @BelongsTo(() => Label)
-  label!: Label;
+  label!: Label
 
   @Column(DataType.STRING)
-  name!: string;
+  name!: string
 
-  @Column(DataType.ENUM('box', 'polygon', 'freeDraw'))
-  type!: string;
+  @Column(DataType.STRING)
+  type!: string
 
   @Column(DataType.JSON)
-  coordinates!: { x: number; y: number }[];
+  coordinates!: { x: number; y: number }[]
 
   @ForeignKey(() => ImageData)
   @Column(DataType.STRING)
-  imageId!: string;
+  imageId!: string
 
   @BelongsTo(() => ImageData)
-  image!: ImageData;
+  image!: ImageData
 
   @CreatedAt
   @Column
-  createdAt!: Date;
+  createdAt!: Date
 
   @UpdatedAt
   @Column
-  updatedAt!: Date;
+  updatedAt!: Date
 
   @Column(DataType.STRING)
-  color?: string;
+  color?: string
 
   @Column(DataType.BOOLEAN)
-  isAIGenerated?: boolean;
+  isAIGenerated?: boolean
 }
 
 @Table
 export class History extends Model {
   @PrimaryKey
   @Column(DataType.STRING)
-  id!: string;
+  id!: string
 
   @Column(DataType.JSON)
-  labels!: Label[];
+  labels!: Label[]
 
   @Column(DataType.INTEGER)
-  historyIndex!: number;
+  historyIndex!: number
 
   @Column(DataType.BOOLEAN)
-  canUndo!: boolean;
+  canUndo!: boolean
 
   @Column(DataType.BOOLEAN)
-  canRedo!: boolean;
+  canRedo!: boolean
 }
 
 @Table
 export class Task extends Model {
   @PrimaryKey
   @Column(DataType.STRING)
-  id!: string;
+  id!: string
 
   @Column(DataType.STRING)
-  name!: string;
+  name!: string
 
   @Column(DataType.TEXT)
-  description!: string;
+  description!: string
 
   @ForeignKey(() => Project)
   @Column(DataType.STRING)
-  projectId!: string;
+  projectId!: string
 
   @BelongsTo(() => Project)
-  project!: Project;
+  project!: Project
 
   @Column(DataType.STRING)
-  assignedTo?: string;
+  assignedTo?: string
 
-  @Column(DataType.ENUM('pending', 'in_progress', 'completed', 'review', 'archived'))
-  status!: string;
+  @Column(DataType.STRING)
+  status!: string
 
   @CreatedAt
   @Column
-  createdAt!: Date;
+  createdAt!: Date
 
   @UpdatedAt
   @Column
-  updatedAt!: Date;
+  updatedAt!: Date
 
   @Column(DataType.DATE)
-  dueDate?: Date;
+  dueDate?: Date
 
   @Column(DataType.JSON)
-  labels?: Label[];
+  labels?: Label[]
 
   @Column(DataType.JSON)
-  annotations?: Annotation[];
+  annotations?: Annotation[]
 }
 
 @Table
 export class ExportFormat extends Model {
   @PrimaryKey
   @Column(DataType.STRING)
-  id!: string;
+  id!: string
 
   @Column(DataType.STRING)
-  name!: string;
+  name!: string
 
   @Column(DataType.TEXT)
-  description!: string;
+  description!: string
 
   @Column(DataType.STRING)
-  extension!: string;
+  extension!: string
 }
 
 @Table
 export class AIModel extends Model {
   @PrimaryKey
   @Column(DataType.STRING)
-  id!: string;
+  id!: string
 
   @Column(DataType.STRING)
-  name!: string;
+  name!: string
 
   @Column(DataType.TEXT)
-  description!: string;
+  description!: string
 
   @Column(DataType.STRING)
-  version!: string;
+  version!: string
 
   @CreatedAt
   @Column
-  createdAt!: Date;
+  createdAt!: Date
 
   @UpdatedAt
   @Column
-  updatedAt!: Date;
+  updatedAt!: Date
 
   @Column(DataType.STRING)
-  modelPath!: string;
+  modelPath!: string
 
   @Column(DataType.STRING)
-  configPath!: string;
+  configPath!: string
 
   @Column(DataType.INTEGER)
-  modelSize!: number;
+  modelSize!: number
 
   @Column(DataType.BOOLEAN)
-  isCustom!: boolean;
+  isCustom!: boolean
 }
 
 @Table
 export class Settings extends Model {
   @PrimaryKey
   @Column(DataType.STRING)
-  id!: string;
+  id!: string
 
   @Column(DataType.STRING)
-  key!: string;
+  key!: string
 
   @Column(DataType.STRING)
-  value!: string;
+  value!: string
 }

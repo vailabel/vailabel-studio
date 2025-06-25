@@ -10,35 +10,26 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SettingsDataAccess = void 0;
+const models_1 = require("../../../models");
 const DataAccess_1 = require("../../contracts/DataAccess");
 class SettingsDataAccess extends DataAccess_1.DataAccess {
     constructor() {
-        super("settings");
+        super(models_1.Settings);
     }
     getByKey(key) {
         return __awaiter(this, void 0, void 0, function* () {
-            const row = yield window.ipc.invoke("sqlite:get", [
-                `SELECT * FROM ${this.table} WHERE key = ?`,
-                [key],
-            ]);
-            if (row) {
-                // Parse the value field from JSON string to object
-                return Object.assign(Object.assign({}, row), { value: JSON.parse(row.value) });
-            }
-            return null;
+            return models_1.Settings.findOne({ where: { key } });
         });
     }
     updateByKey(key, value) {
-        return window.ipc.invoke("sqlite:run", [
-            `UPDATE ${this.table} SET value = ? WHERE key = ?`,
-            [JSON.stringify(value), key],
-        ]);
+        return __awaiter(this, void 0, void 0, function* () {
+            yield models_1.Settings.update({ value: JSON.stringify(value) }, { where: { key } });
+        });
     }
     deleteByKey(key) {
-        return window.ipc.invoke("sqlite:run", [
-            `DELETE FROM ${this.table} WHERE key = ?`,
-            [key],
-        ]);
+        return __awaiter(this, void 0, void 0, function* () {
+            yield models_1.Settings.destroy({ where: { key } });
+        });
     }
 }
 exports.SettingsDataAccess = SettingsDataAccess;

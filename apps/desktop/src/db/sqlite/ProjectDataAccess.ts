@@ -1,6 +1,6 @@
-import { Project } from "../../../models"
-import { DataAccess } from "../../contracts/DataAccess"
-import { IProjectDataAccess } from "../../contracts/IDataAccess"
+import { Project } from "@vailabel/core"
+import { DataAccess } from "@vailabel/core/data"
+import { IProjectDataAccess } from "@vailabel/core/data"
 
 export class ProjectDataAccess
   extends DataAccess<Project>

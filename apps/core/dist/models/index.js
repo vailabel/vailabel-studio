@@ -9,11 +9,59 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Task = exports.Settings = exports.AIModel = exports.ExportFormat = exports.Project = exports.ImageData = exports.History = exports.Annotation = exports.Label = exports.Point = void 0;
+exports.Settings = exports.AIModel = exports.ExportFormat = exports.Task = exports.History = exports.Annotation = exports.ImageData = exports.Label = exports.Project = exports.Point = void 0;
 const sequelize_typescript_1 = require("sequelize-typescript");
-class Point extends sequelize_typescript_1.Model {
-}
+let Point = class Point extends sequelize_typescript_1.Model {
+};
 exports.Point = Point;
+__decorate([
+    (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.FLOAT),
+    __metadata("design:type", Number)
+], Point.prototype, "x", void 0);
+__decorate([
+    (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.FLOAT),
+    __metadata("design:type", Number)
+], Point.prototype, "y", void 0);
+exports.Point = Point = __decorate([
+    sequelize_typescript_1.Table
+], Point);
+let Project = class Project extends sequelize_typescript_1.Model {
+};
+exports.Project = Project;
+__decorate([
+    sequelize_typescript_1.PrimaryKey,
+    (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.STRING),
+    __metadata("design:type", String)
+], Project.prototype, "id", void 0);
+__decorate([
+    (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.STRING),
+    __metadata("design:type", String)
+], Project.prototype, "name", void 0);
+__decorate([
+    (0, sequelize_typescript_1.HasMany)(() => Label),
+    __metadata("design:type", Array)
+], Project.prototype, "labels", void 0);
+__decorate([
+    (0, sequelize_typescript_1.HasMany)(() => ImageData),
+    __metadata("design:type", Array)
+], Project.prototype, "images", void 0);
+__decorate([
+    (0, sequelize_typescript_1.HasMany)(() => Task),
+    __metadata("design:type", Array)
+], Project.prototype, "tasks", void 0);
+__decorate([
+    sequelize_typescript_1.CreatedAt,
+    sequelize_typescript_1.Column,
+    __metadata("design:type", Date)
+], Project.prototype, "createdAt", void 0);
+__decorate([
+    sequelize_typescript_1.UpdatedAt,
+    sequelize_typescript_1.Column,
+    __metadata("design:type", Date)
+], Project.prototype, "lastModified", void 0);
+exports.Project = Project = __decorate([
+    sequelize_typescript_1.Table
+], Project);
 let Label = class Label extends sequelize_typescript_1.Model {
 };
 exports.Label = Label;
@@ -40,6 +88,14 @@ __decorate([
     __metadata("design:type", String)
 ], Label.prototype, "projectId", void 0);
 __decorate([
+    (0, sequelize_typescript_1.BelongsTo)(() => Project),
+    __metadata("design:type", Project)
+], Label.prototype, "project", void 0);
+__decorate([
+    (0, sequelize_typescript_1.HasMany)(() => Annotation),
+    __metadata("design:type", Array)
+], Label.prototype, "annotations", void 0);
+__decorate([
     (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.STRING),
     __metadata("design:type", String)
 ], Label.prototype, "color", void 0);
@@ -56,6 +112,55 @@ __decorate([
 exports.Label = Label = __decorate([
     sequelize_typescript_1.Table
 ], Label);
+let ImageData = class ImageData extends sequelize_typescript_1.Model {
+};
+exports.ImageData = ImageData;
+__decorate([
+    sequelize_typescript_1.PrimaryKey,
+    (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.STRING),
+    __metadata("design:type", String)
+], ImageData.prototype, "id", void 0);
+__decorate([
+    (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.STRING),
+    __metadata("design:type", String)
+], ImageData.prototype, "name", void 0);
+__decorate([
+    (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.TEXT),
+    __metadata("design:type", String)
+], ImageData.prototype, "data", void 0);
+__decorate([
+    (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.INTEGER),
+    __metadata("design:type", Number)
+], ImageData.prototype, "width", void 0);
+__decorate([
+    (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.INTEGER),
+    __metadata("design:type", Number)
+], ImageData.prototype, "height", void 0);
+__decorate([
+    (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.STRING),
+    __metadata("design:type", String)
+], ImageData.prototype, "url", void 0);
+__decorate([
+    (0, sequelize_typescript_1.ForeignKey)(() => Project),
+    (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.STRING),
+    __metadata("design:type", String)
+], ImageData.prototype, "projectId", void 0);
+__decorate([
+    (0, sequelize_typescript_1.BelongsTo)(() => Project),
+    __metadata("design:type", Project)
+], ImageData.prototype, "project", void 0);
+__decorate([
+    (0, sequelize_typescript_1.HasMany)(() => Annotation),
+    __metadata("design:type", Array)
+], ImageData.prototype, "annotations", void 0);
+__decorate([
+    sequelize_typescript_1.CreatedAt,
+    sequelize_typescript_1.Column,
+    __metadata("design:type", Date)
+], ImageData.prototype, "createdAt", void 0);
+exports.ImageData = ImageData = __decorate([
+    sequelize_typescript_1.Table
+], ImageData);
 let Annotation = class Annotation extends sequelize_typescript_1.Model {
 };
 exports.Annotation = Annotation;
@@ -70,11 +175,15 @@ __decorate([
     __metadata("design:type", String)
 ], Annotation.prototype, "labelId", void 0);
 __decorate([
+    (0, sequelize_typescript_1.BelongsTo)(() => Label),
+    __metadata("design:type", Label)
+], Annotation.prototype, "label", void 0);
+__decorate([
     (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.STRING),
     __metadata("design:type", String)
 ], Annotation.prototype, "name", void 0);
 __decorate([
-    (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.ENUM('box', 'polygon', 'freeDraw')),
+    (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.STRING),
     __metadata("design:type", String)
 ], Annotation.prototype, "type", void 0);
 __decorate([
@@ -82,9 +191,14 @@ __decorate([
     __metadata("design:type", Array)
 ], Annotation.prototype, "coordinates", void 0);
 __decorate([
+    (0, sequelize_typescript_1.ForeignKey)(() => ImageData),
     (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.STRING),
     __metadata("design:type", String)
 ], Annotation.prototype, "imageId", void 0);
+__decorate([
+    (0, sequelize_typescript_1.BelongsTo)(() => ImageData),
+    __metadata("design:type", ImageData)
+], Annotation.prototype, "image", void 0);
 __decorate([
     sequelize_typescript_1.CreatedAt,
     sequelize_typescript_1.Column,
@@ -133,71 +247,64 @@ __decorate([
 exports.History = History = __decorate([
     sequelize_typescript_1.Table
 ], History);
-let ImageData = class ImageData extends sequelize_typescript_1.Model {
+let Task = class Task extends sequelize_typescript_1.Model {
 };
-exports.ImageData = ImageData;
+exports.Task = Task;
 __decorate([
     sequelize_typescript_1.PrimaryKey,
     (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.STRING),
     __metadata("design:type", String)
-], ImageData.prototype, "id", void 0);
+], Task.prototype, "id", void 0);
 __decorate([
     (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.STRING),
     __metadata("design:type", String)
-], ImageData.prototype, "name", void 0);
+], Task.prototype, "name", void 0);
 __decorate([
     (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.TEXT),
     __metadata("design:type", String)
-], ImageData.prototype, "data", void 0);
+], Task.prototype, "description", void 0);
 __decorate([
-    (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.INTEGER),
-    __metadata("design:type", Number)
-], ImageData.prototype, "width", void 0);
+    (0, sequelize_typescript_1.ForeignKey)(() => Project),
+    (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.STRING),
+    __metadata("design:type", String)
+], Task.prototype, "projectId", void 0);
 __decorate([
-    (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.INTEGER),
-    __metadata("design:type", Number)
-], ImageData.prototype, "height", void 0);
+    (0, sequelize_typescript_1.BelongsTo)(() => Project),
+    __metadata("design:type", Project)
+], Task.prototype, "project", void 0);
 __decorate([
     (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.STRING),
     __metadata("design:type", String)
-], ImageData.prototype, "url", void 0);
+], Task.prototype, "assignedTo", void 0);
 __decorate([
     (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.STRING),
     __metadata("design:type", String)
-], ImageData.prototype, "projectId", void 0);
+], Task.prototype, "status", void 0);
 __decorate([
     sequelize_typescript_1.CreatedAt,
     sequelize_typescript_1.Column,
     __metadata("design:type", Date)
-], ImageData.prototype, "createdAt", void 0);
-exports.ImageData = ImageData = __decorate([
-    sequelize_typescript_1.Table
-], ImageData);
-let Project = class Project extends sequelize_typescript_1.Model {
-};
-exports.Project = Project;
-__decorate([
-    sequelize_typescript_1.PrimaryKey,
-    (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.STRING),
-    __metadata("design:type", String)
-], Project.prototype, "id", void 0);
-__decorate([
-    (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.STRING),
-    __metadata("design:type", String)
-], Project.prototype, "name", void 0);
-__decorate([
-    sequelize_typescript_1.CreatedAt,
-    sequelize_typescript_1.Column,
-    __metadata("design:type", Date)
-], Project.prototype, "createdAt", void 0);
+], Task.prototype, "createdAt", void 0);
 __decorate([
     sequelize_typescript_1.UpdatedAt,
     sequelize_typescript_1.Column,
     __metadata("design:type", Date)
-], Project.prototype, "lastModified", void 0);
-exports.Project = Project = __decorate([
+], Task.prototype, "updatedAt", void 0);
+__decorate([
+    (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.DATE),
+    __metadata("design:type", Date)
+], Task.prototype, "dueDate", void 0);
+__decorate([
+    (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.JSON),
+    __metadata("design:type", Array)
+], Task.prototype, "labels", void 0);
+__decorate([
+    (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.JSON),
+    __metadata("design:type", Array)
+], Task.prototype, "annotations", void 0);
+exports.Task = Task = __decorate([
     sequelize_typescript_1.Table
-], Project);
+], Task);
 let ExportFormat = class ExportFormat extends sequelize_typescript_1.Model {
 };
 exports.ExportFormat = ExportFormat;
@@ -289,56 +396,3 @@ __decorate([
 exports.Settings = Settings = __decorate([
     sequelize_typescript_1.Table
 ], Settings);
-let Task = class Task extends sequelize_typescript_1.Model {
-};
-exports.Task = Task;
-__decorate([
-    sequelize_typescript_1.PrimaryKey,
-    (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.STRING),
-    __metadata("design:type", String)
-], Task.prototype, "id", void 0);
-__decorate([
-    (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.STRING),
-    __metadata("design:type", String)
-], Task.prototype, "name", void 0);
-__decorate([
-    (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.TEXT),
-    __metadata("design:type", String)
-], Task.prototype, "description", void 0);
-__decorate([
-    (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.STRING),
-    __metadata("design:type", String)
-], Task.prototype, "projectId", void 0);
-__decorate([
-    (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.STRING),
-    __metadata("design:type", String)
-], Task.prototype, "assignedTo", void 0);
-__decorate([
-    (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.ENUM('pending', 'in_progress', 'completed', 'review', 'archived')),
-    __metadata("design:type", String)
-], Task.prototype, "status", void 0);
-__decorate([
-    sequelize_typescript_1.CreatedAt,
-    sequelize_typescript_1.Column,
-    __metadata("design:type", Date)
-], Task.prototype, "createdAt", void 0);
-__decorate([
-    sequelize_typescript_1.UpdatedAt,
-    sequelize_typescript_1.Column,
-    __metadata("design:type", Date)
-], Task.prototype, "updatedAt", void 0);
-__decorate([
-    (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.DATE),
-    __metadata("design:type", Date)
-], Task.prototype, "dueDate", void 0);
-__decorate([
-    (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.JSON),
-    __metadata("design:type", Array)
-], Task.prototype, "labels", void 0);
-__decorate([
-    (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.JSON),
-    __metadata("design:type", Array)
-], Task.prototype, "annotations", void 0);
-exports.Task = Task = __decorate([
-    sequelize_typescript_1.Table
-], Task);

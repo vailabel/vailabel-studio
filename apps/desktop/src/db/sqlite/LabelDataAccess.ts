@@ -1,6 +1,6 @@
-import { Label } from "../../../models"
-import { DataAccess } from "../../contracts/DataAccess"
-import { ILabelDataAccess } from "../../contracts/IDataAccess"
+import { Label } from "@vailabel/core"
+import { DataAccess } from "@vailabel/core/data"
+import { ILabelDataAccess } from "@vailabel/core/data"
 
 export class LabelDataAccess
   extends DataAccess<Label>

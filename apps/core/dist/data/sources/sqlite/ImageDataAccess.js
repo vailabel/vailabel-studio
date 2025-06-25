@@ -10,76 +10,52 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ImageDataAccess = void 0;
+const models_1 = require("../../../models");
 const DataAccess_1 = require("../../contracts/DataAccess");
 class ImageDataAccess extends DataAccess_1.DataAccess {
     constructor() {
-        super("images");
+        super(models_1.ImageData);
     }
     getImageWithAnnotations(imageId) {
         return __awaiter(this, void 0, void 0, function* () {
-            // Fetch the image data
-            const image = yield window.ipc.invoke("sqlite:get", [
-                `SELECT * FROM ${this.table} WHERE id = ?`,
-                [imageId],
-            ]);
-            if (!image)
-                return null;
-            // Fetch all annotations for this image
-            const annotations = yield window.ipc.invoke("sqlite:all", [
-                `SELECT * FROM annotations WHERE imageId = ?`,
-                [imageId],
-            ]);
-            return Object.assign(Object.assign({}, image), { annotations: Array.isArray(annotations)
-                    ? annotations.map((a) => (Object.assign(Object.assign({}, a), { coordinates: a.coordinates ? JSON.parse(a.coordinates) : undefined })))
-                    : [] });
+            // Use Sequelize to include annotations
+            const image = yield models_1.ImageData.findByPk(imageId, {
+                include: [models_1.Annotation],
+            });
+            return image;
         });
     }
     getNext(projectId, currentImageId) {
         return __awaiter(this, void 0, void 0, function* () {
-            var _a;
-            const result = yield window.ipc.invoke("sqlite:get", [
-                `SELECT id FROM ${this.table} WHERE projectId = ? AND id > ? ORDER BY id ASC LIMIT 1`,
-                [projectId, currentImageId],
-            ]);
-            const hasNextResult = yield window.ipc.invoke("sqlite:get", [
-                `SELECT COUNT(*) as count FROM ${this.table} WHERE projectId = ? AND id > ?`,
-                [projectId, (_a = result === null || result === void 0 ? void 0 : result.id) !== null && _a !== void 0 ? _a : currentImageId],
-            ]);
-            return {
-                id: result === null || result === void 0 ? void 0 : result.id,
-                hasNext: hasNextResult.count > 0,
-            };
+            // Find the next image by id in the same project
+            const next = yield models_1.ImageData.findOne({
+                where: { projectId, id: { $gt: currentImageId } },
+                order: [["id", "ASC"]],
+            });
+            const hasNext = !!next;
+            return { id: next === null || next === void 0 ? void 0 : next.id, hasNext };
         });
     }
     getPrevious(projectId, currentImageId) {
         return __awaiter(this, void 0, void 0, function* () {
-            var _a;
-            const result = yield window.ipc.invoke("sqlite:get", [
-                `SELECT id FROM ${this.table} WHERE projectId = ? AND id < ? ORDER BY id DESC LIMIT 1`,
-                [projectId, currentImageId],
-            ]);
-            const hasPrevResult = yield window.ipc.invoke("sqlite:get", [
-                `SELECT COUNT(*) as count FROM ${this.table} WHERE projectId = ? AND id < ?`,
-                [projectId, (_a = result === null || result === void 0 ? void 0 : result.id) !== null && _a !== void 0 ? _a : currentImageId],
-            ]);
-            return {
-                id: result === null || result === void 0 ? void 0 : result.id,
-                hasPrevious: hasPrevResult.count > 0,
-            };
+            // Find the previous image by id in the same project
+            const prev = yield models_1.ImageData.findOne({
+                where: { projectId, id: { $lt: currentImageId } },
+                order: [["id", "DESC"]],
+            });
+            const hasPrevious = !!prev;
+            return { id: prev === null || prev === void 0 ? void 0 : prev.id, hasPrevious };
         });
     }
     getByProjectId(projectId) {
-        return window.ipc.invoke("sqlite:all", [
-            `SELECT * FROM ${this.table} WHERE projectId = ?`,
-            [projectId],
-        ]);
+        return __awaiter(this, void 0, void 0, function* () {
+            return models_1.ImageData.findAll({ where: { projectId } });
+        });
     }
     countByProjectId(projectId) {
-        const result = window.ipc.invoke("sqlite:get", [
-            `SELECT COUNT(*) as count FROM ${this.table} WHERE projectId = ?`,
-            [projectId],
-        ]);
-        return result.then((data) => data.count);
+        return __awaiter(this, void 0, void 0, function* () {
+            return models_1.ImageData.count({ where: { projectId } });
+        });
     }
 }
 exports.ImageDataAccess = ImageDataAccess;
