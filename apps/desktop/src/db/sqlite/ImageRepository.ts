@@ -1,10 +1,10 @@
 import { ImageData, Annotation } from "@vailabel/core"
-import { DataAccess } from "@vailabel/core/data"
-import { IImageDataAccess } from "@vailabel/core/data"
+import { BaseRepository } from "./BaseRepository"
+import { IImageRepository } from "./IBaseRepository"
 
-export class ImageDataAccess
-  extends DataAccess<ImageData>
-  implements IImageDataAccess
+export class ImageRepository
+  extends BaseRepository<ImageData>
+  implements IImageRepository
 {
   constructor() {
     super(ImageData)

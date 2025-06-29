@@ -11,21 +11,23 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AnnotationDataAccess = void 0;
 const models_1 = require("../../../models");
-const DataAccess_1 = require("../../contracts/DataAccess");
-class AnnotationDataAccess extends DataAccess_1.DataAccess {
+const SQLiteDataAccess_1 = require("./SQLiteDataAccess");
+class AnnotationDataAccess extends SQLiteDataAccess_1.SQLiteDataAccess {
     constructor() {
         super(models_1.Annotation);
     }
     countByProjectId(projectId) {
         return __awaiter(this, void 0, void 0, function* () {
             // Count annotations by projectId using Sequelize
-            return models_1.Annotation.count({ where: { projectId } });
+            return (yield window.ipc.invoke("sqlite:count", models_1.Annotation.name, {
+                projectId,
+            }));
         });
     }
     getByProjectId(projectId) {
         return __awaiter(this, void 0, void 0, function* () {
             // Find all annotations by projectId using Sequelize
-            return models_1.Annotation.findAll({ where: { projectId } });
+            return (yield window.ipc.invoke("sqlite:getByProjectId", models_1.Annotation.name, projectId));
         });
     }
 }

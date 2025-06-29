@@ -1,10 +1,10 @@
 import { Label } from "@vailabel/core"
-import { DataAccess } from "@vailabel/core/data"
-import { ILabelDataAccess } from "@vailabel/core/data"
+import { BaseRepository } from "./BaseRepository"
+import { ILabelRepository } from "./IBaseRepository"
 
-export class LabelDataAccess
-  extends DataAccess<Label>
-  implements ILabelDataAccess
+export class LabelRepository
+  extends BaseRepository<Label>
+  implements ILabelRepository
 {
   constructor() {
     super(Label)

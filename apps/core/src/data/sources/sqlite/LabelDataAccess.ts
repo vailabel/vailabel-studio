@@ -1,9 +1,10 @@
 import { Label } from "../../../models"
 import { DataAccess } from "../../contracts/DataAccess"
 import { ILabelDataAccess } from "../../contracts/IDataAccess"
+import { SQLiteDataAccess } from "./SQLiteDataAccess"
 
 export class LabelDataAccess
-  extends DataAccess<Label>
+  extends SQLiteDataAccess<Label>
   implements ILabelDataAccess
 {
   constructor() {
@@ -11,10 +12,16 @@ export class LabelDataAccess
   }
 
   async countByProjectId(projectId: string): Promise<number> {
-    return Label.count({ where: { projectId } })
+    return (await window.ipc.invoke("sqlite:count", Label.name, {
+      projectId,
+    })) as Promise<number>
   }
 
   async getByProjectId(projectId: string): Promise<Label[]> {
-    return Label.findAll({ where: { projectId } })
+    return (await window.ipc.invoke(
+      "sqlite:getByProjectId",
+      Label.name,
+      projectId
+    )) as Promise<Label[]>
   }
 }

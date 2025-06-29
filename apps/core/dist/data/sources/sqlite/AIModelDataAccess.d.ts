@@ -1,6 +1,6 @@
 import { AIModel } from "../../../models";
-import { DataAccess } from "../../contracts/DataAccess";
 import { IAIModelDataAccess } from "../../contracts/IDataAccess";
-export declare class AIModelDataAccess extends DataAccess<AIModel> implements IAIModelDataAccess {
+import { SQLiteDataAccess } from "./SQLiteDataAccess";
+export declare class AIModelDataAccess extends SQLiteDataAccess<AIModel> implements IAIModelDataAccess {
     constructor();
 }

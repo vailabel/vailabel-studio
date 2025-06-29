@@ -11,24 +11,28 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SettingsDataAccess = void 0;
 const models_1 = require("../../../models");
-const DataAccess_1 = require("../../contracts/DataAccess");
-class SettingsDataAccess extends DataAccess_1.DataAccess {
+const SQLiteDataAccess_1 = require("./SQLiteDataAccess");
+class SettingsDataAccess extends SQLiteDataAccess_1.SQLiteDataAccess {
     constructor() {
         super(models_1.Settings);
     }
     getByKey(key) {
         return __awaiter(this, void 0, void 0, function* () {
-            return models_1.Settings.findOne({ where: { key } });
+            return (yield window.ipc.invoke("sqlite:getByKey", models_1.Settings.name, key));
         });
     }
     updateByKey(key, value) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield models_1.Settings.update({ value: JSON.stringify(value) }, { where: { key } });
+            ;
+            (yield window.ipc.invoke("sqlite:updateByKey", models_1.Settings.name, key, {
+                value: JSON.stringify(value),
+            }));
         });
     }
     deleteByKey(key) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield models_1.Settings.destroy({ where: { key } });
+            ;
+            (yield window.ipc.invoke("sqlite:deleteByKey", models_1.Settings.name, key));
         });
     }
 }

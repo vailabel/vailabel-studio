@@ -1,9 +1,10 @@
 import { ImageData, Annotation } from "../../../models"
 import { DataAccess } from "../../contracts/DataAccess"
 import { IImageDataAccess } from "../../contracts/IDataAccess"
+import { SQLiteDataAccess } from "./SQLiteDataAccess"
 
 export class ImageDataAccess
-  extends DataAccess<ImageData>
+  extends SQLiteDataAccess<ImageData>
   implements IImageDataAccess
 {
   constructor() {
@@ -12,10 +13,12 @@ export class ImageDataAccess
 
   async getImageWithAnnotations(imageId: string): Promise<ImageData | null> {
     // Use Sequelize to include annotations
-    const image = await ImageData.findByPk(imageId, {
-      include: [Annotation],
-    })
-    return image as ImageData | null
+    const image = (await window.ipc.invoke(
+      "sqlite:getById",
+      ImageData.name,
+      imageId
+    )) as Promise<ImageData | null>
+    return image
   }
 
   async getNext(
@@ -23,12 +26,13 @@ export class ImageDataAccess
     currentImageId: string
   ): Promise<{ id: string | undefined; hasNext: boolean }> {
     // Find the next image by id in the same project
-    const next = await ImageData.findOne({
-      where: { projectId, id: { $gt: currentImageId } },
-      order: [["id", "ASC"]],
-    })
-    const hasNext = !!next
-    return { id: next?.id, hasNext }
+    const next = (await window.ipc.invoke(
+      "sqlite:getNext",
+      ImageData.name,
+      projectId,
+      currentImageId
+    )) as Promise<{ id: string | undefined; hasNext: boolean }>
+    return next
   }
 
   async getPrevious(
@@ -36,19 +40,26 @@ export class ImageDataAccess
     currentImageId: string
   ): Promise<{ id: string | undefined; hasPrevious: boolean }> {
     // Find the previous image by id in the same project
-    const prev = await ImageData.findOne({
-      where: { projectId, id: { $lt: currentImageId } },
-      order: [["id", "DESC"]],
-    })
-    const hasPrevious = !!prev
-    return { id: prev?.id, hasPrevious }
+    const prev = (await window.ipc.invoke(
+      "sqlite:getPrevious",
+      ImageData.name,
+      projectId,
+      currentImageId
+    )) as Promise<{ id: string | undefined; hasPrevious: boolean }>
+    return prev
   }
 
   async getByProjectId(projectId: string): Promise<ImageData[]> {
-    return ImageData.findAll({ where: { projectId } })
+    return (await window.ipc.invoke(
+      "sqlite:getByProjectId",
+      ImageData.name,
+      projectId
+    )) as Promise<ImageData[]>
   }
 
   async countByProjectId(projectId: string): Promise<number> {
-    return ImageData.count({ where: { projectId } })
+    return (await window.ipc.invoke("sqlite:count", ImageData.name, {
+      projectId,
+    })) as Promise<number>
   }
 }

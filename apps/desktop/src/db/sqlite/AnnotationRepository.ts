@@ -1,9 +1,10 @@
 import { Annotation } from "@vailabel/core"
-import { DataAccess, IAnnotationDataAccess } from "@vailabel/core/data"
+import { IAnnotationRepository } from "./IBaseRepository"
+import { BaseRepository } from "./BaseRepository"
 
-export class AnnotationDataAccess
-  extends DataAccess<Annotation>
-  implements IAnnotationDataAccess
+export class AnnotationRepository
+  extends BaseRepository<Annotation>
+  implements IAnnotationRepository
 {
   constructor() {
     super(Annotation)
