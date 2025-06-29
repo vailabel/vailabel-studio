@@ -1,7 +1,9 @@
 import { Model, ModelCtor } from "sequelize-typescript"
-import { IDataAccess } from "./IDataAccess"
+import { IBaseRepository } from "./IBaseRepository"
 
-export class DataAccess<T extends object = any> implements IDataAccess<T> {
+export class BaseRepository<T extends object = any>
+  implements IBaseRepository<T>
+{
   protected model: ModelCtor<Model<any, any>>
 
   constructor(model: ModelCtor<Model<any, any>>) {

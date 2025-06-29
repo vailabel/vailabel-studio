@@ -1,5 +1,3 @@
-/// <reference types="node" />
-/// <reference types="node" />
 import { IStorageAdapter } from "@vailabel/core/src/storage/interfaces/IStorageAdapter";
 export declare class S3StorageAdapter implements IStorageAdapter {
     private readonly bucket;

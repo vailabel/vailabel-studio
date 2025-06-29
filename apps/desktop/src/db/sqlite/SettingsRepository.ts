@@ -1,10 +1,10 @@
 import { Settings } from "@vailabel/core"
-import { DataAccess } from "@vailabel/core/data"
-import { ISettingsDataAccess } from "@vailabel/core/data"
+import { BaseRepository } from "./BaseRepository"
+import { ISettingsRepository } from "./IBaseRepository"
 
-export class SettingsDataAccess
-  extends DataAccess<Settings>
-  implements ISettingsDataAccess
+export class SettingsRepository
+  extends BaseRepository<Settings>
+  implements ISettingsRepository
 {
   constructor() {
     super(Settings)

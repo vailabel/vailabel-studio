@@ -1,10 +1,10 @@
 import { app, BrowserWindow } from "electron"
 import { autoUpdater } from "electron-updater"
 import * as path from "path"
-import "./ipc/slqiteIpc"
+// import "./ipc/slqiteIpc"
 import "./ipc/filesystemIpc"
 import "./ipc/updateIpc"
-import "./ipc/aiIpc"
+// import "./ipc/aiIpc"
 import "./ipc/index"
 import { jsonSetting } from "./utils"
 import { initDatabase } from "./db/init"
@@ -25,7 +25,7 @@ function createWindow() {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false,
+      sandbox: true,
     },
   })
 

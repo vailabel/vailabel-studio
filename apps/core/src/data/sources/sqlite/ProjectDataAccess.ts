@@ -1,9 +1,9 @@
 import { Project } from "../../../models"
-import { DataAccess } from "../../contracts/DataAccess"
 import { IProjectDataAccess } from "../../contracts/IDataAccess"
+import { SQLiteDataAccess } from "./SQLiteDataAccess"
 
 export class ProjectDataAccess
-  extends DataAccess<Project>
+  extends SQLiteDataAccess<Project>
   implements IProjectDataAccess
 {
   constructor() {

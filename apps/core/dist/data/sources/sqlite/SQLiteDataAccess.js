@@ -9,40 +9,43 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DataAccess = void 0;
-class DataAccess {
+exports.SQLiteDataAccess = void 0;
+class SQLiteDataAccess {
     constructor(model) {
         this.model = model;
     }
     get() {
         return __awaiter(this, void 0, void 0, function* () {
-            return (yield this.model.findAll());
+            return window.ipc.invoke("sqlite:get", this.model.name);
         });
     }
     getById(id) {
         return __awaiter(this, void 0, void 0, function* () {
-            return (yield this.model.findByPk(id));
+            return window.ipc.invoke("sqlite:getById", this.model.name, id);
         });
     }
     create(item) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this.model.create(item);
+            ;
+            (yield window.ipc.invoke("sqlite:create", this.model.name, item));
         });
     }
     update(id, updates) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this.model.update(updates, { where: { id } });
+            ;
+            (yield window.ipc.invoke("sqlite:update", this.model.name, id, updates));
         });
     }
     delete(id) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this.model.destroy({ where: { id } });
+            ;
+            (yield window.ipc.invoke("sqlite:delete", this.model.name, id));
         });
     }
     paginate(offset, limit) {
         return __awaiter(this, void 0, void 0, function* () {
-            return (yield this.model.findAll({ offset, limit }));
+            return window.ipc.invoke("sqlite:paginate", this.model.name, offset, limit);
         });
     }
 }
-exports.DataAccess = DataAccess;
+exports.SQLiteDataAccess = SQLiteDataAccess;

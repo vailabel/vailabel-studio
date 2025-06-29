@@ -1,7 +1,7 @@
 import { ImageData } from "../../../models";
-import { DataAccess } from "../../contracts/DataAccess";
 import { IImageDataAccess } from "../../contracts/IDataAccess";
-export declare class ImageDataAccess extends DataAccess<ImageData> implements IImageDataAccess {
+import { SQLiteDataAccess } from "./SQLiteDataAccess";
+export declare class ImageDataAccess extends SQLiteDataAccess<ImageData> implements IImageDataAccess {
     constructor();
     getImageWithAnnotations(imageId: string): Promise<ImageData | null>;
     getNext(projectId: string, currentImageId: string): Promise<{
