@@ -1,4 +1,4 @@
-import { AIModel, Annotation, History, ImageData, Label, Project, Settings } from "../../models/types";
+import { AIModel, Annotation, History, ImageData, Label, Project, Settings } from "../../models";
 export interface IDataAccess<T = any> {
     get(): Promise<T[]>;
     getById(id: string): Promise<T | null>;

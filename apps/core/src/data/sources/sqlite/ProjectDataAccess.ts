@@ -1,12 +1,13 @@
-import { DataAccess, IProjectDataAccess } from "@vailabel/core/src/data"
-import { Project } from "../../../models/types"
+import { Project } from "../../../models"
+import { IProjectDataAccess } from "../../contracts/IDataAccess"
+import { SQLiteDataAccess } from "./SQLiteDataAccess"
 
 export class ProjectDataAccess
-  extends DataAccess<Project>
+  extends SQLiteDataAccess<Project>
   implements IProjectDataAccess
 {
   constructor() {
-    super("projects")
+    super(Project)
   }
   // You can add entity-specific methods here if needed
 }

@@ -12,10 +12,9 @@ import { useLabelStore } from "./hooks/use-label-store"
 import { useProjectStore } from "./hooks/use-project-store"
 import { useImageDataStore } from "./hooks/use-image-data-store"
 import { useSettingsStore } from "./hooks/use-settings-store"
-import { DevBanner } from "./components/dev-banner"
 import { useAIModelStore } from "./hooks/use-ai-model-store"
 
-function App() {
+const App = () => {
   const { initDBContext: initProjectsContext } = useProjectStore()
   const { initDBContext: initAnnotationsContext } = useAnnotationsStore()
   const { initDBContext: initLabelsContext } = useLabelStore()
@@ -55,7 +54,6 @@ function App() {
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
       <StorageProvider>
         <ConfirmDialogProvider>
-          {import.meta.env.DEV && <DevBanner />}
           <ErrorBoundary fallback={<ErrorFallback />}>
             <AppRoutes />
           </ErrorBoundary>

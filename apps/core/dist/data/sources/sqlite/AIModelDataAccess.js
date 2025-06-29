@@ -1,10 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AIModelDataAccess = void 0;
-const DataAccess_1 = require("../../contracts/DataAccess");
-class AIModelDataAccess extends DataAccess_1.DataAccess {
+const models_1 = require("../../../models");
+const SQLiteDataAccess_1 = require("./SQLiteDataAccess");
+class AIModelDataAccess extends SQLiteDataAccess_1.SQLiteDataAccess {
     constructor() {
-        super("ai_models");
+        super(models_1.AIModel);
     }
 }
 exports.AIModelDataAccess = AIModelDataAccess;

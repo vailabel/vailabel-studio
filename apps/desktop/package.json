@@ -6,8 +6,7 @@
   "main": "dist/main.js",
   "scripts": {
     "copy-python": "copyfiles -u -1 ./src/ai/requirements.txt ./dist/ai && copyfiles -u -1 ./src/ai/yolo.py ./dist/ai",
-    "copy-migration": "copyfiles -u 3 src/db/migrations/**/* dist/db/migrations",
-    "pre-dev": "yarn copy-python && yarn copy-migration",
+    "pre-dev": "yarn copy-python",
     "build": "tsc && electron-builder",
     "dev": "yarn pre-dev && tsc && electron . --trace-warnings",
     "test": "jest",

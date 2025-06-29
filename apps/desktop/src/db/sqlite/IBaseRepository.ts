@@ -6,9 +6,9 @@ import {
   Label,
   Project,
   Settings,
-} from "../../models"
+} from "@vailabel/core"
 
-export interface IDataAccess<T = any> {
+export interface IBaseRepository<T = any> {
   get(): Promise<T[]>
   getById(id: string): Promise<T | null>
   create(item: T): Promise<void>
@@ -17,7 +17,7 @@ export interface IDataAccess<T = any> {
   paginate(offset: number, limit: number): Promise<T[]>
 }
 
-export interface IImageDataAccess extends IDataAccess<ImageData> {
+export interface IImageRepository extends IBaseRepository<ImageData> {
   countByProjectId(projectId: string): Promise<number>
   getByProjectId(projectId: string): Promise<ImageData[]>
   getNext(
@@ -31,19 +31,19 @@ export interface IImageDataAccess extends IDataAccess<ImageData> {
 
   getImageWithAnnotations(imageId: string): Promise<ImageData | null>
 }
-export interface IProjectDataAccess extends IDataAccess<Project> {}
-export interface IAnnotationDataAccess extends IDataAccess<Annotation> {
+export interface IProjectRepository extends IBaseRepository<Project> {}
+export interface IAnnotationRepository extends IBaseRepository<Annotation> {
   countByProjectId(projectId: string): Promise<number>
   getByProjectId(projectId: string): Promise<Annotation[]>
 }
-export interface ILabelDataAccess extends IDataAccess<Label> {
+export interface ILabelRepository extends IBaseRepository<Label> {
   countByProjectId(projectId: string): Promise<number>
   getByProjectId(projectId: string): Promise<Label[]>
 }
-export interface ISettingsDataAccess extends IDataAccess<Settings> {
+export interface ISettingsRepository extends IBaseRepository<Settings> {
   getByKey(key: string): Promise<Settings | null>
   updateByKey(key: string, value: any): Promise<void>
   deleteByKey(key: string): Promise<void>
 }
-export interface IHistoryDataAccess extends IDataAccess<History> {}
-export interface IAIModelDataAccess extends IDataAccess<AIModel> {}
+export interface IHistoryRepository extends IBaseRepository<History> {}
+export interface IAIModelRepository extends IBaseRepository<AIModel> {}
