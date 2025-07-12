@@ -1,5 +1,5 @@
 import Dexie, { type Table } from "dexie";
-import type { Label, Project, ImageData, Annotation, History, AIModel } from "../../models/types";
+import type { Label, Project, ImageData, Annotation, History, AIModel } from "../../models";
 export declare class VisionDatabase extends Dexie {
     projects: Table<Project>;
     images: Table<ImageData>;

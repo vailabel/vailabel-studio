@@ -6,7 +6,7 @@ import type {
   Annotation,
   History,
   AIModel,
-} from "../../models/types"
+} from "../../models"
 
 export class VisionDatabase extends Dexie {
   projects!: Table<Project>

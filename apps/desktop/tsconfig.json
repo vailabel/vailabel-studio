@@ -8,7 +8,10 @@
     "esModuleInterop": true,
     "moduleResolution": "node",
     "strict": true,
-    "noEmit": false
+    "noEmit": false,
+    "useDefineForClassFields": false,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
   },
   "include": ["src/**/**/*"],
   "references": [{ "path": "../core" }]

@@ -1,292 +1,119 @@
-import {
-  Table,
-  Column,
-  Model,
-  DataType,
-  PrimaryKey,
-  CreatedAt,
-  UpdatedAt,
-  ForeignKey,
-  HasMany,
-  BelongsTo,
-} from 'sequelize-typescript';
-
-@Table
-export class Point extends Model {
-  @Column(DataType.FLOAT)
-  x!: number;
-
-  @Column(DataType.FLOAT)
-  y!: number;
+export class Point {
+  x!: number
+  y!: number
 }
 
-@Table
-export class Project extends Model {
-  @PrimaryKey
-  @Column(DataType.STRING)
-  id!: string;
-
-  @Column(DataType.STRING)
-  name!: string;
-
-  @HasMany(() => Label)
-  labels!: Label[];
-
-  @HasMany(() => ImageData)
-  images!: ImageData[];
-
-  @HasMany(() => Task)
-  tasks!: Task[];
-
-  @CreatedAt
-  @Column
-  createdAt!: Date;
-
-  @UpdatedAt
-  @Column
-  lastModified!: Date;
+export class Project {
+  id!: string
+  name!: string
+  labels?: Label[]
+  images?: ImageData[]
+  tasks?: Task[]
+  createdAt?: Date
+  updatedAt?: Date
 }
 
-@Table
-export class Label extends Model {
-  @PrimaryKey
-  @Column(DataType.STRING)
-  id!: string;
-
-  @Column(DataType.STRING)
-  name!: string;
-
-  @Column(DataType.STRING)
-  category?: string;
-
-  @Column(DataType.BOOLEAN)
-  isAIGenerated?: boolean;
-
-  @ForeignKey(() => Project)
-  @Column(DataType.STRING)
-  projectId!: string;
-
-  @BelongsTo(() => Project)
-  project!: Project;
-
-  @HasMany(() => Annotation)
-  annotations!: Annotation[];
-
-  @Column(DataType.STRING)
-  color!: string;
-
-  @CreatedAt
-  @Column
-  createdAt!: Date;
-
-  @UpdatedAt
-  @Column
-  updatedAt!: Date;
+export class Label {
+  id!: string
+  name!: string
+  category?: string
+  isAIGenerated?: boolean
+  projectId?: string
+  project?: Project
+  annotations?: Annotation[]
+  color!: string
+  createdAt?: Date
+  updatedAt?: Date
 }
 
-@Table
-export class ImageData extends Model {
-  @PrimaryKey
-  @Column(DataType.STRING)
-  id!: string;
-
-  @Column(DataType.STRING)
-  name!: string;
-
-  @Column(DataType.TEXT)
-  data!: string;
-
-  @Column(DataType.INTEGER)
-  width!: number;
-
-  @Column(DataType.INTEGER)
-  height!: number;
-
-  @Column(DataType.STRING)
-  url?: string;
-
-  @ForeignKey(() => Project)
-  @Column(DataType.STRING)
-  projectId!: string;
-
-  @BelongsTo(() => Project)
-  project!: Project;
-
-  @HasMany(() => Annotation)
-  annotations!: Annotation[];
-
-  @CreatedAt
-  @Column
-  createdAt!: Date;
+export class ImageData {
+  id!: string
+  name!: string
+  data!: string
+  width!: number
+  height!: number
+  url?: string
+  projectId?: string
+  project?: Project
+  annotations?: Annotation[]
+  createdAt?: Date
+  updatedAt?: Date
 }
 
-@Table
-export class Annotation extends Model {
-  @PrimaryKey
-  @Column(DataType.STRING)
-  id!: string;
-
-  @ForeignKey(() => Label)
-  @Column(DataType.STRING)
-  labelId!: string;
-
-  @BelongsTo(() => Label)
-  label!: Label;
-
-  @Column(DataType.STRING)
-  name!: string;
-
-  @Column(DataType.ENUM('box', 'polygon', 'freeDraw'))
-  type!: string;
-
-  @Column(DataType.JSON)
-  coordinates!: { x: number; y: number }[];
-
-  @ForeignKey(() => ImageData)
-  @Column(DataType.STRING)
-  imageId!: string;
-
-  @BelongsTo(() => ImageData)
-  image!: ImageData;
-
-  @CreatedAt
-  @Column
-  createdAt!: Date;
-
-  @UpdatedAt
-  @Column
-  updatedAt!: Date;
-
-  @Column(DataType.STRING)
-  color?: string;
-
-  @Column(DataType.BOOLEAN)
-  isAIGenerated?: boolean;
+export class Annotation {
+  id!: string
+  labelId?: string
+  label?: Label
+  name!: string
+  type!: string
+  coordinates!: { x: number; y: number }[]
+  imageId?: string
+  image?: ImageData
+  color?: string
+  isAIGenerated?: boolean
+  createdAt?: Date
+  updatedAt?: Date
 }
 
-@Table
-export class History extends Model {
-  @PrimaryKey
-  @Column(DataType.STRING)
-  id!: string;
-
-  @Column(DataType.JSON)
-  labels!: Label[];
-
-  @Column(DataType.INTEGER)
-  historyIndex!: number;
-
-  @Column(DataType.BOOLEAN)
-  canUndo!: boolean;
-
-  @Column(DataType.BOOLEAN)
-  canRedo!: boolean;
+export class History {
+  id!: string
+  labels?: Label[]
+  historyIndex!: number
+  canUndo!: boolean
+  canRedo!: boolean
+  createdAt?: Date
+  updatedAt?: Date
 }
 
-@Table
-export class Task extends Model {
-  @PrimaryKey
-  @Column(DataType.STRING)
-  id!: string;
-
-  @Column(DataType.STRING)
-  name!: string;
-
-  @Column(DataType.TEXT)
-  description!: string;
-
-  @ForeignKey(() => Project)
-  @Column(DataType.STRING)
-  projectId!: string;
-
-  @BelongsTo(() => Project)
-  project!: Project;
-
-  @Column(DataType.STRING)
-  assignedTo?: string;
-
-  @Column(DataType.ENUM('pending', 'in_progress', 'completed', 'review', 'archived'))
-  status!: string;
-
-  @CreatedAt
-  @Column
-  createdAt!: Date;
-
-  @UpdatedAt
-  @Column
-  updatedAt!: Date;
-
-  @Column(DataType.DATE)
-  dueDate?: Date;
-
-  @Column(DataType.JSON)
-  labels?: Label[];
-
-  @Column(DataType.JSON)
-  annotations?: Annotation[];
+export class Task {
+  id!: string
+  name!: string
+  description!: string
+  projectId?: string
+  project?: Project
+  assignedTo?: string
+  status!: string
+  dueDate?: Date
+  labels?: Label[]
+  annotations?: Annotation[]
+  createdAt?: Date
+  updatedAt?: Date
 }
 
-@Table
-export class ExportFormat extends Model {
-  @PrimaryKey
-  @Column(DataType.STRING)
-  id!: string;
-
-  @Column(DataType.STRING)
-  name!: string;
-
-  @Column(DataType.TEXT)
-  description!: string;
-
-  @Column(DataType.STRING)
-  extension!: string;
+export class ExportFormat {
+  id!: string
+  name!: string
+  description!: string
+  extension!: string
 }
 
-@Table
-export class AIModel extends Model {
-  @PrimaryKey
-  @Column(DataType.STRING)
-  id!: string;
-
-  @Column(DataType.STRING)
-  name!: string;
-
-  @Column(DataType.TEXT)
-  description!: string;
-
-  @Column(DataType.STRING)
-  version!: string;
-
-  @CreatedAt
-  @Column
-  createdAt!: Date;
-
-  @UpdatedAt
-  @Column
-  updatedAt!: Date;
-
-  @Column(DataType.STRING)
-  modelPath!: string;
-
-  @Column(DataType.STRING)
-  configPath!: string;
-
-  @Column(DataType.INTEGER)
-  modelSize!: number;
-
-  @Column(DataType.BOOLEAN)
-  isCustom!: boolean;
+export class AIModel {
+  id!: string
+  name!: string
+  description!: string
+  version!: string
+  modelPath!: string
+  configPath!: string
+  modelSize!: number
+  isCustom!: boolean
+  createdAt?: Date
+  updatedAt?: Date
 }
 
-@Table
-export class Settings extends Model {
-  @PrimaryKey
-  @Column(DataType.STRING)
-  id!: string;
+export class Settings {
+  id!: string
+  key!: string
+  value!: string
+  createdAt?: Date
+  updatedAt?: Date
+}
 
-  @Column(DataType.STRING)
-  key!: string;
-
-  @Column(DataType.STRING)
-  value!: string;
+export class User {
+  id!: string
+  email!: string
+  name!: string
+  password!: string
+  role!: string
+  createdAt?: Date
+  updatedAt?: Date
 }
