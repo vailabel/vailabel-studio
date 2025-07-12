@@ -10,10 +10,11 @@ import {
   Settings,
   Task,
 } from "@vailabel/core"
+import { app } from "electron" // Import Electron's app module
 
 export const sequelize = new Sequelize({
   dialect: "sqlite",
-  storage: ":memory:",
+  storage: `${app.getPath("userData")}/database.sqlite`, // Use app data directory for storage
   models: [
     Project,
     Label,

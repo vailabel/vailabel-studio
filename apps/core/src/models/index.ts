@@ -22,6 +22,9 @@ export class Point extends Model {
 
 @Table
 export class Project extends Model {
+  delete() {
+      throw new Error("Method not implemented.")
+  }
   @PrimaryKey
   @Column(DataType.STRING)
   id!: string
@@ -289,4 +292,32 @@ export class Settings extends Model {
 
   @Column(DataType.STRING)
   value!: string
+}
+
+
+@Table
+export class User extends Model {
+  @PrimaryKey
+  @Column(DataType.STRING)
+  id!: string
+
+  @Column(DataType.STRING)
+  email!: string
+
+  @Column(DataType.STRING)
+  name!: string
+
+  @Column(DataType.STRING)
+  password!: string
+
+  @Column(DataType.STRING)
+  role!: string
+
+  @CreatedAt
+  @Column
+  createdAt!: Date
+
+  @UpdatedAt
+  @Column
+  updatedAt!: Date
 }

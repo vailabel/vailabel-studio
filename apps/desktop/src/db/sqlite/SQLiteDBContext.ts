@@ -1,28 +1,29 @@
-import { AIModelDataAccess } from "./AIModelDataAccess"
-import { AnnotationDataAccess } from "./AnnotationDataAccess"
-import { HistoryDataAccess } from "./HistoryDataAccess"
-import { ImageDataAccess } from "./ImageDataAccess"
-import { LabelDataAccess } from "./LabelDataAccess"
-import { ProjectDataAccess } from "./ProjectDataAccess"
-import { SettingsDataAccess } from "./SettingsDataAccess"
+
 import { IDBContext } from "@vailabel/core/data"
+import { ProjectRepository } from "./ProjectRepository"
+import { ImageRepository } from "./ImageRepository"
+import { AIModelRepository } from "./AIModelRepository"
+import { AnnotationRepository } from "./AnnotationRepository"
+import { LabelRepository } from "./LabelRepository"
+import { SettingsRepository } from "./SettingsRepository"
+import { HistoryRepository } from "./HistoryRepository"
 
 export class SQLiteDBContext implements IDBContext {
-  public readonly projects: ProjectDataAccess
-  public readonly images: ImageDataAccess
-  public readonly aiModels: AIModelDataAccess
-  public readonly annotations: AnnotationDataAccess
-  public readonly labels: LabelDataAccess
-  public readonly settings: SettingsDataAccess
-  public readonly history: HistoryDataAccess
+  public readonly projects: ProjectRepository
+  public readonly images: ImageRepository
+  public readonly aiModels: AIModelRepository
+  public readonly annotations: AnnotationRepository
+  public readonly labels: LabelRepository
+  public readonly settings: SettingsRepository
+  public readonly history: HistoryRepository
 
   constructor() {
-    this.projects = new ProjectDataAccess()
-    this.images = new ImageDataAccess()
-    this.aiModels = new AIModelDataAccess()
-    this.annotations = new AnnotationDataAccess()
-    this.labels = new LabelDataAccess()
-    this.settings = new SettingsDataAccess()
-    this.history = new HistoryDataAccess()
+    this.projects = new ProjectRepository()
+    this.images = new ImageRepository()
+    this.aiModels = new AIModelRepository()
+    this.annotations = new AnnotationRepository()
+    this.labels = new LabelRepository()
+    this.settings = new SettingsRepository()
+    this.history = new HistoryRepository()
   }
 }

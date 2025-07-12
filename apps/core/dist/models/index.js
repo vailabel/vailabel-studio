@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Settings = exports.AIModel = exports.ExportFormat = exports.Task = exports.History = exports.Annotation = exports.ImageData = exports.Label = exports.Project = exports.Point = void 0;
+exports.User = exports.Settings = exports.AIModel = exports.ExportFormat = exports.Task = exports.History = exports.Annotation = exports.ImageData = exports.Label = exports.Project = exports.Point = void 0;
 const sequelize_typescript_1 = require("sequelize-typescript");
 let Point = class Point extends sequelize_typescript_1.Model {
 };
@@ -396,3 +396,40 @@ __decorate([
 exports.Settings = Settings = __decorate([
     sequelize_typescript_1.Table
 ], Settings);
+let User = class User extends sequelize_typescript_1.Model {
+};
+exports.User = User;
+__decorate([
+    sequelize_typescript_1.PrimaryKey,
+    (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.STRING),
+    __metadata("design:type", String)
+], User.prototype, "id", void 0);
+__decorate([
+    (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.STRING),
+    __metadata("design:type", String)
+], User.prototype, "email", void 0);
+__decorate([
+    (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.STRING),
+    __metadata("design:type", String)
+], User.prototype, "name", void 0);
+__decorate([
+    (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.STRING),
+    __metadata("design:type", String)
+], User.prototype, "password", void 0);
+__decorate([
+    (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.STRING),
+    __metadata("design:type", String)
+], User.prototype, "role", void 0);
+__decorate([
+    sequelize_typescript_1.CreatedAt,
+    sequelize_typescript_1.Column,
+    __metadata("design:type", Date)
+], User.prototype, "createdAt", void 0);
+__decorate([
+    sequelize_typescript_1.UpdatedAt,
+    sequelize_typescript_1.Column,
+    __metadata("design:type", Date)
+], User.prototype, "updatedAt", void 0);
+exports.User = User = __decorate([
+    sequelize_typescript_1.Table
+], User);

@@ -97,3 +97,12 @@ export declare class Settings extends Model {
     key: string;
     value: string;
 }
+export declare class User extends Model {
+    id: string;
+    email: string;
+    name: string;
+    password: string;
+    role: string;
+    createdAt: Date;
+    updatedAt: Date;
+}
