@@ -109,8 +109,7 @@ export function ProjectCreate() {
           data: imageData,
           width: dimensions.width,
           height: dimensions.height,
-          projectId: "temp", // will be replaced with real projectId later
-          createdAt: new Date(),
+          annotations: [],
         })
       }
 
@@ -221,29 +220,12 @@ export function ProjectCreate() {
     }
     try {
       const projectId = crypto.randomUUID()
-      const newProject: Project = {
+      const newProject = {
         id: projectId,
         name: details.name.trim(),
         images: [],
-        createdAt: new Date(),
-        lastModified: new Date(),
       }
-      await createProject(newProject as Project)
-      for (const label of details.labels) {
-        await createLabel({
-          id: crypto.randomUUID(),
-          name: label.name,
-          color: label.color,
-          projectId,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        })
-      }
-      const projectImages = images.map((img) => ({ ...img, projectId }))
-      for (const img of projectImages) {
-        await createImage(img)
-        await saveImage(img.id, img.data)
-      }
+      await createProject(newProject as unknown as Project)
       navigate("/projects")
     } catch {
       toast({

@@ -1,5 +1,4 @@
 import { IDataAccess } from "./data"
-import { DataAccess } from "./data/sources/sqlite/DataAccess"
 
 type IpcWithEvents = {
   invoke: (channel: string, ...args: any[]) => Promise<any>
@@ -9,7 +8,6 @@ type IpcWithEvents = {
 declare global {
   interface Window {
     ipc: IpcWithEvents
-    db: DataAccess
   }
 }
 

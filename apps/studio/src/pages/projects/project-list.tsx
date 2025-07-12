@@ -77,7 +77,7 @@ export default function ProjectList() {
               <CardHeader className="bg-gray-50 dark:bg-gray-700">
                 <CardTitle>{project.name}</CardTitle>
                 <CardDescription className="text-gray-600 dark:text-gray-400">
-                  Created on {new Date(project.createdAt).toLocaleDateString()}
+                  Created on {project?.createdAt?.toLocaleDateString()}
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-6">
@@ -87,7 +87,7 @@ export default function ProjectList() {
                 </div>
                 <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
                   Last modified:{" "}
-                  {new Date(project.lastModified).toLocaleString()}
+                  {project?.createdAt?.toLocaleString()}
                 </p>
               </CardContent>
               <CardFooter className="flex justify-between p-4 bg-gray-50 dark:bg-gray-700">

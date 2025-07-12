@@ -1,89 +1,112 @@
-import { Model } from 'sequelize-typescript';
-export declare class Point extends Model<Point> {
+export declare class Point {
     x: number;
     y: number;
 }
-export declare class Label extends Model {
+export declare class Project {
+    id: string;
+    name: string;
+    labels?: Label[];
+    images?: ImageData[];
+    tasks?: Task[];
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+export declare class Label {
     id: string;
     name: string;
     category?: string;
     isAIGenerated?: boolean;
-    projectId: string;
+    projectId?: string;
+    project?: Project;
+    annotations?: Annotation[];
     color: string;
-    createdAt: Date;
-    updatedAt: Date;
+    createdAt?: Date;
+    updatedAt?: Date;
 }
-export declare class Annotation extends Model {
-    id: string;
-    labelId: string;
-    name: string;
-    type: string;
-    coordinates: {
-        x: number;
-        y: number;
-    }[];
-    imageId: string;
-    createdAt: Date;
-    updatedAt: Date;
-    color?: string;
-    isAIGenerated?: boolean;
-}
-export declare class History extends Model {
-    id: string;
-    labels: Label[];
-    historyIndex: number;
-    canUndo: boolean;
-    canRedo: boolean;
-}
-export declare class ImageData extends Model {
+export declare class ImageData {
     id: string;
     name: string;
     data: string;
     width: number;
     height: number;
     url?: string;
-    projectId: string;
-    createdAt: Date;
+    projectId?: string;
+    project?: Project;
+    annotations?: Annotation[];
+    createdAt?: Date;
+    updatedAt?: Date;
 }
-export declare class Project extends Model {
+export declare class Annotation {
+    id: string;
+    labelId?: string;
+    label?: Label;
+    name: string;
+    type: string;
+    coordinates: {
+        x: number;
+        y: number;
+    }[];
+    imageId?: string;
+    image?: ImageData;
+    color?: string;
+    isAIGenerated?: boolean;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+export declare class History {
+    id: string;
+    labels?: Label[];
+    historyIndex: number;
+    canUndo: boolean;
+    canRedo: boolean;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+export declare class Task {
     id: string;
     name: string;
-    createdAt: Date;
-    lastModified: Date;
+    description: string;
+    projectId?: string;
+    project?: Project;
+    assignedTo?: string;
+    status: string;
+    dueDate?: Date;
+    labels?: Label[];
+    annotations?: Annotation[];
+    createdAt?: Date;
+    updatedAt?: Date;
 }
-export declare class ExportFormat extends Model {
+export declare class ExportFormat {
     id: string;
     name: string;
     description: string;
     extension: string;
 }
-export declare class AIModel extends Model {
+export declare class AIModel {
     id: string;
     name: string;
     description: string;
     version: string;
-    createdAt: Date;
-    updatedAt: Date;
     modelPath: string;
     configPath: string;
     modelSize: number;
     isCustom: boolean;
+    createdAt?: Date;
+    updatedAt?: Date;
 }
-export declare class Settings extends Model {
+export declare class Settings {
     id: string;
     key: string;
     value: string;
+    createdAt?: Date;
+    updatedAt?: Date;
 }
-export declare class Task extends Model {
+export declare class User {
     id: string;
+    email: string;
     name: string;
-    description: string;
-    projectId: string;
-    assignedTo?: string;
-    status: string;
-    createdAt: Date;
-    updatedAt: Date;
-    dueDate?: Date;
-    labels?: Label[];
-    annotations?: Annotation[];
+    password: string;
+    role: string;
+    createdAt?: Date;
+    updatedAt?: Date;
 }

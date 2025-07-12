@@ -1,13 +1,17 @@
-import { IDBContext, Settings } from "@vailabel/core"
-import { ISettingsDataAccess } from "@vailabel/core/src/data/contracts/IDataAccess"
+import {  Settings } from "@vailabel/core"
 import { create } from "zustand"
 import { exceptionMiddleware } from "./exception-middleware"
+import { IDataAdapter } from "@/adapters/data/IDataAdapter"
 
 type SettingsStoreType = {
-  dbContext: IDBContext
-  initDBContext: (dbContext: IDBContext) => void
+  /**
+   * Settings store for managing application settings.
+   * Provides methods to get, set, create, update, and delete settings.
+   */
+  data: IDataAdapter
+    initDataAdapter: (dataAdapter: IDataAdapter) => void
+    
   settings: Settings[]
-  setSettings: (settings: Settings[]) => void
   getSetting: (key: string) => Settings | undefined
   getSettings: () => Settings[]
   createSetting: (setting: Settings) => Promise<void>
@@ -17,73 +21,46 @@ type SettingsStoreType = {
 
 export const useSettingsStore = create<SettingsStoreType>(
   exceptionMiddleware((set, get) => ({
-    dbContext: {} as Omit<IDBContext, "settings"> & {
-      settings: ISettingsDataAccess
-    },
-    initDBContext: (ctx) => set({ dbContext: ctx }),
+    data: {} as IDataAdapter,
+    initDataAdapter: (dataAdapter) => set({ data: dataAdapter }),
+    
     settings: [],
-    setSettings: (settings) => set({ settings }),
-    getSettings: () => {
-      const { dbContext, setSettings, settings } = get()
-      dbContext.settings.get().then((allSettings: Settings[]) => {
-        setSettings(allSettings)
-      })
-
-      return settings
-    },
     getSetting: (key) => {
-      const { settings, dbContext, setSettings } = get()
-      dbContext.settings.get().then((allSettings: Settings[]) => {
-        setSettings(allSettings)
-      })
+      const { settings } = get()
       return settings.find((setting) => setting.key === key)
     },
+    getSettings: () => {
+      const { settings } = get()
+      return settings
+    },
     createSetting: async (setting) => {
-      const { settings, dbContext } = get()
-      // Prevent duplicate key
-      if (settings.some((s) => s.key === setting.key)) {
-        return
-      }
-      set({ settings: [...settings, setting] })
-      if (dbContext) {
-        await dbContext.settings.create(setting)
-      }
+      const { data } = get()
+      await data.saveSettings(setting)
+      set((state) => ({
+        settings: [...state.settings, setting],
+      }))
     },
     updateSetting: async (key, value) => {
-      const { settings, dbContext } = get()
-      // Check if the setting exists
-      const exists = await dbContext.settings.getByKey(key)
-      let updatedSettings
-      if (exists) {
-        // Update existing setting
-        updatedSettings = settings.map((setting) =>
-          setting.key === key ? { ...setting, value } : setting
-        )
-        set({ settings: updatedSettings })
-        if (dbContext) {
-          await dbContext.settings.updateByKey(key, value)
-        }
+      const { data } = get()
+      const setting = get().getSetting(key)
+      if (setting) {
+        const updatedSetting = { ...setting, value }
+        await data.saveSettings(updatedSetting)
+        set((state) => ({
+          settings: state.settings.map((s) =>
+            s.key === key ? updatedSetting : s
+          ),
+        }))
       } else {
-        // Prevent duplicate key in state (should not happen, but for safety)
-        if (settings.some((s) => s.key === key)) {
-          return
-        }
-        // Create new setting
-        const newSetting = { id: crypto.randomUUID(), key, value }
-        updatedSettings = [...settings, newSetting]
-        set({ settings: updatedSettings })
-        if (dbContext) {
-          await dbContext.settings.create(newSetting)
-        }
+        throw new Error(`Setting with key ${key} not found`)
       }
-    },
+    }
+    ,
     deleteSetting: async (key) => {
-      const { settings, dbContext } = get()
-      const updatedSettings = settings.filter((setting) => setting.key !== key)
-      set({ settings: updatedSettings })
-      if (dbContext) {
-        await dbContext.settings.delete(key)
-      }
-    },
+      // TODO: Implement delete logic in IDataAdapter
+      set((state) => ({
+        settings: state.settings.filter((s) => s.key !== key),
+      }))
+    }
   }))
 )

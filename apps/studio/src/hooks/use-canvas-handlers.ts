@@ -314,8 +314,7 @@ export function useCanvasHandlers() {
           ) {
             updateAnnotation(selectedAnnotation.id, {
               ...annotation,
-              coordinates: [newTopLeft, newBottomRight],
-              updatedAt: new Date(),
+              coordinates: [newTopLeft, newBottomRight]
             })
           }
           return
@@ -344,7 +343,6 @@ export function useCanvasHandlers() {
             updateAnnotation(movingLabelId, {
               ...annotation,
               coordinates: [newTopLeft, newBottomRight],
-              updatedAt: new Date(),
             })
           } else if (annotation.type === "polygon") {
             // For polygon, move all points by the same delta
@@ -360,7 +358,6 @@ export function useCanvasHandlers() {
             updateAnnotation(movingLabelId, {
               ...annotation,
               coordinates: newCoordinates,
-              updatedAt: new Date(),
             })
           }
         }

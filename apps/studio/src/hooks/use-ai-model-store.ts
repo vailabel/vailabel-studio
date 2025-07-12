@@ -1,10 +1,12 @@
-import { IDBContext, AIModel } from "@vailabel/core"
+import { AIModel } from "@vailabel/core"
 import { create } from "zustand"
 import { exceptionMiddleware } from "./exception-middleware"
+import { IDataAdapter } from "@/adapters/data/IDataAdapter"
 
 type AIModelStoreType = {
-  dbContext: IDBContext
-  initDBContext: (dbContext: IDBContext) => void
+  data: IDataAdapter
+    initDataAdapter: (dataAdapter: IDataAdapter) => void
+    
   aiModels: AIModel[]
   selectedModel: AIModel | null
   setAIModels: (aiModels: AIModel[]) => void
@@ -18,62 +20,54 @@ type AIModelStoreType = {
 
 export const useAIModelStore = create<AIModelStoreType>(
   exceptionMiddleware((set, get) => ({
-    dbContext: {} as IDBContext,
-    initDBContext: (ctx) => set({ dbContext: ctx }),
+    data: {} as IDataAdapter,
+    initDataAdapter: (dataAdapter) => set({ data: dataAdapter }),
+
     aiModels: [],
-    setAIModels: (aiModels) => set({ aiModels }),
-
-    getSelectedModel: async () => {
-      const { dbContext } = get()
-      if (!dbContext || !dbContext.settings || !dbContext.aiModels) return null
-      const selectedModel = await dbContext.settings.getByKey("modalSelected")
-      if (selectedModel) {
-        const model = await dbContext.aiModels.getById(selectedModel.value)
-        set({ selectedModel: model })
-        return model
-      }
-      const allAIModels = await dbContext.aiModels.get()
-      if (allAIModels.length > 0) {
-        const firstModel = allAIModels[0]
-        set({ selectedModel: firstModel })
-        return firstModel
-      }
-      set({ selectedModel: null })
-      return null
-    },
     selectedModel: null,
-
+    setAIModels: (aiModels) => set({ aiModels }),
     getAIModels: async () => {
-      const { dbContext, setAIModels } = get()
-      const allAIModels = await dbContext.aiModels.get()
-      console.log("allAIModels", allAIModels)
-      setAIModels(allAIModels)
+      const { data } = get()
+      const allAIModels = await data.fetchAIModels('defaultProjectId') // Replace with actual project ID
+      set({ aiModels: allAIModels })
       return allAIModels
     },
     createAIModel: async (aiModel) => {
-      const { aiModels, dbContext } = get()
-      set({ aiModels: [...aiModels, aiModel] })
-      if (dbContext) {
-        await dbContext.aiModels.create(aiModel)
-      }
+      const { data } = get()
+      await data.saveAIModel(aiModel)
+      set((state) => ({
+        aiModels: [...state.aiModels, aiModel],
+      }))
     },
     updateAIModel: async (id, updates) => {
-      const { aiModels, dbContext } = get()
-      const updatedAIModels = aiModels.map((model) =>
-        model.id === id ? { ...model, ...updates } : model
-      )
-      set({ aiModels: updatedAIModels })
-      if (dbContext) {
-        await dbContext.aiModels.update(id, updates)
-      }
+      const { data } = get()
+      await data.updateAIModel(id, updates)
+      set((state) => ({
+        aiModels: state.aiModels.map((model) =>
+          model.id === id ? { ...model, ...updates } : model
+        ),
+      }))
     },
     deleteAIModel: async (id) => {
-      const { aiModels, dbContext } = get()
-      const updatedAIModels = aiModels.filter((model) => model.id !== id)
-      set({ aiModels: updatedAIModels })
-      if (dbContext) {
-        await dbContext.aiModels.delete(id)
+      const { data } = get()
+      await data.deleteAIModel(id)
+      set((state) => ({
+        aiModels: state.aiModels.filter((model) => model.id !== id),
+      }))
+    },
+
+    getSelectedModel: async () => {
+      // TODO: Implement logic to get the selected AI model
+      const { selectedModel } = get()
+      if (selectedModel) {
+        return selectedModel
       }
+      const aiModels = await get().getAIModels()
+      if (aiModels.length > 0) {
+        set({ selectedModel: aiModels[0] }) // Default to the first model if none is selected
+        return aiModels[0]
+      }
+      return null
     },
   }))
 )

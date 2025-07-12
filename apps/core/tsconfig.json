@@ -11,9 +11,9 @@
     "skipLibCheck": true,
     "composite": true,
     "noEmit": false,
-    "useDefineForClassFields": false, 
+    "useDefineForClassFields": false,
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
+    "emitDecoratorMetadata": true
   },
   "include": ["src"],
   "exclude": ["**/__tests__/*", "**/*.test.ts"]

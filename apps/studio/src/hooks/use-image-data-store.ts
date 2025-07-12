@@ -1,10 +1,11 @@
-import { IDBContext, ImageData } from "@vailabel/core"
+import { ImageData } from "@vailabel/core"
 import { create } from "zustand"
 import { exceptionMiddleware } from "./exception-middleware"
+import { IDataAdapter } from "@/adapters/data/IDataAdapter"
 
 type ImageDataStoreType = {
-  dbContext: IDBContext
-  initDBContext: (dbContext: IDBContext) => void
+  data: IDataAdapter
+  initDataAdapter: (dataAdapter: IDataAdapter) => void
   images: ImageData[]
   image: ImageData | undefined
   getImages: () => Promise<ImageData[]>
@@ -26,76 +27,76 @@ type ImageDataStoreType = {
 
 export const useImageDataStore = create<ImageDataStoreType>(
   exceptionMiddleware((set, get) => ({
-    dbContext: {} as IDBContext,
-    image: undefined,
-    initDBContext: (ctx) => set({ dbContext: ctx }),
+    data: {} as IDataAdapter,
+    initDataAdapter: (dataAdapter) => set({ data: dataAdapter }),
+    
     images: [],
-    setImages: (images) => set({ images }),
-    createImage: async (image) => {
-      const { images, dbContext } = get()
-      set({ images: [...images, image] })
-      if (dbContext) {
-        await dbContext.images.create(image)
-      }
-    },
-    getImagesByProjectId: async (projectId: string) => {
-      const { dbContext, setImages } = get()
-      const imageList = await dbContext.images.getByProjectId(projectId)
-      setImages(imageList)
-      return imageList
-    },
+    image: undefined,
+    
     getImages: async () => {
-      const { dbContext } = get()
-      const allImages = await dbContext.images.get()
-      return allImages
+      const { data } = get()
+      const images = await data.fetchImageData('defaultProjectId') // Replace with actual project ID
+      set({ images })
+      return images
     },
-    getImageWithAnnotations: async (imageId) => {
-      const { dbContext } = get()
-      const image = await dbContext.images.getImageWithAnnotations(imageId)
-      if (!image) {
-        throw new Error(`Image with id ${imageId} not found`)
-      }
+    
+    getImage: async (id) => {
+      const { data } = get()
+      const image = await data.fetchImageData('defaultProjectId').then(images =>
+        images.find(img => img.id === id)
+      )
+      set({ image })
       return image
     },
-    getImage: async (id) => {
-      const { dbContext, images } = get()
-      const image = images.find((image) => image.id === id)
-      if (image) {
-        set({ image })
-        return image
-      }
-      const allImages = await dbContext.images.get()
-      const foundImage = allImages.find((image) => image.id === id)
-      if (foundImage) {
-        set({ image: foundImage })
-        return foundImage
-      }
-      return undefined
+    
+    getImageWithAnnotations: async (imageId) => {
+      const { data } = get()
+      const image = await data.fetchImageData('defaultProjectId').then(images =>
+        images.find(img => img.id === imageId)
+      )
+      if (!image) throw new Error(`Image with ID ${imageId} not found`)
+      return image
     },
-
+    
+    getImagesByProjectId: async (projectId) => {
+      const { data } = get()
+      return await data.fetchImageData(projectId)
+    },
+    
+    setImages: (images) => set({ images }),
+    
+    createImage: async (image) => {
+      const { data } = get()
+      await data.saveImageData(image)
+      set((state) => ({
+        images: [...state.images, image],
+        image,
+      }))
+    },
+    
     updateImage: async (id, updates) => {
-      const { images, dbContext } = get()
-      const updatedImages = images.map((image) =>
-        image.id === id ? { ...image, ...updates } : image
-      )
-      set({ images: updatedImages })
-      if (dbContext) {
-        await dbContext.images.update(id, updates)
-      }
+      const { data } = get()
+      await data.updateImageData(id, updates)
+      set((state) => ({
+        images: state.images.map((img) =>
+          img.id === id ? { ...img, ...updates } : img
+        ),
+        image: state.image?.id === id ? { ...state.image, ...updates } : state.image,
+      }))
     },
+    
     deleteImage: async (id) => {
-      const { images, dbContext } = get()
-      const updatedImages = images.filter((image) => image.id !== id)
-      set({ images: updatedImages })
-      if (dbContext) {
-        await dbContext.images.delete(id)
-      }
+      const { data } = get()
+      await data.deleteImageData(id)
+      set((state) => ({
+        images: state.images.filter((img) => img.id !== id),
+        image: state.image?.id === id ? undefined : state.image,
+      }))
     },
+    
     getOrCreateImage: async (name, data, width, height, projectId) => {
-      const { images } = get()
-      let image = images.find(
-        (img) => img.name === name && img.projectId === projectId
-      )
+      const { data: adapterData, images } = get()
+      let image = images.find(img => img.name === name && img.projectId === projectId)
       if (!image) {
         image = {
           id: crypto.randomUUID(),
@@ -104,16 +105,12 @@ export const useImageDataStore = create<ImageDataStoreType>(
           width,
           height,
           projectId,
-          createdAt: new Date(),
-        } as ImageData
-        await get().createImage(image)
-        const updatedImages = get().images
-        image = updatedImages.find((img) => img.id === image!.id)
+          project: undefined as any,
+          annotations: [],
+        }
+        await adapterData.saveImageData(image)
       }
-      if (!image) {
-        throw new Error("Failed to get or create image")
-      }
-      return image!
-    },
+      return image
+    }
   }))
 )
