@@ -6,6 +6,30 @@ export class CloudApiDataAdapter implements IDataAdapter {
     constructor() {
         this.api = new ApiClient(); // Initialize the API client here
     }
+    updateProject(projectId: string, updates: Partial<Project>): Promise<void> {
+        throw new Error("Method not implemented.");
+    }
+    updateLabel(labelId: string, updates: Partial<Label>): Promise<void> {
+        throw new Error("Method not implemented.");
+    }
+    updateAnnotation(annotationId: string, updates: Partial<Annotation>): Promise<void> {
+        throw new Error("Method not implemented.");
+    }
+    updateImageData(imageId: string, updates: Partial<ImageData>): Promise<void> {
+        throw new Error("Method not implemented.");
+    }
+    updateHistory(historyId: string, updates: Partial<History>): Promise<void> {
+        throw new Error("Method not implemented.");
+    }
+    updateTask(taskId: string, updates: Partial<Task>): Promise<void> {
+        throw new Error("Method not implemented.");
+    }
+    updateAIModel(aiModelId: string, updates: Partial<AIModel>): Promise<void> {
+        throw new Error("Method not implemented.");
+    }
+    updateUser(userId: string, updates: Partial<User>): Promise<void> {
+        throw new Error("Method not implemented.");
+    }
     fetchProjects(): Promise<Project[]> {
         return this.api.get<Project[]>(`/projects`);
     }
