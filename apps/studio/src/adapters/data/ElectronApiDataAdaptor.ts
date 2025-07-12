@@ -20,6 +20,30 @@ export class ElectronApiDataAdapter implements IDataAdapter {
     // @ts-expect-error
     this.api = window.ipc
   }
+  updateProject(projectId: string, updates: Partial<Project>): Promise<void> {
+    return this.api.invoke(`update:projects`, projectId, updates)
+  }
+  updateLabel(labelId: string, updates: Partial<Label>): Promise<void> {
+    return this.api.invoke(`update:labels`, labelId, updates)
+  }
+  updateAnnotation(annotationId: string, updates: Partial<Annotation>): Promise<void> {
+    return this.api.invoke(`update:annotations`, annotationId, updates)
+  }
+  updateImageData(imageId: string, updates: Partial<ImageData>): Promise<void> {
+    return this.api.invoke(`update:imageData`, imageId, updates)
+  }
+  updateHistory(historyId: string, updates: Partial<History>): Promise<void> {
+    return this.api.invoke(`update:history`, historyId, updates)
+  }
+  updateTask(taskId: string, updates: Partial<Task>): Promise<void> {
+    return this.api.invoke(`update:tasks`, taskId, updates)
+  }
+  updateAIModel(aiModelId: string, updates: Partial<AIModel>): Promise<void> {
+    return this.api.invoke(`update:aiModels`, aiModelId, updates)
+  }
+  updateUser(userId: string, updates: Partial<User>): Promise<void> {
+    return this.api.invoke(`update:users`, userId, updates)
+  }
 
   fetchProjects(): Promise<Project[]> {
     return this.api.invoke(`fetch:projects`)

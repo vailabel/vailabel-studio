@@ -8,38 +8,36 @@ import { ErrorBoundary } from "./ErrorBoundary"
 import ErrorFallback from "./components/error-fallback"
 import { useProjectStore } from "./hooks/use-project-store"
 import { ElectronApiDataAdapter } from "./adapters/data/ElectronApiDataAdaptor"
-// import { useAnnotationsStore } from "./hooks/annotation-store"
-// import { useLabelStore } from "./hooks/use-label-store"
-// import { useImageDataStore } from "./hooks/use-image-data-store"
-// import { useSettingsStore } from "./hooks/use-settings-store"
-// import { useAIModelStore } from "./hooks/use-ai-model-store"
+import { useAnnotationsStore } from "./hooks/annotation-store"
+import { useLabelStore } from "./hooks/use-label-store"
+import { useImageDataStore } from "./hooks/use-image-data-store"
+import { useSettingsStore } from "./hooks/use-settings-store"
+import { useAIModelStore } from "./hooks/use-ai-model-store"
 
 const App = () => {
   const { initDataAdapter: initProjectsDataAdapter } = useProjectStore()
-  // const { initDataAdapter: initAnnotationsDataAdapter } = useAnnotationsStore()
-  // const { initDataAdapter: initLabelsDataAdapter } = useLabelStore()
-  // const { initDataAdapter: initImageDataStore } = useImageDataStore()
-  // const {
-  //   initDataAdapter: initSettingsDataAdapter,
-  //   getSettings,
-  //   settings,
-  // } = useSettingsStore()
-  // const { initDataAdapter: initAiModelsDataAdapter } = useAIModelStore()
+  const { initDataAdapter: initAnnotationsDataAdapter } = useAnnotationsStore()
+  const { initDataAdapter: initLabelsDataAdapter } = useLabelStore()
+  const { initDataAdapter: initImageDataStore } = useImageDataStore()
+  const {
+    initDataAdapter: initSettingsDataAdapter,
+  } = useSettingsStore()
+  const { initDataAdapter: initAiModelsDataAdapter } = useAIModelStore()
   useEffect(() => {
     const data = new ElectronApiDataAdapter()
     initProjectsDataAdapter(data)
-    // initAnnotationsDataAdapter(data)
-    // initLabelsDataAdapter(data)
-    // initImageDataStore(data)
-    // initSettingsDataAdapter(data)
-    // initAiModelsDataAdapter(data)
+    initAnnotationsDataAdapter(data)
+    initLabelsDataAdapter(data)
+    initImageDataStore(data)
+    initSettingsDataAdapter(data)
+    initAiModelsDataAdapter(data)
   }, [
     initProjectsDataAdapter,
-    // initAnnotationsDataAdapter,
-    // initLabelsDataAdapter,
-    // initImageDataStore,
-    // initSettingsDataAdapter,
-    // initAiModelsDataAdapter,
+    initAnnotationsDataAdapter,
+    initLabelsDataAdapter,
+    initImageDataStore,
+    initSettingsDataAdapter,
+    initAiModelsDataAdapter,
   ])
 
   // useEffect(() => {
