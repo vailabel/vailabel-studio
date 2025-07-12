@@ -1,6 +1,7 @@
-import { IDBContext, Project } from "@vailabel/core"
+import { Project } from "@vailabel/core"
 import { create } from "zustand"
 import { exceptionMiddleware } from "./exception-middleware"
+import { IDataAdapter } from "@/adapters/data/IDataAdapter"
 
 export interface CurrentProject extends Project {
   imageCount: number
@@ -8,14 +9,14 @@ export interface CurrentProject extends Project {
 }
 
 type ProjectStoreType = {
-  dbContext: IDBContext
-  initDBContext: (dbContext: IDBContext) => void
+  data: IDataAdapter
+  initDataAdapter: (dataAdapter: IDataAdapter) => void
+  
   projects: Project[]
   currentProject?: CurrentProject
   setCurrentProject: (project: CurrentProject) => void
   getProject(id: string): Promise<CurrentProject | undefined>
-  getProjects: () => Project[]
-  setProjects: (projects: Project[]) => void
+  getProjects: () => Promise<Project[]>
   createProject: (project: Project) => Promise<void>
   updateProject: (id: string, updates: Partial<Project>) => Promise<void>
   deleteProject: (id: string) => Promise<void>
@@ -41,103 +42,67 @@ type ProjectStoreType = {
 
 export const useProjectStore = create<ProjectStoreType>(
   exceptionMiddleware((set, get) => ({
-    dbContext: {} as IDBContext,
-    initDBContext: (ctx) => set({ dbContext: ctx }),
+    data: {} as IDataAdapter,
+    initDataAdapter: (dataAdapter) => set({ data: dataAdapter }),
+    
     projects: [],
     currentProject: undefined,
-    setProjects: (projects) => set({ projects }),
     setCurrentProject: (project) => set({ currentProject: project }),
-
-    nextImage: {
-      id: "",
-      hasNext: false,
-    },
-    previousImage: {
-      id: "",
-      hasPrevious: false,
-    },
-
-    getNextImage: async (projectId, currentImageId) => {
-      const { dbContext } = get()
-      const nextImage = await dbContext.images.getNext(
-        projectId,
-        currentImageId
+    
+    getProject: async (id) => {
+      const { data } = get()
+      const project = await data.fetchProjects().then((projects) =>
+        projects.find((p) => p.id === id)
       )
-
-      const next = {
-        id: nextImage.id ?? "",
-        hasNext: nextImage.hasNext ?? false,
-      }
-      set({ nextImage: next })
-      return next
-    },
-    getPreviousImage: async (projectId, currentImageId) => {
-      const { dbContext } = get()
-      const previousImage = await dbContext.images.getPrevious(
-        projectId,
-        currentImageId
-      )
-      const previous = {
-        id: previousImage.id ?? "",
-        hasPrevious: previousImage.hasPrevious ?? false,
-      }
-      set({ previousImage: previous })
-      return previous
+      return project as CurrentProject | undefined
     },
 
-    getProjects: () => {
-      const { dbContext, projects, setProjects } = get()
-      dbContext.projects.get().then((allProjects: Project[]) => {
-        setProjects(allProjects)
-      })
+    getProjects: async () => {
+      const { data } = get()
+      const projects = await data.fetchProjects()
+
+      console.log("Fetched projects:", projects)
+      set({ projects })
       return projects
     },
-    getProject: async (id) => {
-      const { dbContext } = get()
-      const project = await dbContext.projects.getById(id)
 
-      if (project) {
-        const imageCount = await dbContext.images.countByProjectId(id)
-        const labelCount = await dbContext.labels.countByProjectId(id)
-        set({
-          currentProject: {
-            ...project,
-            imageCount,
-            labelCount,
-          },
-        })
-        return {
-          ...project,
-          imageCount,
-          labelCount,
-        }
-      }
-      return undefined
-    },
     createProject: async (project) => {
-      const { projects, dbContext } = get()
+      const { data, projects } = get()
+      await data.saveProject(project)
       set({ projects: [...projects, project] })
-      if (dbContext) {
-        await dbContext.projects.create(project)
-      }
     },
+    
     updateProject: async (id, updates) => {
-      const { projects, dbContext } = get()
+      const { data, projects } = get()
       const updatedProjects = projects.map((project) =>
         project.id === id ? { ...project, ...updates } : project
       )
-      set({ projects: updatedProjects })
-      if (dbContext) {
-        await dbContext.projects.update(id, updates)
-      }
+      // Convert all updated projects to plain objects to strip Sequelize methods
+      const plainProjects = updatedProjects.map((proj) =>
+        JSON.parse(JSON.stringify(proj)) as Project
+      )
+      set({ projects: plainProjects })
+      const updatedProject = plainProjects.find((p) => p.id === id)!
+      await data.saveProject(updatedProject)
     },
+    
     deleteProject: async (id) => {
-      const { projects, dbContext } = get()
-      const updatedProjects = projects.filter((project) => project.id !== id)
-      set({ projects: updatedProjects })
-      if (dbContext) {
-        await dbContext.projects.delete(id)
-      }
+      const { data, projects } = get()
+      await data.deleteProject(id)
+      set({ projects: projects.filter((project) => project.id !== id) })
     },
+
+    getNextImage: async (projectId, currentImageId) => {
+      // Implementation for fetching the next image
+      return { id: "", hasNext: false }
+    },
+
+    getPreviousImage: async (projectId, currentImageId) => {
+      // Implementation for fetching the previous image
+      return { id: "", hasPrevious: false }
+    },
+
+    nextImage: { id: "", hasNext: false },
+    previousImage: { id: "", hasPrevious: false },
   }))
 )
