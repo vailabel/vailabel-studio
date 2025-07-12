@@ -10,7 +10,7 @@ export class SaveProjectCommand implements IpcHandler<Project, void> {
     project: Project
   ): Promise<void> {
     await ProjectRepository.create({
-      ...project
+      ...project,
     })
   }
 }

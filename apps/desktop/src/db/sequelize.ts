@@ -12,7 +12,7 @@ import {
 } from "./models"
 import { app } from "electron" // Import Electron's app module
 import path from "path"
-import fs from "fs" 
+import fs from "fs"
 
 const isDev = !app.isPackaged
 

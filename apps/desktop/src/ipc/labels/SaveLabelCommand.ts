@@ -2,7 +2,6 @@ import { Label } from "@vailabel/core"
 import { IpcHandler } from "apps/desktop/src/interface/IpcHandler"
 import { LabelRepository } from "../../db/models"
 
-
 export class SaveLabelCommand implements IpcHandler<Label, void> {
   channel = "save:labels"
 

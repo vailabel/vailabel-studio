@@ -1,4 +1,4 @@
-import {  Label } from "@vailabel/core"
+import { Label } from "@vailabel/core"
 import { create } from "zustand"
 import { exceptionMiddleware } from "./exception-middleware"
 import { IDataAdapter } from "@/adapters/data/IDataAdapter"
@@ -50,9 +50,7 @@ export const useLabelStore = create<LabelStoreType>(
         const updatedLabel = { ...label, ...updates }
         await data.saveLabel(updatedLabel)
         set((state) => ({
-          labels: state.labels.map((l) =>
-            l.id === id ? updatedLabel : l
-          ),
+          labels: state.labels.map((l) => (l.id === id ? updatedLabel : l)),
         }))
       } else {
         throw new Error(`Label with id ${id} not found`)
@@ -67,10 +65,19 @@ export const useLabelStore = create<LabelStoreType>(
     },
     getOrCreateLabel: async (name, color, projectId) => {
       const existingLabels = await get().getLabelsByProjectId(projectId)
-      let label = existingLabels.find((l) => l.name === name && l.color === color)
+      let label = existingLabels.find(
+        (l) => l.name === name && l.color === color
+      )
 
       if (!label) {
-        label = { id: crypto.randomUUID(), name, color, projectId, project: undefined as any, annotations: [] }
+        label = {
+          id: crypto.randomUUID(),
+          name,
+          color,
+          projectId,
+          project: undefined as any,
+          annotations: [],
+        }
         await get().createLabel(label)
         // After creation, get the updated labels and find the new label
         const updatedLabels = await get().getLabelsByProjectId(projectId)

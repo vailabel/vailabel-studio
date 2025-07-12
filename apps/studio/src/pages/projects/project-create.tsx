@@ -6,7 +6,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import type { Project, ImageData } from "@vailabel/core"
-import { useStorage } from "@/hooks/use-stoage"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -45,7 +44,6 @@ export function ProjectCreate() {
   const { createProject } = useProjectStore()
   const { createImage } = useImageDataStore()
   const { createLabel } = useLabelStore()
-  const { saveImage } = useStorage()
   const navigate = useNavigate()
 
   const {

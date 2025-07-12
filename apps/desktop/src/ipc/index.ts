@@ -10,16 +10,56 @@ import { SafeStorageGetQuery } from "./queries/SafeStorageGetQuery"
 import { SafeStorageListQuery } from "./queries/SafeStorageListQuery"
 import { RunYoloCommand } from "./command/RunYoloCommand"
 import { SelectPythonVenvCommand } from "./command/SelectPythonVenvCommand"
-import { DeleteProjectCommand, FetchProjectsQuery, SaveProjectCommand, UpdateProjectCommand } from "./projects"
-import { DeleteLabelCommand, FetchLabelQuery, SaveLabelCommand, UpdateLabelCommand } from "./labels"
-import { DeleteUserCommand, FetchUserQuery, SaveUserCommand, UpdateUserCommand } from "./users"
-import { DeleteAIModelCommand, FetchAIModelQuery, SaveAIModelCommand, UpdateAIModelCommand } from "./ai-models"
-import { DeleteTaskCommand, FetchTaskQuery, SaveTaskCommand, UpdateTaskCommand } from "./tasks"
+import {
+  DeleteProjectCommand,
+  FetchProjectsQuery,
+  SaveProjectCommand,
+  UpdateProjectCommand,
+} from "./projects"
+import {
+  DeleteLabelCommand,
+  FetchLabelQuery,
+  SaveLabelCommand,
+  UpdateLabelCommand,
+} from "./labels"
+import {
+  DeleteUserCommand,
+  FetchUserQuery,
+  SaveUserCommand,
+  UpdateUserCommand,
+} from "./users"
+import {
+  DeleteAIModelCommand,
+  FetchAIModelQuery,
+  SaveAIModelCommand,
+  UpdateAIModelCommand,
+} from "./ai-models"
+import {
+  DeleteTaskCommand,
+  FetchTaskQuery,
+  SaveTaskCommand,
+  UpdateTaskCommand,
+} from "./tasks"
 import { FetchSettingsQuery, SaveOrUpdateSettingsCommand } from "./settings"
-import { DeleteImageDataCommand, FetchImageDataByProjectidQuery, FetchImageDataQuery, SaveImageDataCommand, UpdateImageDataCommand } from "./image-data"
-import { DeleteHistoryCommand, FetchHistoryQuery, SaveHistoryCommand, UpdateHistoryCommand } from "./history"
-import { DeleteAnnotationCommand, FetchAnnotationQuery, SaveAnnotationCommand, UpdateAnnotationCommand } from "./annotations"
-
+import {
+  DeleteImageDataCommand,
+  FetchImageDataByProjectidQuery,
+  FetchImageDataQuery,
+  SaveImageDataCommand,
+  UpdateImageDataCommand,
+} from "./image-data"
+import {
+  DeleteHistoryCommand,
+  FetchHistoryQuery,
+  SaveHistoryCommand,
+  UpdateHistoryCommand,
+} from "./history"
+import {
+  DeleteAnnotationCommand,
+  FetchAnnotationQuery,
+  SaveAnnotationCommand,
+  UpdateAnnotationCommand,
+} from "./annotations"
 
 export function registerHandlers(handlers: IpcHandler[]) {
   for (const handler of handlers) {
@@ -50,7 +90,6 @@ handlers.push(new SaveProjectCommand())
 handlers.push(new DeleteProjectCommand())
 handlers.push(new UpdateProjectCommand())
 
-
 // Register labels
 handlers.push(new FetchLabelQuery())
 handlers.push(new DeleteLabelCommand())
@@ -68,7 +107,6 @@ handlers.push(new DeleteAIModelCommand())
 handlers.push(new SaveAIModelCommand())
 handlers.push(new UpdateAIModelCommand())
 
-
 // Register tasks
 handlers.push(new FetchTaskQuery())
 handlers.push(new DeleteTaskCommand())
@@ -79,15 +117,12 @@ handlers.push(new UpdateTaskCommand())
 handlers.push(new FetchSettingsQuery())
 handlers.push(new SaveOrUpdateSettingsCommand())
 
-
-
 // Register image data
 handlers.push(new FetchImageDataQuery())
 handlers.push(new DeleteImageDataCommand())
 handlers.push(new SaveImageDataCommand())
 handlers.push(new UpdateImageDataCommand())
 handlers.push(new FetchImageDataByProjectidQuery())
-
 
 // Register history
 handlers.push(new FetchHistoryQuery())

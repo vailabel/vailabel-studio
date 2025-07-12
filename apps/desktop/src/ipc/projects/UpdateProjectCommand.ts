@@ -2,7 +2,6 @@ import { Project } from "@vailabel/core"
 import { IpcHandler } from "apps/desktop/src/interface/IpcHandler"
 import { ProjectRepository } from "../../db/models"
 
-
 export class UpdateProjectCommand implements IpcHandler<Project, void> {
   channel = "update:projects"
 
