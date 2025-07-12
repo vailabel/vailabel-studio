@@ -1,11 +1,11 @@
 import { Annotation, ImageData as ImageModal } from "@vailabel/core"
-import { IDBContext } from "@vailabel/core"
 import { create } from "zustand"
 import { exceptionMiddleware } from "./exception-middleware"
+import { IDataAdapter } from "@/adapters/data/IDataAdapter"
 
 type AnnotationsContextType = {
-  dbContext: IDBContext
-  initDBContext: (dbContext: IDBContext) => void
+  data: IDataAdapter
+  initDataAdapter: (dataAdapter: IDataAdapter) => void
   annotations: Annotation[]
   getAnnotationsByImageId: (imageId: string) => Annotation[]
   setAnnotations: (annotations: Annotation[]) => void
@@ -24,71 +24,33 @@ type AnnotationsContextType = {
 
 export const useAnnotationsStore = create<AnnotationsContextType>(
   exceptionMiddleware((set, get) => ({
-    dbContext: {} as IDBContext,
-    initDBContext: (ctx) => set({ dbContext: ctx }),
+    data: {} as IDataAdapter,
+    initDataAdapter: (dataAdapter) => set({ data: dataAdapter }),
     annotations: [],
-    setAnnotations: (annotations) => set({ annotations }),
-    getAnnotationsByImageId: (imageId) => {
-      const { dbContext, annotations } = get()
-      dbContext.annotations.get().then((allAnnotations: Annotation[]) => {
-        set({ annotations: allAnnotations })
-      })
-
+    getAnnotationsByImageId: (imageId: string) => {
+      const { annotations } = get()
       return annotations.filter((annotation) => annotation.imageId === imageId)
     },
-    createAnnotation: async (annotation) => {
-      const { annotations, dbContext } = get()
-      set({ annotations: [...annotations, annotation] })
-      if (dbContext) {
-        await dbContext.annotations.create(annotation)
-      }
+    setAnnotations: (annotations) => set({ annotations }),
+    createAnnotation: (annotation: Annotation) => {
+      const { data } = get()
+      return data.saveAnnotation(annotation)
     },
-    updateAnnotation: async (id, updates) => {
-      const { annotations, dbContext } = get()
-      const updatedAnnotations = annotations.map((annotation) =>
-        annotation.id === id ? { ...annotation, ...updates } : annotation
-      )
-      set({ annotations: updatedAnnotations })
-      if (dbContext) {
-        await dbContext.annotations.update(id, updates)
-      }
+    updateAnnotation: (id: string, updates: Partial<Annotation>) => {
+      const { data } = get()
+      return data.updateAnnotation(id, updates)
     },
-    deleteAnnotation: async (id) => {
-      const { annotations, dbContext } = get()
-      const updatedAnnotations = annotations.filter(
-        (annotation) => annotation.id !== id
-      )
-      set({ annotations: updatedAnnotations })
-      if (dbContext) {
-        await dbContext.annotations.delete(id)
-      }
+    deleteAnnotation: (id: string) => {
+      const { data } = get()
+      return data.deleteAnnotation(id)
     },
-    undo: () => {
-      const { annotations, canUndo } = get()
-      if (canUndo) {
-        const lastAction = annotations.pop()
-        set({ annotations, canUndo: false })
-        if (lastAction) {
-          set({ annotations: [...annotations, lastAction] })
-        }
-      }
-    },
-    redo: () => {
-      const { annotations, canRedo } = get()
-      if (canRedo) {
-        const lastAction = annotations.pop()
-        set({ annotations, canRedo: false })
-        if (lastAction) {
-          set({ annotations: [...annotations, lastAction] })
-        }
-      }
-    },
+    undo: () => {},
+    redo: () => {},
     canUndo: false,
     canRedo: false,
     currentImage: null,
-    setCurrentImage: (image) => set({ currentImage: image }),
-    setSelectedAnnotation: (annotation) =>
-      set({ selectedAnnotation: annotation }),
+    setCurrentImage: (image: ImageModal | null) => set({ currentImage: image }),
+    setSelectedAnnotation: (annotation: Annotation | null) => set({ selectedAnnotation: annotation }),
     selectedAnnotation: null,
   }))
 )

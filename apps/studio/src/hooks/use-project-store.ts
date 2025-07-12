@@ -60,8 +60,6 @@ export const useProjectStore = create<ProjectStoreType>(
     getProjects: async () => {
       const { data } = get()
       const projects = await data.fetchProjects()
-
-      console.log("Fetched projects:", projects)
       set({ projects })
       return projects
     },

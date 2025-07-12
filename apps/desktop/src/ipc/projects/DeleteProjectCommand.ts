@@ -1,17 +1,18 @@
 import { Project } from "@vailabel/core"
 import { IpcHandler } from "apps/desktop/src/interface/IpcHandler"
+import { ProjectRepository } from "../../db/models"
 
-
-export class DeleteProjectCommand
-  implements IpcHandler<{ project: Project }, void>
-{
+export class DeleteProjectCommand implements IpcHandler<Project, void> {
   channel = "delete:projects"
 
   async handle(
     _event: Electron.IpcMainInvokeEvent,
-    { project }: { project: Project }
+    request: Project
   ): Promise<void> {
-    // delete the project
-    await project.destroy()
+    await ProjectRepository.destroy({
+      where: {
+        id: request.id,
+      },
+    })
   }
 }

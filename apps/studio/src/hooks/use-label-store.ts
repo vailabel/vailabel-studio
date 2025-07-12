@@ -1,12 +1,13 @@
-import { IDBContext, Label } from "@vailabel/core"
+import {  Label } from "@vailabel/core"
 import { create } from "zustand"
 import { exceptionMiddleware } from "./exception-middleware"
+import { IDataAdapter } from "@/adapters/data/IDataAdapter"
 
 type LabelStoreType = {
-  dbContext: IDBContext
-  initDBContext: (dbContext: IDBContext) => void
+  data: IDataAdapter
+  initDataAdapter: (dataAdapter: IDataAdapter) => void
+
   labels: Label[]
-  setLabels: (labels: Label[]) => void
   getLabels: () => Label[]
   getLabelsByProjectId: (projectId: string) => Promise<Label[]>
   createLabel: (label: Label) => Promise<void>
@@ -21,76 +22,66 @@ type LabelStoreType = {
 
 export const useLabelStore = create<LabelStoreType>(
   exceptionMiddleware((set, get) => ({
-    dbContext: {} as IDBContext,
-    initDBContext: (ctx) => set({ dbContext: ctx }),
+    data: {} as IDataAdapter,
+    initDataAdapter: (dataAdapter) => set({ data: dataAdapter }),
+
     labels: [],
-    setLabels: (labels) => set({ labels }),
     getLabels: () => {
-      const { dbContext, labels, setLabels } = get()
-      if (
-        dbContext &&
-        dbContext.labels &&
-        typeof dbContext.labels.get === "function"
-      ) {
-        dbContext.labels.get().then((allLabels: Label[]) => {
-          setLabels(allLabels)
-        })
-      }
+      const { labels } = get()
       return labels
     },
     getLabelsByProjectId: async (projectId) => {
-      const { dbContext } = get()
-      const allLabel = await dbContext.labels.getByProjectId(projectId)
-      set({ labels: allLabel })
-      return allLabel
+      const { data } = get()
+      const labels = await data.fetchLabels(projectId)
+      set({ labels })
+      return labels
     },
     createLabel: async (label) => {
-      const { labels, dbContext } = get()
-      set({ labels: [...labels, label] })
-      if (dbContext) {
-        await dbContext.labels.create(label)
-      }
+      const { data } = get()
+      await data.saveLabel(label)
+      set((state) => ({
+        labels: [...state.labels, label],
+      }))
     },
     updateLabel: async (id, updates) => {
-      const { labels, dbContext } = get()
-      const updatedLabels = labels.map((label) =>
-        label.id === id ? { ...label, ...updates } : label
-      )
-      set({ labels: updatedLabels })
-      if (dbContext) {
-        await dbContext.labels.update(id, updates)
+      const { data } = get()
+      const label = get().labels.find((l) => l.id === id)
+      if (label) {
+        const updatedLabel = { ...label, ...updates }
+        await data.saveLabel(updatedLabel)
+        set((state) => ({
+          labels: state.labels.map((l) =>
+            l.id === id ? updatedLabel : l
+          ),
+        }))
+      } else {
+        throw new Error(`Label with id ${id} not found`)
       }
     },
     deleteLabel: async (id) => {
-      const { labels, dbContext } = get()
-      const updatedLabels = labels.filter((label) => label.id !== id)
-      set({ labels: updatedLabels })
-      if (dbContext) {
-        await dbContext.labels.delete(id)
-      }
+      const { data } = get()
+      await data.deleteLabel(id)
+      set((state) => ({
+        labels: state.labels.filter((l) => l.id !== id),
+      }))
     },
     getOrCreateLabel: async (name, color, projectId) => {
-      const { labels } = get()
-      let label = labels.find((label) => label.name === name)
+      const existingLabels = await get().getLabelsByProjectId(projectId)
+      let label = existingLabels.find((l) => l.name === name && l.color === color)
+
       if (!label) {
-        // Provide all required Label properties
-        label = {
-          id: crypto.randomUUID(),
-          name,
-          color,
-          projectId,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        }
+        label = { id: crypto.randomUUID(), name, color, projectId, project: undefined as any, annotations: [] }
         await get().createLabel(label)
-        // After creation, ensure the label is in the store
-        const updatedLabels = get().labels
-        label = updatedLabels.find((l) => l.id === label!.id)
+        // After creation, get the updated labels and find the new label
+        const updatedLabels = await get().getLabelsByProjectId(projectId)
+        label = updatedLabels.find((l) => l.name === name && l.color === color)
       }
+
       if (!label) {
         throw new Error("Failed to get or create label")
       }
-      return label!
+
+      return label
     },
   }))
 )
