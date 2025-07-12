@@ -16,7 +16,7 @@ import { DeleteUserCommand, FetchUserQuery, SaveUserCommand, UpdateUserCommand }
 import { DeleteAIModelCommand, FetchAIModelQuery, SaveAIModelCommand, UpdateAIModelCommand } from "./ai-models"
 import { DeleteTaskCommand, FetchTaskQuery, SaveTaskCommand, UpdateTaskCommand } from "./tasks"
 import { FetchSettingsQuery, SaveOrUpdateSettingsCommand } from "./settings"
-import { DeleteImageDataCommand, FetchImageDataQuery, SaveImageDataCommand, UpdateImageDataCommand } from "./image-data"
+import { DeleteImageDataCommand, FetchImageDataByProjectidQuery, FetchImageDataQuery, SaveImageDataCommand, UpdateImageDataCommand } from "./image-data"
 import { DeleteHistoryCommand, FetchHistoryQuery, SaveHistoryCommand, UpdateHistoryCommand } from "./history"
 import { DeleteAnnotationCommand, FetchAnnotationQuery, SaveAnnotationCommand, UpdateAnnotationCommand } from "./annotations"
 
@@ -86,6 +86,7 @@ handlers.push(new FetchImageDataQuery())
 handlers.push(new DeleteImageDataCommand())
 handlers.push(new SaveImageDataCommand())
 handlers.push(new UpdateImageDataCommand())
+handlers.push(new FetchImageDataByProjectidQuery())
 
 
 // Register history
