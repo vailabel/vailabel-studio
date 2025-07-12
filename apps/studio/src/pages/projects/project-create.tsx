@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef } from "react"
 import { X, Upload, Trash2, CheckCircle, Circle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -41,7 +41,6 @@ export function ProjectCreate() {
   const [images, setImages] = useState<ImageData[]>([])
   const [isUploading, setIsUploading] = useState(false)
   const [step, setStep] = useState<"details" | "dataset">("details")
-  const [activeTab, setActiveTab] = useState<"form" | "json">("form")
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { createProject } = useProjectStore()
   const { createImage } = useImageDataStore()
@@ -226,77 +225,38 @@ export function ProjectCreate() {
         images: [],
       }
       await createProject(newProject as unknown as Project)
+
+      // Save labels
+      for (const label of details.labels) {
+        // Add unique 'id' for each label before saving
+        await createLabel({
+          id: crypto.randomUUID(),
+          ...label,
+          projectId,
+        })
+      }
+
+      // Save images
+      for (const image of images) {
+        await createImage({
+          ...image,
+          projectId,
+        })
+      }
+
+      toast({
+        title: "Project created",
+        description:
+          "Your project, labels, and images have been saved successfully.",
+      })
+
       navigate("/projects")
     } catch {
       toast({
         title: "Error",
-        description: "Failed to create project",
+        description: "Failed to create project, labels, or images",
         variant: "destructive",
       })
-    }
-  }
-
-  const [jsonInput, setJsonInput] = useState("")
-  const [jsonError, setJsonError] = useState<string | null>(null)
-
-  // Sync form state to JSON input when form changes and not editing JSON
-  useEffect(() => {
-    if (activeTab === "form") {
-      setJsonInput(
-        JSON.stringify(
-          {
-            name: getValuesDetail("name"),
-            description: getValuesDetail("description"),
-            labels: getValuesDetail("labels"),
-            images: images.map((img) => ({
-              name: img.name,
-              width: img.width,
-              height: img.height,
-            })),
-          },
-          null,
-          2
-        )
-      )
-      setJsonError(null)
-    }
-  }, [activeTab, images, getValuesDetail])
-
-  // Handle JSON input change
-  const handleJsonInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setJsonInput(e.target.value)
-    try {
-      const parsed = JSON.parse(e.target.value)
-      setJsonError(null)
-      // Update form fields
-      setValueDetail("name", parsed.name || "")
-      setValueDetail("description", parsed.description || "")
-      setValueDetail(
-        "labels",
-        Array.isArray(parsed.labels) ? parsed.labels : []
-      )
-      // Update images (only name, width, height)
-      if (Array.isArray(parsed.images)) {
-        setImages((prev) =>
-          parsed.images.map(
-            (
-              img: { name?: string; width?: number; height?: number },
-              i: number
-            ) => ({
-              ...prev[i],
-              name: img.name || prev[i]?.name || "",
-              width: img.width || prev[i]?.width || 0,
-              height: img.height || prev[i]?.height || 0,
-              data: prev[i]?.data || "",
-              id: prev[i]?.id || crypto.randomUUID(),
-              projectId: prev[i]?.projectId || "temp",
-              createdAt: prev[i]?.createdAt || new Date(),
-            })
-          )
-        )
-      }
-    } catch {
-      setJsonError("Invalid JSON")
     }
   }
 
@@ -305,323 +265,290 @@ export function ProjectCreate() {
 
   return (
     <Card className="w-full h-screen min-h-screen shadow-none border-none bg-white dark:bg-gray-900 p-0">
-      {/* Tab UI */}
-      <div className="flex border-b border-gray-200 dark:border-gray-700">
-        <button
-          className={`px-4 py-2 font-semibold focus:outline-none transition-colors ${activeTab === "form" ? "border-b-2 border-primary text-primary" : "text-gray-500 dark:text-gray-400"}`}
-          onClick={() => setActiveTab("form")}
-          type="button"
-        >
-          Form
-        </button>
-        <button
-          className={`px-4 py-2 font-semibold focus:outline-none transition-colors ${activeTab === "json" ? "border-b-2 border-primary text-primary" : "text-gray-500 dark:text-gray-400"}`}
-          onClick={() => setActiveTab("json")}
-          type="button"
-        >
-          JSON
-        </button>
-      </div>
-      {/* Tab Content */}
+      {/* Removed Tab UI */}
+      {/* Content */}
       <div className="w-full h-[calc(100vh-48px)] overflow-auto">
-        {activeTab === "form" ? (
-          <>
-            {/* Stepper UI */}
-            <div className="flex items-center justify-center gap-8 py-8">
-              {steps.map((s, idx) => (
-                <div key={s.label} className="flex items-center gap-2">
-                  <span
-                    className={
-                      "flex items-center justify-center rounded-full border-2 " +
-                      (idx < stepIndex
-                        ? "border-primary bg-primary text-white"
-                        : idx === stepIndex
-                          ? "border-primary text-primary bg-primary/10"
-                          : "border-gray-300 text-gray-400 bg-gray-100 dark:bg-gray-800") +
-                      " w-8 h-8 text-lg font-bold"
-                    }
-                  >
-                    {idx < stepIndex ? (
-                      <CheckCircle className="w-5 h-5" />
-                    ) : (
-                      <Circle className="w-5 h-5" />
-                    )}
-                  </span>
-                  <span
-                    className={
-                      "text-sm font-medium " +
-                      (idx === stepIndex
-                        ? "text-primary"
-                        : "text-gray-500 dark:text-gray-400")
-                    }
-                  >
-                    {s.label}
-                  </span>
-                  {idx < steps.length - 1 && (
-                    <span className="w-8 h-0.5 bg-gray-300 dark:bg-gray-700 mx-2" />
+        <>
+          {/* Stepper UI */}
+          <div className="flex items-center justify-center gap-8 py-8">
+            {steps.map((s, idx) => (
+              <div key={s.label} className="flex items-center gap-2">
+                <span
+                  className={
+                    "flex items-center justify-center rounded-full border-2 " +
+                    (idx < stepIndex
+                      ? "border-primary bg-primary text-white"
+                      : idx === stepIndex
+                        ? "border-primary text-primary bg-primary/10"
+                        : "border-gray-300 text-gray-400 bg-gray-100 dark:bg-gray-800") +
+                    " w-8 h-8 text-lg font-bold"
+                  }
+                >
+                  {idx < stepIndex ? (
+                    <CheckCircle className="w-5 h-5" />
+                  ) : (
+                    <Circle className="w-5 h-5" />
                   )}
-                </div>
-              ))}
-            </div>
-            {/* Step Content */}
-            {step === "details" && (
-              <Card className="shadow-none border-none bg-transparent">
-                <CardContent className="p-8 space-y-8">
-                  <form
-                    onSubmit={handleSubmitDetail(() => setStep("dataset"))}
-                    className="space-y-8"
-                  >
-                    <div className="space-y-2">
-                      <Label htmlFor="project-name" className="font-semibold">
-                        Project Name
-                      </Label>
+                </span>
+                <span
+                  className={
+                    "text-sm font-medium " +
+                    (idx === stepIndex
+                      ? "text-primary"
+                      : "text-gray-500 dark:text-gray-400")
+                  }
+                >
+                  {s.label}
+                </span>
+                {idx < steps.length - 1 && (
+                  <span className="w-8 h-0.5 bg-gray-300 dark:bg-gray-700 mx-2" />
+                )}
+              </div>
+            ))}
+          </div>
+          {/* Step Content */}
+          {step === "details" && (
+            <Card className="shadow-none border-none bg-transparent">
+              <CardContent className="p-8 space-y-8">
+                <form
+                  onSubmit={handleSubmitDetail(() => setStep("dataset"))}
+                  className="space-y-8"
+                >
+                  <div className="space-y-2">
+                    <Label htmlFor="project-name" className="font-semibold">
+                      Project Name
+                    </Label>
+                    <Input
+                      id="project-name"
+                      {...registerDetail("name")}
+                      placeholder="Enter project name"
+                      className="mt-1"
+                    />
+                    {errorsDetail.name && (
+                      <div className="text-red-500 text-xs mt-1">
+                        {errorsDetail.name.message}
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="project-desc" className="font-semibold">
+                      Description
+                    </Label>
+                    <Textarea
+                      id="project-desc"
+                      {...registerDetail("description")}
+                      placeholder="Project description (optional)"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="font-semibold">Labels</Label>
+                    <div className="flex gap-2 items-center mt-1">
                       <Input
-                        id="project-name"
-                        {...registerDetail("name")}
-                        placeholder="Enter project name"
-                        className="mt-1"
+                        value={labelInput}
+                        onChange={(e) => setLabelInput(e.target.value)}
+                        placeholder="Label name"
+                        className="w-40"
                       />
-                      {errorsDetail.name && (
-                        <div className="text-red-500 text-xs mt-1">
-                          {errorsDetail.name.message}
-                        </div>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="project-desc" className="font-semibold">
-                        Description
-                      </Label>
-                      <Textarea
-                        id="project-desc"
-                        {...registerDetail("description")}
-                        placeholder="Project description (optional)"
-                        className="mt-1"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="font-semibold">Labels</Label>
-                      <div className="flex gap-2 items-center mt-1">
-                        <Input
-                          value={labelInput}
-                          onChange={(e) => setLabelInput(e.target.value)}
-                          placeholder="Label name"
-                          className="w-40"
-                        />
-                        {/* Color palette buttons */}
-                        <div className="flex gap-1 ml-2 items-center">
-                          {colorPalette.map((color) => (
+                      {/* Color palette buttons */}
+                      <div className="flex gap-1 ml-2 items-center">
+                        {colorPalette.map((color) => (
+                          <button
+                            key={color}
+                            type="button"
+                            className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${
+                              labelColor === color
+                                ? "border-black dark:border-white scale-110"
+                                : "border-gray-300"
+                            }`}
+                            style={{ backgroundColor: color }}
+                            aria-label={`Choose color ${color}`}
+                            onClick={() => {
+                              setLabelColor(color)
+                              setShowColorPicker(false)
+                            }}
+                          >
+                            {labelColor === color && (
+                              <span className="block w-3 h-3 rounded-full border-2 border-white bg-white/30" />
+                            )}
+                          </button>
+                        ))}
+                        {/* Custom color picker button */}
+                        <Popover
+                          open={showColorPicker}
+                          onOpenChange={setShowColorPicker}
+                        >
+                          <PopoverTrigger asChild>
                             <button
-                              key={color}
                               type="button"
                               className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${
-                                labelColor === color
+                                !colorPalette.includes(labelColor) ||
+                                showColorPicker
                                   ? "border-black dark:border-white scale-110"
                                   : "border-gray-300"
                               }`}
-                              style={{ backgroundColor: color }}
-                              aria-label={`Choose color ${color}`}
-                              onClick={() => {
-                                setLabelColor(color)
+                              style={{ background: labelColor }}
+                              aria-label="Custom color"
+                              onClick={() => setShowColorPicker((v) => !v)}
+                            >
+                              <span className="block w-3 h-3 rounded-full border border-gray-400 bg-white/30" />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="p-2 w-auto" align="start">
+                            <SketchPicker
+                              color={labelColor}
+                              onChangeComplete={(color) => {
+                                setLabelColor(color.hex)
                                 setShowColorPicker(false)
                               }}
-                            >
-                              {labelColor === color && (
-                                <span className="block w-3 h-3 rounded-full border-2 border-white bg-white/30" />
-                              )}
-                            </button>
-                          ))}
-                          {/* Custom color picker button */}
-                          <Popover
-                            open={showColorPicker}
-                            onOpenChange={setShowColorPicker}
-                          >
-                            <PopoverTrigger asChild>
-                              <button
-                                type="button"
-                                className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${
-                                  !colorPalette.includes(labelColor) ||
-                                  showColorPicker
-                                    ? "border-black dark:border-white scale-110"
-                                    : "border-gray-300"
-                                }`}
-                                style={{ background: labelColor }}
-                                aria-label="Custom color"
-                                onClick={() => setShowColorPicker((v) => !v)}
-                              >
-                                <span className="block w-3 h-3 rounded-full border border-gray-400 bg-white/30" />
-                              </button>
-                            </PopoverTrigger>
-                            <PopoverContent
-                              className="p-2 w-auto"
-                              align="start"
-                            >
-                              <SketchPicker
-                                color={labelColor}
-                                onChangeComplete={(color) => {
-                                  setLabelColor(color.hex)
-                                  setShowColorPicker(false)
-                                }}
-                                disableAlpha
-                              />
-                            </PopoverContent>
-                          </Popover>
-                        </div>
-                        <Button
-                          type="button"
-                          onClick={addLabel}
-                          disabled={!labelInput.trim()}
-                          className="ml-2"
-                        >
-                          Add
-                        </Button>
+                              disableAlpha
+                            />
+                          </PopoverContent>
+                        </Popover>
                       </div>
-                      {errorsDetail.labels && (
-                        <div className="text-red-500 text-xs mt-1">
-                          {errorsDetail.labels.message}
-                        </div>
-                      )}
-                      {watchedLabels.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {watchedLabels.map((label, idx) => (
-                            <span
-                              key={idx}
-                              className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border shadow-sm"
-                              style={{
-                                backgroundColor: label.color,
-                                color: "#fff",
-                                borderColor: label.color,
-                              }}
-                            >
-                              {label.name}
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="ghost"
-                                className="ml-1 p-0 h-4 w-4 text-white hover:bg-white/20"
-                                onClick={() => removeLabel(idx)}
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex justify-end">
                       <Button
-                        type="submit"
-                        className="px-6 py-2 text-base font-semibold"
+                        type="button"
+                        onClick={addLabel}
+                        disabled={!labelInput.trim()}
+                        className="ml-2"
                       >
-                        Next: Import Dataset
+                        Add
                       </Button>
                     </div>
-                  </form>
-                </CardContent>
-              </Card>
-            )}
-            {step === "dataset" && (
-              <Card className="shadow-none border-none bg-transparent">
-                <CardContent className="p-8 space-y-8">
-                  <div className="space-y-2">
-                    <Label className="font-semibold">Images</Label>
-                    <div
-                      className="mt-1 flex h-40 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 dark:bg-gray-800 bg-gray-50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                      onDragOver={handleDragOver}
-                      onDrop={handleDrop}
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <Upload className="mb-2 h-10 w-10 dark:text-gray-400 text-gray-500" />
-                      <p className="text-sm font-medium dark:text-gray-300 text-gray-700">
-                        {isUploading
-                          ? "Processing..."
-                          : "Drag and drop images, or click to browse"}
-                      </p>
-                      <p className="text-xs dark:text-gray-400 text-gray-500">
-                        PNG, JPG, GIF up to 10MB
-                      </p>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        className="hidden"
-                        accept="image/*"
-                        multiple
-                        onChange={handleFileChange}
-                        disabled={isUploading}
-                      />
-                    </div>
-                  </div>
-                  {images.length > 0 && (
-                    <div>
-                      <Label className="mb-2 block font-semibold">
-                        Selected Images ({images.length})
-                      </Label>
-                      <div className="grid max-h-64 grid-cols-2 md:grid-cols-3 gap-4 overflow-y-auto p-1">
-                        {images.map((image, index) => (
-                          <div
-                            key={index}
-                            className="group relative rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-sm overflow-hidden"
+                    {errorsDetail.labels && (
+                      <div className="text-red-500 text-xs mt-1">
+                        {errorsDetail.labels.message}
+                      </div>
+                    )}
+                    {watchedLabels.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {watchedLabels.map((label, idx) => (
+                          <span
+                            key={idx}
+                            className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border shadow-sm"
+                            style={{
+                              backgroundColor: label.color,
+                              color: "#fff",
+                              borderColor: label.color,
+                            }}
                           >
-                            <img
-                              src={image.data || "/placeholder.svg"}
-                              alt={image.name}
-                              className="h-28 w-full object-cover rounded-t-lg"
-                            />
-                            <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100 dark:bg-black/60 bg-black/50">
-                              <Button
-                                variant="destructive"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleRemoveImage(index)
-                                }}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                            <div className="absolute bottom-0 left-0 right-0 p-1 text-xs dark:bg-black/80 dark:text-gray-300 bg-black/70 text-white truncate">
-                              {image.name.length > 20
-                                ? `${image.name.substring(0, 20)}...`
-                                : image.name}
-                            </div>
-                          </div>
+                            {label.name}
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="ml-1 p-0 h-4 w-4 text-white hover:bg-white/20"
+                              onClick={() => removeLabel(idx)}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </span>
                         ))}
                       </div>
-                    </div>
-                  )}
-                  <div className="flex justify-between mt-8">
+                    )}
+                  </div>
+                  <div className="flex justify-end">
                     <Button
-                      variant="outline"
-                      onClick={() => setStep("details")}
+                      type="submit"
                       className="px-6 py-2 text-base font-semibold"
                     >
-                      Back
-                    </Button>
-                    <Button
-                      onClick={handleCreateProject}
-                      disabled={isUploading || images.length === 0}
-                      className="px-6 py-2 text-base font-semibold"
-                    >
-                      Create Project
+                      Next: Import Dataset
                     </Button>
                   </div>
-                </CardContent>
-              </Card>
-            )}
-          </>
-        ) : (
-          <div className="p-8 bg-gray-50 dark:bg-gray-800 rounded-b-xl overflow-x-auto h-full">
-            <textarea
-              className="w-full min-h-[300px] h-full text-xs md:text-sm text-gray-800 dark:text-gray-100 bg-transparent border border-gray-300 dark:border-gray-700 rounded p-2 font-mono"
-              value={jsonInput}
-              onChange={handleJsonInputChange}
-              spellCheck={false}
-            />
-            {jsonError && (
-              <div className="text-red-500 text-xs mt-2">{jsonError}</div>
-            )}
-          </div>
-        )}
+                </form>
+              </CardContent>
+            </Card>
+          )}
+          {step === "dataset" && (
+            <Card className="shadow-none border-none bg-transparent">
+              <CardContent className="p-8 space-y-8">
+                <div className="space-y-2">
+                  <Label className="font-semibold">Images</Label>
+                  <div
+                    className="mt-1 flex h-40 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 dark:bg-gray-800 bg-gray-50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    onDragOver={handleDragOver}
+                    onDrop={handleDrop}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Upload className="mb-2 h-10 w-10 dark:text-gray-400 text-gray-500" />
+                    <p className="text-sm font-medium dark:text-gray-300 text-gray-700">
+                      {isUploading
+                        ? "Processing..."
+                        : "Drag and drop images, or click to browse"}
+                    </p>
+                    <p className="text-xs dark:text-gray-400 text-gray-500">
+                      PNG, JPG, GIF up to 10MB
+                    </p>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      multiple
+                      onChange={handleFileChange}
+                      disabled={isUploading}
+                    />
+                  </div>
+                </div>
+                {images.length > 0 && (
+                  <div>
+                    <Label className="mb-2 block font-semibold">
+                      Selected Images ({images.length})
+                    </Label>
+                    <div className="grid max-h-64 grid-cols-2 md:grid-cols-3 gap-4 overflow-y-auto p-1">
+                      {images.map((image, index) => (
+                        <div
+                          key={index}
+                          className="group relative rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-sm overflow-hidden"
+                        >
+                          <img
+                            src={image.data || "/placeholder.svg"}
+                            alt={image.name}
+                            className="h-28 w-full object-cover rounded-t-lg"
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100 dark:bg-black/60 bg-black/50">
+                            <Button
+                              variant="destructive"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleRemoveImage(index)
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <div className="absolute bottom-0 left-0 right-0 p-1 text-xs dark:bg-black/80 dark:text-gray-300 bg-black/70 text-white truncate">
+                            {image.name.length > 20
+                              ? `${image.name.substring(0, 20)}...`
+                              : image.name}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div className="flex justify-between mt-8">
+                  <Button
+                    variant="outline"
+                    onClick={() => setStep("details")}
+                    className="px-6 py-2 text-base font-semibold"
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    onClick={handleCreateProject}
+                    disabled={isUploading || images.length === 0}
+                    className="px-6 py-2 text-base font-semibold"
+                  >
+                    Create Project
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </>
       </div>
     </Card>
   )

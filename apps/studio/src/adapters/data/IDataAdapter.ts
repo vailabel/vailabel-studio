@@ -34,6 +34,7 @@ export interface IDataAdapter {
     saveImageData(imageData: ImageData): Promise<void>;
     updateImageData(imageId: string, updates: Partial<ImageData>): Promise<void>;
     deleteImageData(imageId: string): Promise<void>;    
+    fetchImageDataByProjectId(projectId: string): Promise<ImageData[]>;
 
     // history management
     fetchHistory(projectId: string): Promise<History[]>;

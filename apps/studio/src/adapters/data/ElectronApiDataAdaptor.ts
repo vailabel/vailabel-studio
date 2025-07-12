@@ -45,6 +45,10 @@ export class ElectronApiDataAdapter implements IDataAdapter {
     return this.api.invoke(`delete:labels`, labelId)
   }
 
+  fetchImageDataByProjectId(projectId: string): Promise<ImageData[]> {
+    return this.api.invoke(`fetch:imageDataByProjectId`, projectId)
+  }
+
   // Annotation-related methods
   updateAnnotation(
     annotationId: string,

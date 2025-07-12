@@ -60,7 +60,12 @@ export const useImageDataStore = create<ImageDataStoreType>(
     
     getImagesByProjectId: async (projectId) => {
       const { data } = get()
-      return await data.fetchImageData(projectId)
+      return await data.fetchImageDataByProjectId(projectId).then(images => {
+        console.log(`Fetched ${images.length} images for project ${projectId}`)
+        console.log(images)
+        set({ images })
+        return images
+      })
     },
     
     setImages: (images) => set({ images }),
