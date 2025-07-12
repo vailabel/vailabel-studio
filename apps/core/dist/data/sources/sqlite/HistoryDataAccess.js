@@ -1,10 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.HistoryDataAccess = void 0;
-const DataAccess_1 = require("../../contracts/DataAccess");
-class HistoryDataAccess extends DataAccess_1.DataAccess {
+const models_1 = require("../../../models");
+const SQLiteDataAccess_1 = require("./SQLiteDataAccess");
+class HistoryDataAccess extends SQLiteDataAccess_1.SQLiteDataAccess {
     constructor() {
-        super("history");
+        super(models_1.History);
     }
 }
 exports.HistoryDataAccess = HistoryDataAccess;

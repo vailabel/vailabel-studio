@@ -1,13 +1,13 @@
-import { History } from "../../../models/types"
-import { DataAccess } from "../../contracts/DataAccess"
+import { History } from "../../../models"
 import { IHistoryDataAccess } from "../../contracts/IDataAccess"
+import { SQLiteDataAccess } from "./SQLiteDataAccess"
 
 export class HistoryDataAccess
-  extends DataAccess<History>
+  extends SQLiteDataAccess<History>
   implements IHistoryDataAccess
 {
   constructor() {
-    super("history")
+    super(History)
   }
   // You can add entity-specific methods here if needed
 }

@@ -1,82 +1,65 @@
-import { ImageData } from "../../../models/types"
+import { ImageData, Annotation } from "../../../models"
 import { DataAccess } from "../../contracts/DataAccess"
 import { IImageDataAccess } from "../../contracts/IDataAccess"
+import { SQLiteDataAccess } from "./SQLiteDataAccess"
 
 export class ImageDataAccess
-  extends DataAccess<ImageData>
+  extends SQLiteDataAccess<ImageData>
   implements IImageDataAccess
 {
   constructor() {
-    super("images")
+    super(ImageData)
   }
+
   async getImageWithAnnotations(imageId: string): Promise<ImageData | null> {
-    // Fetch the image data
-    const image = await window.ipc.invoke("sqlite:get", [
-      `SELECT * FROM ${this.table} WHERE id = ?`,
-      [imageId],
-    ])
-    if (!image) return null
-    // Fetch all annotations for this image
-    const annotations = await window.ipc.invoke("sqlite:all", [
-      `SELECT * FROM annotations WHERE imageId = ?`,
-      [imageId],
-    ])
-    return {
-      ...image,
-      annotations: Array.isArray(annotations)
-        ? annotations.map((a: any) => ({
-            ...a,
-            coordinates: a.coordinates ? JSON.parse(a.coordinates) : undefined,
-          }))
-        : [],
-    } as ImageData
+    // Use Sequelize to include annotations
+    const image = (await window.ipc.invoke(
+      "sqlite:getById",
+      ImageData.name,
+      imageId
+    )) as Promise<ImageData | null>
+    return image
   }
+
   async getNext(
     projectId: string,
     currentImageId: string
   ): Promise<{ id: string | undefined; hasNext: boolean }> {
-    const result = await window.ipc.invoke("sqlite:get", [
-      `SELECT id FROM ${this.table} WHERE projectId = ? AND id > ? ORDER BY id ASC LIMIT 1`,
-      [projectId, currentImageId],
-    ])
-    const hasNextResult = await window.ipc.invoke("sqlite:get", [
-      `SELECT COUNT(*) as count FROM ${this.table} WHERE projectId = ? AND id > ?`,
-      [projectId, result?.id ?? currentImageId],
-    ])
-    return {
-      id: result?.id,
-      hasNext: hasNextResult.count > 0,
-    }
+    // Find the next image by id in the same project
+    const next = (await window.ipc.invoke(
+      "sqlite:getNext",
+      ImageData.name,
+      projectId,
+      currentImageId
+    )) as Promise<{ id: string | undefined; hasNext: boolean }>
+    return next
   }
 
   async getPrevious(
     projectId: string,
     currentImageId: string
   ): Promise<{ id: string | undefined; hasPrevious: boolean }> {
-    const result = await window.ipc.invoke("sqlite:get", [
-      `SELECT id FROM ${this.table} WHERE projectId = ? AND id < ? ORDER BY id DESC LIMIT 1`,
-      [projectId, currentImageId],
-    ])
-    const hasPrevResult = await window.ipc.invoke("sqlite:get", [
-      `SELECT COUNT(*) as count FROM ${this.table} WHERE projectId = ? AND id < ?`,
-      [projectId, result?.id ?? currentImageId],
-    ])
-    return {
-      id: result?.id,
-      hasPrevious: hasPrevResult.count > 0,
-    }
+    // Find the previous image by id in the same project
+    const prev = (await window.ipc.invoke(
+      "sqlite:getPrevious",
+      ImageData.name,
+      projectId,
+      currentImageId
+    )) as Promise<{ id: string | undefined; hasPrevious: boolean }>
+    return prev
   }
-  getByProjectId(projectId: string): Promise<ImageData[]> {
-    return window.ipc.invoke("sqlite:all", [
-      `SELECT * FROM ${this.table} WHERE projectId = ?`,
-      [projectId],
-    ])
+
+  async getByProjectId(projectId: string): Promise<ImageData[]> {
+    return (await window.ipc.invoke(
+      "sqlite:getByProjectId",
+      ImageData.name,
+      projectId
+    )) as Promise<ImageData[]>
   }
-  countByProjectId(projectId: string): Promise<number> {
-    const result = window.ipc.invoke("sqlite:get", [
-      `SELECT COUNT(*) as count FROM ${this.table} WHERE projectId = ?`,
-      [projectId],
-    ])
-    return result.then((data) => data.count)
+
+  async countByProjectId(projectId: string): Promise<number> {
+    return (await window.ipc.invoke("sqlite:count", ImageData.name, {
+      projectId,
+    })) as Promise<number>
   }
 }

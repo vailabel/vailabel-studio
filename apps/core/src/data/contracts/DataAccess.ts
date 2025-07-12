@@ -1,111 +1,33 @@
+import { Model, ModelCtor } from "sequelize-typescript"
 import { IDataAccess } from "./IDataAccess"
 
 export class DataAccess<T extends object = any> implements IDataAccess<T> {
-  protected table: string
+  protected model: ModelCtor<Model<any, any>>
 
-  constructor(table: string) {
-    this.table = table
+  constructor(model: ModelCtor<Model<any, any>>) {
+    this.model = model
+  }
+  async get(): Promise<T[]> {
+    return (await this.model.findAll()) as T[]
   }
 
-  // Generic CRUD methods
-  async get<T>(): Promise<T[]> {
-    const rows = window.ipc.invoke("sqlite:all", [
-      `SELECT * FROM ${this.table}`,
-      [],
-    ])
-    const parsedRows = await rows
-    for (const row of parsedRows) {
-      for (const [key, value] of Object.entries(row)) {
-        if (this.isJson(value)) {
-          try {
-            row[key] = JSON.parse(value as string)
-          } catch (e) {
-            console.error(`Failed to parse JSON for key ${key}:`, e)
-          }
-        }
-      }
-    }
-    return parsedRows
-  }
-
-  private isJson(data: any): boolean {
-    return (
-      typeof data === "string" && (data.startsWith("{") || data.startsWith("["))
-    )
-  }
-
-  async getById<T>(id: string): Promise<T | null> {
-    const row = await window.ipc.invoke("sqlite:get", [
-      `SELECT * FROM ${this.table} WHERE id = ?`,
-      [id],
-    ])
-    // if data is json, parse it
-    if (row) {
-      for (const [key, value] of Object.entries(row)) {
-        if (this.isJson(value)) {
-          try {
-            row[key] = JSON.parse(value as string)
-          } catch (e) {
-            console.error(`Failed to parse JSON for key ${key}:`, e)
-          }
-        }
-      }
-    }
-    return row || null
-  }
-
-  private flattenItem(item: Record<string, any>): Record<string, any> {
-    const flatItem: Record<string, any> = {}
-    for (const [key, value] of Object.entries(item)) {
-      if (
-        typeof value !== "object" || // Keep primitives
-        value === null || // Allow null
-        value instanceof Date
-      ) {
-        flatItem[key] = value
-      } else if (key === "coordinates") {
-        flatItem[key] = JSON.stringify(value)
-      }
-      // Ignore relationships (objects/arrays except 'coordinates')
-    }
-    return flatItem
+  async getById(id: string): Promise<T | null> {
+    return (await this.model.findByPk(id)) as T | null
   }
 
   async create(item: T): Promise<void> {
-    const flatItem: Record<string, any> = this.flattenItem(item)
-
-    const keys = Object.keys(flatItem)
-    const values = Object.values(flatItem)
-    const placeholders = keys.map(() => "?").join(", ")
-    await window.ipc.invoke("sqlite:run", [
-      `INSERT INTO ${this.table} (${keys.join(", ")}) VALUES (${placeholders})`,
-      values,
-    ])
+    await this.model.create(item as any)
   }
 
   async update(id: string, updates: Partial<T>): Promise<void> {
-    const flatUpdates = this.flattenItem(updates as Record<string, any>)
-    const setClause = Object.keys(flatUpdates)
-      .map((key) => `${key} = ?`)
-      .join(", ")
-    const values = Object.values(flatUpdates)
-    await window.ipc.invoke("sqlite:run", [
-      `UPDATE ${this.table} SET ${setClause} WHERE id = ?`,
-      [...values, id],
-    ])
+    await this.model.update(updates, { where: { id } })
   }
 
   async delete(id: string): Promise<void> {
-    await window.ipc.invoke("sqlite:run", [
-      `DELETE FROM ${this.table} WHERE id = ?`,
-      [id],
-    ])
+    await this.model.destroy({ where: { id } })
   }
 
-  async paginate<T>(offset: number, limit: number): Promise<T[]> {
-    return window.ipc.invoke("sqlite:all", [
-      `SELECT * FROM ${this.table} LIMIT ? OFFSET ?`,
-      [limit, offset],
-    ])
+  async paginate(offset: number, limit: number): Promise<T[]> {
+    return (await this.model.findAll({ offset, limit })) as T[]
   }
 }

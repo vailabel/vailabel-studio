@@ -1,28 +1,27 @@
-import { Label } from "../../../models/types"
+import { Label } from "../../../models"
 import { DataAccess } from "../../contracts/DataAccess"
 import { ILabelDataAccess } from "../../contracts/IDataAccess"
+import { SQLiteDataAccess } from "./SQLiteDataAccess"
 
 export class LabelDataAccess
-  extends DataAccess<Label>
+  extends SQLiteDataAccess<Label>
   implements ILabelDataAccess
 {
   constructor() {
-    super("labels")
+    super(Label)
   }
-  countByProjectId(projectId: string): Promise<number> {
-    const result = window.ipc.invoke("sqlite:get", [
-      `SELECT COUNT(*) as count FROM ${this.table} WHERE projectId = ?`,
-      [projectId],
-    ])
-    return result.then((data) => data.count)
+
+  async countByProjectId(projectId: string): Promise<number> {
+    return (await window.ipc.invoke("sqlite:count", Label.name, {
+      projectId,
+    })) as Promise<number>
   }
-  getByProjectId(projectId: string): Promise<Label[]> {
-    const result = window.ipc.invoke("sqlite:all", [
-      `SELECT * FROM ${this.table} WHERE projectId = ?`,
-      [projectId],
-    ])
-    return result.then((data) =>
-      data.map((item: any) => ({ ...item, data: item.data }))
-    )
+
+  async getByProjectId(projectId: string): Promise<Label[]> {
+    return (await window.ipc.invoke(
+      "sqlite:getByProjectId",
+      Label.name,
+      projectId
+    )) as Promise<Label[]>
   }
 }

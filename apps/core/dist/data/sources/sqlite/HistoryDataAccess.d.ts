@@ -1,6 +1,6 @@
-import { History } from "../../../models/types";
-import { DataAccess } from "../../contracts/DataAccess";
+import { History } from "../../../models";
 import { IHistoryDataAccess } from "../../contracts/IDataAccess";
-export declare class HistoryDataAccess extends DataAccess<History> implements IHistoryDataAccess {
+import { SQLiteDataAccess } from "./SQLiteDataAccess";
+export declare class HistoryDataAccess extends SQLiteDataAccess<History> implements IHistoryDataAccess {
     constructor();
 }

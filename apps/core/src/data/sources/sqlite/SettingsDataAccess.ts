@@ -1,35 +1,34 @@
-import { Settings } from "../../../models/types"
-import { DataAccess } from "../../contracts/DataAccess"
+import { Settings } from "../../../models"
 import { ISettingsDataAccess } from "../../contracts/IDataAccess"
+import { SQLiteDataAccess } from "./SQLiteDataAccess"
 
 export class SettingsDataAccess
-  extends DataAccess<Settings>
+  extends SQLiteDataAccess<Settings>
   implements ISettingsDataAccess
 {
   constructor() {
-    super("settings")
+    super(Settings)
   }
+
   async getByKey(key: string): Promise<Settings | null> {
-    const row = await window.ipc.invoke("sqlite:get", [
-      `SELECT * FROM ${this.table} WHERE key = ?`,
-      [key],
-    ])
-    if (row) {
-      // Parse the value field from JSON string to object
-      return { ...row, value: JSON.parse(row.value) }
-    }
-    return null
+    return (await window.ipc.invoke(
+      "sqlite:getByKey",
+      Settings.name,
+      key
+    )) as Promise<Settings | null>
   }
-  updateByKey(key: string, value: any): Promise<void> {
-    return window.ipc.invoke("sqlite:run", [
-      `UPDATE ${this.table} SET value = ? WHERE key = ?`,
-      [JSON.stringify(value), key],
-    ])
+
+  async updateByKey(key: string, value: any): Promise<void> {
+    ;(await window.ipc.invoke("sqlite:updateByKey", Settings.name, key, {
+      value: JSON.stringify(value),
+    })) as Promise<void>
   }
-  deleteByKey(key: string): Promise<void> {
-    return window.ipc.invoke("sqlite:run", [
-      `DELETE FROM ${this.table} WHERE key = ?`,
-      [key],
-    ])
+
+  async deleteByKey(key: string): Promise<void> {
+    ;(await window.ipc.invoke(
+      "sqlite:deleteByKey",
+      Settings.name,
+      key
+    )) as Promise<void>
   }
 }

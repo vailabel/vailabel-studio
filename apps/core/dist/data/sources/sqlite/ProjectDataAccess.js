@@ -1,10 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProjectDataAccess = void 0;
-const data_1 = require("@vailabel/core/src/data");
-class ProjectDataAccess extends data_1.DataAccess {
+const models_1 = require("../../../models");
+const SQLiteDataAccess_1 = require("./SQLiteDataAccess");
+class ProjectDataAccess extends SQLiteDataAccess_1.SQLiteDataAccess {
     constructor() {
-        super("projects");
+        super(models_1.Project);
     }
 }
 exports.ProjectDataAccess = ProjectDataAccess;

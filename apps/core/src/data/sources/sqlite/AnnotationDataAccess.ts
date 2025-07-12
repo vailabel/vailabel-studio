@@ -1,28 +1,29 @@
-import { Annotation } from "../../../models/types"
+import { Annotation } from "../../../models"
 import { DataAccess } from "../../contracts/DataAccess"
 import { IAnnotationDataAccess } from "../../contracts/IDataAccess"
+import { SQLiteDataAccess } from "./SQLiteDataAccess"
 
 export class AnnotationDataAccess
-  extends DataAccess<Annotation>
+  extends SQLiteDataAccess<Annotation>
   implements IAnnotationDataAccess
 {
   constructor() {
-    super("annotations")
+    super(Annotation)
   }
-  countByProjectId(projectId: string): Promise<number> {
-    const result = window.ipc.invoke("sqlite:get", [
-      `SELECT COUNT(*) as count FROM ${this.table} WHERE projectId = ?`,
-      [projectId],
-    ])
-    return result.then((data) => data.count)
+
+  async countByProjectId(projectId: string): Promise<number> {
+    // Count annotations by projectId using Sequelize
+    return (await window.ipc.invoke("sqlite:count", Annotation.name, {
+      projectId,
+    })) as Promise<number>
   }
-  getByProjectId(projectId: string): Promise<Annotation[]> {
-    const result = window.ipc.invoke("sqlite:get", [
-      `SELECT * FROM ${this.table} WHERE projectId = ?`,
-      [projectId],
-    ])
-    return result.then((data) =>
-      data.map((item: any) => ({ ...item, data: item.data }))
-    )
+
+  async getByProjectId(projectId: string): Promise<Annotation[]> {
+    // Find all annotations by projectId using Sequelize
+    return (await window.ipc.invoke(
+      "sqlite:getByProjectId",
+      Annotation.name,
+      projectId
+    )) as Promise<Annotation[]>
   }
 }

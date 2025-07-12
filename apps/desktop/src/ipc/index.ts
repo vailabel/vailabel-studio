@@ -33,4 +33,14 @@ handlers.push(new SafeStorageListQuery())
 
 handlers.push(new GetPythonVersionQuery())
 handlers.push(new OpenModelFileQuery())
+
+// Register projects
+import { FetchProjectsQuery } from "./projects/FetchProjectsQuery"
+import { SaveProjectCommand } from "./projects/SaveProjectCommand"
+import { DeleteProjectCommand } from "./projects/DeleteProjectCommand"
+
+handlers.push(new FetchProjectsQuery())
+handlers.push(new SaveProjectCommand())
+handlers.push(new DeleteProjectCommand())
+
 registerHandlers(handlers)

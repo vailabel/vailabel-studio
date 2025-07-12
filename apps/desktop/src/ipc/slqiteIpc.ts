@@ -1,7 +1,6 @@
 import { ipcMain, app } from "electron"
 import fs from "fs"
 import path from "path"
-import { runMigrations } from "../db/sqliteDb"
 
 // Use Electron's userData directory for the database file
 const dbPath = path.join(app.getPath("userData"), "database.sqlite")
@@ -14,10 +13,6 @@ if (!fs.existsSync(dbDir)) {
 }
 
 const db = new sqlite3.Database(dbPath)
-
-if (isNewDb) {
-  runMigrations(db)
-}
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
