@@ -109,7 +109,7 @@ export function ProjectCreate() {
           data: imageData,
           width: dimensions.width,
           height: dimensions.height,
-          projectId: "temp",
+          annotations: [],
         })
       }
 
@@ -225,7 +225,7 @@ export function ProjectCreate() {
         name: details.name.trim(),
         images: [],
       }
-      await createProject(newProject as Project)
+      await createProject(newProject as unknown as Project)
       navigate("/projects")
     } catch {
       toast({

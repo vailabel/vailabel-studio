@@ -12,12 +12,8 @@ import {
 import { IDataAdapter } from "./IDataAdapter"
 
 export class ElectronApiDataAdapter implements IDataAdapter {
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-expect-error
   private api: Window["ipc"]
   constructor() {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-expect-error
     this.api = window.ipc
   }
   updateProject(projectId: string, updates: Partial<Project>): Promise<void> {
