@@ -38,9 +38,22 @@ handlers.push(new OpenModelFileQuery())
 import { FetchProjectsQuery } from "./projects/FetchProjectsQuery"
 import { SaveProjectCommand } from "./projects/SaveProjectCommand"
 import { DeleteProjectCommand } from "./projects/DeleteProjectCommand"
-
+import { UpdateProjectCommand } from "./projects/UpdateProjectCommand"
 handlers.push(new FetchProjectsQuery())
 handlers.push(new SaveProjectCommand())
 handlers.push(new DeleteProjectCommand())
+handlers.push(new UpdateProjectCommand())
+
+
+// Register labels
+import { FetchLabelQuery } from "./labels/FetchLabelQuery"
+import { DeleteLabelCommand } from "./labels/DeleteLabelCommand"
+import { SaveLabelCommand } from "./labels/SaveLabelCommand"
+import { UpdateLabelCommand } from './labels/UpdateLabelCommand';
+
+handlers.push(new FetchLabelQuery())
+handlers.push(new DeleteLabelCommand())
+handlers.push(new SaveLabelCommand())
+handlers.push(new UpdateLabelCommand())
 
 registerHandlers(handlers)
