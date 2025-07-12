@@ -2,7 +2,9 @@ import { ImageData } from "@vailabel/core"
 import { IpcHandler } from "apps/desktop/src/interface/IpcHandler"
 import { ImageDataRepository } from "../../db/models"
 
-export class FetchImageDataByProjectidQuery implements IpcHandler<string, ImageData[]> {
+export class FetchImageDataByProjectidQuery
+  implements IpcHandler<string, ImageData[]>
+{
   channel = "fetch:imageDataByProjectId"
 
   async handle(
@@ -10,7 +12,7 @@ export class FetchImageDataByProjectidQuery implements IpcHandler<string, ImageD
     projectId: string
   ): Promise<ImageData[]> {
     const imageDataList = await ImageDataRepository.findAll({
-      where: { projectId }
+      where: { projectId },
     })
     return imageDataList.map((imageData) => {
       return {

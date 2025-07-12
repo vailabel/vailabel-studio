@@ -19,9 +19,7 @@ const App = () => {
   const { initDataAdapter: initAnnotationsDataAdapter } = useAnnotationsStore()
   const { initDataAdapter: initLabelsDataAdapter } = useLabelStore()
   const { initDataAdapter: initImageDataStore } = useImageDataStore()
-  const {
-    initDataAdapter: initSettingsDataAdapter,
-  } = useSettingsStore()
+  const { initDataAdapter: initSettingsDataAdapter } = useSettingsStore()
   const { initDataAdapter: initAiModelsDataAdapter } = useAIModelStore()
   useEffect(() => {
     const data = new ElectronApiDataAdapter()

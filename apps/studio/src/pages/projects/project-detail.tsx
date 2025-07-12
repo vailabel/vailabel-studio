@@ -27,7 +27,6 @@ export default function ProjectDetails() {
     fetchProject()
   }, [projectId])
 
-
   return (
     <>
       <div className="mb-6 border-b pb-4">
