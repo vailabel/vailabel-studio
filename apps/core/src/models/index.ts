@@ -6,9 +6,11 @@ export class Point {
 export class Project {
   id!: string
   name!: string
-  labels!: Label[]
-  images!: ImageData[]
-  tasks!: Task[]
+  labels?: Label[]
+  images?: ImageData[]
+  tasks?: Task[]
+  createdAt?: Date
+  updatedAt?: Date
 }
 
 export class Label {
@@ -16,10 +18,12 @@ export class Label {
   name!: string
   category?: string
   isAIGenerated?: boolean
-  projectId!: string
-  project!: Project
-  annotations!: Annotation[]
+  projectId?: string
+  project?: Project
+  annotations?: Annotation[]
   color!: string
+  createdAt?: Date
+  updatedAt?: Date
 }
 
 export class ImageData {
@@ -29,43 +33,51 @@ export class ImageData {
   width!: number
   height!: number
   url?: string
-  projectId!: string
-  project!: Project
-  annotations!: Annotation[]
+  projectId?: string
+  project?: Project
+  annotations?: Annotation[]
+  createdAt?: Date
+  updatedAt?: Date
 }
 
 export class Annotation {
   id!: string
-  labelId!: string
-  label!: Label
+  labelId?: string
+  label?: Label
   name!: string
   type!: string
   coordinates!: { x: number; y: number }[]
-  imageId!: string
-  image!: ImageData
+  imageId?: string
+  image?: ImageData
   color?: string
   isAIGenerated?: boolean
+  createdAt?: Date
+  updatedAt?: Date
 }
 
 export class History {
   id!: string
-  labels!: Label[]
+  labels?: Label[]
   historyIndex!: number
   canUndo!: boolean
   canRedo!: boolean
+  createdAt?: Date
+  updatedAt?: Date
 }
 
 export class Task {
   id!: string
   name!: string
   description!: string
-  projectId!: string
-  project!: Project
+  projectId?: string
+  project?: Project
   assignedTo?: string
   status!: string
   dueDate?: Date
   labels?: Label[]
   annotations?: Annotation[]
+  createdAt?: Date
+  updatedAt?: Date
 }
 
 export class ExportFormat {
@@ -84,12 +96,16 @@ export class AIModel {
   configPath!: string
   modelSize!: number
   isCustom!: boolean
+  createdAt?: Date
+  updatedAt?: Date
 }
 
 export class Settings {
   id!: string
   key!: string
   value!: string
+  createdAt?: Date
+  updatedAt?: Date
 }
 
 export class User {
@@ -98,4 +114,6 @@ export class User {
   name!: string
   password!: string
   role!: string
+  createdAt?: Date
+  updatedAt?: Date
 }

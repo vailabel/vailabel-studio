@@ -34,7 +34,7 @@ export class ExportService {
         id: project.id,
         name: project.name,
         createdAt: project.createdAt,
-        lastModified: project.lastModified,
+        lastModified: project.updatedAt,
         imageCount: images.length,
       },
       images: images.map((img) => ({
