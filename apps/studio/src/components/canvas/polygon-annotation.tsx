@@ -1,8 +1,8 @@
 import { motion } from "framer-motion"
 import { rgbToRgba } from "../../lib/utils"
 import type { Annotation, Point } from "@vailabel/core"
-import { useCanvasStore } from "@/hooks/canvas-store"
-import { useAnnotationsStore } from "@/hooks/annotation-store"
+import { useCanvasStore } from "@/stores/canvas-store"
+import { useAnnotationsStore } from "@/stores/annotation-store"
 
 interface PolygonAnnotationProps {
   annotation: Annotation

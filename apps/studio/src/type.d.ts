@@ -1,4 +1,4 @@
-import { IDataAccess } from "./data"
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 type IpcWithEvents = {
   invoke: (channel: string, ...args: any[]) => Promise<any>

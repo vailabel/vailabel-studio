@@ -19,6 +19,8 @@ export const AnnotationRenderer = React.memo(function AnnotationRenderer({
     []
   )
 
+  console.log("Rendering AnnotationRenderer with annotations:", annotations)
+
   return (
     <>
       {annotations.map((annotation) => {

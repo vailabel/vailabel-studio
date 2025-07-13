@@ -65,6 +65,9 @@ export class ElectronApiDataAdapter implements IDataAdapter {
   deleteAnnotation(annotationId: string): Promise<void> {
     return this.api.invoke(`delete:annotations`, annotationId)
   }
+  getAnnotationsByImageId(imageId: string): Promise<Annotation[]> {
+    return this.api.invoke(`fetch:getAnnotationsByImageId`, imageId)
+  }
 
   // ImageData-related methods
   updateImageData(imageId: string, updates: Partial<ImageData>): Promise<void> {
@@ -78,6 +81,9 @@ export class ElectronApiDataAdapter implements IDataAdapter {
   }
   deleteImageData(imageId: string): Promise<void> {
     return this.api.invoke(`delete:imageData`, imageId)
+  }
+  fetchImageDataById(imageId: string): Promise<ImageData | undefined> {
+    return this.api.invoke(`fetch:imageDataById`, imageId)
   }
 
   // History-related methods

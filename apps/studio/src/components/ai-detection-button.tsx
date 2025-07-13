@@ -9,11 +9,11 @@ import {
 } from "@/components/ui/tooltip"
 import { useToast } from "@/hooks/use-toast"
 import type { Annotation, ImageData } from "@vailabel/core"
-import { useSettingsStore } from "@/hooks/use-settings-store"
-import { useLabelStore } from "@/hooks/use-label-store"
+import { useSettingsStore } from "@/stores/use-settings-store"
+import { useLabelStore } from "@/stores/use-label-store"
 import { getRandomColor } from "@/lib/utils"
-import { useAnnotationsStore } from "@/hooks/annotation-store"
-import { useProjectStore } from "@/hooks/use-project-store"
+import { useAnnotationsStore } from "@/stores/annotation-store"
+import { useProjectStore } from "@/stores/use-project-store"
 
 interface AIDetectionButtonProps {
   image: ImageData | null
