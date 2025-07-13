@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import type { AIModel } from "@vailabel/core/src/models/types"
+import type { AIModel } from "@vailabel/core"
 import {
   Dialog,
   DialogContent,

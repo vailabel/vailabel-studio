@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, jest } from "@jest/globals"
 import { ApiClient } from "./ApiClient"
-import { ApiDataAccess } from "./ApiDataAccess"
 
 global.fetch = jest.fn() as any
 
@@ -181,11 +180,5 @@ describe("ApiClient", () => {
     })
     const result = await client.delete("/no-content")
     expect(result).toBeUndefined()
-  })
-})
-
-describe("ApiDataAccess", () => {
-  it("should be defined", () => {
-    expect(ApiDataAccess).toBeDefined()
   })
 })

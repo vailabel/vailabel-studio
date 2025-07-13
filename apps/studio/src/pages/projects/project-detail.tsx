@@ -1,43 +1,36 @@
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
-import Loading from "@/components/loading"
 import ImageWithLoader from "@/components/image-loader"
 import { useProjectStore } from "@/hooks/use-project-store"
 import { useImageDataStore } from "@/hooks/use-image-data-store"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { useLabelStore } from "@/hooks/use-label-store"
+import { ImageData } from "@vailabel/core"
 
 export default function ProjectDetails() {
   const { projectId } = useParams<{ projectId: string }>()
-  const { getProject, currentProject } = useProjectStore()
-  const { getImagesByProjectId, images } = useImageDataStore()
+  const { getProject } = useProjectStore()
+  const { getImagesByProjectId } = useImageDataStore()
   const { labels } = useLabelStore()
+
+  const [images, setImages] = useState<ImageData[]>([])
+
   const navigate = useNavigate()
   useEffect(() => {
     const fetchProject = async () => {
       if (!projectId) return
       await getProject(projectId)
-      await getImagesByProjectId(projectId)
+      const images = await getImagesByProjectId(projectId)
+      setImages(images)
     }
 
     fetchProject()
   }, [projectId])
-  if (!projectId) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
-        <h1 className="text-2xl font-bold text-red-600">Project ID Missing</h1>
-      </div>
-    )
-  }
-
-  if (!currentProject) {
-    return <Loading />
-  }
 
   return (
     <>
       <div className="mb-6 border-b pb-4">
-        <h1 className="text-2xl font-bold mb-1">{currentProject.name}</h1>
+        <h1 className="text-2xl font-bold mb-1">New Project</h1>
         <p className="text-gray-500 text-sm">Project ID: {projectId}</p>
       </div>
       <Tabs defaultValue="images" className="w-full">
@@ -67,10 +60,7 @@ export default function ProjectDetails() {
                       />
                       <div className="p-2">
                         <p className="text-sm text-gray-600 dark:text-gray-300 truncate">
-                          {typeof image.name === "string" &&
-                          image.name.length > 50
-                            ? `${image.name.slice(0, 50)}...`
-                            : image.name}
+                          {image.name || `Image ${index + 1}`}
                         </p>
                       </div>
                     </button>

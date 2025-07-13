@@ -23,12 +23,12 @@ export class ExportService {
 
     const annotationsByImage: Record<string, Annotation[]> = {}
     annotations.forEach((annotation) => {
-      if (!annotationsByImage[annotation.imageId]) {
-        annotationsByImage[annotation.imageId] = []
+      const imageIdStr = String(annotation.imageId)
+      if (!annotationsByImage[imageIdStr]) {
+        annotationsByImage[imageIdStr] = []
       }
-      annotationsByImage[annotation.imageId].push(annotation)
+      annotationsByImage[imageIdStr].push(annotation)
     })
-
     const exportData = {
       project: {
         id: project.id,
