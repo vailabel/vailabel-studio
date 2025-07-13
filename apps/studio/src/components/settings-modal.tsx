@@ -25,7 +25,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   const { toast } = useToast()
   const [isClearing, setIsClearing] = useState(false)
   const { theme, setTheme } = useTheme()
-  const { getSettings, updateSetting } = useSettingsStore()
+  const { getSettings, saveOrUpdateSettings } = useSettingsStore()
 
   const [showRulers, setShowRulers] = useState(true)
   const [showCrosshairs, setShowCrosshairs] = useState(true)
@@ -61,7 +61,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
     value: string | number | boolean
   ) => {
     // Convert value to string for updateSetting
-    updateSetting(key, String(value))
+    saveOrUpdateSettings(key, String(value))
     toast({
       title: "Setting updated",
       description: `${key} has been updated to ${value}`,

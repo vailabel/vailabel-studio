@@ -1,5 +1,5 @@
+import { IStorageAdapter } from "@/adapters/storage"
 import { createContext } from "react"
-import { IStorageAdapter } from "@vailabel/core/src/storage"
 
 export interface StorageContextType {
   storage: IStorageAdapter

@@ -1,25 +1,22 @@
-import type { Annotation, IDBContext } from "@vailabel/core"
+import type { Annotation } from "@vailabel/core"
 import JSZip from "jszip"
+import type { IDataAdapter } from "../adapters/data/IDataAdapter"
 
 export class ExportService {
-  private dataAccess: IDBContext
+  private dataAdapter: IDataAdapter
 
-  constructor(dataAccess: IDBContext) {
-    this.dataAccess = dataAccess
+  constructor(dataAdapter: IDataAdapter) {
+    this.dataAdapter = dataAdapter
   }
 
   async exportToJson(projectId: string, filename: string): Promise<void> {
-    const projects = await this.dataAccess.projects.get()
+    const projects = await this.dataAdapter.fetchProjects()
     const project = projects.find((p) => p.id === projectId)
     if (!project) {
       throw new Error(`Project with ID ${projectId} not found.`)
     }
-    const images = (await this.dataAccess.images.get()).filter(
-      (img) => img.projectId === projectId
-    )
-    const annotations = (await this.dataAccess.annotations.get()).filter(
-      (ann) => images.some((img) => img.id === ann.imageId)
-    )
+    const images = await this.dataAdapter.fetchImageData(projectId)
+    const annotations = await this.dataAdapter.fetchAnnotations(projectId)
 
     const annotationsByImage: Record<string, Annotation[]> = {}
     annotations.forEach((annotation) => {
@@ -29,6 +26,7 @@ export class ExportService {
       }
       annotationsByImage[imageIdStr].push(annotation)
     })
+
     const exportData = {
       project: {
         id: project.id,
@@ -60,20 +58,16 @@ export class ExportService {
   }
 
   async exportToCoco(projectId: string, filename: string): Promise<void> {
-    const projects = await this.dataAccess.projects.get()
+    const projects = await this.dataAdapter.fetchProjects()
     const project = projects.find((p) => p.id === projectId)
     if (!project) {
       throw new Error(`Project with ID ${projectId} not found.`)
     }
-    const images = (await this.dataAccess.images.get()).filter(
-      (img) => img.projectId === projectId
-    )
+    const images = await this.dataAdapter.fetchImageData(projectId)
     if (!images || images.length === 0) {
       throw new Error(`No images found for project ID ${projectId}.`)
     }
-    const annotations = (await this.dataAccess.annotations.get()).filter(
-      (ann) => images.some((img) => img.id === ann.imageId)
-    )
+    const annotations = await this.dataAdapter.fetchAnnotations(projectId)
 
     const cocoData = {
       info: {
@@ -148,17 +142,13 @@ export class ExportService {
     projectId: string,
     filenamePrefix: string
   ): Promise<void> {
-    const projects = await this.dataAccess.projects.get()
+    const projects = await this.dataAdapter.fetchProjects()
     const project = projects.find((p) => p.id === projectId)
     if (!project) {
       throw new Error(`Project with ID ${projectId} not found.`)
     }
-    const images = (await this.dataAccess.images.get()).filter(
-      (img) => img.projectId === projectId
-    )
-    const annotations = (await this.dataAccess.annotations.get()).filter(
-      (ann) => images.some((img) => img.id === ann.imageId)
-    )
+    const images = await this.dataAdapter.fetchImageData(projectId)
+    const annotations = await this.dataAdapter.fetchAnnotations(projectId)
     const zip = new JSZip()
     images.forEach((image) => {
       const imageAnnotations = annotations.filter(
@@ -198,17 +188,13 @@ export class ExportService {
   }
 
   async exportToYolo(projectId: string, filenamePrefix: string): Promise<void> {
-    const projects = await this.dataAccess.projects.get()
+    const projects = await this.dataAdapter.fetchProjects()
     const project = projects.find((p) => p.id === projectId)
     if (!project) {
       throw new Error(`Project with ID ${projectId} not found.`)
     }
-    const images = (await this.dataAccess.images.get()).filter(
-      (img) => img.projectId === projectId
-    )
-    const annotations = (await this.dataAccess.annotations.get()).filter(
-      (ann) => images.some((img) => img.id === ann.imageId)
-    )
+    const images = await this.dataAdapter.fetchImageData(projectId)
+    const annotations = await this.dataAdapter.fetchAnnotations(projectId)
     const zip = new JSZip()
     images.forEach((image) => {
       const imageAnnotations = annotations.filter(
