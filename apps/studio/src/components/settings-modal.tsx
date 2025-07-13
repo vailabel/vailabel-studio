@@ -11,7 +11,7 @@ import { Slider } from "@/components/ui/slider"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import { useTheme } from "./theme-provider"
-import { useSettingsStore } from "@/hooks/use-settings-store"
+import { useSettingsStore } from "@/stores/use-settings-store"
 
 interface SettingsModalProps {
   onClose: () => void

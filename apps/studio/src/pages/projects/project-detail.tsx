@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import ImageWithLoader from "@/components/image-loader"
-import { useProjectStore } from "@/hooks/use-project-store"
-import { useImageDataStore } from "@/hooks/use-image-data-store"
+import { useProjectStore } from "@/stores/use-project-store"
+import { useImageDataStore } from "@/stores/use-image-data-store"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { useLabelStore } from "@/hooks/use-label-store"
+import { useLabelStore } from "@/stores/use-label-store"
 import { ImageData } from "@vailabel/core"
 
 export default function ProjectDetails() {

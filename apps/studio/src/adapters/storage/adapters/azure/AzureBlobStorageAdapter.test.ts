@@ -7,6 +7,7 @@ const createMockBlob = () => ({
 })
 
 describe("AzureBlobStorageAdapter", () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let containerClient: any
   let adapter: AzureBlobStorageAdapter
 

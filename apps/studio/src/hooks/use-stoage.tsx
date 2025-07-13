@@ -1,6 +1,6 @@
 import { useContext } from "react"
-import { IStorageAdapter } from "@vailabel/core/src/storage"
 import { StorageContext } from "@/contexts/storage-context"
+import { IStorageAdapter } from "@/adapters/storage"
 
 export const useStorage = (): IStorageAdapter => {
   const context = useContext(StorageContext)

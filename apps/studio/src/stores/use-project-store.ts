@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Project } from "@vailabel/core"
 import { create } from "zustand"
-import { exceptionMiddleware } from "./exception-middleware"
 import { IDataAdapter } from "@/adapters/data/IDataAdapter"
+import { exceptionMiddleware } from "@/hooks/exception-middleware"
 
 export interface CurrentProject extends Project {
   imageCount: number

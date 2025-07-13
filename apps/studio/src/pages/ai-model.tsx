@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Download, Plus, X } from "lucide-react"
-import { useAIModelStore } from "@/hooks/use-ai-model-store"
+import { useAIModelStore } from "@/stores/use-ai-model-store"
 import { ElectronFileInput } from "@/components/electron-file"
 
 const SYSTEM_MODELS = [

@@ -4,7 +4,7 @@ import {
   Base64StorageAdapter,
   IStorageAdapter,
   FileSystemStorageAdapter,
-} from "@vailabel/core/src/storage"
+} from "@/adapters/storage"
 import { isElectron } from "@/lib/constants"
 
 // You may want to add more options as needed

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { isElectron } from "@/lib/constants"
 import ExternalLink from "../exteral-link"
-import { useSettingsStore } from "@/hooks/use-settings-store"
+import { useSettingsStore } from "@/stores/use-settings-store"
 import { ElectronFileInput } from "../electron-file"
 
 interface PythonInfo {

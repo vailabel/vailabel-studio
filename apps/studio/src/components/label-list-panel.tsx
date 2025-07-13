@@ -8,7 +8,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { Label } from "@vailabel/core"
-import { useLabelStore } from "@/hooks/use-label-store"
+import { useLabelStore } from "@/stores/use-label-store"
 import { useEffect, useState } from "react"
 
 interface LabelListPanelProps {

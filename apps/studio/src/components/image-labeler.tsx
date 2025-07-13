@@ -24,10 +24,11 @@ import { AIModelSelectModal } from "@/components/ai-model-modal"
 import { ContextMenu } from "@/components/context-menu"
 import { ThemeToggle } from "./theme-toggle"
 import { useNavigate } from "react-router-dom"
-import { useCanvasStore } from "@/hooks/canvas-store"
-import { useProjectStore } from "@/hooks/use-project-store"
-import { Annotation, ImageData } from "@vailabel/core"
-import { useImageDataStore } from "@/hooks/use-image-data-store"
+import { useCanvasStore } from "@/stores/canvas-store"
+import { useProjectStore } from "@/stores/use-project-store"
+import { ImageData } from "@vailabel/core"
+import { useImageDataStore } from "@/stores/use-image-data-store"
+import { useAnnotationsStore } from "@/stores/annotation-store"
 
 interface ImageLabelerProps {
   projectId?: string
@@ -48,7 +49,7 @@ export function ImageLabeler({ projectId, imageId }: ImageLabelerProps) {
   const [showAISettings, setShowAISettings] = useState(false)
   const { currentProject, nextImage, previousImage } = useProjectStore()
   const { getImageImageById } = useImageDataStore()
-  const [annotations, setAnnotations] = useState<Annotation[]>([])
+  const { annotations, setAnnotations } = useAnnotationsStore()
   const [image, setImage] = useState<ImageData | null>(null)
   useEffect(() => {
     ;(async () => {
