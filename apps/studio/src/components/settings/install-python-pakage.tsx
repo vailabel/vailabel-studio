@@ -32,7 +32,7 @@ export const InstallPythonPackage = () => {
     error: null,
   })
 
-  const { updateSetting } = useSettingsStore()
+  const { saveOrUpdateSettings } = useSettingsStore()
 
   // Listen for python install progress (Electron only)
   useEffect(() => {
@@ -186,7 +186,7 @@ export const InstallPythonPackage = () => {
       })
       setIsDetectingPython(false)
       // Only update pythonPath in settings to the venv's pythonPath
-      updateSetting("pythonPath", result.pythonPath)
+      saveOrUpdateSettings("pythonPath", result.pythonPath)
     } catch (error) {
       setPythonError(error instanceof Error ? error.message : String(error))
       setIsDetectingPython(false)
@@ -229,7 +229,7 @@ export const InstallPythonPackage = () => {
       })
       setIsDetectingPython(false)
       // Update settings: set pythonPath
-      updateSetting("pythonPath", filePath)
+      saveOrUpdateSettings("pythonPath", filePath)
     } catch (error) {
       setPythonError(error instanceof Error ? error.message : String(error))
       setIsDetectingPython(false)

@@ -5,5 +5,5 @@
     { "path": "apps/studio" },
     { "path": "apps/web" },
     { "path": "apps/desktop" }
-  ],
+  ]
 }

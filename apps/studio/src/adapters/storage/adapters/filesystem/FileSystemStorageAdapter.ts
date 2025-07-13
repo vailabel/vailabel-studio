@@ -1,4 +1,4 @@
-import { IStorageAdapter } from "@vailabel/core/src/storage"
+import { IStorageAdapter } from "../../interfaces/IStorageAdapter"
 
 export class FileSystemStorageAdapter implements IStorageAdapter {
   constructor(private readonly directory: string) {

@@ -2,7 +2,9 @@ import { Annotation } from "@vailabel/core"
 import { IpcHandler } from "apps/desktop/src/interface/IpcHandler"
 import { AnnotationRepository } from "../../db/models"
 
-export class FetchAnnotationByImageIdQuery implements IpcHandler<string, Annotation[]> {
+export class FetchAnnotationByImageIdQuery
+  implements IpcHandler<string, Annotation[]>
+{
   channel = "fetch:getAnnotationsByImageId"
 
   async handle(
@@ -10,7 +12,7 @@ export class FetchAnnotationByImageIdQuery implements IpcHandler<string, Annotat
     imageId: string
   ): Promise<Annotation[]> {
     const annotations = await AnnotationRepository.findAll({
-      where: { imageId }
+      where: { imageId },
     })
     return annotations.map((annotation) => {
       return {
@@ -23,7 +25,7 @@ export class FetchAnnotationByImageIdQuery implements IpcHandler<string, Annotat
         updatedAt: annotation.updatedAt,
         imageId: annotation.imageId,
         color: annotation.color,
-        isAIGenerated: annotation.isAIGenerated
+        isAIGenerated: annotation.isAIGenerated,
       } as Annotation
     })
   }

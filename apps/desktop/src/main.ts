@@ -9,7 +9,10 @@ import "./ipc/index"
 import { jsonSetting } from "./utils"
 import { initDatabase } from "./db/init"
 
-import installExtension, { REACT_DEVELOPER_TOOLS, REDUX_DEVTOOLS } from "electron-devtools-installer"
+import installExtension, {
+  REACT_DEVELOPER_TOOLS,
+  REDUX_DEVTOOLS,
+} from "electron-devtools-installer"
 import { setAppMenu } from "./menu/appMenu"
 import { isVersionSkipped, setupAutoUpdate } from "./autoUpdate/autoUpdate"
 

@@ -31,7 +31,7 @@ const CATEGORIES = [
 ]
 
 export function KeyboardShortcuts() {
-  const { getSetting, updateSetting } = useSettingsStore()
+  const { getSetting, saveOrUpdateSettings } = useSettingsStore()
   const [shortcuts, setShortcuts] =
     useState<KeyboardShortcut[]>(DEFAULT_SHORTCUTS)
   const [editingIdx, setEditingIdx] = useState<number | null>(null)
@@ -57,10 +57,10 @@ export function KeyboardShortcuts() {
 
   // Save to settings whenever shortcuts change
   useEffect(() => {
-    if (updateSetting) {
-      updateSetting("keyboardShortcuts", JSON.stringify(shortcuts))
+    if (saveOrUpdateSettings) {
+      saveOrUpdateSettings("keyboardShortcuts", JSON.stringify(shortcuts))
     }
-  }, [shortcuts, updateSetting])
+  }, [shortcuts, saveOrUpdateSettings])
 
   const handleEdit = (idx: number) => {
     setEditingIdx(idx)

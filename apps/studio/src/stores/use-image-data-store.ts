@@ -2,10 +2,13 @@ import { ImageData } from "@vailabel/core"
 import { create } from "zustand"
 import { IDataAdapter } from "@/adapters/data/IDataAdapter"
 import { exceptionMiddleware } from "@/hooks/exception-middleware"
+import { IStorageAdapter } from "@/adapters/storage"
 
 type ImageDataStoreType = {
   data: IDataAdapter
   initDataAdapter: (dataAdapter: IDataAdapter) => void
+  storage: IStorageAdapter
+  initStorageAdapter: (storageAdapter: IStorageAdapter) => void
   images: ImageData[]
   image: ImageData | undefined
   getImages: () => Promise<ImageData[]>
@@ -21,6 +24,9 @@ export const useImageDataStore = create<ImageDataStoreType>(
   exceptionMiddleware((set, get) => ({
     data: {} as IDataAdapter,
     initDataAdapter: (dataAdapter) => set({ data: dataAdapter }),
+
+    storage: {} as IStorageAdapter,
+    initStorageAdapter: (storageAdapter) => set({ storage: storageAdapter }),
 
     images: [],
     image: undefined,
@@ -57,8 +63,14 @@ export const useImageDataStore = create<ImageDataStoreType>(
     },
 
     createImage: async (image) => {
-      const { data } = get()
-      await data.saveImageData(image)
+      const { data, storage } = get()
+      try {
+        await storage.saveImage(image.id, image.data)
+        await data.saveImageData(image)
+      } catch (error) {
+        await storage.deleteImage(image.id)
+        throw error
+      }
       set((state) => ({
         images: [...state.images, image],
         image,

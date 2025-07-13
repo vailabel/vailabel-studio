@@ -132,8 +132,8 @@ export class ElectronApiDataAdapter implements IDataAdapter {
   fetchSettings(projectId: string): Promise<Settings> {
     return this.api.invoke(`fetch:settings`, projectId)
   }
-  saveSettings(settings: Settings): Promise<void> {
-    return this.api.invoke(`save:settings`, settings)
+  saveOrUpdateSettings(settings: Settings): Promise<void> {
+    return this.api.invoke(`saveOrUpdate:settings`, settings)
   }
 
   // User-related methods

@@ -15,7 +15,7 @@ export class FetchUserQuery implements IpcHandler<void, User[]> {
         id: user.id,
         name: user.name,
         email: user.email,
-        password: '',
+        password: "",
         role: user.role,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
