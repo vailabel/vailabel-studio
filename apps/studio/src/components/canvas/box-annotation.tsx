@@ -2,8 +2,8 @@ import React, { useMemo } from "react"
 import { motion } from "framer-motion"
 import { cn, getContentBoxColor } from "@/lib/utils"
 import type { Annotation } from "@vailabel/core"
-import { useCanvasStore } from "@/hooks/canvas-store"
-import { useAnnotationsStore } from "@/hooks/annotation-store"
+import { useCanvasStore } from "@/stores/canvas-store"
+import { useAnnotationsStore } from "@/stores/annotation-store"
 
 interface BoxAnnotationProps {
   annotation: Annotation

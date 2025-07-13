@@ -15,7 +15,4 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 __exportStar(require("./db/dexieDb"), exports);
-__exportStar(require("./contracts/DataAccess"), exports);
-__exportStar(require("./contracts/IDataAccess"), exports);
-__exportStar(require("./contracts/IDBContext"), exports);
 __exportStar(require("./sources/api/ApiClient"), exports);

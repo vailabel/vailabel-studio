@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react"
-import { useCanvasStore } from "@/hooks/canvas-store"
+import { useCanvasStore } from "@/stores/canvas-store"
 
 export const PositionCoordinates: React.FC = () => {
   const { zoom, panOffset, cursorPosition, canvasRef } = useCanvasStore()

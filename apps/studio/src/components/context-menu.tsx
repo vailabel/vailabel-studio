@@ -12,7 +12,7 @@ import {
   Brain,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useCanvasStore } from "@/hooks/canvas-store"
+import { useCanvasStore } from "@/stores/canvas-store"
 
 interface ContextMenuProps {
   x: number

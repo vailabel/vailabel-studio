@@ -1,8 +1,8 @@
 import { useCallback, useState, useEffect } from "react"
 import type { Point, Annotation } from "@vailabel/core"
 import { calculatePolygonCentroid, isPointInPolygon } from "@/lib/canvas-utils"
-import { useCanvasStore } from "./canvas-store"
-import { useAnnotationsStore } from "./annotation-store"
+import { useCanvasStore } from "../stores/canvas-store"
+import { useAnnotationsStore } from "../stores/annotation-store"
 
 export function useCanvasHandlers() {
   const {

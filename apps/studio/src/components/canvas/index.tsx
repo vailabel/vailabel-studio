@@ -7,9 +7,9 @@ import { type Annotation, type ImageData } from "@vailabel/core"
 import { Crosshair } from "@/components/canvas/crosshair"
 import { TempAnnotation } from "@/components/canvas/temp-annotation"
 import { CreateAnnotation } from "@/components/canvas/create-annotation"
-import { useAnnotationsStore } from "@/hooks/annotation-store"
-import { useCanvasStore } from "@/hooks/canvas-store"
-import { useLabelStore } from "@/hooks/use-label-store"
+import { useAnnotationsStore } from "@/stores/annotation-store"
+import { useCanvasStore } from "@/stores/canvas-store"
+import { useLabelStore } from "@/stores/use-label-store"
 
 interface CanvasProps {
   image: ImageData

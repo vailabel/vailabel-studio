@@ -26,8 +26,8 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { AIDetectionButton } from "@/components/ai-detection-button"
 import type { ImageData } from "@vailabel/core"
-import { useCanvasStore } from "@/hooks/canvas-store"
-import { useAnnotationsStore } from "@/hooks/annotation-store"
+import { useCanvasStore } from "@/stores/canvas-store"
+import { useAnnotationsStore } from "@/stores/annotation-store"
 
 interface ToolbarProps {
   currentImage: ImageData | null
