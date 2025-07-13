@@ -24,7 +24,7 @@ interface AIModelModalProps {
 export function AIModelSelectModal({ onClose }: AIModelModalProps) {
   const { toast } = useToast()
   const { getAIModels } = useAIModelStore()
-  const { updateSetting, getSetting } = useSettingsStore()
+  const { saveOrUpdateSettings, getSetting } = useSettingsStore()
 
   const [availableModels, setAvailableModels] = useState<AIModel[]>([])
   const [selectedModelId, setSelectedModelId] = useState<string>("")
@@ -59,7 +59,7 @@ export function AIModelSelectModal({ onClose }: AIModelModalProps) {
   const handleRadioChange = async (id: string) => {
     setSelectedModelId(id)
     try {
-      await updateSetting("modalSelected", id)
+      await saveOrUpdateSettings("modalSelected", id)
     } catch {
       toast({
         title: "Error",
@@ -72,7 +72,7 @@ export function AIModelSelectModal({ onClose }: AIModelModalProps) {
   const handleSave = async () => {
     if (!selectedModelId) return
     try {
-      await updateSetting("modalSelected", selectedModelId)
+      await saveOrUpdateSettings("modalSelected", selectedModelId)
       toast({
         title: "Model saved",
         description: `Selected model has been saved!`,
