@@ -29,7 +29,7 @@ const navigation = [
   { name: "Settings", href: "/settings", icon: Settings2 },
 ]
 
-export default function MainLayout() {
+const MainLayout = () => {
   const navigate = useNavigate()
   const outlet = useOutlet()
   const location = useLocation()
@@ -240,3 +240,5 @@ export default function MainLayout() {
     </div>
   )
 }
+
+export default MainLayout

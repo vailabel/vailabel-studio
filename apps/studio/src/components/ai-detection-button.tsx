@@ -20,7 +20,10 @@ interface AIDetectionButtonProps {
   disabled?: boolean
 }
 
-export function AIDetectionButton({ image, disabled }: AIDetectionButtonProps) {
+export const AIDetectionButton = ({
+  image,
+  disabled,
+}: AIDetectionButtonProps) => {
   const { toast } = useToast()
   const [isDetecting, setIsDetecting] = useState(false)
   const { getSetting } = useSettingsStore()
@@ -113,8 +116,6 @@ export function AIDetectionButton({ image, disabled }: AIDetectionButtonProps) {
           Auto Detect with AI (runs YOLOv8 in your Python environment)
         </TooltipContent>
       </Tooltip>
-      {/* Progress output */}
-      {/* No progress output, just loading spinner */}
     </TooltipProvider>
   )
 }

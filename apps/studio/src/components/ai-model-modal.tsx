@@ -21,7 +21,7 @@ interface AIModelModalProps {
   onClose: () => void
 }
 
-export function AIModelSelectModal({ onClose }: AIModelModalProps) {
+export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
   const { toast } = useToast()
   const { getAIModels } = useAIModelStore()
   const { saveOrUpdateSettings, getSetting } = useSettingsStore()

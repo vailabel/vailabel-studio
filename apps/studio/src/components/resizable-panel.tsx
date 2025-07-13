@@ -17,7 +17,7 @@ interface ResizablePanelProps {
   onResize?: (size: number) => void
 }
 
-export function ResizablePanel({
+export const ResizablePanel = ({
   direction = "horizontal",
   controlPosition = direction === "horizontal" ? "right" : "bottom",
   defaultSize = 300,
@@ -27,7 +27,7 @@ export function ResizablePanel({
   handleClassName,
   children,
   onResize,
-}: ResizablePanelProps) {
+}: ResizablePanelProps) => {
   const [size, setSize] = useState(defaultSize)
   const [isResizing, setIsResizing] = useState(false)
   const startPosRef = useRef(0)

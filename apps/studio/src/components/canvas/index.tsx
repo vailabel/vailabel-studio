@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react"
+import { memo, useCallback, useEffect, useRef } from "react"
 import { cn } from "@/lib/utils"
 import { AnnotationRenderer } from "@/components/canvas/annotation-renderer"
 import { PositionCoordinates } from "@/components/canvas/position-coordinates"
@@ -16,7 +16,7 @@ interface CanvasProps {
   annotations: Annotation[]
 }
 
-export const Canvas = ({ image, annotations }: CanvasProps) => {
+export const Canvas = memo(({ image, annotations }: CanvasProps) => {
   const { zoom, panOffset, selectedTool, setCanvasRef } = useCanvasStore()
   const { createAnnotation } = useAnnotationsStore()
   const { getOrCreateLabel, labels } = useLabelStore()
@@ -144,4 +144,4 @@ export const Canvas = ({ image, annotations }: CanvasProps) => {
       />
     </>
   )
-}
+})

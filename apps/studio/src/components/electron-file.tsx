@@ -11,14 +11,14 @@ interface ElectronFileInputProps {
   options?: OpenDialogOptions
 }
 
-export function ElectronFileInput({
+export const ElectronFileInput = ({
   onChange,
   accept,
   multiple = false,
   className = "",
   placeholder = "Select file...",
   options,
-}: ElectronFileInputProps) {
+}: ElectronFileInputProps) => {
   const inputRef = useRef<HTMLInputElement>(null)
   const [selectedFiles, setSelectedFiles] = useState<string[]>([])
 
