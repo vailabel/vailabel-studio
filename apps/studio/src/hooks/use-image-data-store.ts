@@ -9,20 +9,12 @@ type ImageDataStoreType = {
   images: ImageData[]
   image: ImageData | undefined
   getImages: () => Promise<ImageData[]>
-  getImage: (id: string) => Promise<ImageData | undefined>
+  getImageImageById: (id: string) => Promise<ImageData | undefined>
   getImageWithAnnotations: (imageId: string) => Promise<ImageData>
   getImagesByProjectId: (projectId: string) => Promise<ImageData[]>
-  setImages: (images: ImageData[]) => void
   createImage: (image: ImageData) => Promise<void>
   updateImage: (id: string, updates: Partial<ImageData>) => Promise<void>
   deleteImage: (id: string) => Promise<void>
-  getOrCreateImage: (
-    name: string,
-    data: string,
-    width: number,
-    height: number,
-    projectId: string
-  ) => Promise<ImageData>
 }
 
 export const useImageDataStore = create<ImageDataStoreType>(
@@ -40,11 +32,10 @@ export const useImageDataStore = create<ImageDataStoreType>(
       return images
     },
 
-    getImage: async (id) => {
+    getImageImageById: async (id) => {
       const { data } = get()
       const image = await data
-        .fetchImageData("defaultProjectId")
-        .then((images) => images.find((img) => img.id === id))
+        .fetchImageDataById(id)
       set({ image })
       return image
     },
@@ -61,14 +52,10 @@ export const useImageDataStore = create<ImageDataStoreType>(
     getImagesByProjectId: async (projectId) => {
       const { data } = get()
       return await data.fetchImageDataByProjectId(projectId).then((images) => {
-        console.log(`Fetched ${images.length} images for project ${projectId}`)
-        console.log(images)
         set({ images })
         return images
       })
     },
-
-    setImages: (images) => set({ images }),
 
     createImage: async (image) => {
       const { data } = get()
@@ -82,13 +69,7 @@ export const useImageDataStore = create<ImageDataStoreType>(
     updateImage: async (id, updates) => {
       const { data } = get()
       await data.updateImageData(id, updates)
-      set((state) => ({
-        images: state.images.map((img) =>
-          img.id === id ? { ...img, ...updates } : img
-        ),
-        image:
-          state.image?.id === id ? { ...state.image, ...updates } : state.image,
-      }))
+      await get().getImages() 
     },
 
     deleteImage: async (id) => {
@@ -98,27 +79,6 @@ export const useImageDataStore = create<ImageDataStoreType>(
         images: state.images.filter((img) => img.id !== id),
         image: state.image?.id === id ? undefined : state.image,
       }))
-    },
-
-    getOrCreateImage: async (name, data, width, height, projectId) => {
-      const { data: adapterData, images } = get()
-      let image = images.find(
-        (img) => img.name === name && img.projectId === projectId
-      )
-      if (!image) {
-        image = {
-          id: crypto.randomUUID(),
-          name,
-          data,
-          width,
-          height,
-          projectId,
-          project: undefined as any,
-          annotations: [],
-        }
-        await adapterData.saveImageData(image)
-      }
-      return image
     },
   }))
 )

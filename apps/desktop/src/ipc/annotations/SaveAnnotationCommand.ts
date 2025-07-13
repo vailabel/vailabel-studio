@@ -10,12 +10,7 @@ export class SaveAnnotationCommand implements IpcHandler<Annotation, void> {
     annotation: Annotation
   ): Promise<void> {
     await AnnotationRepository.create({
-      id: annotation.id,
-      labelId: annotation.labelId,
-      imageId: annotation.imageId,
-      coordinates: annotation.coordinates,
-      createdAt: annotation.createdAt,
-      updatedAt: annotation.updatedAt,
+      ...annotation,
     })
   }
 }

@@ -21,6 +21,8 @@ export default function ProjectDetails() {
       if (!projectId) return
       await getProject(projectId)
       const images = await getImagesByProjectId(projectId)
+
+      console.log("Fetched images:", images)
       setImages(images)
     }
 
