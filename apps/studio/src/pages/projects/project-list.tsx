@@ -86,8 +86,7 @@ export default function ProjectList() {
                   <span>{project.images?.length || 0} images</span>
                 </div>
                 <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                  Last modified:{" "}
-                  {project?.createdAt?.toLocaleString()}
+                  Last modified: {project?.createdAt?.toLocaleString()}
                 </p>
               </CardContent>
               <CardFooter className="flex justify-between p-4 bg-gray-50 dark:bg-gray-700">

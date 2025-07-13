@@ -5,8 +5,8 @@ import { IDataAdapter } from "@/adapters/data/IDataAdapter"
 
 type AIModelStoreType = {
   data: IDataAdapter
-    initDataAdapter: (dataAdapter: IDataAdapter) => void
-    
+  initDataAdapter: (dataAdapter: IDataAdapter) => void
+
   aiModels: AIModel[]
   selectedModel: AIModel | null
   setAIModels: (aiModels: AIModel[]) => void
@@ -28,7 +28,7 @@ export const useAIModelStore = create<AIModelStoreType>(
     setAIModels: (aiModels) => set({ aiModels }),
     getAIModels: async () => {
       const { data } = get()
-      const allAIModels = await data.fetchAIModels('defaultProjectId') // Replace with actual project ID
+      const allAIModels = await data.fetchAIModels("defaultProjectId") // Replace with actual project ID
       set({ aiModels: allAIModels })
       return allAIModels
     },

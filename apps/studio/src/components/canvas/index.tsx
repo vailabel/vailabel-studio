@@ -37,6 +37,7 @@ export const Canvas = ({ image, annotations }: CanvasProps) => {
   const handleCreateAnnotation = useCallback(
     async (name: string, color: string) => {
       if (!tempAnnotation) return
+      if (!image.projectId) return
       const label = await getOrCreateLabel(name, color, image.projectId)
       if (!label) return
       const newAnnotation: Annotation = {

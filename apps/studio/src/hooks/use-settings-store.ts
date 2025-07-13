@@ -1,4 +1,4 @@
-import {  Settings } from "@vailabel/core"
+import { Settings } from "@vailabel/core"
 import { create } from "zustand"
 import { exceptionMiddleware } from "./exception-middleware"
 import { IDataAdapter } from "@/adapters/data/IDataAdapter"
@@ -9,8 +9,8 @@ type SettingsStoreType = {
    * Provides methods to get, set, create, update, and delete settings.
    */
   data: IDataAdapter
-    initDataAdapter: (dataAdapter: IDataAdapter) => void
-    
+  initDataAdapter: (dataAdapter: IDataAdapter) => void
+
   settings: Settings[]
   getSetting: (key: string) => Settings | undefined
   getSettings: () => Settings[]
@@ -23,7 +23,7 @@ export const useSettingsStore = create<SettingsStoreType>(
   exceptionMiddleware((set, get) => ({
     data: {} as IDataAdapter,
     initDataAdapter: (dataAdapter) => set({ data: dataAdapter }),
-    
+
     settings: [],
     getSetting: (key) => {
       const { settings } = get()
@@ -54,13 +54,12 @@ export const useSettingsStore = create<SettingsStoreType>(
       } else {
         throw new Error(`Setting with key ${key} not found`)
       }
-    }
-    ,
+    },
     deleteSetting: async (key) => {
       // TODO: Implement delete logic in IDataAdapter
       set((state) => ({
         settings: state.settings.filter((s) => s.key !== key),
       }))
-    }
+    },
   }))
 )

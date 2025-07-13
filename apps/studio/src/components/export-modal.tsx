@@ -7,9 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useToast } from "@/hooks/use-toast"
-import { ExportService } from "@/lib/export-service"
-import type { Annotation, IDBContext, Project } from "@vailabel/core"
-import { useProjectStore } from "@/hooks/use-project-store"
+import type { Annotation, Project } from "@vailabel/core"
 interface ExportModalProps {
   project: Project
   annotations: Annotation[]
@@ -20,8 +18,6 @@ export function ExportModal({ project, onClose }: ExportModalProps) {
   const { toast } = useToast()
   const [exportFormat, setExportFormat] = useState<string>("json")
   const [isExporting, setIsExporting] = useState(false)
-  const { dbContext } = useProjectStore()
-  const exportService = new ExportService(dbContext as IDBContext)
 
   const handleExport = async () => {
     if (!project) return
@@ -29,22 +25,22 @@ export function ExportModal({ project, onClose }: ExportModalProps) {
     setIsExporting(true)
 
     try {
-      const fileName = project.name.replace(/\s+/g, "-").toLowerCase()
+      // const fileName = project.name.replace(/\s+/g, "-").toLowerCase()
 
-      switch (exportFormat) {
-        case "json":
-          await exportService.exportToJson(project.id, `${fileName}-export`)
-          break
-        case "coco":
-          await exportService.exportToCoco(project.id, `${fileName}-coco.json`)
-          break
-        case "pascal":
-          exportService.exportToPascalVoc(project.id, `${fileName}-pascal`)
-          break
-        case "yolo":
-          exportService.exportToYolo(project.id, `${fileName}-yolo`)
-          break
-      }
+      // switch (exportFormat) {
+      //   case "json":
+      //     await exportService.exportToJson(project.id, `${fileName}-export`)
+      //     break
+      //   case "coco":
+      //     await exportService.exportToCoco(project.id, `${fileName}-coco.json`)
+      //     break
+      //   case "pascal":
+      //     exportService.exportToPascalVoc(project.id, `${fileName}-pascal`)
+      //     break
+      //   case "yolo":
+      //     exportService.exportToYolo(project.id, `${fileName}-yolo`)
+      //     break
+      // }
 
       toast({
         title: "Export successful",

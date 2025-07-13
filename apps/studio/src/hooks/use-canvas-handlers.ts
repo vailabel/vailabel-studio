@@ -314,7 +314,7 @@ export function useCanvasHandlers() {
           ) {
             updateAnnotation(selectedAnnotation.id, {
               ...annotation,
-              coordinates: [newTopLeft, newBottomRight]
+              coordinates: [newTopLeft, newBottomRight],
             })
           }
           return

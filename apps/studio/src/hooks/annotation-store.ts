@@ -50,7 +50,8 @@ export const useAnnotationsStore = create<AnnotationsContextType>(
     canRedo: false,
     currentImage: null,
     setCurrentImage: (image: ImageModal | null) => set({ currentImage: image }),
-    setSelectedAnnotation: (annotation: Annotation | null) => set({ selectedAnnotation: annotation }),
+    setSelectedAnnotation: (annotation: Annotation | null) =>
+      set({ selectedAnnotation: annotation }),
     selectedAnnotation: null,
   }))
 )
