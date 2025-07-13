@@ -55,7 +55,15 @@ export const Canvas = ({ image, annotations }: CanvasProps) => {
       setShowLabelInput(false)
       setTempAnnotation(null)
     },
-    [tempAnnotation, image.projectId, image.id, getOrCreateLabel, createAnnotation, setShowLabelInput, setTempAnnotation]
+    [
+      tempAnnotation,
+      image.projectId,
+      image.id,
+      getOrCreateLabel,
+      createAnnotation,
+      setShowLabelInput,
+      setTempAnnotation,
+    ]
   )
 
   const handleCloseCreateAnnotationModal = useCallback(() => {

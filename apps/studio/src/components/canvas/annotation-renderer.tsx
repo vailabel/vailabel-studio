@@ -3,7 +3,7 @@ import { BoxAnnotation } from "@/components/canvas/box-annotation"
 import { PolygonAnnotation } from "@/components/canvas/polygon-annotation"
 import { Annotation } from "@vailabel/core"
 
-type AnnotationType = "box" | "polygon" | "freeDraw";
+type AnnotationType = "box" | "polygon" | "freeDraw"
 
 export const AnnotationRenderer = React.memo(function AnnotationRenderer({
   annotations,
@@ -24,9 +24,8 @@ export const AnnotationRenderer = React.memo(function AnnotationRenderer({
   return (
     <>
       {annotations.map((annotation) => {
-        const type = annotation.type as AnnotationType;
-        const AnnotationComponent =
-          annotationComponents[type] || null;
+        const type = annotation.type as AnnotationType
+        const AnnotationComponent = annotationComponents[type] || null
         return (
           <div key={annotation.id}>
             {AnnotationComponent && (

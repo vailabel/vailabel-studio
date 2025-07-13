@@ -3,6 +3,7 @@ import { Project } from "@vailabel/core"
 import { create } from "zustand"
 import { IDataAdapter } from "@/adapters/data/IDataAdapter"
 import { exceptionMiddleware } from "@/hooks/exception-middleware"
+import { IStorageAdapter } from "@/adapters/storage"
 
 export interface CurrentProject extends Project {
   imageCount: number
@@ -12,6 +13,9 @@ export interface CurrentProject extends Project {
 type ProjectStoreType = {
   data: IDataAdapter
   initDataAdapter: (dataAdapter: IDataAdapter) => void
+
+  storage: IStorageAdapter
+  initStorageAdapter: (storageAdapter: IStorageAdapter) => void
 
   projects: Project[]
   currentProject?: CurrentProject
@@ -45,7 +49,8 @@ export const useProjectStore = create<ProjectStoreType>(
   exceptionMiddleware((set, get) => ({
     data: {} as IDataAdapter,
     initDataAdapter: (dataAdapter) => set({ data: dataAdapter }),
-
+    storage: {} as IStorageAdapter,
+    initStorageAdapter: (storageAdapter) => set({ storage: storageAdapter }),
     projects: [],
     currentProject: undefined,
     setCurrentProject: (project) => set({ currentProject: project }),
@@ -88,6 +93,7 @@ export const useProjectStore = create<ProjectStoreType>(
     deleteProject: async (id) => {
       const { data, projects } = get()
       await data.deleteProject(id)
+      //delete images associated with the project
       set({ projects: projects.filter((project) => project.id !== id) })
     },
 

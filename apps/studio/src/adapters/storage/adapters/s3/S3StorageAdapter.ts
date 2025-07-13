@@ -1,4 +1,3 @@
-import { IStorageAdapter } from "@vailabel/core/src/storage/interfaces/IStorageAdapter"
 import {
   S3Client,
   PutObjectCommand,
@@ -7,6 +6,7 @@ import {
   ListObjectsV2Command,
 } from "@aws-sdk/client-s3"
 import { fromCognitoIdentityPool } from "@aws-sdk/credential-provider-cognito-identity"
+import { IStorageAdapter } from "../../interfaces/IStorageAdapter"
 
 export class S3StorageAdapter implements IStorageAdapter {
   private readonly s3: S3Client

@@ -46,7 +46,7 @@ export default function GeneralSettings() {
   const customBtnRef = useRef<HTMLButtonElement>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
 
-  const { updateSetting } = useSettingsStore()
+  const { saveOrUpdateSettings } = useSettingsStore()
 
   // Close popover on outside click
   useEffect(() => {
@@ -78,7 +78,7 @@ export default function GeneralSettings() {
   // Debounced save for frequently changed settings
   const debouncedSave = useRef(
     debounce((key: string, value: string) => {
-      updateSetting(key, value)
+      saveOrUpdateSettings(key, value)
     }, 400)
   ).current
 
@@ -95,20 +95,20 @@ export default function GeneralSettings() {
 
   // Save other settings immediately (as string)
   useEffect(() => {
-    updateSetting("boxThickness", String(boxThickness))
-  }, [boxThickness, updateSetting])
+    saveOrUpdateSettings("boxThickness", String(boxThickness))
+  }, [boxThickness, saveOrUpdateSettings])
   useEffect(() => {
-    updateSetting("showLabels", JSON.stringify(showLabels))
-  }, [showLabels, updateSetting])
+    saveOrUpdateSettings("showLabels", JSON.stringify(showLabels))
+  }, [showLabels, saveOrUpdateSettings])
   useEffect(() => {
-    updateSetting("snapToGrid", JSON.stringify(snapToGrid))
-  }, [snapToGrid, updateSetting])
+    saveOrUpdateSettings("snapToGrid", JSON.stringify(snapToGrid))
+  }, [snapToGrid, saveOrUpdateSettings])
   useEffect(() => {
-    updateSetting("autoSave", JSON.stringify(autoSave))
-  }, [autoSave, updateSetting])
+    saveOrUpdateSettings("autoSave", JSON.stringify(autoSave))
+  }, [autoSave, saveOrUpdateSettings])
   useEffect(() => {
-    updateSetting("theme", theme)
-  }, [theme, updateSetting])
+    saveOrUpdateSettings("theme", theme)
+  }, [theme, saveOrUpdateSettings])
 
   return (
     <div className="space-y-6">
@@ -123,7 +123,7 @@ export default function GeneralSettings() {
               const dir = e.target.files[0]
               if (dir) {
                 setDataDir(dir)
-                updateSetting("dataDirectory", dir)
+                saveOrUpdateSettings("dataDirectory", dir)
               }
             }}
             accept=""

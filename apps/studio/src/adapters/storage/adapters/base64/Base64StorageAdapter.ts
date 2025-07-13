@@ -1,4 +1,4 @@
-import { IStorageAdapter } from "@vailabel/core/src/storage"
+import { IStorageAdapter } from "../../interfaces/IStorageAdapter"
 
 export class Base64StorageAdapter implements IStorageAdapter {
   private static readonly prefix = "img_"
@@ -6,6 +6,7 @@ export class Base64StorageAdapter implements IStorageAdapter {
   async saveImage(id: string, data: string): Promise<void> {
     try {
       localStorage.setItem(Base64StorageAdapter.prefix + id, data)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       throw new Error("Failed to save image: " + e.message)
     }
@@ -25,6 +26,7 @@ export class Base64StorageAdapter implements IStorageAdapter {
     const keys: string[] = []
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i)
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
       key?.startsWith(Base64StorageAdapter.prefix) &&
         keys.push(key.replace(Base64StorageAdapter.prefix, ""))
     }

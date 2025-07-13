@@ -14,9 +14,7 @@ type SettingsStoreType = {
   settings: Settings[]
   getSetting: (key: string) => Settings | undefined
   getSettings: () => Settings[]
-  createSetting: (setting: Settings) => Promise<void>
-  updateSetting: (key: string, value: string) => Promise<void>
-  deleteSetting: (key: string) => Promise<void>
+  saveOrUpdateSettings: (key: string, value: string) => Promise<void>
 }
 
 export const useSettingsStore = create<SettingsStoreType>(
@@ -33,33 +31,14 @@ export const useSettingsStore = create<SettingsStoreType>(
       const { settings } = get()
       return settings
     },
-    createSetting: async (setting) => {
+    saveOrUpdateSettings: async (key, value) => {
       const { data } = get()
-      await data.saveSettings(setting)
-      set((state) => ({
-        settings: [...state.settings, setting],
-      }))
-    },
-    updateSetting: async (key, value) => {
-      const { data } = get()
-      const setting = get().getSetting(key)
-      if (setting) {
-        const updatedSetting = { ...setting, value }
-        await data.saveSettings(updatedSetting)
-        set((state) => ({
-          settings: state.settings.map((s) =>
-            s.key === key ? updatedSetting : s
-          ),
-        }))
-      } else {
-        throw new Error(`Setting with key ${key} not found`)
+      const setting: Settings = {
+        id: crypto.randomUUID(),
+        key,
+        value,
       }
-    },
-    deleteSetting: async (key) => {
-      // TODO: Implement delete logic in IDataAdapter
-      set((state) => ({
-        settings: state.settings.filter((s) => s.key !== key),
-      }))
+      await data.saveOrUpdateSettings(setting)
     },
   }))
 )
