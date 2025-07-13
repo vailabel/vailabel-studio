@@ -57,7 +57,7 @@ export interface IDataAdapter {
   deleteAIModel(aiModelId: string): Promise<void>
   // settings management
   fetchSettings(projectId: string): Promise<Settings>
-  saveSettings(settings: Settings): Promise<void>
+  saveOrUpdateSettings(settings: Settings): Promise<void>
   // user management
   fetchUsers(): Promise<User[]>
   saveUser(user: User): Promise<void>

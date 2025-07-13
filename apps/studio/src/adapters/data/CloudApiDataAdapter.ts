@@ -29,7 +29,6 @@ export class CloudApiDataAdapter implements IDataAdapter {
 
   updateProject(projectId: string, updates: Partial<Project>): Promise<void> {
     return this.api.put(`/projects/${projectId}`, updates)
-
   }
   updateLabel(labelId: string, updates: Partial<Label>): Promise<void> {
     return this.api.put(`/labels/${labelId}`, updates)
@@ -121,7 +120,7 @@ export class CloudApiDataAdapter implements IDataAdapter {
   fetchSettings(projectId: string): Promise<Settings> {
     return this.api.get<Settings>(`/projects/${projectId}/settings`)
   }
-  saveSettings(settings: Settings): Promise<void> {
+  saveOrUpdateSettings(settings: Settings): Promise<void> {
     return this.api.post(`/settings`, settings)
   }
   fetchUsers(): Promise<User[]> {
