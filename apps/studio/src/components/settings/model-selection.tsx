@@ -11,8 +11,8 @@ import {
 } from "@/components/ui/table"
 import { useToast } from "@/hooks/use-toast"
 import { AIModel } from "@vailabel/core"
-import { useAIModelStore } from "@/hooks/use-ai-model-store"
-import { useSettingsStore } from "@/hooks/use-settings-store"
+import { useAIModelStore } from "@/stores/use-ai-model-store"
+import { useSettingsStore } from "@/stores/use-settings-store"
 import { Button } from "@/components/ui/button"
 
 export function ModelSelection() {

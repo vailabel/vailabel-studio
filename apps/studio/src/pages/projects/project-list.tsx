@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/card"
 import { useNavigate } from "react-router-dom"
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog"
-import { useProjectStore } from "@/hooks/use-project-store"
+import { useProjectStore } from "@/stores/use-project-store"
 
 export default function ProjectList() {
   const navigate = useNavigate()

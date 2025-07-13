@@ -17,9 +17,9 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { useProjectStore } from "@/hooks/use-project-store"
-import { useLabelStore } from "@/hooks/use-label-store"
-import { useImageDataStore } from "@/hooks/use-image-data-store"
+import { useProjectStore } from "@/stores/use-project-store"
+import { useLabelStore } from "@/stores/use-label-store"
+import { useImageDataStore } from "@/stores/use-image-data-store"
 
 const ProjectDetailSchema = z.object({
   name: z.string().min(1, "Project name is required"),

@@ -30,6 +30,7 @@ export interface IDataAdapter {
     annotationId: string,
     updates: Partial<Annotation>
   ): Promise<void>
+  getAnnotationsByImageId(imageId: string): Promise<Annotation[]>
 
   // image data management
   fetchImageData(projectId: string): Promise<ImageData[]>
@@ -37,6 +38,7 @@ export interface IDataAdapter {
   updateImageData(imageId: string, updates: Partial<ImageData>): Promise<void>
   deleteImageData(imageId: string): Promise<void>
   fetchImageDataByProjectId(projectId: string): Promise<ImageData[]>
+  fetchImageDataById(imageId: string): Promise<ImageData | undefined>
 
   // history management
   fetchHistory(projectId: string): Promise<History[]>

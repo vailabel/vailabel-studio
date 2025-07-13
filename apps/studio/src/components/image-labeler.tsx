@@ -24,10 +24,11 @@ import { AIModelSelectModal } from "@/components/ai-model-modal"
 import { ContextMenu } from "@/components/context-menu"
 import { ThemeToggle } from "./theme-toggle"
 import { useNavigate } from "react-router-dom"
-import { useCanvasStore } from "@/hooks/canvas-store"
-import { useAnnotationsStore } from "@/hooks/annotation-store"
-import { useProjectStore } from "@/hooks/use-project-store"
-import { useImageDataStore } from "@/hooks/use-image-data-store"
+import { useCanvasStore } from "@/stores/canvas-store"
+import { useProjectStore } from "@/stores/use-project-store"
+import { ImageData } from "@vailabel/core"
+import { useImageDataStore } from "@/stores/use-image-data-store"
+import { useAnnotationsStore } from "@/stores/annotation-store"
 
 interface ImageLabelerProps {
   projectId?: string
@@ -46,39 +47,20 @@ export function ImageLabeler({ projectId, imageId }: ImageLabelerProps) {
   const [showSettings, setShowSettings] = useState(false)
   const [showExport, setShowExport] = useState(false)
   const [showAISettings, setShowAISettings] = useState(false)
-  const { currentImage } = useCanvasStore()
-  const {
-    currentProject,
-    getNextImage,
-    getPreviousImage,
-    nextImage,
-    previousImage,
-  } = useProjectStore()
-  const { setAnnotations, annotations } = useAnnotationsStore()
-
+  const { currentProject, nextImage, previousImage } = useProjectStore()
+  const { getImageImageById } = useImageDataStore()
+  const { annotations, setAnnotations } = useAnnotationsStore()
+  const [image, setImage] = useState<ImageData | null>(null)
   useEffect(() => {
-    if (!projectId || !imageId) return
-    const fetchProject = async () => {
-      const image = await getImageWithAnnotations(imageId)
-      const project = await getProject(projectId)
-
-      if (image) {
-        setCurrentImage(image)
-        setAnnotations(image.annotations || [])
+    ;(async () => {
+      if (!projectId || !imageId) return
+      const img = await getImageImageById(imageId)
+      if (img) {
+        setImage(img)
+        setAnnotations(img.annotations || [])
       }
-      if (project) {
-        setCurrentProject(project)
-      }
-    }
-
-    fetchProject()
-  }, [])
-
-  const { getImageWithAnnotations } = useImageDataStore()
-  const { setCurrentImage } = useCanvasStore()
-  const { setCurrentProject, getProject } = useProjectStore()
-
-  // Memoize currentProject name and label counts to avoid unnecessary renders
+    })()
+  }, [imageId, getImageImageById, projectId])
   const projectName = useMemo(
     () => currentProject?.name || "Project Name",
     [currentProject?.name]
@@ -91,61 +73,6 @@ export function ImageLabeler({ projectId, imageId }: ImageLabelerProps) {
     () => currentProject?.imageCount || 0,
     [currentProject?.imageCount]
   )
-
-  // Memoize navigation handlers
-  const goNextImage = useCallback(async () => {
-    if (currentProject && nextImage && nextImage.hasNext && nextImage.id) {
-      const image = await getImageWithAnnotations(nextImage.id)
-      if (image) {
-        setCurrentImage(image)
-        setAnnotations(image.annotations || [])
-        navigate(`/projects/${currentProject.id}/studio/${nextImage.id}`)
-      }
-    }
-  }, [
-    currentProject,
-    nextImage,
-    navigate,
-    getImageWithAnnotations,
-    setCurrentImage,
-    setAnnotations,
-  ])
-
-  const goPreviousImage = useCallback(async () => {
-    if (
-      currentProject &&
-      previousImage &&
-      previousImage.hasPrevious &&
-      previousImage.id
-    ) {
-      const image = await getImageWithAnnotations(previousImage.id)
-      if (image) {
-        setCurrentImage(image)
-        setAnnotations(image.annotations || [])
-        navigate(`/projects/${currentProject.id}/studio/${previousImage.id}`)
-      }
-    }
-  }, [
-    currentProject,
-    previousImage,
-    navigate,
-    getImageWithAnnotations,
-    setCurrentImage,
-    setAnnotations,
-  ])
-
-  // Memoize annotation data for Canvas
-  const memoizedAnnotations = useMemo(() => annotations, [annotations])
-  const memoizedCurrentImage = useMemo(() => currentImage, [currentImage])
-
-  useEffect(() => {
-    ;(async () => {
-      if (currentImage && currentProject) {
-        await getNextImage(currentProject.id, currentImage.id)
-        await getPreviousImage(currentProject.id, currentImage.id)
-      }
-    })()
-  }, [currentImage, currentProject, getNextImage, getPreviousImage])
 
   const handleExportProject = () => {
     setShowExport(true)
@@ -178,15 +105,15 @@ export function ImageLabeler({ projectId, imageId }: ImageLabelerProps) {
       if (showSettings || showExport || showAISettings) return
 
       if (e.key === "ArrowRight" || e.code === "ArrowRight") {
-        goNextImage()
+        // goNextImage()
       } else if (e.key === "ArrowLeft" || e.code === "ArrowLeft") {
-        goPreviousImage()
+        // goPreviousImage()
       }
     }
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [showSettings, showExport, showAISettings, goNextImage, goPreviousImage])
+  }, [showSettings, showExport, showAISettings])
 
   const onClose = () => {
     navigate("/projects")
@@ -216,7 +143,7 @@ export function ImageLabeler({ projectId, imageId }: ImageLabelerProps) {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={goPreviousImage}
+                      onClick={() => {}}
                       disabled={!previousImage.hasPrevious}
                     >
                       <ChevronLeft className="h-4 w-4" />
@@ -234,7 +161,7 @@ export function ImageLabeler({ projectId, imageId }: ImageLabelerProps) {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={goNextImage}
+                      onClick={() => {}}
                       disabled={!nextImage.hasNext}
                     >
                       <ChevronRight className="h-4 w-4 ml-1" />
@@ -295,7 +222,10 @@ export function ImageLabeler({ projectId, imageId }: ImageLabelerProps) {
           maxSize={400}
           className="h-full"
         >
-          <LabelListPanel onLabelSelect={() => {}} />
+          <LabelListPanel
+            onLabelSelect={() => {}}
+            projectId={projectId || ""}
+          />
         </ResizablePanel>
 
         {/* Middle panel - Canvas */}
@@ -307,17 +237,14 @@ export function ImageLabeler({ projectId, imageId }: ImageLabelerProps) {
           onClick={handleCloseContextMenu}
         >
           <Toolbar
-            currentImage={memoizedCurrentImage || null}
+            currentImage={image}
             onOpenSettings={() => setShowSettings(true)}
             onOpenAISettings={() => setShowAISettings(true)}
           />
 
           <div className="relative flex-1 overflow-hidden">
-            {memoizedCurrentImage ? (
-              <Canvas
-                image={memoizedCurrentImage}
-                annotations={memoizedAnnotations}
-              />
+            {image ? (
+              <Canvas image={image} annotations={annotations} />
             ) : (
               <div className="flex h-full items-center justify-center bg-gray-100 dark:bg-gray-900">
                 <p className="text-gray-500 dark:text-gray-400">

@@ -7,7 +7,7 @@ import { ChromePicker } from "react-color"
 import { Check } from "lucide-react"
 import debounce from "lodash/debounce"
 import { ElectronFileInput } from "@/components/electron-file"
-import { useSettingsStore } from "@/hooks/use-settings-store"
+import { useSettingsStore } from "@/stores/use-settings-store"
 
 const DEFAULTS = {
   brightness: 100,

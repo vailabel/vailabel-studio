@@ -17,6 +17,12 @@ export class CloudApiDataAdapter implements IDataAdapter {
   constructor() {
     this.api = new ApiClient() // Initialize the API client here
   }
+  getAnnotationsByImageId(imageId: string): Promise<Annotation[]> {
+    return this.api.get<Annotation[]>(`/images/${imageId}/annotations`)
+  }
+  fetchImageDataById(imageId: string): Promise<ImageData | undefined> {
+    return this.api.get<ImageData | undefined>(`/images/${imageId}`)
+  }
   fetchImageDataByProjectId(projectId: string): Promise<ImageData[]> {
     return this.api.get(`/projects/${projectId}/images`)
   }

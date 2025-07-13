@@ -2,8 +2,8 @@ import { motion } from "framer-motion"
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Users, Folder, Tag } from "lucide-react"
-import { useProjectStore } from "@/hooks/use-project-store"
-import { useLabelStore } from "@/hooks/use-label-store"
+import { useProjectStore } from "@/stores/use-project-store"
+import { useLabelStore } from "@/stores/use-label-store"
 
 interface RecentActivityItem {
   activity: string

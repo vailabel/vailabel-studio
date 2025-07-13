@@ -9,7 +9,7 @@ import "./ipc/index"
 import { jsonSetting } from "./utils"
 import { initDatabase } from "./db/init"
 
-import installExtension, { REDUX_DEVTOOLS } from "electron-devtools-installer"
+import installExtension, { REACT_DEVELOPER_TOOLS, REDUX_DEVTOOLS } from "electron-devtools-installer"
 import { setAppMenu } from "./menu/appMenu"
 import { isVersionSkipped, setupAutoUpdate } from "./autoUpdate/autoUpdate"
 
@@ -21,6 +21,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    maximizable: true,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -38,6 +39,10 @@ function createWindow() {
     mainWindow.loadFile(path.join(__dirname, "index.html"))
   }
   installExtension(REDUX_DEVTOOLS)
+    .then((name) => console.log(`Added Extension:  ${name}`))
+    .catch((err) => console.log("An error occurred: ", err))
+
+  installExtension(REACT_DEVELOPER_TOOLS)
     .then((name) => console.log(`Added Extension:  ${name}`))
     .catch((err) => console.log("An error occurred: ", err))
 }

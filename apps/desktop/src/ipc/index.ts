@@ -43,6 +43,7 @@ import {
 import { FetchSettingsQuery, SaveOrUpdateSettingsCommand } from "./settings"
 import {
   DeleteImageDataCommand,
+  FetchImageDataByIdQuery,
   FetchImageDataByProjectidQuery,
   FetchImageDataQuery,
   SaveImageDataCommand,
@@ -56,6 +57,7 @@ import {
 } from "./history"
 import {
   DeleteAnnotationCommand,
+  FetchAnnotationByImageIdQuery,
   FetchAnnotationQuery,
   SaveAnnotationCommand,
   UpdateAnnotationCommand,
@@ -123,6 +125,7 @@ handlers.push(new DeleteImageDataCommand())
 handlers.push(new SaveImageDataCommand())
 handlers.push(new UpdateImageDataCommand())
 handlers.push(new FetchImageDataByProjectidQuery())
+handlers.push(new FetchImageDataByIdQuery())
 
 // Register history
 handlers.push(new FetchHistoryQuery())
@@ -135,5 +138,6 @@ handlers.push(new FetchAnnotationQuery())
 handlers.push(new DeleteAnnotationCommand())
 handlers.push(new SaveAnnotationCommand())
 handlers.push(new UpdateAnnotationCommand())
+handlers.push(new FetchAnnotationByImageIdQuery())
 
 registerHandlers(handlers)

@@ -7,9 +7,9 @@ import { type Annotation, type ImageData } from "@vailabel/core"
 import { Crosshair } from "@/components/canvas/crosshair"
 import { TempAnnotation } from "@/components/canvas/temp-annotation"
 import { CreateAnnotation } from "@/components/canvas/create-annotation"
-import { useAnnotationsStore } from "@/hooks/annotation-store"
-import { useCanvasStore } from "@/hooks/canvas-store"
-import { useLabelStore } from "@/hooks/use-label-store"
+import { useAnnotationsStore } from "@/stores/annotation-store"
+import { useCanvasStore } from "@/stores/canvas-store"
+import { useLabelStore } from "@/stores/use-label-store"
 
 interface CanvasProps {
   image: ImageData
@@ -33,7 +33,6 @@ export const Canvas = ({ image, annotations }: CanvasProps) => {
     setShowLabelInput,
     setTempAnnotation,
   } = useCanvasHandlers()
-
   const handleCreateAnnotation = useCallback(
     async (name: string, color: string) => {
       if (!tempAnnotation) return
@@ -56,14 +55,7 @@ export const Canvas = ({ image, annotations }: CanvasProps) => {
       setShowLabelInput(false)
       setTempAnnotation(null)
     },
-    [
-      tempAnnotation,
-      getOrCreateLabel,
-      image.id,
-      createAnnotation,
-      setShowLabelInput,
-      setTempAnnotation,
-    ]
+    [tempAnnotation, image.projectId, image.id, getOrCreateLabel, createAnnotation, setShowLabelInput, setTempAnnotation]
   )
 
   const handleCloseCreateAnnotationModal = useCallback(() => {
