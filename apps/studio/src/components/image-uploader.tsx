@@ -14,7 +14,7 @@ interface ImageUploaderProps {
   onClose: () => void
 }
 
-export function ImageUploader({ onUpload, onClose }: ImageUploaderProps) {
+export const ImageUploader = ({ onUpload, onClose }: ImageUploaderProps) => {
   const [isDragging, setIsDragging] = useState(false)
   const [preview, setPreview] = useState<string | null>(null)
   const [fileName, setFileName] = useState<string>("")

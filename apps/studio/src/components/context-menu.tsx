@@ -21,12 +21,12 @@ interface ContextMenuProps {
   onClose: () => void
 }
 
-export function ContextMenu({
+export const ContextMenu = ({
   x,
   y,
   containerRect,
   onClose,
-}: ContextMenuProps) {
+}: ContextMenuProps) => {
   const menuRef = useRef<HTMLDivElement>(null)
   const { setSelectedTool, resetView } = useCanvasStore()
 

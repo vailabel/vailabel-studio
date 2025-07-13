@@ -3,7 +3,7 @@ import { useAutoUpdate } from "@/ipc/useAutoUpdate"
 import { Button } from "@/components/ui/button"
 import { RotateCcw, Download, CheckCircle2 } from "lucide-react"
 
-export function AutoUpdateBanner() {
+export const AutoUpdateBanner = () => {
   const { updateAvailable, progress, updateDownloaded } = useAutoUpdate()
 
   if (!progress && !updateDownloaded) return null
