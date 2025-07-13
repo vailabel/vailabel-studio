@@ -33,7 +33,6 @@ export const Canvas = ({ image, annotations }: CanvasProps) => {
     setShowLabelInput,
     setTempAnnotation,
   } = useCanvasHandlers()
-
   const handleCreateAnnotation = useCallback(
     async (name: string, color: string) => {
       if (!tempAnnotation) return
@@ -56,14 +55,7 @@ export const Canvas = ({ image, annotations }: CanvasProps) => {
       setShowLabelInput(false)
       setTempAnnotation(null)
     },
-    [
-      tempAnnotation,
-      getOrCreateLabel,
-      image.id,
-      createAnnotation,
-      setShowLabelInput,
-      setTempAnnotation,
-    ]
+    [tempAnnotation, image.projectId, image.id, getOrCreateLabel, createAnnotation, setShowLabelInput, setTempAnnotation]
   )
 
   const handleCloseCreateAnnotationModal = useCallback(() => {
