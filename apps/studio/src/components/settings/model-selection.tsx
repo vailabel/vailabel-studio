@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button"
 export function ModelSelection() {
   const { toast } = useToast()
   const { getAIModels, getSelectedModel } = useAIModelStore()
-  const { updateSetting } = useSettingsStore()
+  const { saveOrUpdateSettings } = useSettingsStore()
   const [availableModels, setAvailableModels] = useState<AIModel[]>([])
   const [selectedModelId, setSelectedModelId] = useState<string>("")
 
@@ -50,7 +50,7 @@ export function ModelSelection() {
   const handleSave = () => {
     const selectedModel = availableModels.find((m) => m.id === selectedModelId)
     if (selectedModel) {
-      updateSetting("modelPath", selectedModel.modelPath)
+      saveOrUpdateSettings("modelPath", selectedModel.modelPath)
       toast({
         title: "Model Saved",
         description: `Model path saved to settings: ${selectedModel.modelPath}`,

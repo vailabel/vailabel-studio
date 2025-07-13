@@ -13,12 +13,16 @@ import { useLabelStore } from "./stores/use-label-store"
 import { useImageDataStore } from "./stores/use-image-data-store"
 import { useSettingsStore } from "./stores/use-settings-store"
 import { useAIModelStore } from "./stores/use-ai-model-store"
+import { FileSystemStorageAdapter } from "./adapters/storage"
 
 const App = () => {
   const { initDataAdapter: initProjectsDataAdapter } = useProjectStore()
   const { initDataAdapter: initAnnotationsDataAdapter } = useAnnotationsStore()
   const { initDataAdapter: initLabelsDataAdapter } = useLabelStore()
-  const { initDataAdapter: initImageDataStore } = useImageDataStore()
+  const {
+    initDataAdapter: initImageDataStore,
+    initStorageAdapter: initImageStorageAdapter,
+  } = useImageDataStore()
   const { initDataAdapter: initSettingsDataAdapter } = useSettingsStore()
   const { initDataAdapter: initAiModelsDataAdapter } = useAIModelStore()
   useEffect(() => {
@@ -38,13 +42,10 @@ const App = () => {
     initAiModelsDataAdapter,
   ])
 
-  // useEffect(() => {
-  //   ;(async () => {
-  //     if (settings.length === 0) {
-  //       await getSettings()
-  //     }
-  //   })()
-  // }, [settings, getSettings])
+  useEffect(() => {
+    const storageAdapter = new FileSystemStorageAdapter("data")
+    initImageStorageAdapter(storageAdapter)
+  }, [initImageStorageAdapter])
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
