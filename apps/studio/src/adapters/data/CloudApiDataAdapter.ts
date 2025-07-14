@@ -117,8 +117,8 @@ export class CloudApiDataAdapter implements IDataAdapter {
   deleteAIModel(aiModelId: string): Promise<void> {
     return this.api.delete(`/ai-models/${aiModelId}`)
   }
-  fetchSettings(projectId: string): Promise<Settings> {
-    return this.api.get<Settings>(`/projects/${projectId}/settings`)
+  fetchSettings(): Promise<Settings[]> {
+    return this.api.get<Settings[]>(`/settings`)
   }
   saveOrUpdateSettings(settings: Settings): Promise<void> {
     return this.api.post(`/settings`, settings)
