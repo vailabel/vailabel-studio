@@ -23,10 +23,10 @@
     "@types/semver": "^7.7.0",
     "@vailabel/core": "*",
     "electron": "36.2.1",
-    "electron-builder": "^26.0.12",
-    "electron-devtools-installer": "^4.0.0"
+    "electron-builder": "^26.0.12"
   },
   "dependencies": {
+    "electron-devtools-installer": "^4.0.0",
     "electron-updater": "^6.6.2",
     "keytar": "^7.9.0",
     "reflect-metadata": "^0.2.2",
