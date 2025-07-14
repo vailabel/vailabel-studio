@@ -20,7 +20,13 @@ import {
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden"
 import { Menu } from "lucide-react"
 
-const navigation = [
+type NavigationItem = {
+  name: string
+  href: string
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>
+}
+
+const navigation: NavigationItem[] = [
   { name: "Overview", href: "/", icon: Home },
   { name: "Projects", href: "/projects", icon: Folder },
   { name: "Task", href: "/tasks", icon: Layers2 },
@@ -29,7 +35,7 @@ const navigation = [
   { name: "Settings", href: "/settings", icon: Settings2 },
 ]
 
-export default function MainLayout() {
+const MainLayout = () => {
   const navigate = useNavigate()
   const outlet = useOutlet()
   const location = useLocation()
@@ -71,39 +77,7 @@ export default function MainLayout() {
   return (
     <div className="flex min-h-screen">
       {/* Sidebar for md+ */}
-      <aside className="hidden md:block w-64 bg-gray-100 dark:bg-gray-800 p-4">
-        <div className="flex items-center gap-2 mb-6">
-          <img
-            src="/logo.png"
-            alt="Vision AI Label Studio Logo"
-            className="h-7 w-7"
-          />
-          <span className="text-xl font-bold">VAI Studio</span>
-        </div>
-        <nav className="space-y-2">
-          {navigation.map((item) => {
-            const isActive =
-              location.pathname === item.href ||
-              (item.href !== "/" && location.pathname.startsWith(item.href))
-            return (
-              <button
-                key={item.name}
-                onClick={() => navigate(item.href)}
-                className={
-                  "flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors " +
-                  (isActive
-                    ? "bg-primary text-primary-foreground shadow"
-                    : "hover:bg-gray-200 dark:hover:bg-gray-700")
-                }
-                aria-current={isActive ? "page" : undefined}
-              >
-                <item.icon className="h-5 w-5" />
-                <span>{item.name}</span>
-              </button>
-            )
-          })}
-        </nav>
-      </aside>
+      <Aside navigation={navigation} location={location} />
       {/* Sheet for mobile (only) */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         {/* Menu button in header, only on mobile */}
@@ -240,3 +214,49 @@ export default function MainLayout() {
     </div>
   )
 }
+
+export default MainLayout
+
+type AsideProps = {
+  navigation: NavigationItem[]
+  location: ReturnType<typeof useLocation>
+}
+
+const Aside = React.memo(({ navigation, location }: AsideProps) => {
+  const navigate = useNavigate()
+  return (
+    <aside className="hidden md:block w-64 bg-gray-100 dark:bg-gray-800 p-4">
+      <div className="flex items-center gap-2 mb-6">
+        <img
+          src="/logo.png"
+          alt="Vision AI Label Studio Logo"
+          className="h-7 w-7"
+        />
+        <span className="text-xl font-bold">VAI Studio</span>
+      </div>
+      <nav className="space-y-2">
+        {navigation.map((item) => {
+          const isActive =
+            location.pathname === item.href ||
+            (item.href !== "/" && location.pathname.startsWith(item.href))
+          return (
+            <button
+              key={item.name}
+              onClick={() => navigate(item.href)}
+              className={
+                "flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors " +
+                (isActive
+                  ? "bg-primary text-primary-foreground shadow"
+                  : "hover:bg-gray-200 dark:hover:bg-gray-700")
+              }
+              aria-current={isActive ? "page" : undefined}
+            >
+              <item.icon className="h-5 w-5" />
+              <span>{item.name}</span>
+            </button>
+          )
+        })}
+      </nav>
+    </aside>
+  )
+})

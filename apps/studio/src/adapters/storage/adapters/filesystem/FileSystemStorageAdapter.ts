@@ -3,8 +3,11 @@ import { IStorageAdapter } from "../../interfaces/IStorageAdapter"
 export class FileSystemStorageAdapter implements IStorageAdapter {
   constructor(private readonly directory: string) {
     if (!directory) {
-      throw new Error("Directory is required")
+      throw new Error(
+        "Directory path must be provided for FileSystemStorageAdapter"
+      )
     }
+    this.ensureDirectory()
   }
   private ensureDirectory = async () => {
     await window.ipc.invoke("fs-ensure-directory", { path: this.directory })

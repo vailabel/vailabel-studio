@@ -16,9 +16,7 @@ import fs from "fs"
 
 const isDev = !app.isPackaged
 
-const dbFolder = isDev
-  ? path.join(__dirname) // Use a relative path in development
-  : app.getPath("userData")
+const dbFolder = isDev ? path.join(__dirname) : app.getPath("userData")
 const dbPath = path.join(dbFolder, "database.sqlite")
 
 // Ensure the database folder exists

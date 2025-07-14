@@ -21,7 +21,7 @@ interface Settings {
   [key: string]: string | number | boolean
 }
 
-export function SettingsModal({ onClose }: SettingsModalProps) {
+export const SettingsModal = ({ onClose }: SettingsModalProps) => {
   const { toast } = useToast()
   const [isClearing, setIsClearing] = useState(false)
   const { theme, setTheme } = useTheme()

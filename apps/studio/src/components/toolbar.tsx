@@ -1,4 +1,4 @@
-import type React from "react"
+import React from "react"
 import { motion } from "framer-motion"
 import {
   Square,
@@ -28,6 +28,7 @@ import { AIDetectionButton } from "@/components/ai-detection-button"
 import type { ImageData } from "@vailabel/core"
 import { useCanvasStore } from "@/stores/canvas-store"
 import { useAnnotationsStore } from "@/stores/annotation-store"
+import { memo } from "react"
 
 interface ToolbarProps {
   currentImage: ImageData | null
@@ -53,102 +54,254 @@ interface AdditionalTool {
   action: () => void
 }
 
-export function Toolbar({ currentImage, onOpenAISettings }: ToolbarProps) {
-  const {
-    selectedTool,
+export const Toolbar = memo(
+  ({ currentImage, onOpenAISettings }: ToolbarProps) => {
+    const {
+      selectedTool,
+      setSelectedTool,
+      resetView,
+      setZoom,
+      zoom,
+      setShowCrosshair,
+      setShowCoordinates,
+      showCrosshair,
+      showCoordinates,
+    } = useCanvasStore()
+    const { undo, redo, canUndo, canRedo } = useAnnotationsStore()
+
+    const selectedTools = React.useMemo(
+      (): Tool[] => [
+        {
+          id: "move",
+          name: "Move",
+          icon: Move,
+          shortcut: "M",
+          action: () => setSelectedTool("move"),
+        },
+        {
+          id: "box",
+          name: "Draw Box",
+          icon: Square,
+          shortcut: "B",
+          action: () => setSelectedTool("box"),
+        },
+        {
+          id: "polygon",
+          name: "Draw Polygon",
+          icon: Polygon,
+          shortcut: "P",
+          action: () => setSelectedTool("polygon"),
+        },
+        {
+          id: "freeDraw",
+          name: "Free Draw",
+          icon: Pencil,
+          shortcut: "F",
+          action: () => setSelectedTool("freeDraw"),
+        },
+        {
+          id: "delete",
+          name: "Delete",
+          icon: Trash2,
+          shortcut: "D",
+          action: () => setSelectedTool("delete"),
+        },
+      ],
+      [setSelectedTool]
+    )
+
+    const clickableTools = React.useMemo(
+      (): Tool[] => [
+        {
+          id: "undo",
+          name: "Undo",
+          icon: RotateCcw,
+          shortcut: "Cmd+Z",
+          condition: canUndo,
+          action: () => undo(),
+        },
+        {
+          id: "redo",
+          name: "Redo",
+          icon: RotateCw,
+          condition: canRedo,
+          shortcut: "Cmd+Shift+Z",
+          action: () => redo(),
+        },
+      ],
+      [canUndo, canRedo, undo, redo]
+    )
+
+    const additionalTool = React.useMemo(
+      (): AdditionalTool[] => [
+        {
+          id: "crosshair",
+          name: "Crosshair",
+          icon: Crosshair,
+          shortcut: "C",
+          active: showCrosshair,
+          action: () => {
+            setShowCrosshair(!showCrosshair)
+          },
+        },
+        {
+          id: "coordinates",
+          name: "Coordinates",
+          icon: MousePointer,
+          shortcut: "Alt+Shift+C",
+          active: showCoordinates,
+          action: () => {
+            setShowCoordinates(!showCoordinates)
+          },
+        },
+      ],
+      [showCrosshair, showCoordinates, setShowCrosshair, setShowCoordinates]
+    )
+
+    return (
+      <div className="flex items-center justify-between border-b p-1 dark:bg-gray-800 dark:border-gray-700 bg-white border-gray-200">
+        <AnnotationTools
+          selectedTool={selectedTool}
+          setSelectedTool={setSelectedTool}
+          clickableTools={clickableTools}
+          selectedTools={selectedTools}
+        />
+        <div className="flex items-center space-x-1">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 w-8"
+                  onClick={() => setZoom(zoom - 0.1)}
+                >
+                  <Minus className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Zoom Out</TooltipContent>
+            </Tooltip>
+            <p className="text-sm text-gray-700 dark:text-gray-200">
+              {(zoom * 100).toFixed(0)}%
+            </p>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 w-8"
+                  onClick={() => setZoom(zoom + 0.1)}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Zoom In</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8"
+                  onClick={() => resetView()}
+                >
+                  <RefreshCcw className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Reset Zoom</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          <Separator
+            orientation="vertical"
+            className="mx-2 h-6 dark:bg-gray-700"
+          />
+          <TooltipProvider>
+            {additionalTool.map((tool) => (
+              <Tooltip key={tool.id}>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      "h-8 w-8",
+                      tool.active
+                        ? "bg-blue-50 text-blue-500 dark:bg-blue-900 dark:text-blue-300 border-2 border-blue-500 dark:border-blue-400 shadow"
+                        : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                    )}
+                    onClick={tool.action}
+                    aria-pressed={tool.active}
+                  >
+                    <tool.icon
+                      className={cn("h-4 w-4", tool.active ? "scale-110" : "")}
+                    />
+                    {tool.active && (
+                      <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-blue-500 dark:bg-blue-300 animate-pulse" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <div className="flex items-center">
+                    <span>{tool.name}</span>
+                    <kbd
+                      className={cn(
+                        "ml-2 rounded border px-1.5 text-xs",
+                        "border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-800"
+                      )}
+                    >
+                      {tool.shortcut}
+                    </kbd>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            ))}
+          </TooltipProvider>
+
+          <Separator
+            orientation="vertical"
+            className="mx-2 h-6 dark:bg-gray-700"
+          />
+          <AIDetectionButton image={currentImage} />
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8"
+                  onClick={onOpenAISettings}
+                >
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">AI Model Settings</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      </div>
+    )
+  }
+)
+
+type AnnotationToolsProps = {
+  selectedTools: Tool[]
+  selectedTool: string
+  setSelectedTool: (tool: string) => void
+  clickableTools: Tool[]
+}
+
+const AnnotationTools = memo(
+  ({
+    selectedTools,
     setSelectedTool,
-    resetView,
-    setZoom,
-    zoom,
-    setShowCrosshair,
-    setShowCoordinates,
-    showCrosshair,
-    showCoordinates,
-  } = useCanvasStore()
-  const { undo, redo, canUndo, canRedo } = useAnnotationsStore()
-
-  const selectedTools: Tool[] = [
-    {
-      id: "move",
-      name: "Move",
-      icon: Move,
-      shortcut: "M",
-      action: () => setSelectedTool("move"),
-    },
-    {
-      id: "box",
-      name: "Draw Box",
-      icon: Square,
-      shortcut: "B",
-      action: () => setSelectedTool("box"),
-    },
-    {
-      id: "polygon",
-      name: "Draw Polygon",
-      icon: Polygon,
-      shortcut: "P",
-      action: () => setSelectedTool("polygon"),
-    },
-    {
-      id: "freeDraw",
-      name: "Free Draw",
-      icon: Pencil,
-      shortcut: "F",
-      action: () => setSelectedTool("freeDraw"),
-    },
-    {
-      id: "delete",
-      name: "Delete",
-      icon: Trash2,
-      shortcut: "D",
-      action: () => setSelectedTool("delete"),
-    },
-  ]
-
-  const clickableTools: Tool[] = [
-    {
-      id: "undo",
-      name: "Undo",
-      icon: RotateCcw,
-      shortcut: "Cmd+Z",
-      condition: canUndo,
-      action: () => undo(),
-    },
-    {
-      id: "redo",
-      name: "Redo",
-      icon: RotateCw,
-      condition: canRedo,
-      shortcut: "Cmd+Shift+Z",
-      action: () => redo(),
-    },
-  ]
-
-  const additionalTool: AdditionalTool[] = [
-    {
-      id: "crosshair",
-      name: "Crosshair",
-      icon: Crosshair,
-      shortcut: "C",
-      active: showCrosshair,
-      action: () => {
-        setShowCrosshair(!showCrosshair)
-      },
-    },
-    {
-      id: "coordinates",
-      name: "Coordinates",
-      icon: MousePointer,
-      shortcut: "Alt+Shift+C",
-      active: showCoordinates,
-      action: () => {
-        setShowCoordinates(!showCoordinates)
-      },
-    },
-  ]
-
-  return (
-    <div className="flex items-center justify-between border-b p-1 dark:bg-gray-800 dark:border-gray-700 bg-white border-gray-200">
+    selectedTool,
+    clickableTools,
+  }: AnnotationToolsProps) => {
+    return (
       <div className="flex items-center space-x-1">
         <TooltipProvider>
           {selectedTools.map((tool) => (
@@ -233,127 +386,6 @@ export function Toolbar({ currentImage, onOpenAISettings }: ToolbarProps) {
           ))}
         </TooltipProvider>
       </div>
-      <Separator orientation="vertical" className="mx-2 h-6 dark:bg-gray-700" />
-      <div className="flex items-center space-x-1">
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 w-8"
-                onClick={() => setZoom(zoom - 0.1)}
-              >
-                <Minus className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">Zoom Out</TooltipContent>
-          </Tooltip>
-          <p className="text-sm text-gray-700 dark:text-gray-200">
-            {(zoom * 100).toFixed(0)}%
-          </p>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 w-8"
-                onClick={() => setZoom(zoom + 0.1)}
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">Zoom In</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8"
-                onClick={() => resetView()}
-              >
-                <RefreshCcw className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">Reset Zoom</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-
-        <Separator
-          orientation="vertical"
-          className="mx-2 h-6 dark:bg-gray-700"
-        />
-
-        {/* Additional Tools */}
-        <TooltipProvider>
-          {additionalTool.map((tool) => (
-            <Tooltip key={tool.id}>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    "h-8 w-8",
-                    tool.active
-                      ? "bg-blue-50 text-blue-500 dark:bg-blue-900 dark:text-blue-300 border-2 border-blue-500 dark:border-blue-400 shadow"
-                      : "hover:bg-gray-100 dark:hover:bg-gray-700"
-                  )}
-                  onClick={tool.action}
-                  aria-pressed={tool.active}
-                >
-                  <tool.icon
-                    className={cn("h-4 w-4", tool.active ? "scale-110" : "")}
-                  />
-                  {tool.active && (
-                    <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-blue-500 dark:bg-blue-300 animate-pulse" />
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">
-                <div className="flex items-center">
-                  <span>{tool.name}</span>
-                  <kbd
-                    className={cn(
-                      "ml-2 rounded border px-1.5 text-xs",
-                      "border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-800"
-                    )}
-                  >
-                    {tool.shortcut}
-                  </kbd>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          ))}
-        </TooltipProvider>
-
-        <Separator
-          orientation="vertical"
-          className="mx-2 h-6 dark:bg-gray-700"
-        />
-
-        {/* AI Detection Button */}
-        <AIDetectionButton image={currentImage} />
-
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8"
-                onClick={onOpenAISettings}
-              >
-                <Settings className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">AI Model Settings</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </div>
-    </div>
-  )
-}
+    )
+  }
+)

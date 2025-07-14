@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react"
+import { memo, useCallback, useEffect, useRef } from "react"
 import { cn } from "@/lib/utils"
 import { AnnotationRenderer } from "@/components/canvas/annotation-renderer"
 import { PositionCoordinates } from "@/components/canvas/position-coordinates"
@@ -16,7 +16,7 @@ interface CanvasProps {
   annotations: Annotation[]
 }
 
-export const Canvas = ({ image, annotations }: CanvasProps) => {
+export const Canvas = memo(({ image, annotations }: CanvasProps) => {
   const { zoom, panOffset, selectedTool, setCanvasRef } = useCanvasStore()
   const { createAnnotation } = useAnnotationsStore()
   const { getOrCreateLabel, labels } = useLabelStore()
@@ -33,6 +33,7 @@ export const Canvas = ({ image, annotations }: CanvasProps) => {
     setShowLabelInput,
     setTempAnnotation,
   } = useCanvasHandlers()
+
   const handleCreateAnnotation = useCallback(
     async (name: string, color: string) => {
       if (!tempAnnotation) return
@@ -55,15 +56,7 @@ export const Canvas = ({ image, annotations }: CanvasProps) => {
       setShowLabelInput(false)
       setTempAnnotation(null)
     },
-    [
-      tempAnnotation,
-      image.projectId,
-      image.id,
-      getOrCreateLabel,
-      createAnnotation,
-      setShowLabelInput,
-      setTempAnnotation,
-    ]
+    [tempAnnotation, image.projectId, image.id]
   )
 
   const handleCloseCreateAnnotationModal = useCallback(() => {
@@ -73,7 +66,7 @@ export const Canvas = ({ image, annotations }: CanvasProps) => {
 
   useEffect(() => {
     setCanvasRef(canvasRef)
-  }, [setCanvasRef])
+  }, [])
   const cursorStyles = {
     box: "cursor-crosshair",
     polygon: "cursor-crosshair",
@@ -144,4 +137,4 @@ export const Canvas = ({ image, annotations }: CanvasProps) => {
       />
     </>
   )
-}
+})
