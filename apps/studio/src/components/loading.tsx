@@ -1,6 +1,6 @@
 import { motion } from "framer-motion"
 
-export default function Loading() {
+const Loading = () => {
   return (
     <div className="flex h-64 flex-col items-center justify-center gap-4">
       <motion.div
@@ -17,3 +17,5 @@ export default function Loading() {
     </div>
   )
 }
+
+export default Loading

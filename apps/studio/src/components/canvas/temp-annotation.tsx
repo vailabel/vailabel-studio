@@ -1,12 +1,13 @@
 import { motion } from "framer-motion"
 import { rgbToRgba } from "@/lib/utils"
 import type { Annotation } from "@vailabel/core"
+import { memo } from "react"
 
 interface TempAnnotationProps {
   annotation: Partial<Annotation>
 }
 
-export function TempAnnotation({ annotation }: Readonly<TempAnnotationProps>) {
+export const TempAnnotation = memo(({ annotation }: TempAnnotationProps) => {
   const styles = {
     fill: rgbToRgba(annotation.color ?? "#333", 0.2),
     stroke: annotation.color,
@@ -52,4 +53,4 @@ export function TempAnnotation({ annotation }: Readonly<TempAnnotationProps>) {
   }
 
   return null
-}
+})

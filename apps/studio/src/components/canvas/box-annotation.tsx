@@ -1,4 +1,4 @@
-import React, { useMemo } from "react"
+import { memo, useMemo } from "react"
 import { motion } from "framer-motion"
 import { cn, getContentBoxColor } from "@/lib/utils"
 import type { Annotation } from "@vailabel/core"
@@ -9,9 +9,7 @@ interface BoxAnnotationProps {
   annotation: Annotation
 }
 
-export const BoxAnnotation = React.memo(function BoxAnnotation({
-  annotation,
-}: BoxAnnotationProps) {
+export const BoxAnnotation = memo(({ annotation }: BoxAnnotationProps) => {
   const { selectedTool } = useCanvasStore()
   const { selectedAnnotation } = useAnnotationsStore()
 

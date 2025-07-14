@@ -3,7 +3,9 @@ import * as fs from "fs/promises"
 import * as path from "path"
 // Use Electron's userData directory for file operations
 function getUserDataPath(...segments: string[]) {
-  return path.join(app.getPath("userData"), ...segments)
+  const isDev = !app.isPackaged
+  const dataFolder = isDev ? path.join(__dirname) : app.getPath("userData")
+  return path.join(dataFolder, ...segments)
 }
 // Save image
 ipcMain.handle("fs-save-image", async (_event, { path: filePath, data }) => {
@@ -15,6 +17,11 @@ ipcMain.handle("fs-save-image", async (_event, { path: filePath, data }) => {
   ) {
     absPath = getUserDataPath(filePath)
   }
+
+  // Ensure the directory exists before saving the file
+  const dir = path.dirname(absPath)
+  await fs.mkdir(dir, { recursive: true })
+
   let buffer: Buffer
   if (typeof data === "string") {
     // Try to handle data URL or base64 string
