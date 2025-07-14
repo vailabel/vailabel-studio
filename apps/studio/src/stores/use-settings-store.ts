@@ -28,7 +28,11 @@ export const useSettingsStore = create<SettingsStoreType>(
       return settings.find((setting) => setting.key === key)
     },
     getSettings: () => {
-      const { settings } = get()
+      const { settings, data } = get()
+      data.fetchSettings().then((fetchedSettings) => {
+        set({ settings: fetchedSettings })
+      })
+
       return settings
     },
     saveOrUpdateSettings: async (key, value) => {

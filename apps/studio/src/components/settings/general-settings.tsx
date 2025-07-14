@@ -32,15 +32,32 @@ const PRESET_COLORS = [
 
 export default function GeneralSettings() {
   const { theme, setTheme } = useTheme()
-  const [brightness, setBrightness] = useState(DEFAULTS.brightness)
-  const [contrast, setContrast] = useState(DEFAULTS.contrast)
-  const [annotationColor, setAnnotationColor] = useState(
-    DEFAULTS.annotationColor
+  const { getSetting } = useSettingsStore()
+  const [brightness, setBrightness] = useState<number>(
+    parseInt(getSetting("brightness")?.value || String(DEFAULTS.brightness), 10)
   )
-  const [boxThickness, setBoxThickness] = useState(DEFAULTS.boxThickness)
-  const [showLabels, setShowLabels] = useState(DEFAULTS.showLabels)
-  const [snapToGrid, setSnapToGrid] = useState(DEFAULTS.snapToGrid)
-  const [autoSave, setAutoSave] = useState(DEFAULTS.autoSave)
+  const [contrast, setContrast] = useState<number>(
+    parseInt(getSetting("contrast")?.value || String(DEFAULTS.contrast), 10)
+  )
+  const [annotationColor, setAnnotationColor] = useState<string>(
+    getSetting("annotationColor")?.value || DEFAULTS.annotationColor
+  )
+  const [boxThickness, setBoxThickness] = useState<number>(
+    parseInt(
+      getSetting("boxThickness")?.value || String(DEFAULTS.boxThickness),
+      10
+    )
+  )
+  const [showLabels, setShowLabels] = useState<boolean>(
+    Boolean(getSetting("showLabels")?.value) || DEFAULTS.showLabels
+  )
+  const [snapToGrid, setSnapToGrid] = useState<boolean>(
+    Boolean(getSetting("snapToGrid")?.value) || DEFAULTS.snapToGrid
+  )
+  const [autoSave, setAutoSave] = useState<boolean>(
+    Boolean(getSetting("autoSave")?.value) || DEFAULTS.autoSave
+  )
+
   const [showCustomColor, setShowCustomColor] = useState(false)
   const [dataDir, setDataDir] = useState<string>("")
   const customBtnRef = useRef<HTMLButtonElement>(null)

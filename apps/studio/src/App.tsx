@@ -23,7 +23,11 @@ const App = () => {
     initDataAdapter: initImageDataStore,
     initStorageAdapter: initImageStorageAdapter,
   } = useImageDataStore()
-  const { initDataAdapter: initSettingsDataAdapter } = useSettingsStore()
+  const {
+    initDataAdapter: initSettingsDataAdapter,
+    getSettings,
+    settings,
+  } = useSettingsStore()
   const { initDataAdapter: initAiModelsDataAdapter } = useAIModelStore()
   useEffect(() => {
     const data = new ElectronApiDataAdapter()
@@ -43,9 +47,15 @@ const App = () => {
   ])
 
   useEffect(() => {
-    const storageAdapter = new FileSystemStorageAdapter("data")
+    const storageAdapter = new FileSystemStorageAdapter("images")
     initImageStorageAdapter(storageAdapter)
   }, [initImageStorageAdapter])
+
+  useEffect(() => {
+    if (settings.length === 0) {
+      getSettings()
+    }
+  }, [])
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">

@@ -33,6 +33,7 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
     setShowLabelInput,
     setTempAnnotation,
   } = useCanvasHandlers()
+
   const handleCreateAnnotation = useCallback(
     async (name: string, color: string) => {
       if (!tempAnnotation) return
@@ -55,15 +56,7 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
       setShowLabelInput(false)
       setTempAnnotation(null)
     },
-    [
-      tempAnnotation,
-      image.projectId,
-      image.id,
-      getOrCreateLabel,
-      createAnnotation,
-      setShowLabelInput,
-      setTempAnnotation,
-    ]
+    [tempAnnotation, image.projectId, image.id]
   )
 
   const handleCloseCreateAnnotationModal = useCallback(() => {
@@ -73,7 +66,7 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
 
   useEffect(() => {
     setCanvasRef(canvasRef)
-  }, [setCanvasRef])
+  }, [])
   const cursorStyles = {
     box: "cursor-crosshair",
     polygon: "cursor-crosshair",

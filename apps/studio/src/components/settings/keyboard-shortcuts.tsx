@@ -32,8 +32,21 @@ const CATEGORIES = [
 
 export function KeyboardShortcuts() {
   const { getSetting, saveOrUpdateSettings } = useSettingsStore()
-  const [shortcuts, setShortcuts] =
-    useState<KeyboardShortcut[]>(DEFAULT_SHORTCUTS)
+  const [shortcuts, setShortcuts] = useState<KeyboardShortcut[]>(() => {
+    const setting = getSetting("keyboardShortcuts")
+    let parsed: unknown
+    try {
+      if (setting && typeof setting.value === "string") {
+        parsed = JSON.parse(setting.value)
+        if (Array.isArray(parsed)) {
+          return parsed as KeyboardShortcut[]
+        }
+      }
+    } catch {
+      // ignore parse error, fallback to default
+    }
+    return DEFAULT_SHORTCUTS
+  })
   const [editingIdx, setEditingIdx] = useState<number | null>(null)
   const [editValue, setEditValue] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("All")
@@ -41,7 +54,7 @@ export function KeyboardShortcuts() {
   // Load shortcuts from settings on mount
   useEffect(() => {
     ;(async () => {
-      const saved = await getSetting?.("keyboardShortcuts")
+      const saved = await getSetting("keyboardShortcuts")
       if (saved && typeof saved === "string") {
         try {
           const parsed = JSON.parse(saved)
