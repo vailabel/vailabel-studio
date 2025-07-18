@@ -14,6 +14,8 @@ import { useImageDataStore } from "./stores/use-image-data-store"
 import { useSettingsStore } from "./stores/use-settings-store"
 import { useAIModelStore } from "./stores/use-ai-model-store"
 import { FileSystemStorageAdapter } from "./adapters/storage"
+import { isElectron } from "./lib/constants"
+import { CloudApiDataAdapter } from "./adapters/data/CloudApiDataAdapter"
 
 const App = () => {
   const { initDataAdapter: initProjectsDataAdapter } = useProjectStore()
@@ -30,7 +32,7 @@ const App = () => {
   } = useSettingsStore()
   const { initDataAdapter: initAiModelsDataAdapter } = useAIModelStore()
   useEffect(() => {
-    const data = new ElectronApiDataAdapter()
+    const data = isElectron() ?  new ElectronApiDataAdapter() : new CloudApiDataAdapter()
     initProjectsDataAdapter(data)
     initAnnotationsDataAdapter(data)
     initLabelsDataAdapter(data)
