@@ -1,33 +1,25 @@
 from sqlalchemy.orm import Session
-from db.models.image_data import ImageData as ImageDataModel
 from models.image_data import ImageDataCreate, ImageDataUpdate
+from repositories.image_data_repository import ImageDataRepository
+
+image_data_repo = ImageDataRepository()
+
 
 def get_images_by_project(db: Session, project_id: str):
-    return db.query(ImageDataModel).filter_by(project_id=project_id).all()
+    return image_data_repo.get_by_project(db, project_id)
+
 
 def get_image(db: Session, image_id: str):
-    return db.query(ImageDataModel).filter_by(id=image_id).first()
+    return image_data_repo.get(db, image_id)
+
 
 def create_image(db: Session, data: ImageDataCreate):
-    image = ImageDataModel(**data.dict())
-    db.add(image)
-    db.commit()
-    db.refresh(image)
-    return image
+    return image_data_repo.create(db, data)
+
 
 def update_image(db: Session, image_id: str, updates: ImageDataUpdate):
-    image = get_image(db, image_id)
-    if not image:
-        return None
-    for key, value in updates.dict(exclude_unset=True).items():
-        setattr(image, key, value)
-    db.commit()
-    db.refresh(image)
-    return image
+    return image_data_repo.update(db, image_id, updates)
+
 
 def delete_image(db: Session, image_id: str):
-    image = get_image(db, image_id)
-    if image:
-        db.delete(image)
-        db.commit()
-    return image
+    return image_data_repo.delete(db, image_id)

@@ -1,33 +1,25 @@
 from sqlalchemy.orm import Session
-from db.models.project import Project as ProjectModel
 from models.project import ProjectCreate, ProjectUpdate
+from repositories.project_repository import ProjectRepository
+
+project_repo = ProjectRepository()
+
 
 def get_projects(db: Session):
-    return db.query(ProjectModel).all()
+    return project_repo.get_all(db)
+
 
 def get_project_by_id(db: Session, project_id: str):
-    return db.query(ProjectModel).filter(ProjectModel.id == project_id).first()
+    return project_repo.get(db, project_id)
+
 
 def create_project(db: Session, project: ProjectCreate):
-    db_project = ProjectModel(**project.dict())
-    db.add(db_project)
-    db.commit()
-    db.refresh(db_project)
-    return db_project
+    return project_repo.create(db, project)
+
 
 def update_project(db: Session, project_id: str, updates: ProjectUpdate):
-    project = get_project_by_id(db, project_id)
-    if not project:
-        return None
-    for key, value in updates.dict(exclude_unset=True).items():
-        setattr(project, key, value)
-    db.commit()
-    db.refresh(project)
-    return project
+    return project_repo.update(db, project_id, updates)
+
 
 def delete_project(db: Session, project_id: str):
-    project = get_project_by_id(db, project_id)
-    if project:
-        db.delete(project)
-        db.commit()
-    return project
+    return project_repo.delete(db, project_id)
