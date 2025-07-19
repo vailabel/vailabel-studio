@@ -21,9 +21,9 @@ jobs:
         with:
           node-version: 22
       - name: Install dependencies
-        run: yarn
+        run: pnpm install
       - name: Test and coverage
-        run: yarn jest --coverage
+        run: pnpm test --coverage
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
