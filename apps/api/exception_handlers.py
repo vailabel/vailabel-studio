@@ -36,13 +36,14 @@ def register_exception_handlers(app):
     # Handle all other unhandled exceptions
     @app.exception_handler(Exception)
     async def unhandled_exception_handler(request: Request, exc: Exception):
+        import logging
+        logging.error("Unhandled exception occurred: %s", traceback.format_exc())
         return JSONResponse(
             status_code=500,
             content={
                 "error": {
                     "type": "InternalServerError",
-                    "message": str(exc),
-                    "details": traceback.format_exc()
+                    "message": "An unexpected error has occurred. Please try again later."
                 }
             },
         )
