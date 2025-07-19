@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from api.v1 import (projects, ai_models , annotations, settings, images, labels)
+from api.v1 import (projects, ai_models , annotations, settings, images, labels, tasks, history)
 from db.base import Base
 from db.session import engine
 
@@ -46,3 +46,5 @@ app.include_router(annotations.router)
 app.include_router(settings.router)
 app.include_router(images.router)
 app.include_router(labels.router)
+app.include_router(tasks.router)
+app.include_router(history.router)

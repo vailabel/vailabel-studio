@@ -1,5 +1,5 @@
 from sqlalchemy import Column, String, DateTime
-from datetime import datetime
+from datetime import datetime, timezone
 from ..base import Base
 
 class Settings(Base):
@@ -8,5 +8,5 @@ class Settings(Base):
     id = Column(String, primary_key=True, index=True)
     key = Column(String, nullable=False)
     value = Column(String, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
