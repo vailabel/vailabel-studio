@@ -28,5 +28,11 @@
     },
     "esModuleInterop": true
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/global.d.ts"]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/global.d.ts",
+    "src/types",
+    "**/*.d.ts"
+  ]
 }

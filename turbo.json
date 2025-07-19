@@ -5,10 +5,6 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**"]
     },
-    "build#desktop": {
-      "dependsOn": ["build#studio"],
-      "outputs": ["dist/**"]
-    },
     "dev": {
       "cache": true
     },

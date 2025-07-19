@@ -16,7 +16,7 @@
   ],
   "scripts": {
     "build": "tsc",
-    "test": "jest",
+    "test": "jest --coverage",
     "lint": "eslint . --ext .ts,.tsx",
     "prepublishOnly": "pnpm run build"
   },

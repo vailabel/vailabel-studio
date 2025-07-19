@@ -12,7 +12,7 @@
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\" --ignore-path .gitignore --ignore-path .prettierignore",
     "commit": "cz",
     "prepare": "husky install",
-    "test": "jest --coverage",
+    "test": "turbo run test",
     "build": "turbo run build",
     "dev": "turbo run dev",
     "dev:web": "yarn workspaces web dev",
