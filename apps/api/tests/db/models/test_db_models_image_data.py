@@ -39,7 +39,3 @@ class TestDBModelsImageData(unittest.TestCase):
         self.assertIsInstance(img.updated_at, datetime)
         self.assertEqual(img.created_at.tzinfo, timezone.utc)
         self.assertEqual(img.updated_at.tzinfo, timezone.utc)
-
-
-if __name__ == "__main__":
-    unittest.main()

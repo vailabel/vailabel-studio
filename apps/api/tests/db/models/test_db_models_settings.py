@@ -31,7 +31,3 @@ class TestDBModelsSettings(unittest.TestCase):
         self.assertIsInstance(s.updated_at, datetime)
         self.assertEqual(s.created_at.tzinfo, timezone.utc)
         self.assertEqual(s.updated_at.tzinfo, timezone.utc)
-
-
-if __name__ == "__main__":
-    unittest.main()

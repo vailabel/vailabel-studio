@@ -1,16 +1,20 @@
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, String
 from repositories.base_repository import BaseRepository
-
-Base = declarative_base()
+from db.base import Base
 
 
 class TestModel(Base):
     __tablename__ = "test_model"
     id = Column(String, primary_key=True)
     name = Column(String)
+
+
+# Ensure the test_model table is empty before each test
+@pytest.fixture(autouse=True)
+def clear_test_model_table(db_session):
+    db_session.query(TestModel).delete()
+    db_session.commit()
 
 
 class ObjIn:
@@ -22,14 +26,7 @@ class ObjIn:
         return {"id": self.id, "name": self.name}
 
 
-@pytest.fixture(scope="function")
-def db_session():
-    engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(engine)
-    Session = sessionmaker(bind=engine)
-    session = Session()
-    yield session
-    session.close()
+# db_session fixture is now provided by conftest.py
 
 
 @pytest.fixture
