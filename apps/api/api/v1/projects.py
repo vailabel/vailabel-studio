@@ -4,7 +4,7 @@ from models.project import Project, ProjectCreate, ProjectUpdate
 from services import project_service
 from db.session import get_db
 
-router = APIRouter(prefix="/projects", tags=["Projects"])
+router = APIRouter(prefix="/api/v1/projects", tags=["Projects"])
 
 @router.get("/", response_model=list[Project])
 def list_projects(db: Session = Depends(get_db)):

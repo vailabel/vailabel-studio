@@ -4,7 +4,7 @@ from db.session import get_db
 from services import annotation_service
 from models.annotation import Annotation, AnnotationCreate, AnnotationUpdate
 
-router = APIRouter(prefix="/annotations", tags=["Annotations"])
+router = APIRouter(prefix="/api/v1//annotations", tags=["Annotations"])
 
 @router.get("/project/{project_id}", response_model=list[Annotation])
 def get_by_project(project_id: str, db: Session = Depends(get_db)):

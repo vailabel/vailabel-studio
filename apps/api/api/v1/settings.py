@@ -4,7 +4,7 @@ from db.session import get_db
 from services import settings_service
 from models.settings import Settings, SettingsCreate, SettingsUpdate
 
-router = APIRouter(prefix="/settings", tags=["Settings"])
+router = APIRouter(prefix="/api/v1/settings", tags=["Settings"])
 
 @router.get("/", response_model=list[Settings])
 def list_settings(db: Session = Depends(get_db)):

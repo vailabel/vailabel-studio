@@ -4,7 +4,7 @@ from db.session import get_db
 from services import image_data_service
 from models.image_data import ImageData, ImageDataCreate, ImageDataUpdate
 
-router = APIRouter(prefix="/images", tags=["Images"])
+router = APIRouter(prefix="/api/v1/images", tags=["Images"])
 
 @router.get("/project/{project_id}", response_model=list[ImageData])
 def get_images(project_id: str, db: Session = Depends(get_db)):
