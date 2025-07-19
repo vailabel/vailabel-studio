@@ -8,9 +8,9 @@ import {
   AIModel,
   Settings,
   User,
-  ApiClient,
 } from "@vailabel/core"
 import { IDataAdapter } from "./IDataAdapter"
+import { ApiClient } from "@/lib/ApiClient"
 
 export class CloudApiDataAdapter implements IDataAdapter {
   private api: ApiClient // Replace with actual API type if available
