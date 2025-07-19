@@ -1,9 +1,8 @@
 import unittest
-import db.base
+from db.base import Base
+from sqlalchemy.ext.declarative import DeclarativeMeta
+
 
 class TestDBBase(unittest.TestCase):
-    def test_dummy(self):
-        self.assertTrue(True)
-
-if __name__ == "__main__":
-    unittest.main()
+    def test_base_is_declarative(self):
+        self.assertIsInstance(Base, DeclarativeMeta)

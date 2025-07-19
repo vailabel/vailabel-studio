@@ -1,19 +1,20 @@
-from pydantic import BaseModel
+from pydantic import Field
 from datetime import datetime
 from typing import Optional
+from models.base import CamelModel
 
-class ImageDataBase(BaseModel):
+class ImageDataBase(CamelModel):
     name: str
     data: str  # Could be base64 or URL or blob depending on usage
     width: int
     height: int
     url: Optional[str] = None
-    project_id: str
+    project_id: str = Field(..., alias="projectId")
 
 class ImageDataCreate(ImageDataBase):
     id: str
 
-class ImageDataUpdate(BaseModel):
+class ImageDataUpdate(CamelModel):
     name: Optional[str] = None
     data: Optional[str] = None
     width: Optional[int] = None
@@ -26,4 +27,5 @@ class ImageData(ImageDataBase):
     updated_at: datetime
 
     class Config:
+        allow_population_by_field_name = True
         orm_mode = True

@@ -1,7 +1,8 @@
-from pydantic import BaseModel
 from datetime import datetime
+from typing import Optional
+from models.base import CamelModel
 
-class ProjectBase(BaseModel):
+class ProjectBase(CamelModel):
     name: str
 
 class ProjectCreate(ProjectBase):
