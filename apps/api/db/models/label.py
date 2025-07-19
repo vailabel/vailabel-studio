@@ -1,6 +1,6 @@
 from sqlalchemy import Column, String, Boolean, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 from ..base import Base
 
 class Label(Base):
@@ -13,8 +13,8 @@ class Label(Base):
     color = Column(String, nullable=False)
 
     project_id = Column(String, ForeignKey("projects.id"))
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     project = relationship("Project", back_populates="labels")
     annotations = relationship("Annotation", back_populates="label")
