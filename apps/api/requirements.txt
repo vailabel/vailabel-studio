@@ -7,3 +7,4 @@ pytest-asyncio
 httpx 
 sqlalchemy-utils
 pydantic[email]
+pytest-cov
