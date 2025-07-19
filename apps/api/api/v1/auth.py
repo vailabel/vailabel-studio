@@ -6,7 +6,7 @@ from db.session import get_db
 
 router = APIRouter(tags=["Auth"])
 
-@router.post("/login", response_model=User)
+@router.post("/api/v1/login", response_model=User)
 def login(data: LoginRequest, db: Session = Depends(get_db)):
     user = authenticate(db, data.username, data.password)
     if not user:
