@@ -4,7 +4,7 @@ from db.session import get_db
 from services import label_service
 from models.label import Label, LabelCreate, LabelUpdate
 
-router = APIRouter(prefix="/labels", tags=["Labels"])
+router = APIRouter(prefix="/api/v1/labels", tags=["Labels"])
 
 @router.get("/project/{project_id}", response_model=list[Label])
 def get_by_project(project_id: str, db: Session = Depends(get_db)):

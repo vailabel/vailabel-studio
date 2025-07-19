@@ -4,7 +4,7 @@ from db.session import get_db
 from services import history_service
 from models.history import History, HistoryCreate, HistoryUpdate
 
-router = APIRouter(prefix="/history", tags=["History"])
+router = APIRouter(prefix="/api/v1/history", tags=["History"])
 
 @router.get("/project/{project_id}", response_model=list[History])
 def get_project_history(project_id: str, db: Session = Depends(get_db)):

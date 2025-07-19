@@ -4,7 +4,7 @@ from db.session import get_db
 from models.ai_model import AIModel, AIModelCreate, AIModelUpdate
 from services import ai_model_service
 
-router = APIRouter(prefix="/ai-models", tags=["AI Models"])
+router = APIRouter(prefix="/api/v1/ai-models", tags=["AI Models"])
 
 @router.get("/{model_id}", response_model=AIModel)
 def get_ai_model(model_id: str, db: Session = Depends(get_db)):

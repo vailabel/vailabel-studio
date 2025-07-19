@@ -4,7 +4,7 @@ from db.session import get_db
 from services import task_service
 from models.task import Task, TaskCreate, TaskUpdate
 
-router = APIRouter(prefix="/tasks", tags=["Tasks"])
+router = APIRouter(prefix="/api/v1/tasks", tags=["Tasks"])
 
 @router.get("/project/{project_id}", response_model=list[Task])
 def get_project_tasks(project_id: str, db: Session = Depends(get_db)):
