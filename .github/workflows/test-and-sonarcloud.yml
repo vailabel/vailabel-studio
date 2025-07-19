@@ -24,6 +24,19 @@ jobs:
         run: yarn
       - name: Test and coverage
         run: yarn jest --coverage
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r apps/api/requirements.txt
+      - name: Run Python tests with coverage
+        run: |
+          cd apps/api
+          pytest --cov=. --cov-report=xml
+        working-directory: apps/api
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v4
         env:
