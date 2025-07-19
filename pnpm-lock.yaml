@@ -14,6 +14,9 @@ importers:
       '@types/jest':
         specifier: ^29.5.14
         version: 29.5.14
+      '@types/semver':
+        specifier: ^7.7.0
+        version: 7.7.0
       changesets:
         specifier: ^1.0.2
         version: 1.0.2

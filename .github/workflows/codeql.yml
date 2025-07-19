@@ -46,7 +46,7 @@ jobs:
         - language: actions
           build-mode: none
         - language: javascript-typescript
-          build-mode: none
+          build-mode: manual
         - language: python
           build-mode: none
         # CodeQL supports the following values keywords for 'language': 'actions', 'c-cpp', 'csharp', 'go', 'java-kotlin', 'javascript-typescript', 'python', 'ruby', 'rust', 'swift'
@@ -60,6 +60,21 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+
+    - if: matrix.language == 'javascript-typescript'
+      name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+          node-version: 20
+          cache: 'pnpm'
+
+    - if: matrix.language == 'javascript-typescript'
+      name: Install pnpm
+      run: npm install -g pnpm
+
+    - if: matrix.language == 'javascript-typescript'
+      name: Install Node dependencies with hoisting
+      run: pnpm install --node-linker=hoisted
 
     # Add any setup steps before running the `github/codeql-action/init` action.
     # This includes steps like installing compilers or runtimes (`actions/setup-node`
@@ -86,15 +101,14 @@ jobs:
     # to build your code.
     # ℹ️ Command-line programs to run using the OS shell.
     # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
+    # 👇 Replace this block with actual build commands
     - if: matrix.build-mode == 'manual'
-      shell: bash
+      name: Manual build for ${{ matrix.language }}
       run: |
-        echo 'If you are using a "manual" build mode for one or more of the' \
-          'languages you are analyzing, replace this with the commands to build' \
-          'your code, for example:'
-        echo '  make bootstrap'
-        echo '  make release'
-        exit 1
+          echo "Building ${{ matrix.language }} code..."
+          if [ "${{ matrix.language }}" = "javascript-typescript" ]; then
+            pnpm -r build || true  # Customize based on your setup
+          fi
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
