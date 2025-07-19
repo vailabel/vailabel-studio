@@ -5,11 +5,11 @@ from models.settings import SettingsCreate, SettingsUpdate
 def get_all_settings(db: Session):
     return db.query(SettingsModel).all()
 
-def get_setting(db: Session, setting_id: str):
-    return db.query(SettingsModel).filter_by(id=setting_id).first()
+def get_setting(db: Session, setting_key: str):
+    return db.query(SettingsModel).filter_by(key=setting_key).first()
 
 def create_or_update_setting(db: Session, setting_data: SettingsCreate):
-    setting = get_setting(db, setting_data.id)
+    setting = get_setting(db, setting_data.key)
     if setting:
         # update existing
         setting.key = setting_data.key
@@ -22,8 +22,8 @@ def create_or_update_setting(db: Session, setting_data: SettingsCreate):
     db.refresh(setting)
     return setting
 
-def delete_setting(db: Session, setting_id: str):
-    setting = get_setting(db, setting_id)
+def delete_setting(db: Session, setting_key: str):
+    setting = get_setting(db, setting_key)
     if setting:
         db.delete(setting)
         db.commit()

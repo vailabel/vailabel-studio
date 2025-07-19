@@ -1,8 +1,9 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import  EmailStr
 from typing import Optional
 from datetime import datetime
+from models.base import CamelModel
 
-class UserBase(BaseModel):
+class UserBase(CamelModel):
     email: EmailStr
     name: str
     role: str
@@ -11,7 +12,7 @@ class UserCreate(UserBase):
     id: str
     password: str
 
-class UserUpdate(BaseModel):
+class UserUpdate(CamelModel):
     name: Optional[str] = None
     email: Optional[EmailStr] = None
     password: Optional[str] = None
