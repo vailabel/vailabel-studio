@@ -1,33 +1,25 @@
 from sqlalchemy.orm import Session
-from db.models.task import Task as TaskModel
 from models.task import TaskCreate, TaskUpdate
+from repositories.task_repository import TaskRepository
+
+task_repo = TaskRepository()
+
 
 def get_tasks_by_project(db: Session, project_id: str):
-    return db.query(TaskModel).filter_by(project_id=project_id).all()
+    return task_repo.get_by_project(db, project_id)
+
 
 def get_task(db: Session, task_id: str):
-    return db.query(TaskModel).filter_by(id=task_id).first()
+    return task_repo.get(db, task_id)
+
 
 def create_task(db: Session, data: TaskCreate):
-    task = TaskModel(**data.dict())
-    db.add(task)
-    db.commit()
-    db.refresh(task)
-    return task
+    return task_repo.create(db, data)
+
 
 def update_task(db: Session, task_id: str, updates: TaskUpdate):
-    task = get_task(db, task_id)
-    if not task:
-        return None
-    for key, value in updates.dict(exclude_unset=True).items():
-        setattr(task, key, value)
-    db.commit()
-    db.refresh(task)
-    return task
+    return task_repo.update(db, task_id, updates)
+
 
 def delete_task(db: Session, task_id: str):
-    task = get_task(db, task_id)
-    if task:
-        db.delete(task)
-        db.commit()
-    return task
+    return task_repo.delete(db, task_id)

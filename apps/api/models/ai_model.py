@@ -2,8 +2,9 @@
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
+from models.base import CamelModel
 
-class AIModelBase(BaseModel):
+class AIModelBase(CamelModel):
     name: str
     description: str
     version: str
@@ -16,7 +17,7 @@ class AIModelBase(BaseModel):
 class AIModelCreate(AIModelBase):
     id: str
 
-class AIModelUpdate(BaseModel):
+class AIModelUpdate(CamelModel):
     name: Optional[str] = None
     description: Optional[str] = None
     version: Optional[str] = None
