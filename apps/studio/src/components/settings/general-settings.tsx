@@ -5,7 +5,7 @@ import { Switch } from "@/components/ui/switch"
 import { useTheme } from "@/components/theme-provider"
 import { ChromePicker } from "react-color"
 import { Check } from "lucide-react"
-import debounce from "lodash/debounce"
+// ...existing code...
 import { ElectronFileInput } from "@/components/electron-file"
 import { useSettingsStore } from "@/stores/use-settings-store"
 
@@ -32,38 +32,36 @@ const PRESET_COLORS = [
 
 export default function GeneralSettings() {
   const { theme, setTheme } = useTheme()
-  const { getSetting } = useSettingsStore()
-  const [brightness, setBrightness] = useState<number>(
-    parseInt(getSetting("brightness")?.value || String(DEFAULTS.brightness), 10)
-  )
-  const [contrast, setContrast] = useState<number>(
-    parseInt(getSetting("contrast")?.value || String(DEFAULTS.contrast), 10)
-  )
-  const [annotationColor, setAnnotationColor] = useState<string>(
-    getSetting("annotationColor")?.value || DEFAULTS.annotationColor
-  )
-  const [boxThickness, setBoxThickness] = useState<number>(
-    parseInt(
-      getSetting("boxThickness")?.value || String(DEFAULTS.boxThickness),
-      10
-    )
-  )
-  const [showLabels, setShowLabels] = useState<boolean>(
-    Boolean(getSetting("showLabels")?.value) || DEFAULTS.showLabels
-  )
-  const [snapToGrid, setSnapToGrid] = useState<boolean>(
-    Boolean(getSetting("snapToGrid")?.value) || DEFAULTS.snapToGrid
-  )
-  const [autoSave, setAutoSave] = useState<boolean>(
-    Boolean(getSetting("autoSave")?.value) || DEFAULTS.autoSave
-  )
+  const { getSetting, saveOrUpdateSettings } = useSettingsStore()
+
+  // Helper to get value from zustand store or fallback to default
+  const getValue = (key: string, fallback: string | number | boolean) => {
+    const val = getSetting(key)?.value
+    if (val === undefined || val === null) return fallback
+    if (typeof fallback === "boolean") {
+      if (typeof val === "boolean") return val
+      if (typeof val === "string") return val === "true"
+      return Boolean(val)
+    }
+    if (typeof fallback === "number") return Number(val)
+    return val
+  }
+
+  const brightness = getValue("brightness", DEFAULTS.brightness) as number
+  const contrast = getValue("contrast", DEFAULTS.contrast) as number
+  const annotationColor = getValue(
+    "annotationColor",
+    DEFAULTS.annotationColor
+  ) as string
+  const boxThickness = getValue("boxThickness", DEFAULTS.boxThickness) as number
+  const showLabels = getValue("showLabels", DEFAULTS.showLabels) as boolean
+  const snapToGrid = getValue("snapToGrid", DEFAULTS.snapToGrid) as boolean
+  const autoSave = getValue("autoSave", DEFAULTS.autoSave) as boolean
+  const dataDir = getValue("dataDirectory", "") as string
 
   const [showCustomColor, setShowCustomColor] = useState(false)
-  const [dataDir, setDataDir] = useState<string>("")
   const customBtnRef = useRef<HTMLButtonElement>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
-
-  const { saveOrUpdateSettings } = useSettingsStore()
 
   // Close popover on outside click
   useEffect(() => {
@@ -82,50 +80,22 @@ export default function GeneralSettings() {
     return () => document.removeEventListener("mousedown", handleClick)
   }, [showCustomColor])
   const handleReset = () => {
-    setBrightness(DEFAULTS.brightness)
-    setContrast(DEFAULTS.contrast)
-    setAnnotationColor(DEFAULTS.annotationColor)
-    setBoxThickness(DEFAULTS.boxThickness)
-    setShowLabels(DEFAULTS.showLabels)
-    setSnapToGrid(DEFAULTS.snapToGrid)
-    setAutoSave(DEFAULTS.autoSave)
+    saveOrUpdateSettings("brightness", String(DEFAULTS.brightness))
+    saveOrUpdateSettings("contrast", String(DEFAULTS.contrast))
+    saveOrUpdateSettings("annotationColor", DEFAULTS.annotationColor)
+    saveOrUpdateSettings("boxThickness", String(DEFAULTS.boxThickness))
+    saveOrUpdateSettings("showLabels", JSON.stringify(DEFAULTS.showLabels))
+    saveOrUpdateSettings("snapToGrid", JSON.stringify(DEFAULTS.snapToGrid))
+    saveOrUpdateSettings("autoSave", JSON.stringify(DEFAULTS.autoSave))
     // ...also clear persisted settings if implemented...
   }
 
-  // Debounced save for frequently changed settings
-  const debouncedSave = useRef(
-    debounce((key: string, value: string) => {
-      saveOrUpdateSettings(key, value)
-    }, 400)
-  ).current
-
-  // Save brightness, contrast, annotationColor with debounce
-  useEffect(() => {
-    debouncedSave("brightness", String(brightness))
-  }, [brightness, debouncedSave])
-  useEffect(() => {
-    debouncedSave("contrast", String(contrast))
-  }, [contrast, debouncedSave])
-  useEffect(() => {
-    debouncedSave("annotationColor", annotationColor)
-  }, [annotationColor, debouncedSave])
-
-  // Save other settings immediately (as string)
-  useEffect(() => {
-    saveOrUpdateSettings("boxThickness", String(boxThickness))
-  }, [boxThickness, saveOrUpdateSettings])
-  useEffect(() => {
-    saveOrUpdateSettings("showLabels", JSON.stringify(showLabels))
-  }, [showLabels, saveOrUpdateSettings])
-  useEffect(() => {
-    saveOrUpdateSettings("snapToGrid", JSON.stringify(snapToGrid))
-  }, [snapToGrid, saveOrUpdateSettings])
-  useEffect(() => {
-    saveOrUpdateSettings("autoSave", JSON.stringify(autoSave))
-  }, [autoSave, saveOrUpdateSettings])
+  // Remove all local state and use zustand for settings
+  // Save theme to zustand on change
   useEffect(() => {
     saveOrUpdateSettings("theme", theme)
-  }, [theme, saveOrUpdateSettings])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [theme])
 
   return (
     <div className="space-y-6">
@@ -139,7 +109,6 @@ export default function GeneralSettings() {
             onChange={(e) => {
               const dir = e.target.files[0]
               if (dir) {
-                setDataDir(dir)
                 saveOrUpdateSettings("dataDirectory", dir)
               }
             }}
@@ -188,7 +157,9 @@ export default function GeneralSettings() {
             max={150}
             step={1}
             value={[brightness]}
-            onValueChange={(value) => setBrightness(value[0])}
+            onValueChange={(value) =>
+              saveOrUpdateSettings("brightness", String(value[0]))
+            }
             className="flex-1"
           />
           <span className="w-8 text-right text-sm">{brightness}%</span>
@@ -207,7 +178,9 @@ export default function GeneralSettings() {
             max={150}
             step={1}
             value={[contrast]}
-            onValueChange={(value) => setContrast(value[0])}
+            onValueChange={(value) =>
+              saveOrUpdateSettings("contrast", String(value[0]))
+            }
             className="flex-1"
           />
           <span className="w-8 text-right text-sm">{contrast}%</span>
@@ -229,7 +202,7 @@ export default function GeneralSettings() {
               style={{ backgroundColor: color }}
               aria-label={`Select ${color} as annotation color`}
               onClick={() => {
-                setAnnotationColor(color)
+                saveOrUpdateSettings("annotationColor", color)
                 setShowCustomColor(false)
               }}
             >
@@ -262,7 +235,9 @@ export default function GeneralSettings() {
             >
               <ChromePicker
                 color={annotationColor}
-                onChange={(color) => setAnnotationColor(color.hex)}
+                onChange={(color) =>
+                  saveOrUpdateSettings("annotationColor", color.hex)
+                }
                 disableAlpha
               />
             </div>
@@ -280,7 +255,9 @@ export default function GeneralSettings() {
           min={1}
           max={10}
           value={boxThickness}
-          onChange={(e) => setBoxThickness(Number(e.target.value))}
+          onChange={(e) =>
+            saveOrUpdateSettings("boxThickness", String(Number(e.target.value)))
+          }
           className="ml-2 w-20 border rounded px-2 py-1"
         />
       </div>
@@ -289,7 +266,9 @@ export default function GeneralSettings() {
         <Switch
           id="show-labels"
           checked={showLabels}
-          onCheckedChange={setShowLabels}
+          onCheckedChange={(checked) =>
+            saveOrUpdateSettings("showLabels", JSON.stringify(checked))
+          }
         />
         <label htmlFor="show-labels" className="text-base font-medium">
           Show Labels on Annotations
@@ -300,7 +279,9 @@ export default function GeneralSettings() {
         <Switch
           id="snap-to-grid"
           checked={snapToGrid}
-          onCheckedChange={setSnapToGrid}
+          onCheckedChange={(checked) =>
+            saveOrUpdateSettings("snapToGrid", JSON.stringify(checked))
+          }
         />
         <label htmlFor="snap-to-grid" className="text-base font-medium">
           Snap to Grid
@@ -311,7 +292,9 @@ export default function GeneralSettings() {
         <Switch
           id="auto-save"
           checked={autoSave}
-          onCheckedChange={setAutoSave}
+          onCheckedChange={(checked) =>
+            saveOrUpdateSettings("autoSave", JSON.stringify(checked))
+          }
         />
         <label htmlFor="auto-save" className="text-base font-medium">
           Auto Save Annotations

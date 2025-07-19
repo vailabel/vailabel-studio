@@ -1,12 +1,12 @@
-from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
+from models.base import CamelModel
 
-class Coordinate(BaseModel):
+class Coordinate(CamelModel):
     x: float
     y: float
 
-class AnnotationBase(BaseModel):
+class AnnotationBase(CamelModel):
     name: str
     type: str
     coordinates: List[Coordinate]
@@ -18,7 +18,7 @@ class AnnotationBase(BaseModel):
 class AnnotationCreate(AnnotationBase):
     id: str
 
-class AnnotationUpdate(BaseModel):
+class AnnotationUpdate(CamelModel):
     name: Optional[str] = None
     type: Optional[str] = None
     coordinates: Optional[List[Coordinate]] = None

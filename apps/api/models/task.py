@@ -1,10 +1,10 @@
-from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
-from models.label import Label  # Or use ID list if you prefer
+from models.label import Label  
 from models.annotation import Annotation
+from models.base import CamelModel
 
-class TaskBase(BaseModel):
+class TaskBase(CamelModel):
     name: str
     description: str
     project_id: str
@@ -17,7 +17,7 @@ class TaskBase(BaseModel):
 class TaskCreate(TaskBase):
     id: str
 
-class TaskUpdate(BaseModel):
+class TaskUpdate(TaskBase):
     name: Optional[str] = None
     description: Optional[str] = None
     assigned_to: Optional[str] = None
