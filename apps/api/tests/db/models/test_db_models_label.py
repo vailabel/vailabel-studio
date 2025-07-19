@@ -90,6 +90,3 @@ class TestDBModelsLabel(unittest.TestCase):
         fetched_label = session.query(Label).filter_by(id="l4").first()
         self.assertTrue(hasattr(fetched_label, "annotations"))
         self.assertIsInstance(fetched_label.annotations, list)
-
-if __name__ == "__main__":
-    unittest.main()
