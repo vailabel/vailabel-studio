@@ -13,10 +13,11 @@
     "commit": "cz",
     "prepare": "husky install",
     "test": "jest --coverage",
-    "dev": "concurrently \"cd apps/studio && yarn dev\" \"cd apps/desktop && yarn dev\"",
-    "build": "concurrently \"yarn workspaces studio build\" \"yarn workspaces desktop build\"",
+    "build": "turbo run build",
+    "dev": "turbo run dev",
     "dev:web": "yarn workspaces web dev",
-    "build:web": "yarn workspaces web build"
+    "build:web": "yarn workspaces web build",
+    "release": "changeset publish"
   },
   "keywords": [],
   "workspaces": [
@@ -36,14 +37,16 @@
     }
   },
   "devDependencies": {
+    "@changesets/cli": "^2.29.5",
+    "@types/jest": "^29.5.14",
+    "changesets": "^1.0.2",
     "commitizen": "^4.3.1",
     "concurrently": "^9.2.0",
     "copyfiles": "^2.4.1",
-    "husky": "^9.1.7",
-    "jest": "^29.0.0",
-    "ts-jest": "^29.0.0"
+    "husky": "^8.0.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.4.0",
+    "turbo": "^2.5.5"
   },
-  "dependencies": {
-    "copy-to-clipboard": "^3.3.3"
-  }
+  "packageManager": "pnpm@8.9.2"
 }

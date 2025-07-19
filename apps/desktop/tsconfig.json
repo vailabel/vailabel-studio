@@ -11,7 +11,7 @@
     "noEmit": false,
     "useDefineForClassFields": false,
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "emitDecoratorMetadata": true,
   },
   "include": ["src/**/**/*"],
   "references": [{ "path": "../core" }]

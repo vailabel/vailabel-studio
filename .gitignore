@@ -29,3 +29,5 @@ next-env.d.ts
 dist
 coverage
 venv
+.turbo
+.pytest_cache

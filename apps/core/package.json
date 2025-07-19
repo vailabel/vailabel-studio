@@ -18,15 +18,9 @@
     "build": "tsc",
     "test": "jest",
     "lint": "eslint . --ext .ts,.tsx",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "pnpm run build"
   },
-  "dependencies": {
-    "better-sqlite3": "^11.10.0",
-    "dexie": "^4.0.11",
-    "sqlite3": "^5.1.7"
-  },
-  "devDependencies": {
-    "fake-indexeddb": "^6.0.1",
-    "jest-environment-jsdom": "^29.7.0"
+  "publishConfig": {
+    "access": "public"
   }
 }

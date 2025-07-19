@@ -1,9 +1,13 @@
-import { describe, it, expect, beforeEach, jest } from "@jest/globals"
 import { S3StorageAdapter } from "./S3StorageAdapter"
+import  { DeleteObjectCommand, GetObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from "@aws-sdk/client-s3"
 
 jest.mock("@aws-sdk/client-s3", () => {
+  const sendMock = jest.fn();
+  class S3Client {
+    send = sendMock;
+  }
   return {
-    S3Client: jest.fn().mockImplementation(() => ({ send: jest.fn() })),
+    S3Client,
     PutObjectCommand: jest.fn(),
     GetObjectCommand: jest.fn(),
     DeleteObjectCommand: jest.fn(),
@@ -23,9 +27,8 @@ describe("S3StorageAdapter", () => {
 
   beforeEach(() => {
     // Arrange
-    const { S3Client } = require("@aws-sdk/client-s3")
     s3Instance = { send: jest.fn() }
-    S3Client.mockImplementation(() => s3Instance)
+    ;(S3Client as unknown as jest.Mock).mockImplementation(() => s3Instance)
     adapter = new S3StorageAdapter(bucket, region, identityPoolId)
   })
 
@@ -40,7 +43,6 @@ describe("S3StorageAdapter", () => {
     // Act
     await adapter.saveImage(id, data)
     // Assert
-    const { PutObjectCommand } = require("@aws-sdk/client-s3")
     expect(PutObjectCommand).toHaveBeenCalledWith({
       Bucket: bucket,
       Key: id,
@@ -73,7 +75,6 @@ describe("S3StorageAdapter", () => {
     // Act
     const result = await adapter.loadImage(id)
     // Assert
-    const { GetObjectCommand } = require("@aws-sdk/client-s3")
     expect(GetObjectCommand).toHaveBeenCalledWith({ Bucket: bucket, Key: id })
     expect(result).toEqual(Buffer.concat([chunk1, chunk2]))
   })
@@ -84,7 +85,6 @@ describe("S3StorageAdapter", () => {
     // Act
     await adapter.deleteImage(id)
     // Assert
-    const { DeleteObjectCommand } = require("@aws-sdk/client-s3")
     expect(DeleteObjectCommand).toHaveBeenCalledWith({
       Bucket: bucket,
       Key: id,
@@ -99,7 +99,6 @@ describe("S3StorageAdapter", () => {
     // Act
     const result = await adapter.listImages()
     // Assert
-    const { ListObjectsV2Command } = require("@aws-sdk/client-s3")
     expect(ListObjectsV2Command).toHaveBeenCalledWith({ Bucket: bucket })
     expect(result).toEqual(["a.png", "b.png"])
   })
