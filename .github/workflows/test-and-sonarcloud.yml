@@ -34,7 +34,6 @@ jobs:
           pip install -r apps/api/requirements.txt
       - name: Run Python tests with coverage
         run: |
-          cd apps/api
           pytest --cov=. --cov-report=xml
         working-directory: apps/api
       - name: SonarQube Scan
