@@ -15,7 +15,18 @@ import { IDataAdapter } from "./IDataAdapter"
 export class CloudApiDataAdapter implements IDataAdapter {
   private api: ApiClient // Replace with actual API type if available
   constructor() {
-    this.api = new ApiClient() // Initialize the API client here
+    this.api = new ApiClient({
+      baseUrl: "http://127.0.0.1:8000/api/v1", // Replace with actual base URL
+      headers: {
+        "Content-Type": "application/json",
+      },
+      getAuthToken: async () => {
+        // Implement your token retrieval logic here
+        return localStorage.getItem("authToken")
+      },
+      cache: true,
+      cacheDuration: 5 * 60 * 1000, // 5 minutes
+    }) // Initialize the API client here
   }
   getAnnotationsByImageId(imageId: string): Promise<Annotation[]> {
     return this.api.get<Annotation[]>(`/images/${imageId}/annotations`)
