@@ -50,6 +50,7 @@
 | --------------------------- | ---------------------------------------------------------------------------------- |
 | [**Desktop**](apps/desktop) | 🖥️ Multi-platform desktop application for Mac, Windows, and Linux.                 |
 | [**Studio**](apps/studio)   | 🌐 Web-based image labeling tool with advanced features like AI-assisted labeling. |
+| [**API**](apps/api)         | 🖥️ FastAPI server for running YOLOv8 & web-based inference.                        |
 | [**Web**](apps/web)         | 📚 Documentation and updates site for the project.                                 |
 
 ---
