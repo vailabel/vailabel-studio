@@ -12,6 +12,9 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.812.0",
+    "@aws-sdk/credential-provider-cognito-identity": "^3.812.0",
+    "@azure/storage-blob": "^12.27.0",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.13",
@@ -40,6 +43,7 @@
     "@radix-ui/react-toggle": "1.1.1",
     "@radix-ui/react-toggle-group": "1.1.7",
     "@radix-ui/react-tooltip": "1.2.6",
+    "@radix-ui/react-visually-hidden": "^1.2.3",
     "@tailwindcss/vite": "^4.1.5",
     "@testing-library/jest-dom": "^6.6.3",
     "@vailabel/core": "*",
@@ -52,7 +56,6 @@
     "framer-motion": "latest",
     "input-otp": "1.4.2",
     "jszip": "^3.10.1",
-    "loadash": "^1.0.0",
     "lodash": "^4.17.21",
     "lucide-react": "^0.503.0",
     "react": "^19.0.0",
@@ -66,10 +69,7 @@
     "sonner": "^2.0.3",
     "vaul": "^0.9.9",
     "zod": "^3.24.3",
-    "zustand": "^5.0.5",
-    "@aws-sdk/client-s3": "^3.812.0",
-    "@aws-sdk/credential-provider-cognito-identity": "^3.812.0",
-    "@azure/storage-blob": "^12.27.0"
+    "zustand": "^5.0.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",

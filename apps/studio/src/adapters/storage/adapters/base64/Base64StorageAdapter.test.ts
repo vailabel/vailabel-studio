@@ -1,4 +1,3 @@
-import { describe, it, expect, beforeEach, jest } from "@jest/globals"
 import { Base64StorageAdapter } from "./Base64StorageAdapter"
 
 describe("Base64StorageAdapter", () => {

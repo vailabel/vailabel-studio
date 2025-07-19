@@ -25,10 +25,10 @@ jobs:
           node-version: 22
 
       - name: Install dependencies
-        run: yarn install
-
+        run: pnpm install
+          
       - name: Build frontend
-        run: yarn workspace studio build 
+        run: pnpm run build --filter=studio
 
       - name: Build Electron app
-        run: yarn workspace desktop build --publish always
+        run: pnpm run publish --filter=desktop

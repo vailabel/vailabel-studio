@@ -6,11 +6,13 @@
   "main": "dist/main.js",
   "scripts": {
     "copy-python": "copyfiles -u -1 ./src/ai/requirements.txt ./dist/ai && copyfiles -u -1 ./src/ai/yolo.py ./dist/ai",
-    "pre-dev": "yarn copy-python",
+    "pre-dev": "pnpm run copy-python",
     "build": "tsc && electron-builder",
-    "dev": "NODE_ENV=development yarn pre-dev && tsc && electron . --trace-warnings",
+    "dev": "NODE_ENV=development pnpm run pre-dev && tsc && electron . --trace-warnings",
     "test": "jest",
-    "prebuild": "npx electron-icon-maker --input=./assets/icon.png --output=./assets/icon"
+    "prebuild": "npx electron-icon-maker --input=./assets/icon.png --output=./assets/icon",
+    "publish": "tsc && pnpm run prebuild && electron-builder --publish always"
+
   },
   "keywords": [],
   "author": {

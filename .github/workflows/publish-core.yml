@@ -1,0 +1,44 @@
+name: Publish @vailabel/core
+
+on:
+  push:
+    branches:
+      - main  # or 'release/core'
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/core
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: "https://registry.npmjs.org/"
+          scope: "@vailabel"
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build package
+        run: npm run build
+
+      - name: Publish to NPM
+        run: npm publish
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Merge into release/core
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git fetch origin release/core || git checkout -b release/core
+          git checkout release/core
+          git merge origin/main --no-edit
+          git push origin release/core
