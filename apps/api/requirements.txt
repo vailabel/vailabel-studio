@@ -10,3 +10,7 @@ pydantic[email]
 pytest-cov
 black
 alembic
+python-jose 
+passlib[bcrypt]
+python-multipart
+Authlib
