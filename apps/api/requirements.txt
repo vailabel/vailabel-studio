@@ -9,4 +9,8 @@ sqlalchemy-utils
 pydantic[email]
 pytest-cov
 black
-sqlmodel
+alembic
+python-jose 
+passlib[bcrypt]
+python-multipart
+Authlib

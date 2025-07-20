@@ -18,7 +18,9 @@ def test_get_by_key_and_create_or_update(db_session, repo):
     db_session.query(Settings).delete()
     db_session.commit()
     # Test create
-    data = SettingsCreate(id="1", key="theme", value="dark")
+    data = SettingsCreate(
+        id="11111111-1111-1111-1111-111111111111", key="theme", value="dark"
+    )
     created = repo.create_or_update(db_session, data)
     assert created.key == "theme"
     assert created.value == "dark"
@@ -27,12 +29,16 @@ def test_get_by_key_and_create_or_update(db_session, repo):
     assert fetched.key == "theme"
     assert fetched.value == "dark"
     # Test update
-    data2 = SettingsCreate(id="1", key="theme", value="light")
+    data2 = SettingsCreate(
+        id="11111111-1111-1111-1111-111111111111", key="theme", value="light"
+    )
     updated = repo.create_or_update(db_session, data2)
     assert updated.key == "theme"
     assert updated.value == "light"
     # Test create new key
-    data3 = SettingsCreate(id="2", key="lang", value="en")
+    data3 = SettingsCreate(
+        id="22222222-2222-2222-2222-222222222222", key="lang", value="en"
+    )
     created2 = repo.create_or_update(db_session, data3)
     assert created2.key == "lang"
     assert created2.value == "en"

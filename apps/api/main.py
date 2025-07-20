@@ -9,6 +9,8 @@ from api.v1 import (
     tasks,
     history,
     users,
+    auth,
+    oauth,
 )
 from db.base import Base
 from db.session import engine
@@ -37,6 +39,8 @@ app.add_middleware(
 register_exception_handlers(app)
 
 # Include all routers
+app.include_router(auth.router)
+app.include_router(users.router)
 app.include_router(projects.router)
 app.include_router(ai_models.router)
 app.include_router(annotations.router)
@@ -45,4 +49,4 @@ app.include_router(images.router)
 app.include_router(labels.router)
 app.include_router(tasks.router)
 app.include_router(history.router)
-app.include_router(users.router)
+app.include_router(oauth.social_router)

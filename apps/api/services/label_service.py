@@ -5,26 +5,23 @@ from repositories.label_repository import LabelRepository
 
 class LabelService:
     def __init__(self):
-        self.db = None
         self.repo = LabelRepository()
 
-    def set_db(self, db: Session):
-        self.db = db
+    def get_labels_by_project(self, db: Session, project_id: str):
+        return self.repo.get_by_project(db, project_id)
 
-    def get_labels_by_project(self, project_id: str):
-        return self.repo.get_by_project(self.db, project_id)
+    def get_label(self, db: Session, label_id: str):
+        return self.repo.get(db, label_id)
 
-    def get_label(self, label_id: str):
-        return self.repo.get(self.db, label_id)
+    def create_label(self, db: Session, data: LabelCreate):
+        return self.repo.create(db, data)
 
-    def create_label(self, data: LabelCreate):
-        return self.repo.create(self.db, data)
+    def update_label(self, db: Session, label_id: str, data: LabelUpdate):
+        return self.repo.update(db, label_id, data)
 
-    def update_label(self, label_id: str, data: LabelUpdate):
-        return self.repo.update(self.db, label_id, data)
-
-    def delete_label(self, label_id: str):
-        return self.repo.delete(self.db, label_id)
+    def delete_label(self, db: Session, label_id: str):
+        return self.repo.delete(db, label_id)
 
 
-label_service = LabelService()
+def get_label_service():
+    return LabelService()
