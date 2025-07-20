@@ -1,8 +1,8 @@
-
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
 from models.base import CamelModel
+
 
 class AIModelBase(CamelModel):
     name: str
@@ -14,8 +14,10 @@ class AIModelBase(CamelModel):
     is_custom: bool
     project_id: str
 
+
 class AIModelCreate(AIModelBase):
     id: str
+
 
 class AIModelUpdate(CamelModel):
     name: Optional[str] = None
@@ -25,6 +27,7 @@ class AIModelUpdate(CamelModel):
     config_path: Optional[str] = None
     model_size: Optional[int] = None
     is_custom: Optional[bool] = None
+
 
 class AIModel(AIModelBase):
     id: str

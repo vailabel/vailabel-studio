@@ -8,3 +8,4 @@ httpx
 sqlalchemy-utils
 pydantic[email]
 pytest-cov
+black

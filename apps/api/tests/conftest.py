@@ -13,6 +13,7 @@ TEST_DATABASE_URL = "sqlite:///./test.db"
 engine = create_engine(TEST_DATABASE_URL, connect_args={"check_same_thread": False})
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+
 @pytest.fixture(scope="session", autouse=True)
 def prepare_database():
     # Create test database
@@ -22,6 +23,7 @@ def prepare_database():
     Base.metadata.drop_all(bind=engine)
     drop_database(TEST_DATABASE_URL)
 
+
 @pytest.fixture()
 def db_session():
     session = TestingSessionLocal()
@@ -29,6 +31,7 @@ def db_session():
         yield session
     finally:
         session.close()
+
 
 @pytest.fixture()
 def client(db_session):

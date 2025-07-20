@@ -6,9 +6,11 @@ from models.image_data import ImageData, ImageDataCreate, ImageDataUpdate
 
 router = APIRouter(prefix="/api/v1/images", tags=["Images"])
 
+
 @router.get("/project/{project_id}", response_model=list[ImageData])
 def get_images(project_id: str, db: Session = Depends(get_db)):
     return image_data_service.get_images_by_project(db, project_id)
+
 
 @router.get("/{image_id}", response_model=ImageData)
 def get_image(image_id: str, db: Session = Depends(get_db)):
@@ -17,9 +19,11 @@ def get_image(image_id: str, db: Session = Depends(get_db)):
         raise HTTPException(404, "Image not found")
     return image
 
+
 @router.post("/", response_model=ImageData)
 def create_image(data: ImageDataCreate, db: Session = Depends(get_db)):
     return image_data_service.create_image(db, data)
+
 
 @router.put("/{image_id}", response_model=ImageData)
 def update_image(image_id: str, data: ImageDataUpdate, db: Session = Depends(get_db)):
@@ -27,6 +31,7 @@ def update_image(image_id: str, data: ImageDataUpdate, db: Session = Depends(get
     if not updated:
         raise HTTPException(404, "Image not found")
     return updated
+
 
 @router.delete("/{image_id}")
 def delete_image(image_id: str, db: Session = Depends(get_db)):

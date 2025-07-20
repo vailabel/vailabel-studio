@@ -2,9 +2,11 @@ from typing import List, Optional
 from datetime import datetime
 from models.base import CamelModel
 
+
 class Coordinate(CamelModel):
     x: float
     y: float
+
 
 class AnnotationBase(CamelModel):
     name: str
@@ -15,8 +17,10 @@ class AnnotationBase(CamelModel):
     color: Optional[str] = None
     is_ai_generated: Optional[bool] = False
 
+
 class AnnotationCreate(AnnotationBase):
     id: str
+
 
 class AnnotationUpdate(CamelModel):
     name: Optional[str] = None
@@ -25,6 +29,7 @@ class AnnotationUpdate(CamelModel):
     label_id: Optional[str] = None
     color: Optional[str] = None
     is_ai_generated: Optional[bool] = None
+
 
 class Annotation(AnnotationBase):
     id: str

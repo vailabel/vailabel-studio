@@ -1,4 +1,3 @@
-
 import unittest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -6,6 +5,7 @@ from db.models.label import Label
 from db.models.project import Project
 from db.base import Base
 import datetime
+
 
 class TestDBModelsLabel(unittest.TestCase):
     def setUp(self):
@@ -29,7 +29,7 @@ class TestDBModelsLabel(unittest.TestCase):
             category="cat1",
             is_ai_generated=True,
             color="#fff",
-            project_id=project.id
+            project_id=project.id,
         )
         session.add(label)
         session.commit()
@@ -47,12 +47,7 @@ class TestDBModelsLabel(unittest.TestCase):
         project = Project(id="p2", name="Project2")
         session.add(project)
         session.commit()
-        label = Label(
-            id="l2",
-            name="Label2",
-            color="#000",
-            project_id=project.id
-        )
+        label = Label(id="l2", name="Label2", color="#000", project_id=project.id)
         session.add(label)
         session.commit()
         fetched = session.query(Label).filter_by(id="l2").first()
@@ -62,12 +57,7 @@ class TestDBModelsLabel(unittest.TestCase):
     def test_label_project_relationship(self):
         session = self.Session()
         project = Project(id="p3", name="Project3")
-        label = Label(
-            id="l3",
-            name="Label3",
-            color="#123456",
-            project=project
-        )
+        label = Label(id="l3", name="Label3", color="#123456", project=project)
         session.add(label)
         session.commit()
         fetched_label = session.query(Label).filter_by(id="l3").first()
@@ -79,12 +69,7 @@ class TestDBModelsLabel(unittest.TestCase):
         # It checks that the relationship exists and is a list
         session = self.Session()
         project = Project(id="p4", name="Project4")
-        label = Label(
-            id="l4",
-            name="Label4",
-            color="#654321",
-            project=project
-        )
+        label = Label(id="l4", name="Label4", color="#654321", project=project)
         session.add(label)
         session.commit()
         fetched_label = session.query(Label).filter_by(id="l4").first()

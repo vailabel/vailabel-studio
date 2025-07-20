@@ -1,8 +1,9 @@
-from pydantic import  Field
+from pydantic import Field
 from typing import List, Optional
 from datetime import datetime
-from models.label import Label 
+from models.label import Label
 from models.base import CamelModel
+
 
 class HistoryBase(CamelModel):
     labels: List[Label]
@@ -11,14 +12,17 @@ class HistoryBase(CamelModel):
     can_redo: bool
     project_id: str
 
+
 class HistoryCreate(HistoryBase):
     id: str
 
+
 class HistoryUpdate(CamelModel):
-    labels: Optional[List[Label]] 
-    history_index: Optional[int] = Field(..., alias="historyIndex") 
+    labels: Optional[List[Label]]
+    history_index: Optional[int] = Field(..., alias="historyIndex")
     can_undo: Optional[bool] = Field(..., alias="canUndo")
     can_redo: Optional[bool] = Field(..., alias="canRedo")
+
 
 class History(HistoryBase):
     id: str

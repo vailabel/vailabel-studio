@@ -1,8 +1,9 @@
 from typing import Optional, List
 from datetime import datetime
-from models.label import Label  
+from models.label import Label
 from models.annotation import Annotation
 from models.base import CamelModel
+
 
 class TaskBase(CamelModel):
     name: str
@@ -14,8 +15,10 @@ class TaskBase(CamelModel):
     labels: Optional[List[Label]] = []
     annotations: Optional[List[Annotation]] = []
 
+
 class TaskCreate(TaskBase):
     id: str
+
 
 class TaskUpdate(TaskBase):
     name: Optional[str] = None
@@ -25,6 +28,7 @@ class TaskUpdate(TaskBase):
     due_date: Optional[datetime] = None
     labels: Optional[List[Label]] = None
     annotations: Optional[List[Annotation]] = None
+
 
 class Task(TaskBase):
     id: str

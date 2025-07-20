@@ -12,14 +12,13 @@ source .venv/bin/activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Run tests
-pytest --disable-warnings --maxfail=1
-echo "✅ All tests passed successfully."
-# Check if tests were successful
+# Run formatter
+echo "🛠️  Formatting code..."
+black .
+# Check if formatting was successful
 if [ $? -eq 0 ]; then
-  echo "✅ Tests passed successfully."
+  echo "✅ Code formatted successfully."
 else
-  echo "❌ Tests failed. Please check the output above."
+  echo "❌ Formatting failed. Please check the output above."
   exit 1
-fi
-
+fi  
