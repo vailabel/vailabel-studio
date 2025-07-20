@@ -1,0 +1,10 @@
+{
+  "name": "@vailabel/api",
+  "scripts": {
+    "dev:api": "bash scripts/dev.sh",
+    "test": "bash scripts/test.sh",
+    "lint": "flake8 app",
+    "format": "black app",
+    "typecheck": "pyright"
+  }
+}
