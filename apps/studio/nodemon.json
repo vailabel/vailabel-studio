@@ -1,5 +1,0 @@
-{
-  "watch": ["src", "main.ts", "electron"],
-  "ext": "ts,js,json",
-  "exec": "yarn pre-dev && tsc && electron . --trace-warnings"
-}

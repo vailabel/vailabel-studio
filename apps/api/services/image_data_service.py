@@ -5,26 +5,23 @@ from repositories.image_data_repository import ImageDataRepository
 
 class ImageDataService:
     def __init__(self):
-        self.db = None
         self.repo = ImageDataRepository()
 
-    def set_db(self, db: Session):
-        self.db = db
+    def get_images_by_project(self, db: Session, project_id: str):
+        return self.repo.get_by_project(db, project_id)
 
-    def get_images_by_project(self, project_id: str):
-        return self.repo.get_by_project(self.db, project_id)
+    def get_image(self, db: Session, image_id: str):
+        return self.repo.get(db, image_id)
 
-    def get_image(self, image_id: str):
-        return self.repo.get(self.db, image_id)
+    def create_image(self, db: Session, data: ImageDataCreate):
+        return self.repo.create(db, data)
 
-    def create_image(self, data: ImageDataCreate):
-        return self.repo.create(self.db, data)
+    def update_image(self, db: Session, image_id: str, updates: ImageDataUpdate):
+        return self.repo.update(db, image_id, updates)
 
-    def update_image(self, image_id: str, updates: ImageDataUpdate):
-        return self.repo.update(self.db, image_id, updates)
-
-    def delete_image(self, image_id: str):
-        return self.repo.delete(self.db, image_id)
+    def delete_image(self, db: Session, image_id: str):
+        return self.repo.delete(db, image_id)
 
 
-image_data_service = ImageDataService()
+def get_image_data_service():
+    return ImageDataService()

@@ -9,4 +9,4 @@ sqlalchemy-utils
 pydantic[email]
 pytest-cov
 black
-sqlmodel
+alembic

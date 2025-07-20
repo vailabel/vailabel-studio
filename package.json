@@ -15,8 +15,8 @@
     "test": "turbo run test",
     "build": "turbo run build",
     "dev": "turbo run dev",
-    "dev:web": "yarn workspaces web dev",
-    "build:web": "yarn workspaces web build",
+    "dev:studio": "turbo run dev --filter=@vailabel/studio && turbo run dev --filter=@vailabel/api",
+    "dev:desktop": "turbo run dev --filter=@vailabel/desktop && turbo run dev --filter=@vailabel/studio",
     "release": "changeset publish"
   },
   "keywords": [],

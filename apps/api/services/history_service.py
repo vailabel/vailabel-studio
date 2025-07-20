@@ -5,26 +5,23 @@ from repositories.history_repository import HistoryRepository
 
 class HistoryService:
     def __init__(self):
-        self.db = None
         self.repo = HistoryRepository()
 
-    def set_db(self, db: Session):
-        self.db = db
+    def get_history_by_project(self, db: Session, project_id: str):
+        return self.repo.get_by_project(db, project_id)
 
-    def get_history_by_project(self, project_id: str):
-        return self.repo.get_by_project(self.db, project_id)
+    def get_history(self, db: Session, history_id: str):
+        return self.repo.get(db, history_id)
 
-    def get_history(self, history_id: str):
-        return self.repo.get(self.db, history_id)
+    def create_history(self, db: Session, data: HistoryCreate):
+        return self.repo.create(db, data)
 
-    def create_history(self, data: HistoryCreate):
-        return self.repo.create(self.db, data)
+    def update_history(self, db: Session, history_id: str, updates: HistoryUpdate):
+        return self.repo.update(db, history_id, updates)
 
-    def update_history(self, history_id: str, updates: HistoryUpdate):
-        return self.repo.update(self.db, history_id, updates)
-
-    def delete_history(self, history_id: str):
-        return self.repo.delete(self.db, history_id)
+    def delete_history(self, db: Session, history_id: str):
+        return self.repo.delete(db, history_id)
 
 
-history_service = HistoryService()
+def get_history_service():
+    return HistoryService()

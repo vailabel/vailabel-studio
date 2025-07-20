@@ -1,27 +1,49 @@
-from pydantic import Field
+from pydantic import Field, validator
 from datetime import datetime
 from typing import Optional
+from uuid import UUID
 from models.base import CamelModel
 
 
 class ImageDataBase(CamelModel):
-    name: str
-    data: str  # Could be base64 or URL or blob depending on usage
-    width: int
-    height: int
+    name: str = Field(..., min_length=1, description="Image name must not be empty.")
+    data: str = Field(..., min_length=1, description="Data must not be empty.")
+    width: int = Field(..., gt=0, description="Width must be positive.")
+    height: int = Field(..., gt=0, description="Height must be positive.")
     url: Optional[str] = None
-    project_id: str = Field(..., alias="projectId")
+    project_id: str = Field(
+        ...,
+        min_length=1,
+        alias="projectId",
+        description="Project ID must not be empty.",
+    )
 
 
 class ImageDataCreate(ImageDataBase):
-    id: str
+    id: str = Field(..., description="ImageData ID must be a valid UUID.")
+
+    @validator("id")
+    def validate_id(cls, v):
+        try:
+            UUID(v)
+        except Exception:
+            raise ValueError("id must be a valid UUID string.")
+        return v
 
 
 class ImageDataUpdate(CamelModel):
-    name: Optional[str] = None
-    data: Optional[str] = None
-    width: Optional[int] = None
-    height: Optional[int] = None
+    name: Optional[str] = Field(
+        None, min_length=1, description="Image name must not be empty if provided."
+    )
+    data: Optional[str] = Field(
+        None, min_length=1, description="Data must not be empty if provided."
+    )
+    width: Optional[int] = Field(
+        None, gt=0, description="Width must be positive if provided."
+    )
+    height: Optional[int] = Field(
+        None, gt=0, description="Height must be positive if provided."
+    )
     url: Optional[str] = None
 
 
@@ -30,6 +52,4 @@ class ImageData(ImageDataBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        allow_population_by_field_name = True
-        orm_mode = True
+    model_config = {"from_attributes": True}
