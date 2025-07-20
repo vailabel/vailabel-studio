@@ -45,6 +45,8 @@ importers:
         specifier: ^2.5.5
         version: 2.5.5
 
+  apps/api: {}
+
   apps/core: {}
 
   apps/desktop:

@@ -7,7 +7,7 @@
   ],
 
   "compilerOptions": {
-    "types": ["node"],
+    "types": ["node", "jest"],
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
@@ -16,9 +16,4 @@
     "esModuleInterop": true,
     "resolveJsonModule": true
   },
-  "include": [
-    "src",
-    "src/types", 
-    "**/*.d.ts"
-  ],
 }

@@ -12,7 +12,7 @@
     "allowImportingTsExtensions": false,
     "isolatedModules": true,
     "moduleDetection": "force",
-    "noEmit": true,
+    "noEmit": false,
     "jsx": "react-jsx",
 
     /* Linting */
@@ -26,13 +26,14 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "composite": true
   },
   "include": [
     "src/**/*.ts",
     "src/**/*.tsx",
-    "src/global.d.ts",
+    "src/types/global.d.ts",
     "src/types",
-    "**/*.d.ts"
+    "src/**/*.d.ts"
   ]
 }
