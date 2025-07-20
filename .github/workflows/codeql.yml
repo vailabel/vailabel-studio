@@ -2,11 +2,11 @@ name: "CodeQL Advanced"
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
   schedule:
-    - cron: '33 10 * * 0'
+    - cron: "33 10 * * 0"
 
 jobs:
   analyze:
@@ -27,12 +27,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - language: actions
-          build-mode: none
-        - language: javascript-typescript
-          build-mode: none
-        - language: python
-          build-mode: none
+          - language: actions
+            build-mode: none
+          - language: javascript-typescript
+            build-mode: none
+          - language: python
+            build-mode: none
 
     steps:
       - name: Checkout repository
@@ -49,10 +49,6 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
-          languages: javascript,typescript
-
-      - name: Autobuild (optional)
-        run: pnpm run build # Or your build command
-
+          languages: javascript,typescript,python
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
