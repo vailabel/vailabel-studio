@@ -1,5 +1,5 @@
 {
-  "name": "studio",
+  "name": "@vailabel/studio",
   "private": true,
   "version": "0.0.0",
   "type": "module",
