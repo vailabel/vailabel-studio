@@ -1,5 +1,15 @@
 from fastapi import FastAPI
-from api.v1 import (projects, ai_models , annotations, settings, images, labels, tasks, history, users)
+from api.v1 import (
+    projects,
+    ai_models,
+    annotations,
+    settings,
+    images,
+    labels,
+    tasks,
+    history,
+    users,
+)
 from db.base import Base
 from db.session import engine
 from exception_handlers import register_exception_handlers

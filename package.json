@@ -9,7 +9,7 @@
   },
   "scripts": {
     "clean": "npx git-clear-branch",
-    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\" --ignore-path .gitignore --ignore-path .prettierignore",
+    "format": "turbo run format",
     "commit": "cz",
     "prepare": "husky install",
     "test": "turbo run test",

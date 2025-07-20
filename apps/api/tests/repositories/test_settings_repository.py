@@ -14,7 +14,7 @@ def repo():
     return TestSettingsRepository()
 
 
-def test_get_by_key_and_create_or_update(db_session, repo):    
+def test_get_by_key_and_create_or_update(db_session, repo):
     db_session.query(Settings).delete()
     db_session.commit()
     # Test create

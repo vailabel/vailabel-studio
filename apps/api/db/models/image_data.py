@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import relationship
 from ..base import Base
 
+
 class ImageData(Base):
     __tablename__ = "image_data"
 
@@ -14,7 +15,11 @@ class ImageData(Base):
     url = Column(String, nullable=True)
     project_id = Column(String, ForeignKey("projects.id"), nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    updated_at = Column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
 
     project = relationship("Project", back_populates="images")
     annotations = relationship("Annotation", back_populates="image")

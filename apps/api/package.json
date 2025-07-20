@@ -4,7 +4,7 @@
     "dev:api": "bash scripts/dev.sh",
     "test": "bash scripts/test.sh",
     "lint": "flake8 app",
-    "format": "black app",
+    "format": "bash scripts/format.sh",
     "typecheck": "pyright"
   }
 }

@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from ..base import Base
 
+
 class Annotation(Base):
     __tablename__ = "annotations"
 
@@ -16,7 +17,11 @@ class Annotation(Base):
     is_ai_generated = Column(Boolean, default=False)
 
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    updated_at = Column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
 
     image = relationship("ImageData", back_populates="annotations")
     label = relationship("Label", back_populates="annotations")

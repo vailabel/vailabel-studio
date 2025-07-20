@@ -2,6 +2,7 @@ from sqlalchemy import Column, String, DateTime
 from datetime import datetime, timezone
 from ..base import Base
 
+
 class User(Base):
     __tablename__ = "users"
 
@@ -11,4 +12,8 @@ class User(Base):
     password = Column(String, nullable=False)
     role = Column(String, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    updated_at = Column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )

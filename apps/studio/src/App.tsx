@@ -32,7 +32,9 @@ const App = () => {
   } = useSettingsStore()
   const { initDataAdapter: initAiModelsDataAdapter } = useAIModelStore()
   useEffect(() => {
-    const data = isElectron() ?  new ElectronApiDataAdapter() : new CloudApiDataAdapter()
+    const data = isElectron()
+      ? new ElectronApiDataAdapter()
+      : new CloudApiDataAdapter()
     initProjectsDataAdapter(data)
     initAnnotationsDataAdapter(data)
     initLabelsDataAdapter(data)

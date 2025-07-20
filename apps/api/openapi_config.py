@@ -12,21 +12,15 @@ openapi_config = {
         "url": "https://opensource.org/licenses/MIT",
     },
     "openapi_tags": [
-        {
-            "name": "Projects",
-            "description": "Operations on annotation projects"
-        },
-        {
-            "name": "Settings",
-            "description": "Operations on application settings"
-        },
+        {"name": "Projects", "description": "Operations on annotation projects"},
+        {"name": "Settings", "description": "Operations on application settings"},
         {
             "name": "AI Models",
-            "description": "Operations on AI models used for annotations"
+            "description": "Operations on AI models used for annotations",
         },
         {
             "name": "Annotations",
-            "description": "Operations on annotations and related data"
+            "description": "Operations on annotations and related data",
         },
-    ]
+    ],
 }
