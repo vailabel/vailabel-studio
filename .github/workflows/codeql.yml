@@ -65,7 +65,7 @@ jobs:
       name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-          node-version: 20
+          node-version: 22
           cache: 'pnpm'
 
     - if: matrix.language == 'javascript-typescript'
@@ -73,8 +73,8 @@ jobs:
       run: npm install -g pnpm
 
     - if: matrix.language == 'javascript-typescript'
-      name: Install Node dependencies with hoisting
-      run: pnpm install --node-linker=hoisted
+      name: Install Node dependencies
+      run: pnpm install
 
     # Add any setup steps before running the `github/codeql-action/init` action.
     # This includes steps like installing compilers or runtimes (`actions/setup-node`
