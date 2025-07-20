@@ -4,6 +4,7 @@ from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 import traceback
 
+
 def register_exception_handlers(app):
     # Handle HTTP exceptions (e.g. 404, 403)
     @app.exception_handler(StarletteHTTPException)
@@ -14,21 +15,23 @@ def register_exception_handlers(app):
                 "error": {
                     "type": "HTTPException",
                     "message": exc.detail,
-                    "status_code": exc.status_code
+                    "status_code": exc.status_code,
                 }
             },
         )
 
     # Handle Pydantic validation errors
     @app.exception_handler(RequestValidationError)
-    async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    async def validation_exception_handler(
+        request: Request, exc: RequestValidationError
+    ):
         return JSONResponse(
             status_code=422,
             content={
                 "error": {
                     "type": "ValidationError",
                     "message": "Validation failed",
-                    "details": exc.errors()
+                    "details": exc.errors(),
                 }
             },
         )
@@ -37,13 +40,14 @@ def register_exception_handlers(app):
     @app.exception_handler(Exception)
     async def unhandled_exception_handler(request: Request, exc: Exception):
         import logging
+
         logging.error("Unhandled exception occurred: %s", traceback.format_exc())
         return JSONResponse(
             status_code=500,
             content={
                 "error": {
                     "type": "InternalServerError",
-                    "message": "An unexpected error has occurred. Please try again later."
+                    "message": "An unexpected error has occurred. Please try again later.",
                 }
             },
         )

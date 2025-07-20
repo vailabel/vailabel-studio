@@ -8,4 +8,5 @@ Which type of change is this for each package?
 ✔ major (e.g. breaking change)
 
 Provide a summary:
+
 > add export endpoint to core project API

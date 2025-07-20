@@ -85,7 +85,6 @@ flowchart TD
 - **Database:** Uses local `SQLite` for persistent, high-performance local data storage.
 - **IPC Layer:** Electron’s Inter-Process Communication (IPC) bridges Renderer and Main processes.
 - **CQRS Pattern:** Command Query Responsibility Segregation splits operations into:
-
   - **Command Handlers:** Mutate data (create/update/delete)
   - **Query Handlers:** Read data efficiently
 

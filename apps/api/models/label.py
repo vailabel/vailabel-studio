@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Optional
 from models.base import CamelModel
 
+
 class LabelBase(CamelModel):
     name: str
     category: Optional[str] = None
@@ -13,6 +14,7 @@ class LabelBase(CamelModel):
 
 class LabelCreate(LabelBase):
     id: str
+
 
 class LabelUpdate(LabelBase):
     name: Optional[str] = None
@@ -27,5 +29,5 @@ class Label(LabelBase):
     updated_at: datetime
 
     class Config:
-        allow_population_by_field_name = True 
+        allow_population_by_field_name = True
         orm_mode = True

@@ -4,6 +4,7 @@ from sqlalchemy.types import JSON
 from datetime import datetime, timezone
 from ..base import Base
 
+
 class Task(Base):
     __tablename__ = "tasks"
 
@@ -19,6 +20,10 @@ class Task(Base):
 
     project_id = Column(String, ForeignKey("projects.id"), nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    updated_at = Column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
 
     project = relationship("Project", back_populates="tasks")
