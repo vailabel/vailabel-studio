@@ -13,6 +13,9 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
   },
+  "paths": {
+    "@/*": ["./src/*"]
+  },
   "include": ["src/**/**/*"],
   "references": [{ "path": "../core" }]
 }
