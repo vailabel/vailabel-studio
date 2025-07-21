@@ -1,7 +1,7 @@
 {
   "name": "@vailabel/desktop",
   "productName": "desktop",
-  "version": "0.1.7",
+  "version": "0.2.0",
   "description": "Vailabel Studio Desktop",
   "main": "dist/main.js",
   "scripts": {
