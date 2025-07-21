@@ -1,5 +1,6 @@
 {
   "name": "@vailabel/api",
+  "version": "0.1.0",
   "scripts": {
     "dev:api": "bash scripts/dev.sh",
     "test": "bash scripts/test.sh",
