@@ -25,7 +25,8 @@
     "@types/semver": "^7.7.0",
     "@vailabel/core": "*",
     "electron": "36.2.1",
-    "electron-builder": "^26.0.12"
+    "electron-builder": "^26.0.12",
+    "typescript": "^5.8.3"
   },
   "dependencies": {
     "electron-devtools-installer": "^4.0.0",
