@@ -1,4 +1,4 @@
-import { UpdateAnnotationCommand } from "../UpdateAnnotationCommand"
+import { UpdateAnnotationCommand, UpdateAnnotationRequest } from "../UpdateAnnotationCommand"
 import { AnnotationRepository } from "../../../db/models"
 
 describe("UpdateAnnotationCommand", () => {
@@ -15,7 +15,7 @@ describe("UpdateAnnotationCommand", () => {
       type: "rect",
     }
     AnnotationRepository.update = jest.fn()
-    await command.handle({} as any, annotation as any)
+    await command.handle({} as any, { id: annotation.id, updates: annotation } as UpdateAnnotationRequest)
     expect(AnnotationRepository.update).toHaveBeenCalledWith(annotation, {
       where: { id: annotation.id },
     })

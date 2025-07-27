@@ -15,8 +15,8 @@
     "test": "turbo run test",
     "build": "turbo run build",
     "dev": "turbo run dev",
-    "dev:studio": "turbo run dev --filter=@vailabel/studio && turbo run dev --filter=@vailabel/api",
-    "dev:desktop": "concurrently \"turbo run dev --filter=@vailabel/desktop\" \"turbo run dev --filter=@vailabel/studio\"",
+    "studio": "turbo run dev --filter=@vailabel/studio  --filter=@vailabel/api",
+    "desktop": "turbo run dev --filter=@vailabel/desktop --filter=@vailabel/studio",
     "release": "changeset publish"
   },
   "keywords": [],
@@ -42,7 +42,6 @@
     "@types/semver": "^7.7.0",
     "changesets": "^1.0.2",
     "commitizen": "^4.3.1",
-    "concurrently": "^9.2.0",
     "copyfiles": "^2.4.1",
     "cz-conventional-changelog": "^3.3.0",
     "husky": "^8.0.3",
@@ -50,5 +49,5 @@
     "ts-jest": "^29.4.0",
     "turbo": "^2.5.5"
   },
-  "packageManager": "pnpm@8.9.2"
+  "packageManager": "pnpm@10.0.0"
 }

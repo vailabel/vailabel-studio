@@ -3,7 +3,7 @@ import { create } from "zustand"
 import { IDataAdapter } from "@/adapters/data/IDataAdapter"
 import { exceptionMiddleware } from "@/hooks/exception-middleware"
 
-type AnnotationsContextType = {
+export type AnnotationsStoreType = {
   data: IDataAdapter
   initDataAdapter: (dataAdapter: IDataAdapter) => void
   annotations: Annotation[]
@@ -18,11 +18,9 @@ type AnnotationsContextType = {
   canRedo: boolean
   currentImage: ImageModal | null
   setCurrentImage: (image: ImageModal | null) => void
-  setSelectedAnnotation: (annotation: Annotation | null) => void
-  selectedAnnotation: Annotation | null
 }
 
-export const useAnnotationsStore = create<AnnotationsContextType>(
+export const useAnnotationsStore = create<AnnotationsStoreType>(
   exceptionMiddleware((set, get) => ({
     data: {} as IDataAdapter,
     initDataAdapter: (dataAdapter) => set({ data: dataAdapter }),
@@ -46,7 +44,15 @@ export const useAnnotationsStore = create<AnnotationsContextType>(
     },
     updateAnnotation: async (id: string, updates: Partial<Annotation>) => {
       const { data } = get()
-      return await data.updateAnnotation(id, updates)
+      console.log("Updating annotation in store:", id, updates)
+      await data.updateAnnotation(id, updates)
+
+      // Update local state to reflect changes immediately
+      set((state) => ({
+        annotations: state.annotations.map((annotation) =>
+          annotation.id === id ? { ...annotation, ...updates } : annotation
+        ),
+      }))
     },
     deleteAnnotation: async (id: string) => {
       const { data } = get()
@@ -58,8 +64,5 @@ export const useAnnotationsStore = create<AnnotationsContextType>(
     canRedo: false,
     currentImage: null,
     setCurrentImage: (image: ImageModal | null) => set({ currentImage: image }),
-    setSelectedAnnotation: (annotation: Annotation | null) =>
-      set({ selectedAnnotation: annotation }),
-    selectedAnnotation: null,
   }))
 )

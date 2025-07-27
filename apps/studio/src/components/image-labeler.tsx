@@ -15,7 +15,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { Canvas } from "@/components/canvas"
+import { Canvas } from "@/components/canvas/canvas"
 import { Toolbar } from "@/components/toolbar"
 import { LabelListPanel } from "@/components/label-list-panel"
 import { ResizablePanel } from "@/components/resizable-panel"

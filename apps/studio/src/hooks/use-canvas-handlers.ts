@@ -17,18 +17,15 @@ export function useCanvasHandlers() {
 
   const { canvasRef } = useCanvasStore()
 
-  const {
-    annotations,
-    updateAnnotation,
-    deleteAnnotation,
-    currentImage,
-    selectedAnnotation,
-    setSelectedAnnotation,
-  } = useAnnotationsStore()
+  const { annotations, updateAnnotation, deleteAnnotation, currentImage } =
+    useAnnotationsStore()
+  const { selectedAnnotation, setSelectedAnnotation } = useCanvasStore()
   const [isDragging, setIsDragging] = useState(false)
   const [startPoint, setStartPoint] = useState<Point | null>(null)
   const [currentPoint, setCurrentPoint] = useState<Point | null>(null)
   const [polygonPoints, setPolygonPoints] = useState<Point[]>([])
+  const [freeDrawPoints, setFreeDrawPoints] = useState<Point[]>([])
+  const [isDrawing, setIsDrawing] = useState(false)
 
   const [isResizing, setIsResizing] = useState(false)
   const [resizeHandle, setResizeHandle] = useState<string | null>(null)
@@ -65,6 +62,49 @@ export function useCanvasHandlers() {
         )
       } else if (annotation.type === "polygon") {
         return isPointInPolygon(point, annotation.coordinates)
+      } else if (annotation.type === "freeDraw") {
+        // For freeDraw, check if point is near any line segment of the path
+        const threshold = 5 / (window.devicePixelRatio || 1) // Adjust threshold based on device pixel ratio
+
+        for (let i = 0; i < annotation.coordinates.length - 1; i++) {
+          const p1 = annotation.coordinates[i]
+          const p2 = annotation.coordinates[i + 1]
+
+          // Calculate distance from point to line segment
+          const A = point.x - p1.x
+          const B = point.y - p1.y
+          const C = p2.x - p1.x
+          const D = p2.y - p1.y
+
+          const dot = A * C + B * D
+          const lenSq = C * C + D * D
+
+          let param = -1
+          if (lenSq !== 0) {
+            param = dot / lenSq
+          }
+
+          let xx, yy
+          if (param < 0) {
+            xx = p1.x
+            yy = p1.y
+          } else if (param > 1) {
+            xx = p2.x
+            yy = p2.y
+          } else {
+            xx = p1.x + param * C
+            yy = p1.y + param * D
+          }
+
+          const dx = point.x - xx
+          const dy = point.y - yy
+          const distance = Math.sqrt(dx * dx + dy * dy)
+
+          if (distance <= threshold) {
+            return true
+          }
+        }
+        return false
       }
       return false
     },
@@ -164,7 +204,11 @@ export function useCanvasHandlers() {
     (e: React.MouseEvent) => {
       if (!canvasRef.current) return
       const point = getCanvasCoords(e.clientX, e.clientY)
-      // Check for resize handles first
+
+      // Always check if we clicked on an annotation first (for selection)
+      const clickedAnnotation = findLabelAtPoint(point)
+
+      // Check for resize handles first (only in move mode)
       if (selectedAnnotation && selectedTool === "move") {
         const annotation = annotations.find(
           (l) => l.id === selectedAnnotation.id
@@ -179,14 +223,13 @@ export function useCanvasHandlers() {
         }
       }
 
-      // Check if clicked on a label for selection or moving
+      // Handle annotation selection and moving (in move mode)
       if (selectedTool === "move" && e.button === 0) {
-        const clickedAnnotation = findLabelAtPoint(point)
         if (clickedAnnotation) {
           setSelectedAnnotation(clickedAnnotation)
           setMovingLabelId(clickedAnnotation.id)
 
-          // Calculate offset from the top-left corner of the label
+          // Calculate offset from the appropriate reference point
           if (clickedAnnotation.type === "box") {
             const [topLeft] = clickedAnnotation.coordinates
             setMovingOffset({
@@ -202,16 +245,32 @@ export function useCanvasHandlers() {
               x: point.x - centroid.x,
               y: point.y - centroid.y,
             })
+          } else if (clickedAnnotation.type === "freeDraw") {
+            // For freeDraw, use the first point as reference
+            const firstPoint = clickedAnnotation.coordinates[0]
+            setMovingOffset({
+              x: point.x - firstPoint.x,
+              y: point.y - firstPoint.y,
+            })
           }
           return
+        } else {
+          // Deselect if clicking on empty area in move mode
+          setSelectedAnnotation(null)
         }
 
-        // Start panning if not on a label and middle mouse button or space+left click
+        // Start panning if not on a label and alt+click
         if (e.button === 0 && e.altKey) {
           setIsPanning(true)
           setLastPanPoint({ x: e.clientX, y: e.clientY })
           return
         }
+      } else if (clickedAnnotation) {
+        // Select annotation even when not in move mode (for visual feedback)
+        setSelectedAnnotation(clickedAnnotation)
+      } else {
+        // Deselect when clicking empty area
+        setSelectedAnnotation(null)
       }
 
       // Handle drawing tools
@@ -227,6 +286,15 @@ export function useCanvasHandlers() {
           // Continue the polygon
           setPolygonPoints([...polygonPoints, point])
         }
+      } else if (selectedTool === "freeDraw") {
+        setIsDrawing(true)
+        setFreeDrawPoints([point])
+        setTempAnnotation({
+          type: "freeDraw",
+          coordinates: [point],
+          imageId: currentImage?.id || "",
+          color: "#3b82f6", // Default blue color for the new annotation
+        })
       } else if (selectedTool === "delete") {
         const labelToDelete = findLabelAtPoint(point)
         if (labelToDelete) {
@@ -246,6 +314,7 @@ export function useCanvasHandlers() {
       setSelectedAnnotation,
       polygonPoints,
       deleteAnnotation,
+      currentImage?.id,
     ]
   )
 
@@ -347,8 +416,23 @@ export function useCanvasHandlers() {
           } else if (annotation.type === "polygon") {
             // For polygon, move all points by the same delta
             const centroid = calculatePolygonCentroid(annotation.coordinates)
-            const dx = point.x - centroid.x - movingOffset.x
-            const dy = point.y - centroid.y - movingOffset.y
+            const dx = point.x - movingOffset.x - centroid.x
+            const dy = point.y - movingOffset.y - centroid.y
+
+            const newCoordinates = annotation.coordinates.map((p) => ({
+              x: p.x + dx,
+              y: p.y + dy,
+            }))
+
+            updateAnnotation(movingLabelId, {
+              ...annotation,
+              coordinates: newCoordinates,
+            })
+          } else if (annotation.type === "freeDraw") {
+            // For freeDraw, move all points by the same delta
+            const firstPoint = annotation.coordinates[0]
+            const dx = point.x - movingOffset.x - firstPoint.x
+            const dy = point.y - movingOffset.y - firstPoint.y
 
             const newCoordinates = annotation.coordinates.map((p) => ({
               x: p.x + dx,
@@ -385,6 +469,28 @@ export function useCanvasHandlers() {
           color: "#3b82f6", // Default blue color for the new annotation
         })
       }
+
+      // Handle free drawing
+      if (isDrawing) {
+        // Add point only if it's far enough from the last point to avoid too many points
+        const lastPoint = freeDrawPoints[freeDrawPoints.length - 1]
+        const distance = Math.sqrt(
+          Math.pow(point.x - lastPoint.x, 2) +
+            Math.pow(point.y - lastPoint.y, 2)
+        )
+
+        if (distance > 2) {
+          // Minimum distance threshold
+          const newPoints = [...freeDrawPoints, point]
+          setFreeDrawPoints(newPoints)
+          setTempAnnotation({
+            type: "freeDraw",
+            coordinates: newPoints,
+            imageId: currentImage?.id || "",
+            color: "#3b82f6", // Default blue color for the new annotation
+          })
+        }
+      }
     },
     [
       canvasRef,
@@ -405,6 +511,8 @@ export function useCanvasHandlers() {
       annotations,
       updateAnnotation,
       currentImage?.id,
+      isDrawing,
+      freeDrawPoints,
     ]
   )
 
@@ -461,6 +569,19 @@ export function useCanvasHandlers() {
       setStartPoint(null)
       setCurrentPoint(null)
     }
+
+    // Handle free drawing
+    if (isDrawing && freeDrawPoints.length > 3) {
+      // Require at least 4 points
+      setTempAnnotation({
+        type: "freeDraw",
+        coordinates: freeDrawPoints,
+        imageId: currentImage?.id || "",
+      })
+      setShowLabelInput(true)
+      setIsDrawing(false)
+      setFreeDrawPoints([])
+    }
   }, [
     isPanning,
     isResizing,
@@ -470,6 +591,8 @@ export function useCanvasHandlers() {
     currentPoint,
     currentImage,
     setTempAnnotation,
+    isDrawing,
+    freeDrawPoints,
   ])
 
   const handleDoubleClick = useCallback(() => {
@@ -521,6 +644,8 @@ export function useCanvasHandlers() {
       // Cancel operations with Escape
       if (e.key === "Escape") {
         setPolygonPoints([])
+        setFreeDrawPoints([])
+        setIsDrawing(false)
         setIsDragging(false)
         setStartPoint(null)
         setCurrentPoint(null)
@@ -541,6 +666,7 @@ export function useCanvasHandlers() {
       if (e.key === "v") setSelectedTool("move")
       if (e.key === "b") setSelectedTool("box")
       if (e.key === "p") setSelectedTool("polygon")
+      if (e.key === "f") setSelectedTool("freeDraw")
       if (e.key === "d") setSelectedTool("delete")
     }
 

@@ -1,8 +1,8 @@
-import { memo, useCallback, useEffect, useRef } from "react"
+import { memo, useCallback, useEffect, useRef, useMemo } from "react"
 import { cn } from "@/lib/utils"
 import { AnnotationRenderer } from "@/components/canvas/annotation-renderer"
 import { PositionCoordinates } from "@/components/canvas/position-coordinates"
-import { useCanvasHandlers } from "@/hooks/use-canvas-handlers"
+import { useCanvasHandlers } from "@/tools/canvas-handler"
 import { type Annotation, type ImageData } from "@vailabel/core"
 import { Crosshair } from "@/components/canvas/crosshair"
 import { CreateAnnotation } from "@/components/canvas/create-annotation"
@@ -21,17 +21,56 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
   const { getOrCreateLabel, labels } = useLabelStore()
 
   const canvasRef = useRef<HTMLDivElement | null>(null)
+
+  // Get all handler props
+  const handlerState = useCanvasHandlers()
   const {
     handleMouseDown,
     handleMouseMove,
     handleMouseUp,
     handleDoubleClick,
     handleWheel,
-    tempAnnotation,
-    showLabelInput,
-    setShowLabelInput,
-    setTempAnnotation,
-  } = useCanvasHandlers()
+    isPanning,
+    // ...other UI state
+  } = handlerState
+
+  // Safely extract tempAnnotation and showLabelInput if present
+  const tempAnnotation =
+    "tempAnnotation" in handlerState ? handlerState.tempAnnotation : undefined
+  const showLabelInput =
+    "showLabelInput" in handlerState ? handlerState.showLabelInput : undefined
+
+  // Extract resize and move state for preview coordinates
+  const resizingAnnotationId =
+    "resizingAnnotationId" in handlerState
+      ? handlerState.resizingAnnotationId
+      : null
+  const movingAnnotationId =
+    "movingAnnotationId" in handlerState
+      ? handlerState.movingAnnotationId
+      : null
+  const previewCoordinates =
+    "previewCoordinates" in handlerState
+      ? handlerState.previewCoordinates
+      : null
+
+  // Create annotations array with preview coordinates for resizing or moving annotation
+  const displayAnnotations = useMemo(() => {
+    if (previewCoordinates && (resizingAnnotationId || movingAnnotationId)) {
+      const targetId = resizingAnnotationId || movingAnnotationId
+      return annotations.map((annotation) =>
+        annotation.id === targetId
+          ? { ...annotation, coordinates: previewCoordinates }
+          : annotation
+      )
+    }
+    return annotations
+  }, [
+    annotations,
+    resizingAnnotationId,
+    movingAnnotationId,
+    previewCoordinates,
+  ])
 
   const handleCreateAnnotation = useCallback(
     async (name: string, color: string) => {
@@ -46,34 +85,29 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
         imageId: image.id,
         id: crypto.randomUUID(),
         name: name,
-        type: tempAnnotation?.type ?? "box",
-        coordinates: tempAnnotation?.coordinates ?? [],
+        type: tempAnnotation.type ?? "box",
+        coordinates: tempAnnotation.coordinates ?? [],
         createdAt: new Date(),
         updatedAt: new Date(),
       }
       createAnnotation(newAnnotation)
-      setShowLabelInput(false)
-      setTempAnnotation(null)
+      // Optionally: clear tempAnnotation and close modal if needed
+      // setShowLabelInput(false); // If you have a setter for this
+      // setTempAnnotation(null); // If you have a setter for this
     },
-    [
-      tempAnnotation,
-      image.projectId,
-      image.id,
-      getOrCreateLabel,
-      createAnnotation,
-      setShowLabelInput,
-      setTempAnnotation,
-    ]
+    [tempAnnotation, image, getOrCreateLabel, createAnnotation]
   )
 
   const handleCloseCreateAnnotationModal = useCallback(() => {
-    setShowLabelInput(false)
-    setTempAnnotation(null)
-  }, [setShowLabelInput, setTempAnnotation])
+    // // Optionally: clear tempAnnotation and close modal if needed
+    // setShowLabelInput(false); // If you have a setter for this
+    // setTempAnnotation(null); // If you have a setter for this
+  }, [])
 
   useEffect(() => {
     setCanvasRef(canvasRef)
   }, [setCanvasRef])
+
   const cursorStyles = {
     box: "cursor-crosshair",
     polygon: "cursor-crosshair",
@@ -82,10 +116,11 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
     delete: "cursor-pointer",
   }
 
-  console.log("Canvas rendered with image:", image.id)
-  console.log("Annotations:", annotations.length)
-  console.log("Selected tool:", selectedTool)
-  console.log("Temp annotation:", tempAnnotation)
+  // Use 'grabbing' cursor when panning
+  const canvasCursor = isPanning
+    ? "cursor-grabbing"
+    : cursorStyles[selectedTool as keyof typeof cursorStyles] ||
+      "cursor-default"
 
   return (
     <>
@@ -104,11 +139,11 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
             </div>
           ) : (
             <div
+              data-testid="canvas"
               ref={canvasRef}
               className={cn(
                 "relative h-full w-full overflow-hidden",
-                cursorStyles[selectedTool as keyof typeof cursorStyles] ||
-                  "cursor-default"
+                canvasCursor
               )}
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
@@ -131,7 +166,7 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
                   width={image.width}
                   height={image.height}
                 />
-                <AnnotationRenderer annotations={annotations} />
+                <AnnotationRenderer annotations={displayAnnotations} />
                 {tempAnnotation && (
                   <AnnotationRenderer
                     annotations={[tempAnnotation]}
@@ -149,7 +184,7 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
       <CreateAnnotation
         labels={labels}
         onSubmit={handleCreateAnnotation}
-        isOpen={showLabelInput}
+        isOpen={!!showLabelInput}
         onClose={handleCloseCreateAnnotationModal}
       />
     </>

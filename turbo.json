@@ -6,7 +6,9 @@
       "outputs": ["dist/**"]
     },
     "dev": {
-      "cache": true
+      "dependsOn": ["^dev"],
+      "cache": false,
+      "persistent": true
     },
     "test": {
       "outputs": []

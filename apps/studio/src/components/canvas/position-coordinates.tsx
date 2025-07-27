@@ -33,6 +33,7 @@ export const PositionCoordinates: React.FC = () => {
 
   return (
     <div
+      data-testid="position-coordinates"
       className="absolute bg-black bg-opacity-75 text-white px-2 py-1 rounded text-xs pointer-events-none z-20"
       style={{
         left: `${tooltipPosition.left}px`,

@@ -55,7 +55,9 @@ export class InstallPythonPackageCommand
         requirementsPath,
         "--no-cache-dir",
       ]
-      const fullCmd = `${req.pythonPath} ${cmdArgs.map((a) => (a.includes(" ") ? `\"${a}\"` : a)).join(" ")}`
+      const fullCmd = `${req.pythonPath} ${cmdArgs
+        .map((a) => (a.includes(" ") ? `\"${a}\"` : a))
+        .join(" ")}`
       _event.sender.send(
         "python-install-progress",
         `\u001b[36m$ ${fullCmd}\u001b[0m\n`

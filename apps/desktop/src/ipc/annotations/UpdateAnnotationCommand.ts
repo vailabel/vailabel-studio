@@ -2,15 +2,20 @@ import { Annotation } from "@vailabel/core"
 import { IpcHandler } from "apps/desktop/src/interface/IpcHandler"
 import { AnnotationRepository } from "../../db/models"
 
-export class UpdateAnnotationCommand implements IpcHandler<Annotation, void> {
+export interface UpdateAnnotationRequest {
+  id: string
+  updates: Partial<Annotation>
+}
+
+export class UpdateAnnotationCommand implements IpcHandler<UpdateAnnotationRequest, void> {
   channel = "update:annotations"
 
   async handle(
     _event: Electron.IpcMainInvokeEvent,
-    annotation: Annotation
+    { id, updates }: UpdateAnnotationRequest
   ): Promise<void> {
-    await AnnotationRepository.update(annotation, {
-      where: { id: annotation.id },
+    await AnnotationRepository.update(updates, {
+      where: { id: id },
     })
   }
 }

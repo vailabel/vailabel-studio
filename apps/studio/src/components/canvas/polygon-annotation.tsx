@@ -7,28 +7,33 @@ import { memo } from "react"
 
 interface PolygonAnnotationProps {
   annotation: Annotation
+  isTemporary?: boolean
 }
 
 export const PolygonAnnotation = memo(
-  ({ annotation }: Readonly<PolygonAnnotationProps>) => {
-    const { selectedAnnotation, updateAnnotation } = useAnnotationsStore()
-    const { zoom, selectedTool } = useCanvasStore()
+  ({ annotation, isTemporary }: Readonly<PolygonAnnotationProps>) => {
+    const { updateAnnotation } = useAnnotationsStore()
+    const { zoom, selectedTool, selectedAnnotation } = useCanvasStore()
 
+    const tempColor = "#2196f3" // blue for temp
     const styles = {
       fill: {
         selected: rgbToRgba(annotation.color, 0.5),
         aiGenerated: rgbToRgba(annotation.color, 0.5),
         default: rgbToRgba(annotation.color, 0.2),
+        temp: rgbToRgba(tempColor, 0.15),
       },
       stroke: {
         selected: annotation.color,
         aiGenerated: annotation.color,
         default: annotation.color,
+        temp: tempColor,
       },
       textFill: {
         selected: annotation.color,
         aiGenerated: annotation.color,
         default: "black",
+        temp: tempColor,
       },
     }
 
@@ -71,16 +76,20 @@ export const PolygonAnnotation = memo(
           animate={{ opacity: 1 }}
           points={annotation.coordinates.map((p) => `${p.x},${p.y}`).join(" ")}
           style={{
-            fill: isSelected
-              ? styles.fill.selected
-              : isAIGenerated
-                ? styles.fill.aiGenerated
-                : styles.fill.default,
-            stroke: isSelected
-              ? styles.stroke.selected
-              : isAIGenerated
-                ? styles.stroke.aiGenerated
-                : styles.stroke.default,
+            fill: isTemporary
+              ? styles.fill.temp
+              : isSelected
+                ? styles.fill.selected
+                : isAIGenerated
+                  ? styles.fill.aiGenerated
+                  : styles.fill.default,
+            stroke: isTemporary
+              ? styles.stroke.temp
+              : isSelected
+                ? styles.stroke.selected
+                : isAIGenerated
+                  ? styles.stroke.aiGenerated
+                  : styles.stroke.default,
             strokeWidth: 2,
           }}
         />
@@ -88,11 +97,13 @@ export const PolygonAnnotation = memo(
           x={annotation.coordinates[0].x}
           y={annotation.coordinates[0].y - 10}
           style={{
-            fill: isSelected
-              ? styles.textFill.selected
-              : isAIGenerated
-                ? styles.textFill.aiGenerated
-                : styles.textFill.default,
+            fill: isTemporary
+              ? styles.textFill.temp
+              : isSelected
+                ? styles.textFill.selected
+                : isAIGenerated
+                  ? styles.textFill.aiGenerated
+                  : styles.textFill.default,
           }}
           className="text-xs"
         >

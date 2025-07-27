@@ -57,7 +57,7 @@ export class ElectronApiDataAdapter implements IDataAdapter {
     annotationId: string,
     updates: Partial<Annotation>
   ): Promise<void> {
-    return this.api.invoke(`update:annotations`, annotationId, updates)
+    return this.api.invoke(`update:annotations`, { id: annotationId, updates })
   }
   fetchAnnotations(projectId: string): Promise<Annotation[]> {
     return this.api.invoke(`fetch:annotations`, projectId)
@@ -74,7 +74,7 @@ export class ElectronApiDataAdapter implements IDataAdapter {
 
   // ImageData-related methods
   updateImageData(imageId: string, updates: Partial<ImageData>): Promise<void> {
-    return this.api.invoke(`update:imageData`, imageId, updates)
+    return this.api.invoke(`update:imageData`, { id: imageId, updates })
   }
   fetchImageData(projectId: string): Promise<ImageData[]> {
     return this.api.invoke(`fetch:imageData`, projectId)
@@ -91,7 +91,7 @@ export class ElectronApiDataAdapter implements IDataAdapter {
 
   // History-related methods
   updateHistory(historyId: string, updates: Partial<History>): Promise<void> {
-    return this.api.invoke(`update:history`, historyId, updates)
+    return this.api.invoke(`update:history`, { id: historyId, updates })
   }
   fetchHistory(projectId: string): Promise<History[]> {
     return this.api.invoke(`fetch:history`, projectId)
@@ -105,7 +105,7 @@ export class ElectronApiDataAdapter implements IDataAdapter {
 
   // Task-related methods
   updateTask(taskId: string, updates: Partial<Task>): Promise<void> {
-    return this.api.invoke(`update:tasks`, taskId, updates)
+    return this.api.invoke(`update:tasks`, { id: taskId, updates })
   }
   fetchTasks(projectId: string): Promise<Task[]> {
     return this.api.invoke(`fetch:tasks`, projectId)
@@ -119,7 +119,7 @@ export class ElectronApiDataAdapter implements IDataAdapter {
 
   // AIModel-related methods
   updateAIModel(aiModelId: string, updates: Partial<AIModel>): Promise<void> {
-    return this.api.invoke(`update:aiModels`, aiModelId, updates)
+    return this.api.invoke(`update:aiModels`, { id: aiModelId, updates })
   }
   fetchAIModels(projectId: string): Promise<AIModel[]> {
     return this.api.invoke(`fetch:aiModels`, projectId)

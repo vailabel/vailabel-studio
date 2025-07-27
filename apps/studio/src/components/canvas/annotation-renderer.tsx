@@ -1,30 +1,56 @@
 import { memo, useMemo } from "react"
 import { BoxAnnotation } from "@/components/canvas/box-annotation"
 import { PolygonAnnotation } from "@/components/canvas/polygon-annotation"
+import { FreeDrawAnnotation } from "@/components/canvas/free-draw-annotation"
 import { Annotation } from "@vailabel/core"
+import { TempAnnotation } from "@/components/canvas/temp-annotation"
 
 type AnnotationType = "box" | "polygon" | "freeDraw"
 
+type RenderableAnnotation = Annotation | Partial<Annotation>
+
 export const AnnotationRenderer = memo(
-  ({ annotations }: { annotations: Annotation[] }) => {
+  ({
+    annotations,
+    isTemporary = false,
+  }: {
+    annotations: RenderableAnnotation[]
+    isTemporary?: boolean
+  }) => {
     const annotationComponents = useMemo(
       () => ({
         box: BoxAnnotation,
         polygon: PolygonAnnotation,
-        freeDraw: () => null, // Handle unsupported type gracefully
+        freeDraw: FreeDrawAnnotation,
       }),
       []
     )
 
     return (
       <>
-        {annotations.map((annotation) => {
+        {annotations.map((annotation, idx) => {
+          // Skip if type or coordinates are missing or invalid
+          if (
+            !annotation.type ||
+            !annotation.coordinates ||
+            annotation.coordinates.length === 0
+          )
+            return null
+          // Use annotation.id if present, otherwise fallback to idx
+          const key = (annotation as Annotation).id || idx
+          if (isTemporary) {
+            // Use TempAnnotation for temp/partial annotation rendering
+            return <TempAnnotation key={key} annotation={annotation} />
+          }
           const type = annotation.type as AnnotationType
           const AnnotationComponent = annotationComponents[type] || null
           return (
-            <div key={annotation.id}>
+            <div key={key}>
               {AnnotationComponent && (
-                <AnnotationComponent annotation={annotation} />
+                <AnnotationComponent
+                  annotation={annotation as Annotation}
+                  isTemporary={isTemporary}
+                />
               )}
             </div>
           )

@@ -49,17 +49,14 @@ export default async function DocumentationLayout({
   }
 
   // Group docs by category
-  const docsByCategory = docs.reduce(
-    (acc, doc) => {
-      const category = doc.category || "General"
-      if (!acc[category]) {
-        acc[category] = []
-      }
-      acc[category].push(doc)
-      return acc
-    },
-    {} as Record<string, typeof docs>
-  )
+  const docsByCategory = docs.reduce((acc, doc) => {
+    const category = doc.category || "General"
+    if (!acc[category]) {
+      acc[category] = []
+    }
+    acc[category].push(doc)
+    return acc
+  }, {} as Record<string, typeof docs>)
 
   // Sort categories
   const sortedCategories = Object.keys(docsByCategory).sort((a, b) => {
