@@ -12,7 +12,7 @@ export class FreeDrawHandler implements ToolHandler {
   constructor(private context: ToolHandlerContext) {}
 
   onMouseDown(e: React.MouseEvent) {
-    if (e.button !== 0) return
+    if (e.button !== 0) return // Only handle left clicks
 
     const point = this.context.getCanvasCoords(e.clientX, e.clientY)
     this.context.setToolState({
@@ -36,8 +36,8 @@ export class FreeDrawHandler implements ToolHandler {
       Math.pow(point.x - lastPoint.x, 2) + Math.pow(point.y - lastPoint.y, 2)
     )
 
-    // Only add point if significant movement
-    if (distance > 2) {
+    // Only add point if significant movement (smoother drawing)
+    if (distance > 1.5) {
       const newPoints = [...toolState.freeDrawPoints, point]
       this.context.setToolState({
         freeDrawPoints: newPoints,
@@ -53,20 +53,35 @@ export class FreeDrawHandler implements ToolHandler {
     const { toolState } = this.context
     if (!toolState.isDrawing || !toolState.freeDrawPoints) return
 
-    if (toolState.freeDrawPoints.length > 3) {
+    // Require at least 2 points for a valid free draw annotation
+    if (toolState.freeDrawPoints.length >= 2) {
       this.context.setToolState({
         showLabelInput: true,
         tempAnnotation: {
           ...toolState.tempAnnotation,
           coordinates: toolState.freeDrawPoints,
         },
+        isDrawing: false,
+      })
+    } else {
+      // Not enough points, cancel the drawing
+      this.context.setToolState({
+        isDrawing: false,
+        freeDrawPoints: [],
+        tempAnnotation: null,
       })
     }
+  }
 
-    this.context.setToolState({
-      isDrawing: false,
-      freeDrawPoints: [],
-    })
+  // Handle escape key to cancel current drawing
+  onKeyDown(e: KeyboardEvent) {
+    if (e.key === "Escape" && this.context.toolState.isDrawing) {
+      this.context.setToolState({
+        isDrawing: false,
+        freeDrawPoints: [],
+        tempAnnotation: null,
+      })
+    }
   }
 
   getUIState(): FreeDrawHandlerUIState {

@@ -53,14 +53,12 @@ export class BoxHandler implements ToolHandler {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onMouseUp(_e?: React.MouseEvent) {
     const { toolState } = this.context
-    console.log("BoxHandler onMouseUp - toolState:", toolState)
 
     if (
       !toolState.isDragging ||
       !toolState.startPoint ||
       !toolState.currentPoint
     ) {
-      console.log("BoxHandler onMouseUp - early return, invalid state")
       return
     }
 
@@ -98,12 +96,20 @@ export class BoxHandler implements ToolHandler {
         startPoint: null,
         currentPoint: null,
       })
-      console.log(
-        "BoxHandler onMouseUp - State set, showLabelInput should be true"
-      )
     } else {
-      console.log("BoxHandler onMouseUp - Box too small, clearing state")
       // Clear state for invalid boxes
+      this.context.setToolState({
+        isDragging: false,
+        startPoint: null,
+        currentPoint: null,
+        tempAnnotation: null,
+      })
+    }
+  }
+
+  // Handle escape key to cancel current drawing
+  onKeyDown(e: KeyboardEvent) {
+    if (e.key === "Escape" && this.context.toolState.isDragging) {
       this.context.setToolState({
         isDragging: false,
         startPoint: null,
@@ -119,15 +125,6 @@ export class BoxHandler implements ToolHandler {
       tempAnnotation: this.context.toolState.tempAnnotation || undefined,
       showLabelInput: this.context.toolState.showLabelInput ?? false,
     }
-    console.log(
-      "BoxHandler getUIState - toolState.showLabelInput:",
-      this.context.toolState.showLabelInput
-    )
-    console.log(
-      "BoxHandler getUIState - full toolState:",
-      this.context.toolState
-    )
-    console.log("BoxHandler getUIState - returning:", uiState)
     return uiState
   }
 }

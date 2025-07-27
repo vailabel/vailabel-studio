@@ -191,37 +191,6 @@ export function useCanvasHandlers() {
     toolHandler.onDoubleClick?.()
   }, [toolHandler])
 
-  const handleWheel = useCallback(
-    (e: React.WheelEvent) => {
-      // Enable zooming with Ctrl/Cmd + scroll OR Alt + scroll
-      if (e.ctrlKey || e.metaKey || e.altKey) {
-        e.preventDefault()
-        const delta = e.deltaY > 0 ? -0.1 : 0.1
-        const newZoom = Math.max(0.1, Math.min(5, zoom + delta))
-
-        if (canvasStore.canvasRef.current) {
-          const rect = canvasStore.canvasRef.current.getBoundingClientRect()
-          const mouseX = e.clientX - rect.left
-          const mouseY = e.clientY - rect.top
-
-          const beforeZoomX = (mouseX - panOffset.x) / zoom
-          const beforeZoomY = (mouseY - panOffset.y) / zoom
-
-          const afterZoomX = (mouseX - panOffset.x) / newZoom
-          const afterZoomY = (mouseY - panOffset.y) / newZoom
-
-          canvasStore.setPanOffset({
-            x: panOffset.x + (beforeZoomX - afterZoomX) * newZoom,
-            y: panOffset.y + (beforeZoomY - afterZoomY) * newZoom,
-          })
-        }
-        canvasStore.setZoom(newZoom)
-      }
-      // else: allow default scroll behavior
-    },
-    [zoom, panOffset, canvasStore]
-  )
-
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === "Space" && !isPanning) {
@@ -268,6 +237,11 @@ export function useCanvasHandlers() {
             clearTemp()
             break
         }
+
+        // Let the current tool handle key events
+        if (toolHandler.onKeyDown) {
+          toolHandler.onKeyDown(e)
+        }
       }
     }
 
@@ -279,12 +253,58 @@ export function useCanvasHandlers() {
       }
     }
 
+    // Add non-passive wheel event listener for better zoom control
+    const handleNativeWheel = (e: WheelEvent) => {
+      // Enable zooming with Ctrl/Cmd + scroll OR Alt + scroll
+      if (e.ctrlKey || e.metaKey || e.altKey) {
+        e.preventDefault()
+        e.stopPropagation()
+        const delta = e.deltaY > 0 ? -0.1 : 0.1
+        const newZoom = Math.max(0.1, Math.min(5, zoom + delta))
+
+        if (canvasStore.canvasRef.current) {
+          const rect = canvasStore.canvasRef.current.getBoundingClientRect()
+          const mouseX = e.clientX - rect.left
+          const mouseY = e.clientY - rect.top
+
+          const beforeZoomX = (mouseX - panOffset.x) / zoom
+          const beforeZoomY = (mouseY - panOffset.y) / zoom
+
+          const afterZoomX = (mouseX - panOffset.x) / newZoom
+          const afterZoomY = (mouseY - panOffset.y) / newZoom
+
+          canvasStore.setPanOffset({
+            x: panOffset.x + (beforeZoomX - afterZoomX) * newZoom,
+            y: panOffset.y + (beforeZoomY - afterZoomY) * newZoom,
+          })
+        }
+        canvasStore.setZoom(newZoom)
+      }
+    }
+
     window.addEventListener("keydown", handleKeyDown)
     window.addEventListener("keyup", handleKeyUp)
+
+    // Add wheel event listener with explicit non-passive option
+    if (canvasStore.canvasRef.current) {
+      canvasStore.canvasRef.current.addEventListener(
+        "wheel",
+        handleNativeWheel,
+        { passive: false }
+      )
+    }
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown)
       window.removeEventListener("keyup", handleKeyUp)
+
+      // Clean up wheel event listener
+      if (canvasStore.canvasRef.current) {
+        canvasStore.canvasRef.current.removeEventListener(
+          "wheel",
+          handleNativeWheel
+        )
+      }
     }
   }, [
     isPanning,
@@ -294,6 +314,9 @@ export function useCanvasHandlers() {
     setIsPanning,
     setLastPanPoint,
     setToolState,
+    toolHandler,
+    zoom,
+    panOffset,
   ])
 
   return {
@@ -301,7 +324,6 @@ export function useCanvasHandlers() {
     handleMouseMove,
     handleMouseUp,
     handleDoubleClick,
-    handleWheel,
     isPanning,
     ...toolHandler.getUIState(),
   }

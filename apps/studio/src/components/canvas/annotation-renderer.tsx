@@ -2,8 +2,8 @@ import { memo, useMemo } from "react"
 import { BoxAnnotation } from "@/components/canvas/box-annotation"
 import { PolygonAnnotation } from "@/components/canvas/polygon-annotation"
 import { FreeDrawAnnotation } from "@/components/canvas/free-draw-annotation"
-import { Annotation } from "@vailabel/core"
 import { TempAnnotation } from "@/components/canvas/temp-annotation"
+import { Annotation } from "@vailabel/core"
 
 type AnnotationType = "box" | "polygon" | "freeDraw"
 
@@ -47,10 +47,7 @@ export const AnnotationRenderer = memo(
           return (
             <div key={key}>
               {AnnotationComponent && (
-                <AnnotationComponent
-                  annotation={annotation as Annotation}
-                  isTemporary={isTemporary}
-                />
+                <AnnotationComponent annotation={annotation as Annotation} />
               )}
             </div>
           )

@@ -26,7 +26,6 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
     handleMouseMove,
     handleMouseUp,
     handleDoubleClick,
-    handleWheel,
     tempAnnotation,
     showLabelInput,
     setShowLabelInput,
@@ -90,10 +89,7 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
   return (
     <>
       <div className="relative h-full w-full overflow-hidden bg-gray-100 dark:bg-gray-900">
-        <div
-          className="relative h-full w-full overflow-hidden"
-          onWheel={handleWheel}
-        >
+        <div className="relative h-full w-full overflow-hidden">
           {!image ? (
             <div className="flex h-full items-center justify-center">
               <div className="text-center">
@@ -131,13 +127,7 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
                   width={image.width}
                   height={image.height}
                 />
-                <AnnotationRenderer annotations={annotations} />
-                {tempAnnotation && (
-                  <AnnotationRenderer
-                    annotations={[tempAnnotation]}
-                    isTemporary
-                  />
-                )}
+                <AnnotationRenderer annotations={annotations} /> 
               </div>
 
               <Crosshair />

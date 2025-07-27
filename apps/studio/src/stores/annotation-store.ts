@@ -56,6 +56,10 @@ export const useAnnotationsStore = create<AnnotationsStoreType>(
     },
     deleteAnnotation: async (id: string) => {
       const { data } = get()
+      // delete the annotation from the local state
+      set((state) => ({
+        annotations: state.annotations.filter((annotation) => annotation.id !== id),
+      }))
       return await data.deleteAnnotation(id)
     },
     undo: () => {},

@@ -1,35 +1,34 @@
 import { useMemo } from "react"
 import { motion } from "framer-motion"
-import { rgbToRgba } from "@/lib/utils"
-import type { Annotation, Point } from "@vailabel/core"
 import { useCanvasStore } from "@/stores/canvas-store"
+import { Annotation, Point } from "@vailabel/core"
 
 interface FreeDrawAnnotationProps {
   annotation: Annotation
-  isTemporary?: boolean
 }
 
-export const FreeDrawAnnotation = ({
-  annotation,
-  isTemporary,
-}: FreeDrawAnnotationProps) => {
+export const FreeDrawAnnotation = ({ annotation }: FreeDrawAnnotationProps) => {
   const { zoom, selectedTool, selectedAnnotation } = useCanvasStore()
 
   const isSelected = selectedAnnotation?.id === annotation.id
 
-  const tempColor = "#2196f3"
-
   const styles = useMemo(
     () => ({
       fill: {
-        selected: rgbToRgba(annotation.color ?? "#333", 0.3),
+        selected: "none", // No fill for free draw
         default: "none", // No fill for free draw
-        temp: "rgba(33,150,243,0.15)",
       },
       stroke: {
         selected: annotation.color ?? "#333",
         default: annotation.color ?? "#333",
-        temp: tempColor,
+      },
+      strokeWidth: {
+        selected: 2,
+        default: 2,
+      },
+      strokeDashArray: {
+        selected: "none",
+        default: "none",
       },
     }),
     [annotation.color]
@@ -80,17 +79,14 @@ export const FreeDrawAnnotation = ({
         animate={{ opacity: 1 }}
         d={pathData}
         style={{
-          fill: isTemporary
-            ? styles.fill.temp
-            : isSelected
-              ? styles.fill.selected
-              : styles.fill.default,
-          stroke: isTemporary
-            ? styles.stroke.temp
-            : isSelected
-              ? styles.stroke.selected
-              : styles.stroke.default,
-          strokeWidth: 2,
+          fill: isSelected ? styles.fill.selected : styles.fill.default,
+          stroke: isSelected ? styles.stroke.selected : styles.stroke.default,
+          strokeWidth: isSelected
+            ? styles.strokeWidth.selected
+            : styles.strokeWidth.default,
+          strokeDasharray: isSelected
+            ? styles.strokeDashArray.selected
+            : styles.strokeDashArray.default,
           strokeLinecap: "round",
           strokeLinejoin: "round",
         }}
@@ -102,11 +98,7 @@ export const FreeDrawAnnotation = ({
           x={annotation.coordinates[0].x}
           y={annotation.coordinates[0].y - 10}
           style={{
-            fill: isTemporary
-              ? tempColor
-              : isSelected
-                ? styles.stroke.selected
-                : styles.stroke.default,
+            fill: isSelected ? styles.stroke.selected : styles.stroke.default,
             fontSize: "12px",
             fontWeight: "bold",
           }}

@@ -9,6 +9,7 @@ import { CreateAnnotation } from "@/components/canvas/create-annotation"
 import { useAnnotationsStore } from "@/stores/annotation-store"
 import { useCanvasStore } from "@/stores/canvas-store"
 import { useLabelStore } from "@/stores/use-label-store"
+import { TempAnnotation } from "./temp-annotation"
 
 interface CanvasProps {
   image: ImageData
@@ -30,7 +31,6 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
     handleMouseMove,
     handleMouseUp,
     handleDoubleClick,
-    handleWheel,
     isPanning,
     // ...other UI state
   } = handlerState
@@ -136,10 +136,7 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
   return (
     <>
       <div className="relative h-full w-full overflow-hidden bg-gray-100 dark:bg-gray-900">
-        <div
-          className="relative h-full w-full overflow-hidden"
-          onWheel={handleWheel}
-        >
+        <div className="relative h-full w-full overflow-hidden">
           {!image ? (
             <div className="flex h-full items-center justify-center">
               <div className="text-center">
@@ -179,10 +176,7 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
                 />
                 <AnnotationRenderer annotations={displayAnnotations} />
                 {tempAnnotation && (
-                  <AnnotationRenderer
-                    annotations={[tempAnnotation]}
-                    isTemporary
-                  />
+                  <TempAnnotation annotation={tempAnnotation} />
                 )}
               </div>
 

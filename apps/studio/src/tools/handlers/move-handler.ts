@@ -216,7 +216,10 @@ export class MoveHandler implements ToolHandler {
         annotation.coordinates = toolState.previewCoordinates
         annotation.updatedAt = new Date()
         // Save the resized annotation with updated timestamp
-        this.context.annotationsStore.updateAnnotation(annotation.id, annotation)
+        this.context.annotationsStore.updateAnnotation(
+          annotation.id,
+          annotation
+        )
       }
     }
 
@@ -252,6 +255,20 @@ export class MoveHandler implements ToolHandler {
       isMoving: false,
       previewCoordinates: null,
     })
+  }
+
+  // Handle escape key to cancel current operations
+  onKeyDown(e: KeyboardEvent) {
+    if (e.key === "Escape") {
+      this.context.setToolState({
+        isResizing: false,
+        resizeHandle: null,
+        movingAnnotationId: null,
+        resizingAnnotationId: null,
+        movingOffset: null,
+        previewCoordinates: null,
+      })
+    }
   }
 
   getUIState(): MoveHandlerUIState {

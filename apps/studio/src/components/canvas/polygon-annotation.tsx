@@ -7,33 +7,38 @@ import { memo } from "react"
 
 interface PolygonAnnotationProps {
   annotation: Annotation
-  isTemporary?: boolean
 }
 
 export const PolygonAnnotation = memo(
-  ({ annotation, isTemporary }: Readonly<PolygonAnnotationProps>) => {
+  ({ annotation }: Readonly<PolygonAnnotationProps>) => {
     const { updateAnnotation } = useAnnotationsStore()
     const { zoom, selectedTool, selectedAnnotation } = useCanvasStore()
 
-    const tempColor = "#2196f3" // blue for temp
     const styles = {
       fill: {
-        selected: rgbToRgba(annotation.color, 0.5),
-        aiGenerated: rgbToRgba(annotation.color, 0.5),
+        selected: rgbToRgba(annotation.color, 0.2),
+        aiGenerated: rgbToRgba(annotation.color, 0.2),
         default: rgbToRgba(annotation.color, 0.2),
-        temp: rgbToRgba(tempColor, 0.15),
       },
       stroke: {
         selected: annotation.color,
         aiGenerated: annotation.color,
         default: annotation.color,
-        temp: tempColor,
+      },
+      strokeWidth: {
+        selected: 2,
+        aiGenerated: 2,
+        default: 2,
+      },
+      strokeDashArray: {
+        selected: "none",
+        aiGenerated: "none",
+        default: "none",
       },
       textFill: {
         selected: annotation.color,
         aiGenerated: annotation.color,
-        default: "black",
-        temp: tempColor,
+        default: annotation.color,
       },
     }
 
@@ -76,34 +81,37 @@ export const PolygonAnnotation = memo(
           animate={{ opacity: 1 }}
           points={annotation.coordinates.map((p) => `${p.x},${p.y}`).join(" ")}
           style={{
-            fill: isTemporary
-              ? styles.fill.temp
-              : isSelected
-                ? styles.fill.selected
-                : isAIGenerated
-                  ? styles.fill.aiGenerated
-                  : styles.fill.default,
-            stroke: isTemporary
-              ? styles.stroke.temp
-              : isSelected
-                ? styles.stroke.selected
-                : isAIGenerated
-                  ? styles.stroke.aiGenerated
-                  : styles.stroke.default,
-            strokeWidth: 2,
+            fill: isSelected
+              ? styles.fill.selected
+              : isAIGenerated
+                ? styles.fill.aiGenerated
+                : styles.fill.default,
+            stroke: isSelected
+              ? styles.stroke.selected
+              : isAIGenerated
+                ? styles.stroke.aiGenerated
+                : styles.stroke.default,
+            strokeWidth: isSelected
+              ? styles.strokeWidth.selected
+              : isAIGenerated
+                ? styles.strokeWidth.aiGenerated
+                : styles.strokeWidth.default,
+            strokeDasharray: isSelected
+              ? styles.strokeDashArray.selected
+              : isAIGenerated
+                ? styles.strokeDashArray.aiGenerated
+                : styles.strokeDashArray.default,
           }}
         />
         <text
           x={annotation.coordinates[0].x}
           y={annotation.coordinates[0].y - 10}
           style={{
-            fill: isTemporary
-              ? styles.textFill.temp
-              : isSelected
-                ? styles.textFill.selected
-                : isAIGenerated
-                  ? styles.textFill.aiGenerated
-                  : styles.textFill.default,
+            fill: isSelected
+              ? styles.textFill.selected
+              : isAIGenerated
+                ? styles.textFill.aiGenerated
+                : styles.textFill.default,
           }}
           className="text-xs"
         >
