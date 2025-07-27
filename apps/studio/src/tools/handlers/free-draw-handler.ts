@@ -4,11 +4,11 @@ import { ToolHandler } from "../tool-handlers"
 
 export type FreeDrawHandlerUIState = {
   isDrawing: boolean
-  tempAnnotation?: Annotation
+  tempAnnotation?: Partial<Annotation>
   showLabelInput?: boolean
 }
 
-export class FreeDrawHandler implements ToolHandler{
+export class FreeDrawHandler implements ToolHandler {
   constructor(private context: ToolHandlerContext) {}
 
   onMouseDown(e: React.MouseEvent) {
@@ -71,9 +71,9 @@ export class FreeDrawHandler implements ToolHandler{
 
   getUIState(): FreeDrawHandlerUIState {
     return {
-      isDrawing: this.context.toolState.isDrawing,
-      tempAnnotation: this.context.toolState.tempAnnotation,
-      showLabelInput: this.context.toolState.showLabelInput,
+      isDrawing: this.context.toolState.isDrawing ?? false,
+      tempAnnotation: this.context.toolState.tempAnnotation || undefined,
+      showLabelInput: this.context.toolState.showLabelInput ?? false,
     }
   }
 }

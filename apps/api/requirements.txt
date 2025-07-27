@@ -14,3 +14,4 @@ python-jose
 passlib[bcrypt]
 python-multipart
 Authlib
+pyright

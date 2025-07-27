@@ -2,6 +2,43 @@ import { Annotation, ImageData, Point } from "@vailabel/core"
 import React from "react"
 import { create } from "zustand"
 
+// Strongly typed tool state interface
+export interface ToolState {
+  // Common properties for all tools
+  isDragging?: boolean
+  startPoint?: Point | null
+  currentPoint?: Point | null
+  tempAnnotation?: Partial<Annotation> | null
+  showLabelInput?: boolean
+
+  // Move tool specific
+  isResizing?: boolean
+  resizeHandle?: string | null
+  movingAnnotationId?: string | null
+  resizingAnnotationId?: string | null
+  movingOffset?: Point | null
+  previewCoordinates?: Point[] | null
+
+  // Polygon tool specific
+  polygonPoints?: Point[]
+
+  // Free draw tool specific
+  isDrawing?: boolean
+  freeDrawPoints?: Point[]
+
+  // Allow additional properties with specific types
+  [key: string]:
+    | boolean
+    | string
+    | number
+    | Point
+    | Point[]
+    | Annotation
+    | Partial<Annotation>
+    | null
+    | undefined
+}
+
 const DEFAULT_TOOL_STATE = {
   type: "move",
   panOffset: { x: 0, y: 0 },
@@ -65,10 +102,9 @@ export type CanvasStore = {
   setIsPanning: (isPanning: boolean) => void
   lastPanPoint: Point | null
   setLastPanPoint: (point: Point | null) => void
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  toolState: Record<string, any>
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  setToolState: (state: Record<string, any>) => void
+  // Tool state
+  toolState: ToolState
+  setToolState: (state: Partial<ToolState>) => void
 
   currentImage: ImageData | null
   setCurrentImage: (image: ImageData | null) => void
@@ -103,7 +139,10 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
   canvasRef: React.createRef<HTMLDivElement>(),
   setIsPanning: (isPanning) => set({ isPanning }),
   setLastPanPoint: (point) => set({ lastPanPoint: point }),
-  setToolState: (state) => set({ toolState: state }),
+  setToolState: (state) =>
+    set((prevState) => ({
+      toolState: { ...prevState.toolState, ...state },
+    })),
   setCurrentImage: (image) => set({ currentImage: image }),
   setShowCrosshair: (show) => set({ showCrosshair: show }),
   setShowCoordinates: (show) => set({ showCoordinates: show }),

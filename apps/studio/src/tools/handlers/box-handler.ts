@@ -2,10 +2,9 @@ import type { Point, Annotation } from "@vailabel/core"
 import { ToolHandlerContext } from "@/tools/canvas-handler"
 import { ToolHandler } from "../tool-handlers"
 
-
 export type BoxHandlerUIState = {
   isDragging: boolean
-  tempAnnotation?: Annotation
+  tempAnnotation?: Partial<Annotation>
   showLabelInput?: boolean
 }
 
@@ -30,7 +29,10 @@ export class BoxHandler implements ToolHandler {
     this.context.setToolState({
       currentPoint: point,
       tempAnnotation: {
+        id: "temp", // Temporary ID for preview
+        name: "New Box", // Temporary name
         type: "box",
+        color: "#2196f3", // Default temporary color (blue)
         coordinates: [
           {
             x: Math.min(toolState.startPoint.x, point.x),
@@ -41,6 +43,9 @@ export class BoxHandler implements ToolHandler {
             y: Math.max(toolState.startPoint.y, point.y),
           },
         ],
+        imageId: this.context.annotationsStore.currentImage?.id || "",
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     })
   }
@@ -48,12 +53,16 @@ export class BoxHandler implements ToolHandler {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onMouseUp(_e?: React.MouseEvent) {
     const { toolState } = this.context
+    console.log("BoxHandler onMouseUp - toolState:", toolState)
+
     if (
       !toolState.isDragging ||
       !toolState.startPoint ||
       !toolState.currentPoint
-    )
+    ) {
+      console.log("BoxHandler onMouseUp - early return, invalid state")
       return
+    }
 
     const coordinates = [
       {
@@ -66,33 +75,59 @@ export class BoxHandler implements ToolHandler {
       },
     ]
 
+    const width = coordinates[1].x - coordinates[0].x
+    const height = coordinates[1].y - coordinates[0].y
+    console.log("BoxHandler onMouseUp - box dimensions:", { width, height })
+
     // Only create annotation for valid boxes
-    if (
-      coordinates[1].x - coordinates[0].x > 5 &&
-      coordinates[1].y - coordinates[0].y > 5
-    ) {
+    if (width > 5 && height > 5) {
+      console.log("BoxHandler onMouseUp - Setting showLabelInput to TRUE")
       this.context.setToolState({
         showLabelInput: true,
         tempAnnotation: {
+          id: crypto.randomUUID(), // Generate proper ID for saving
+          name: "New Box", // Default name
           type: "box",
+          color: "#2196f3", // Default color
           coordinates,
           imageId: this.context.annotationsStore.currentImage?.id || "",
+          createdAt: new Date(),
+          updatedAt: new Date(),
         },
+        isDragging: false,
+        startPoint: null,
+        currentPoint: null,
+      })
+      console.log(
+        "BoxHandler onMouseUp - State set, showLabelInput should be true"
+      )
+    } else {
+      console.log("BoxHandler onMouseUp - Box too small, clearing state")
+      // Clear state for invalid boxes
+      this.context.setToolState({
+        isDragging: false,
+        startPoint: null,
+        currentPoint: null,
+        tempAnnotation: null,
       })
     }
-
-    this.context.setToolState({
-      isDragging: false,
-      startPoint: null,
-      currentPoint: null,
-    })
   }
 
   getUIState(): BoxHandlerUIState {
-    return {
-      isDragging: this.context.toolState.isDragging,
-      tempAnnotation: this.context.toolState.tempAnnotation,
-      showLabelInput: this.context.toolState.showLabelInput,
+    const uiState = {
+      isDragging: this.context.toolState.isDragging ?? false,
+      tempAnnotation: this.context.toolState.tempAnnotation || undefined,
+      showLabelInput: this.context.toolState.showLabelInput ?? false,
     }
+    console.log(
+      "BoxHandler getUIState - toolState.showLabelInput:",
+      this.context.toolState.showLabelInput
+    )
+    console.log(
+      "BoxHandler getUIState - full toolState:",
+      this.context.toolState
+    )
+    console.log("BoxHandler getUIState - returning:", uiState)
+    return uiState
   }
 }

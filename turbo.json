@@ -15,6 +15,18 @@
     },
     "format": {
       "outputs": []
+    },
+    "typecheck": {
+      "dependsOn": ["^typecheck"],
+      "outputs": []
+    },
+    "lint": {
+      "dependsOn": ["^lint"],
+      "outputs": []
+    },
+    "clean": {
+      "dependsOn": ["^clean"],
+      "outputs": []
     }
   }
 }

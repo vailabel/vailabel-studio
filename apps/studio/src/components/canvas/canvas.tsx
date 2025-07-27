@@ -16,7 +16,8 @@ interface CanvasProps {
 }
 
 export const Canvas = memo(({ image, annotations }: CanvasProps) => {
-  const { zoom, panOffset, selectedTool, setCanvasRef } = useCanvasStore()
+  const { zoom, panOffset, selectedTool, setCanvasRef, setToolState } =
+    useCanvasStore()
   const { createAnnotation } = useAnnotationsStore()
   const { getOrCreateLabel, labels } = useLabelStore()
 
@@ -39,7 +40,6 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
     "tempAnnotation" in handlerState ? handlerState.tempAnnotation : undefined
   const showLabelInput =
     "showLabelInput" in handlerState ? handlerState.showLabelInput : undefined
-
   // Extract resize and move state for preview coordinates
   const resizingAnnotationId =
     "resizingAnnotationId" in handlerState
@@ -91,18 +91,29 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
         updatedAt: new Date(),
       }
       createAnnotation(newAnnotation)
-      // Optionally: clear tempAnnotation and close modal if needed
-      // setShowLabelInput(false); // If you have a setter for this
-      // setTempAnnotation(null); // If you have a setter for this
+      setToolState({
+        showLabelInput: false,
+        tempAnnotation: null,
+        resizingAnnotationId: null,
+        movingAnnotationId: null,
+        previewCoordinates: null,
+      })
     },
-    [tempAnnotation, image, getOrCreateLabel, createAnnotation]
+    [
+      tempAnnotation,
+      image.projectId,
+      image.id,
+      getOrCreateLabel,
+      createAnnotation,
+      setToolState,
+    ]
   )
 
   const handleCloseCreateAnnotationModal = useCallback(() => {
-    // // Optionally: clear tempAnnotation and close modal if needed
-    // setShowLabelInput(false); // If you have a setter for this
-    // setTempAnnotation(null); // If you have a setter for this
-  }, [])
+    setToolState({
+      showLabelInput: false,
+    })
+  }, [setToolState])
 
   useEffect(() => {
     setCanvasRef(canvasRef)

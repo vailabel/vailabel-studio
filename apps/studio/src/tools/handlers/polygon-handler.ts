@@ -4,11 +4,11 @@ import { ToolHandler } from "../tool-handlers"
 
 export type PolygonHandlerUIState = {
   polygonPoints?: Point[]
-  tempAnnotation?: Annotation
+  tempAnnotation?: Partial<Annotation>
   showLabelInput?: boolean
 }
 
-export class PolygonHandler implements ToolHandler{
+export class PolygonHandler implements ToolHandler {
   constructor(private context: ToolHandlerContext) {}
 
   onMouseDown(e: React.MouseEvent) {
@@ -45,9 +45,9 @@ export class PolygonHandler implements ToolHandler{
 
   getUIState(): PolygonHandlerUIState {
     return {
-      polygonPoints: this.context.toolState.polygonPoints,
-      tempAnnotation: this.context.toolState.tempAnnotation,
-      showLabelInput: this.context.toolState.showLabelInput,
+      polygonPoints: this.context.toolState.polygonPoints || [],
+      tempAnnotation: this.context.toolState.tempAnnotation || undefined,
+      showLabelInput: this.context.toolState.showLabelInput ?? false,
     }
   }
 }

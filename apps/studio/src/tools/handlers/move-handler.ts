@@ -281,8 +281,8 @@ export class MoveHandler implements ToolHandler {
     }
 
     return {
-      isResizing: this.context.toolState.isResizing,
-      resizeHandle: this.context.toolState.resizeHandle,
+      isResizing: this.context.toolState.isResizing ?? false,
+      resizeHandle: this.context.toolState.resizeHandle ?? null,
       movingAnnotationId: this.context.toolState.movingAnnotationId,
       resizingAnnotationId: this.context.toolState.resizingAnnotationId,
       previewCoordinates: this.context.toolState.previewCoordinates,

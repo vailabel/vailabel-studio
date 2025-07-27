@@ -6,7 +6,11 @@ import {
   findLabelAtPoint as utilsFindLabelAtPoint,
   getResizeHandle as utilsGetResizeHandle,
 } from "@/tools/canvas-utils"
-import { type CanvasStore, useCanvasStore } from "../stores/canvas-store"
+import {
+  type CanvasStore,
+  type ToolState,
+  useCanvasStore,
+} from "../stores/canvas-store"
 import {
   type AnnotationsStoreType,
   useAnnotationsStore,
@@ -25,10 +29,8 @@ export interface ToolHandlerContext {
   annotationsStore: AnnotationsStoreType
   zoom: number
   panOffset: Point
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  toolState: Record<string, any>
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  setToolState: (state: Record<string, any>) => void
+  toolState: ToolState
+  setToolState: (state: Partial<ToolState>) => void
   setIsPanning: (isPanning: boolean) => void
   setLastPanPoint: (point: Point | null) => void
   getCanvasCoords: (clientX: number, clientY: number) => Point
@@ -131,10 +133,15 @@ export function useCanvasHandlers() {
   const toolHandler = createToolHandler(selectedTool, handlerContext)
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
-      if (isPanning) return
+      // If space is held, start panning by setting the pan point
+      if (isPanning) {
+        setLastPanPoint({ x: e.clientX, y: e.clientY })
+        return
+      }
+      // Otherwise, let the tool handle the mouse down
       toolHandler.onMouseDown(e)
     },
-    [toolHandler, isPanning]
+    [toolHandler, isPanning, setLastPanPoint]
   )
 
   const handleMouseMove = useCallback(
@@ -168,13 +175,17 @@ export function useCanvasHandlers() {
   )
 
   const handleMouseUp = useCallback(() => {
-    if (isPanning) {
-      setIsPanning(false)
+    // Clear pan point on mouse up, but don't change isPanning state
+    // (isPanning should only be controlled by space key)
+    if (isPanning && lastPanPoint) {
       setLastPanPoint(null)
       return
     }
-    toolHandler.onMouseUp()
-  }, [toolHandler, isPanning, setIsPanning, setLastPanPoint])
+    // If not panning or no pan point set, let tool handle mouse up
+    if (!isPanning) {
+      toolHandler.onMouseUp()
+    }
+  }, [toolHandler, isPanning, lastPanPoint, setLastPanPoint])
 
   const handleDoubleClick = useCallback(() => {
     toolHandler.onDoubleClick?.()
@@ -182,7 +193,8 @@ export function useCanvasHandlers() {
 
   const handleWheel = useCallback(
     (e: React.WheelEvent) => {
-      if (e.ctrlKey || e.metaKey) {
+      // Enable zooming with Ctrl/Cmd + scroll OR Alt + scroll
+      if (e.ctrlKey || e.metaKey || e.altKey) {
         e.preventDefault()
         const delta = e.deltaY > 0 ? -0.1 : 0.1
         const newZoom = Math.max(0.1, Math.min(5, zoom + delta))
@@ -213,6 +225,7 @@ export function useCanvasHandlers() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === "Space" && !isPanning) {
+        e.preventDefault() // Prevent default space behavior (scrolling)
         setIsPanning(true)
       }
 
@@ -260,6 +273,7 @@ export function useCanvasHandlers() {
 
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.code === "Space") {
+        e.preventDefault() // Prevent default space behavior
         setIsPanning(false)
         setLastPanPoint(null)
       }
