@@ -1,5 +1,4 @@
 import { motion } from "framer-motion"
-import { rgbToRgba } from "@/lib/utils"
 import type { Annotation } from "@vailabel/core"
 import { memo } from "react"
 
@@ -19,7 +18,7 @@ export const TempBoxAnnotation = memo(
 
     const [topLeft, bottomRight] = annotation.coordinates
     const styles = {
-      fill: rgbToRgba(annotation.color ?? "#333", 0.2),
+      fill: 'rgba(59, 130, 246, 0.2)',
       stroke: annotation.color,
     }
 

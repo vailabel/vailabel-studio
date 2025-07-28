@@ -13,16 +13,23 @@ export class SaveOrUpdateSettingsCommand implements IpcHandler<Settings, void> {
       where: { key: settings.key },
     })
     if (existingSettings) {
-      await SettingsRepository.update(settings, {
-        where: { key: settings.key },
-      })
+      // Only update value and updatedAt, exclude id to avoid unique constraint violation
+      await SettingsRepository.update(
+        {
+          value: settings.value,
+          updatedAt: new Date(),
+        },
+        {
+          where: { key: settings.key },
+        }
+      )
     } else {
       await SettingsRepository.create({
         id: settings.id,
         key: settings.key,
         value: settings.value,
-        createdAt: settings.createdAt,
-        updatedAt: settings.updatedAt,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       })
     }
   }

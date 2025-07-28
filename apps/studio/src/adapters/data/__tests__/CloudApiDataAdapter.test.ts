@@ -222,7 +222,7 @@ describe("CloudApiDataAdapter", () => {
   it("calls fetchTasks", async () => {
     mockApi.get.mockResolvedValue([])
     await adapter.fetchTasks("pid")
-    expect(mockApi.get).toHaveBeenCalledWith("/projects/pid/tasks")
+    expect(mockApi.get).toHaveBeenCalledWith("/tasks/project/pid")
   })
 
   it("calls saveTask", async () => {

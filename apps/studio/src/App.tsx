@@ -13,14 +13,18 @@ import { useLabelStore } from "./stores/use-label-store"
 import { useImageDataStore } from "./stores/use-image-data-store"
 import { useSettingsStore } from "./stores/use-settings-store"
 import { useAIModelStore } from "./stores/use-ai-model-store"
+import { useTaskStore } from "./stores/use-task-store"
 import { FileSystemStorageAdapter } from "./adapters/storage"
 import { isElectron } from "./lib/constants"
 import { CloudApiDataAdapter } from "./adapters/data/CloudApiDataAdapter"
+import { useCanvasStore } from "./stores/canvas-store"
+import { useUserStore } from "./stores/use-user-store"
 
 const App = () => {
   const { initDataAdapter: initProjectsDataAdapter } = useProjectStore()
   const { initDataAdapter: initAnnotationsDataAdapter } = useAnnotationsStore()
   const { initDataAdapter: initLabelsDataAdapter } = useLabelStore()
+  const { initDataAdapter: initCanvasDataAdapter } = useCanvasStore()
   const {
     initDataAdapter: initImageDataStore,
     initStorageAdapter: initImageStorageAdapter,
@@ -31,6 +35,8 @@ const App = () => {
     settings,
   } = useSettingsStore()
   const { initDataAdapter: initAiModelsDataAdapter } = useAIModelStore()
+  const { initDataAdapter: initTaskDataAdapter } = useTaskStore()
+  const { initDataAdapter: initUserDataAdapter } = useUserStore()
   useEffect(() => {
     const data = isElectron()
       ? new ElectronApiDataAdapter()
@@ -39,8 +45,11 @@ const App = () => {
     initAnnotationsDataAdapter(data)
     initLabelsDataAdapter(data)
     initImageDataStore(data)
+    initCanvasDataAdapter(data)
     initSettingsDataAdapter(data)
     initAiModelsDataAdapter(data)
+    initTaskDataAdapter(data)
+    initUserDataAdapter(data)
   }, [
     initProjectsDataAdapter,
     initAnnotationsDataAdapter,
@@ -48,6 +57,9 @@ const App = () => {
     initImageDataStore,
     initSettingsDataAdapter,
     initAiModelsDataAdapter,
+    initCanvasDataAdapter,
+    initTaskDataAdapter,
+    initUserDataAdapter,
   ])
 
   useEffect(() => {
@@ -59,7 +71,7 @@ const App = () => {
     if (settings.length === 0) {
       getSettings()
     }
-  }, [])
+  }, [getSettings, settings.length])
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">

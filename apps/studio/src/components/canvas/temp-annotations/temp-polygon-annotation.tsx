@@ -1,5 +1,4 @@
 import { motion } from "framer-motion"
-import { rgbToRgba } from "@/lib/utils"
 import type { Annotation } from "@vailabel/core"
 import { memo } from "react"
 
@@ -14,8 +13,8 @@ export const TempPolygonAnnotation = memo(
     }
 
     const styles = {
-      fill: rgbToRgba(annotation.color ?? "#333", 0.2),
-      stroke: annotation.color,
+      fill: 'rgba(59, 130, 246, 0.2)',
+      stroke: 'rgba(59, 130, 246)',
     }
 
     return (

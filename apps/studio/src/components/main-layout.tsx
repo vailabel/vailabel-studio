@@ -6,6 +6,7 @@ import {
   Home,
   Layers2,
   Settings2,
+  Users,
   ArrowLeft,
   ChevronDown,
 } from "lucide-react"
@@ -30,6 +31,7 @@ const navigation: NavigationItem[] = [
   { name: "Overview", href: "/", icon: Home },
   { name: "Projects", href: "/projects", icon: Folder },
   { name: "Task", href: "/tasks", icon: Layers2 },
+  { name: "Users", href: "/users", icon: Users },
   { name: "Cloud Storage", href: "/cloud-storage", icon: Cloud },
   { name: "AI Models", href: "/ai-models", icon: Brain },
   { name: "Settings", href: "/settings", icon: Settings2 },

@@ -49,8 +49,8 @@ export const TempFreeDrawAnnotation = memo(
           animate={{ opacity: 1 }}
           d={pathData}
           style={{
-            fill: "none",
-            stroke: annotation.color,
+            fill: "rgba(59, 130, 246, 0.2)",
+            stroke: 'rgba(59, 130, 246)',
             strokeWidth: 2,
             strokeLinecap: "round",
             strokeLinejoin: "round",

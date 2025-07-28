@@ -10,6 +10,9 @@ class TaskService:
     def get_tasks_by_project(self, db: Session, project_id: str):
         return self.repo.get_by_project(db, project_id)
 
+    def get_all_tasks(self, db: Session):
+        return self.repo.get_all(db)
+
     def get_task(self, db: Session, task_id: str):
         return self.repo.get(db, task_id)
 

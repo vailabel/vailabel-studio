@@ -2,6 +2,7 @@ import { Annotation, Point } from "@vailabel/core"
 import { ToolHandlerContext } from "../canvas-handler"
 import { calculatePolygonCentroid } from "@/lib/canvas-utils"
 import { ToolHandler } from "../tool-handlers"
+import { MouseMoveStrategyManager } from "./strategies/managers"
 
 export type MoveHandlerUIState = {
   isResizing: boolean
@@ -14,7 +15,11 @@ export type MoveHandlerUIState = {
 }
 
 export class MoveHandler implements ToolHandler {
-  constructor(private context: ToolHandlerContext) {}
+  private mouseMoveStrategyManager: MouseMoveStrategyManager
+
+  constructor(private context: ToolHandlerContext) {
+    this.mouseMoveStrategyManager = new MouseMoveStrategyManager()
+  }
 
   onMouseDown(e: React.MouseEvent) {
     const { getCanvasCoords, findLabelAtPoint, getResizeHandle } = this.context
@@ -75,129 +80,8 @@ export class MoveHandler implements ToolHandler {
     }
   }
 
-  onMouseMove(_e: React.MouseEvent, point: Point) {
-    const { toolState } = this.context
-    if (!toolState.isMoving && !toolState.isResizing) return
-
-    // Handle resizing
-    if (toolState.isResizing && toolState.resizeHandle) {
-      const annotation = this.context.annotationsStore.annotations.find(
-        (a) => a.id === this.context.canvasStore.selectedAnnotation?.id
-      )
-
-      if (annotation?.type === "box") {
-        const [topLeft, bottomRight] = annotation.coordinates
-        let newTopLeft = { ...topLeft }
-        let newBottomRight = { ...bottomRight }
-
-        switch (toolState.resizeHandle) {
-          case "top-left":
-            newTopLeft = point
-            break
-          case "top-right":
-            newTopLeft.y = point.y
-            newBottomRight.x = point.x
-            break
-          case "bottom-left":
-            newTopLeft.x = point.x
-            newBottomRight.y = point.y
-            break
-          case "bottom-right":
-            newBottomRight = point
-            break
-          case "top":
-            newTopLeft.y = point.y
-            break
-          case "right":
-            newBottomRight.x = point.x
-            break
-          case "bottom":
-            newBottomRight.y = point.y
-            break
-          case "left":
-            newTopLeft.x = point.x
-            break
-        }
-
-        // Ensure coordinates are always [topLeft, bottomRight] with topLeft above/left of bottomRight
-        const normalizedTopLeft = {
-          x: Math.min(newTopLeft.x, newBottomRight.x),
-          y: Math.min(newTopLeft.y, newBottomRight.y),
-        }
-        const normalizedBottomRight = {
-          x: Math.max(newTopLeft.x, newBottomRight.x),
-          y: Math.max(newTopLeft.y, newBottomRight.y),
-        }
-
-        // Use preview coordinates during resize instead of immediately updating
-        this.context.setToolState({
-          ...this.context.toolState,
-          previewCoordinates: [normalizedTopLeft, normalizedBottomRight],
-          resizingAnnotationId: annotation.id,
-        })
-      }
-      return
-    }
-
-    // Always update previewCoordinates for all annotation types while moving
-    if (
-      toolState.isMoving &&
-      toolState.movingAnnotationId &&
-      toolState.movingOffset
-    ) {
-      const annotation = this.context.annotationsStore.annotations.find(
-        (a) => a.id === toolState.movingAnnotationId
-      )
-      if (!annotation) return
-
-      let previewCoordinates: Point[] | null = null
-      if (annotation.type === "box") {
-        const [topLeft, bottomRight] = annotation.coordinates
-        const width = bottomRight.x - topLeft.x
-        const height = bottomRight.y - topLeft.y
-        const newTopLeft = {
-          x: point.x - toolState.movingOffset.x,
-          y: point.y - toolState.movingOffset.y,
-        }
-        previewCoordinates = [
-          newTopLeft,
-          { x: newTopLeft.x + width, y: newTopLeft.y + height },
-        ]
-      } else if (annotation.type === "polygon") {
-        const anchor = calculatePolygonCentroid(annotation.coordinates)
-        const newAnchor = {
-          x: point.x - toolState.movingOffset.x,
-          y: point.y - toolState.movingOffset.y,
-        }
-        const dx = newAnchor.x - anchor.x
-        const dy = newAnchor.y - anchor.y
-        previewCoordinates = annotation.coordinates.map((p) => ({
-          x: p.x + dx,
-          y: p.y + dy,
-        }))
-      } else if (annotation.type === "freeDraw") {
-        const anchor = annotation.coordinates[0]
-        const newAnchor = {
-          x: point.x - toolState.movingOffset.x,
-          y: point.y - toolState.movingOffset.y,
-        }
-        const dx = newAnchor.x - anchor.x
-        const dy = newAnchor.y - anchor.y
-        previewCoordinates = annotation.coordinates.map((p) => ({
-          x: p.x + dx,
-          y: p.y + dy,
-        }))
-      }
-      if (previewCoordinates) {
-        this.context.setToolState({
-          ...this.context.toolState,
-          previewCoordinates,
-          isMoving: true,
-          movingAnnotationId: toolState.movingAnnotationId,
-          movingOffset: toolState.movingOffset,
-        })
-      }
-    }
+  onMouseMove(e: React.MouseEvent, point: Point) {
+    this.mouseMoveStrategyManager.handleMouseMove(e, point, this.context)
   }
 
   onMouseUp() {

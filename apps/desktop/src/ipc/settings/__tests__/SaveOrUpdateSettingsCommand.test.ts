@@ -20,9 +20,15 @@ describe("SaveOrUpdateSettingsCommand", () => {
     expect(SettingsRepository.findOne).toHaveBeenCalledWith({
       where: { key: settings.key },
     })
-    expect(updateSpy).toHaveBeenCalledWith(settings, {
-      where: { key: settings.key },
-    })
+    expect(updateSpy).toHaveBeenCalledWith(
+      {
+        value: settings.value,
+        updatedAt: expect.any(Date),
+      },
+      {
+        where: { key: settings.key },
+      }
+    )
   })
 
   it("should create settings if not existing", async () => {
@@ -34,6 +40,12 @@ describe("SaveOrUpdateSettingsCommand", () => {
     expect(SettingsRepository.findOne).toHaveBeenCalledWith({
       where: { key: settings.key },
     })
-    expect(createSpy).toHaveBeenCalledWith(settings)
+    expect(createSpy).toHaveBeenCalledWith({
+      id: settings.id,
+      key: settings.key,
+      value: settings.value,
+      createdAt: expect.any(Date),
+      updatedAt: expect.any(Date),
+    })
   })
 })

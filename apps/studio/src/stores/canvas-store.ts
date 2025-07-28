@@ -1,4 +1,6 @@
-import { Annotation, ImageData, Point } from "@vailabel/core"
+import { IDataAdapter } from "@/adapters/data/IDataAdapter"
+import { exceptionMiddleware } from "@/hooks/exception-middleware"
+import { Annotation, ImageData, Point, Settings } from "@vailabel/core"
 import React from "react"
 import { create } from "zustand"
 
@@ -70,6 +72,8 @@ const DEFAULT_TOOL_STATE = {
 }
 
 export type CanvasStore = {
+  data: IDataAdapter
+  initDataAdapter: (dataAdapter: IDataAdapter) => void
   canvasContainerRef: React.RefObject<HTMLDivElement | null>
   setCanvasContainerRef: (ref: React.RefObject<HTMLDivElement | null>) => void
   containerRect: DOMRect | null
@@ -117,35 +121,55 @@ export type CanvasStore = {
   setSelectedAnnotation: (annotation: Annotation | null) => void
 }
 
-export const useCanvasStore = create<CanvasStore>((set) => ({
-  ...DEFAULT_TOOL_STATE,
-  canvasContainerRef: React.createRef<HTMLDivElement>(),
-  setCanvasContainerRef: (ref) => set({ canvasContainerRef: ref }),
-  containerRect: null,
-  setContainerRect: (rect) => set({ containerRect: rect }),
-  setContextMenuProps: (props: { x: number; y: number; isOpen: boolean }) =>
-    set((state) => ({
-      contextMenuProps: {
-        ...state.contextMenuProps,
-        ...props,
-      },
-    })),
-  setZoom: (zoom) => set({ zoom }),
-  setPanOffset: (offset) => set({ panOffset: offset }),
-  setCursorPosition: (point) => set({ cursorPosition: point }),
-  setSelectedTool: (tool) => set({ selectedTool: tool }),
-  resetView: () => set({ zoom: 1, panOffset: { x: 0, y: 0 } }),
-  setCanvasRef: (ref) => set({ canvasRef: ref }),
-  canvasRef: React.createRef<HTMLDivElement>(),
-  setIsPanning: (isPanning) => set({ isPanning }),
-  setLastPanPoint: (point) => set({ lastPanPoint: point }),
-  setToolState: (state) =>
-    set((prevState) => ({
-      toolState: { ...prevState.toolState, ...state },
-    })),
-  setCurrentImage: (image) => set({ currentImage: image }),
-  setShowCrosshair: (show) => set({ showCrosshair: show }),
-  setShowCoordinates: (show) => set({ showCoordinates: show }),
-  setSelectedAnnotation: (annotationId) =>
-    set({ selectedAnnotation: annotationId }),
-}))
+export const useCanvasStore = create<CanvasStore>(
+  exceptionMiddleware((set, get) => ({
+    data: {} as IDataAdapter,
+    initDataAdapter: (dataAdapter) => set({ data: dataAdapter }),
+    ...DEFAULT_TOOL_STATE,
+    canvasContainerRef: React.createRef<HTMLDivElement>(),
+    setCanvasContainerRef: (ref) => set({ canvasContainerRef: ref }),
+    containerRect: null,
+    setContainerRect: (rect) => set({ containerRect: rect }),
+    setContextMenuProps: (props: { x: number; y: number; isOpen: boolean }) =>
+      set((state) => ({
+        contextMenuProps: {
+          ...state.contextMenuProps,
+          ...props,
+        },
+      })),
+    setZoom: (zoom) => set({ zoom }),
+    setPanOffset: (offset) => set({ panOffset: offset }),
+    setCursorPosition: (point) => set({ cursorPosition: point }),
+    setSelectedTool: (tool) => set({ selectedTool: tool }),
+    resetView: () => set({ zoom: 1, panOffset: { x: 0, y: 0 } }),
+    setCanvasRef: (ref) => set({ canvasRef: ref }),
+    canvasRef: React.createRef<HTMLDivElement>(),
+    setIsPanning: (isPanning) => set({ isPanning }),
+    setLastPanPoint: (point) => set({ lastPanPoint: point }),
+    setToolState: (state) =>
+      set((prevState) => ({
+        toolState: { ...prevState.toolState, ...state },
+      })),
+    setCurrentImage: (image) => set({ currentImage: image }),
+    setShowCrosshair: async (show) => {
+      // Save the setting if needed
+      const { data } = get()
+      const setting = new Settings();
+      setting.key = "showCrosshair";
+      setting.value = show.toString()
+      data.saveOrUpdateSettings(setting)
+      set({ showCrosshair: show })
+    },
+    setShowCoordinates: async (show) => {
+      // Save the setting if needed
+      const { data } = get()
+      const setting = new Settings();
+      setting.key = "showCoordinates";
+      setting.value = show.toString();
+      data.saveOrUpdateSettings(setting);
+      set({ showCoordinates: show })
+    },
+    setSelectedAnnotation: (annotationId) =>
+      set({ selectedAnnotation: annotationId }),
+  }))
+)
