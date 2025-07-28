@@ -6,6 +6,6 @@
     "test": "bash scripts/test.sh",
     "lint": "flake8 app",
     "format": "bash scripts/format.sh",
-    "typecheck": "pyright"
+    "typecheck": "bash scripts/typecheck.sh"
   }
 }

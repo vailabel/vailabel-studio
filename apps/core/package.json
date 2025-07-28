@@ -19,7 +19,8 @@
     "test": "jest --coverage",
     "lint": "eslint . --ext .ts,.tsx",
     "prepublishOnly": "pnpm run build",
-    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\" --ignore-path .gitignore --ignore-path .prettierignore"
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\" --ignore-path .gitignore --ignore-path .prettierignore",
+    "typecheck": "tsc --noEmit"
   },
   "publishConfig": {
     "access": "public"

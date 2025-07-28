@@ -3,13 +3,13 @@ import { AnnotationRepository } from "../../../db/models"
 
 describe("DeleteAnnotationCommand", () => {
   const command = new DeleteAnnotationCommand()
-  const annotation = { id: "1" }
+  const annotationId = "test-annotation-id"
 
   it("should call AnnotationRepository.destroy with annotation id", async () => {
     AnnotationRepository.destroy = jest.fn()
-    await command.handle({} as any, annotation as any)
+    await command.handle({} as any, annotationId)
     expect(AnnotationRepository.destroy).toHaveBeenCalledWith({
-      where: { id: annotation.id },
+      where: { id: annotationId },
     })
   })
 })

@@ -6,12 +6,26 @@
       "outputs": ["dist/**"]
     },
     "dev": {
-      "cache": true
+      "dependsOn": ["^dev"],
+      "cache": false,
+      "persistent": true
     },
     "test": {
       "outputs": []
     },
     "format": {
+      "outputs": []
+    },
+    "typecheck": {
+      "dependsOn": ["^typecheck"],
+      "outputs": []
+    },
+    "lint": {
+      "dependsOn": ["^lint"],
+      "outputs": []
+    },
+    "clean": {
+      "dependsOn": ["^clean"],
       "outputs": []
     }
   }

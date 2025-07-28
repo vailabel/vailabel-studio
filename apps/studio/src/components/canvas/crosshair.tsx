@@ -23,7 +23,7 @@ export const Crosshair: React.FC = memo(() => {
   if (!cursorPosition) return null
 
   return (
-    <>
+    <div data-testid="crosshair">
       <div
         className="absolute top-0 border-l border-blue-400 border-dashed pointer-events-none z-10"
         style={verticalStyle || {}}
@@ -32,6 +32,6 @@ export const Crosshair: React.FC = memo(() => {
         className="absolute left-0 border-t border-blue-400 border-dashed pointer-events-none z-10"
         style={horizontalStyle || {}}
       />
-    </>
+    </div>
   )
 })

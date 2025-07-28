@@ -418,7 +418,11 @@ const HeroSection = () => {
             {labelingTools.map((tool, index) => (
               <motion.div
                 key={tool.name}
-                className={`${index === activeToolIndex ? "scale-110 ring-2 ring-offset-2 ring-blue-500 dark:ring-blue-400 dark:ring-offset-gray-900" : ""} 
+                className={`${
+                  index === activeToolIndex
+                    ? "scale-110 ring-2 ring-offset-2 ring-blue-500 dark:ring-blue-400 dark:ring-offset-gray-900"
+                    : ""
+                } 
                       bg-white dark:bg-gray-800 px-4 py-2 rounded-full text-sm flex items-center gap-2 shadow-md transition-all duration-300`}
                 variants={item}
                 whileHover={{ scale: 1.05 }}
@@ -586,7 +590,11 @@ const HeroSection = () => {
                   {labelingTools.map((tool, index) => (
                     <motion.button
                       key={tool.name}
-                      className={`p-2 rounded-md ${index === activeToolIndex ? "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"}`}
+                      className={`p-2 rounded-md ${
+                        index === activeToolIndex
+                          ? "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                          : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      }`}
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => setActiveToolIndex(index)}

@@ -25,6 +25,23 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Generated TypeScript declaration files
+# (exclude global/env/types files)
+**/*.d.ts
+!**/types/**/*.d.ts
+!**/*env*.d.ts
+!**/*global*.d.ts
+!**/next-env.d.ts
+!**/vite-env.d.ts
+
+# Generated JavaScript files from TypeScript compilation
+# (exclude from apps/studio/src and apps/desktop/src)
+apps/studio/src/**/*.js
+apps/studio/src/**/*.js.map
+apps/desktop/src/**/*.js
+apps/desktop/src/**/*.js.map
+
 *.DS_Store
 dist
 coverage

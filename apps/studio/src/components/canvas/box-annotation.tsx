@@ -3,15 +3,13 @@ import { motion } from "framer-motion"
 import { cn, getContentBoxColor } from "@/lib/utils"
 import type { Annotation } from "@vailabel/core"
 import { useCanvasStore } from "@/stores/canvas-store"
-import { useAnnotationsStore } from "@/stores/annotation-store"
 
 interface BoxAnnotationProps {
   annotation: Annotation
 }
 
 export const BoxAnnotation = memo(({ annotation }: BoxAnnotationProps) => {
-  const { selectedTool } = useCanvasStore()
-  const { selectedAnnotation } = useAnnotationsStore()
+  const { selectedTool, selectedAnnotation } = useCanvasStore()
 
   const isSelected = selectedAnnotation?.id === annotation.id
   const annotationStyles = useMemo(
@@ -34,6 +32,7 @@ export const BoxAnnotation = memo(({ annotation }: BoxAnnotationProps) => {
   )
   return (
     <motion.div
+      data-testid="box-annotation"
       className={cn(
         "absolute border-2 bg-opacity-20",
         isSelected && "border-red-500"

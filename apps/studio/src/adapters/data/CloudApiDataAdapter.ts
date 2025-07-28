@@ -111,7 +111,10 @@ export class CloudApiDataAdapter implements IDataAdapter {
     return this.api.delete(`/history/${historyId}`)
   }
   fetchTasks(projectId: string): Promise<Task[]> {
-    return this.api.get<Task[]>(`/projects/${projectId}/tasks`)
+    if (projectId) {
+      return this.api.get<Task[]>(`/tasks/project/${projectId}`)
+    }
+    return this.api.get<Task[]>(`/tasks`)
   }
   saveTask(task: Task): Promise<void> {
     return this.api.post(`/tasks`, task)

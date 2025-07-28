@@ -11,13 +11,13 @@ interface PolygonAnnotationProps {
 
 export const PolygonAnnotation = memo(
   ({ annotation }: Readonly<PolygonAnnotationProps>) => {
-    const { selectedAnnotation, updateAnnotation } = useAnnotationsStore()
-    const { zoom, selectedTool } = useCanvasStore()
+    const { updateAnnotation } = useAnnotationsStore()
+    const { zoom, selectedTool, selectedAnnotation } = useCanvasStore()
 
     const styles = {
       fill: {
-        selected: rgbToRgba(annotation.color, 0.5),
-        aiGenerated: rgbToRgba(annotation.color, 0.5),
+        selected: rgbToRgba(annotation.color, 0.2),
+        aiGenerated: rgbToRgba(annotation.color, 0.2),
         default: rgbToRgba(annotation.color, 0.2),
       },
       stroke: {
@@ -25,10 +25,20 @@ export const PolygonAnnotation = memo(
         aiGenerated: annotation.color,
         default: annotation.color,
       },
+      strokeWidth: {
+        selected: 2,
+        aiGenerated: 2,
+        default: 2,
+      },
+      strokeDashArray: {
+        selected: "none",
+        aiGenerated: "none",
+        default: "none",
+      },
       textFill: {
         selected: annotation.color,
         aiGenerated: annotation.color,
-        default: "black",
+        default: annotation.color,
       },
     }
 
@@ -81,7 +91,16 @@ export const PolygonAnnotation = memo(
               : isAIGenerated
                 ? styles.stroke.aiGenerated
                 : styles.stroke.default,
-            strokeWidth: 2,
+            strokeWidth: isSelected
+              ? styles.strokeWidth.selected
+              : isAIGenerated
+                ? styles.strokeWidth.aiGenerated
+                : styles.strokeWidth.default,
+            strokeDasharray: isSelected
+              ? styles.strokeDashArray.selected
+              : isAIGenerated
+                ? styles.strokeDashArray.aiGenerated
+                : styles.strokeDashArray.default,
           }}
         />
         <text

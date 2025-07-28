@@ -24,7 +24,7 @@ describe("CloudApiDataAdapter", () => {
       post: jest.fn(),
       put: jest.fn(),
       delete: jest.fn(),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any
     ;(ApiClient as jest.Mock).mockImplementation(() => mockApi)
     adapter = new CloudApiDataAdapter()
@@ -222,7 +222,7 @@ describe("CloudApiDataAdapter", () => {
   it("calls fetchTasks", async () => {
     mockApi.get.mockResolvedValue([])
     await adapter.fetchTasks("pid")
-    expect(mockApi.get).toHaveBeenCalledWith("/projects/pid/tasks")
+    expect(mockApi.get).toHaveBeenCalledWith("/tasks/project/pid")
   })
 
   it("calls saveTask", async () => {

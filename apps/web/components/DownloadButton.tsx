@@ -76,7 +76,9 @@ const DownloadButton: React.FC = () => {
     >
       <a
         href={releaseAssets[platform] || undefined}
-        className={`flex-1 flex items-center justify-center px-4 py-3 sm:px-6 rounded-lg sm:rounded-l-lg sm:rounded-r-none bg-blue-600 text-white font-semibold shadow-lg hover:bg-blue-700 transition-all duration-200 gap-2 sm:gap-3 text-base sm:text-lg min-w-0 ${!releaseAssets[platform] ? "opacity-50 pointer-events-none" : ""}`}
+        className={`flex-1 flex items-center justify-center px-4 py-3 sm:px-6 rounded-lg sm:rounded-l-lg sm:rounded-r-none bg-blue-600 text-white font-semibold shadow-lg hover:bg-blue-700 transition-all duration-200 gap-2 sm:gap-3 text-base sm:text-lg min-w-0 ${
+          !releaseAssets[platform] ? "opacity-50 pointer-events-none" : ""
+        }`}
         style={{
           whiteSpace: "nowrap",
           overflow: "hidden",
@@ -111,7 +113,9 @@ const DownloadButton: React.FC = () => {
               <a
                 key={p}
                 href={releaseAssets[p] || undefined}
-                className={`flex items-center gap-2 sm:gap-3 px-4 py-3 sm:px-6 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 font-semibold rounded-lg transition-all duration-200 text-base sm:text-lg min-w-0 ${!releaseAssets[p] ? "opacity-50 pointer-events-none" : ""}`}
+                className={`flex items-center gap-2 sm:gap-3 px-4 py-3 sm:px-6 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 font-semibold rounded-lg transition-all duration-200 text-base sm:text-lg min-w-0 ${
+                  !releaseAssets[p] ? "opacity-50 pointer-events-none" : ""
+                }`}
                 onClick={() => setDropdownOpen(false)}
                 download
                 style={{ marginBottom: 8 }}

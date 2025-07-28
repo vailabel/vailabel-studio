@@ -30,8 +30,8 @@ export function setupAutoUpdate(
         typeof info.releaseNotes === "string"
           ? info.releaseNotes
           : Array.isArray(info.releaseNotes)
-            ? info.releaseNotes.map((n: any) => n.note || n).join("\n")
-            : ""
+          ? info.releaseNotes.map((n: any) => n.note || n).join("\n")
+          : ""
       dialog
         .showMessageBox({
           type: "info",

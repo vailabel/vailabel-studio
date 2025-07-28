@@ -2,6 +2,7 @@ import ImageStudio from "./pages/studio/page"
 import Setting from "./pages/setting"
 import Overview from "./pages/overview"
 import NotFound from "./pages/not-found"
+import UserPage from "./pages/user"
 
 import { HashRouter, Routes, Route } from "react-router-dom"
 import MainLayout from "./components/main-layout"
@@ -27,6 +28,7 @@ const AppRoutes = () => {
           />
           <Route path="/ai-models" element={<AIModelListPage />} />
           <Route path="/tasks" element={<TaskPage />} />
+          <Route path="/users" element={<UserPage />} />
           <Route path="/cloud-storage" element={<CloudStorageConfigPage />} />
           <Route path="/settings" element={<Setting />} />
         </Route>

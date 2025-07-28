@@ -68,7 +68,6 @@ export const Toolbar = memo(
       showCoordinates,
     } = useCanvasStore()
     const { undo, redo, canUndo, canRedo } = useAnnotationsStore()
-
     const selectedTools = React.useMemo(
       (): Tool[] => [
         {

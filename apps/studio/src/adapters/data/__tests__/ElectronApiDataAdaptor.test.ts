@@ -102,9 +102,7 @@ describe("ElectronApiDataAdapter", () => {
   it("calls updateAnnotation", async () => {
     mockInvoke.mockResolvedValue(undefined)
     await adapter.updateAnnotation("aid", { id: "aid" })
-    expect(mockInvoke).toHaveBeenCalledWith("update:annotations", "aid", {
-      id: "aid",
-    })
+    expect(mockInvoke).toHaveBeenCalledWith("update:annotations", { id: "aid", updates: { id: "aid" } })
   })
 
   it("calls fetchAnnotations", async () => {
@@ -148,9 +146,7 @@ describe("ElectronApiDataAdapter", () => {
   it("calls updateImageData", async () => {
     mockInvoke.mockResolvedValue(undefined)
     await adapter.updateImageData("imgid", { url: "u" })
-    expect(mockInvoke).toHaveBeenCalledWith("update:imageData", "imgid", {
-      url: "u",
-    })
+    expect(mockInvoke).toHaveBeenCalledWith("update:imageData", { id: "imgid", updates: { url: "u" } })
   })
 
   it("calls fetchImageData", async () => {
@@ -184,9 +180,7 @@ describe("ElectronApiDataAdapter", () => {
   it("calls updateHistory", async () => {
     mockInvoke.mockResolvedValue(undefined)
     await adapter.updateHistory("hid", { id: "hid" })
-    expect(mockInvoke).toHaveBeenCalledWith("update:history", "hid", {
-      id: "hid",
-    })
+    expect(mockInvoke).toHaveBeenCalledWith("update:history", { id: "hid", updates: { id: "hid" } })
   })
 
   it("calls fetchHistory", async () => {
@@ -216,9 +210,7 @@ describe("ElectronApiDataAdapter", () => {
   it("calls updateTask", async () => {
     mockInvoke.mockResolvedValue(undefined)
     await adapter.updateTask("tid", { name: "t" })
-    expect(mockInvoke).toHaveBeenCalledWith("update:tasks", "tid", {
-      name: "t",
-    })
+    expect(mockInvoke).toHaveBeenCalledWith("update:tasks", { id: "tid", updates: { name: "t" } })
   })
 
   it("calls fetchTasks", async () => {
@@ -248,9 +240,7 @@ describe("ElectronApiDataAdapter", () => {
   it("calls updateAIModel", async () => {
     mockInvoke.mockResolvedValue(undefined)
     await adapter.updateAIModel("aid", { name: "m" })
-    expect(mockInvoke).toHaveBeenCalledWith("update:aiModels", "aid", {
-      name: "m",
-    })
+    expect(mockInvoke).toHaveBeenCalledWith("update:aiModels", { id: "aid", updates: { name: "m" } })
   })
 
   it("calls fetchAIModels", async () => {

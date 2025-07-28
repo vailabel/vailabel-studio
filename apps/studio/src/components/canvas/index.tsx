@@ -5,7 +5,6 @@ import { PositionCoordinates } from "@/components/canvas/position-coordinates"
 import { useCanvasHandlers } from "@/hooks/use-canvas-handlers"
 import { type Annotation, type ImageData } from "@vailabel/core"
 import { Crosshair } from "@/components/canvas/crosshair"
-import { TempAnnotation } from "@/components/canvas/temp-annotation"
 import { CreateAnnotation } from "@/components/canvas/create-annotation"
 import { useAnnotationsStore } from "@/stores/annotation-store"
 import { useCanvasStore } from "@/stores/canvas-store"
@@ -27,7 +26,6 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
     handleMouseMove,
     handleMouseUp,
     handleDoubleClick,
-    handleWheel,
     tempAnnotation,
     showLabelInput,
     setShowLabelInput,
@@ -56,7 +54,15 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
       setShowLabelInput(false)
       setTempAnnotation(null)
     },
-    [tempAnnotation, image.projectId, image.id]
+    [
+      tempAnnotation,
+      image.projectId,
+      image.id,
+      getOrCreateLabel,
+      createAnnotation,
+      setShowLabelInput,
+      setTempAnnotation,
+    ]
   )
 
   const handleCloseCreateAnnotationModal = useCallback(() => {
@@ -66,20 +72,24 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
 
   useEffect(() => {
     setCanvasRef(canvasRef)
-  }, [])
+  }, [setCanvasRef])
   const cursorStyles = {
     box: "cursor-crosshair",
     polygon: "cursor-crosshair",
+    freeDraw: "cursor-crosshair",
     move: "cursor-move",
     delete: "cursor-pointer",
   }
+
+  console.log("Canvas rendered with image:", image.id)
+  console.log("Annotations:", annotations.length)
+  console.log("Selected tool:", selectedTool)
+  console.log("Temp annotation:", tempAnnotation)
+
   return (
     <>
       <div className="relative h-full w-full overflow-hidden bg-gray-100 dark:bg-gray-900">
-        <div
-          className="relative h-full w-full overflow-hidden"
-          onWheel={handleWheel}
-        >
+        <div className="relative h-full w-full overflow-hidden">
           {!image ? (
             <div className="flex h-full items-center justify-center">
               <div className="text-center">
@@ -117,10 +127,7 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
                   width={image.width}
                   height={image.height}
                 />
-                <AnnotationRenderer annotations={annotations} />
-                {tempAnnotation && (
-                  <TempAnnotation annotation={tempAnnotation} />
-                )}
+                <AnnotationRenderer annotations={annotations} /> 
               </div>
 
               <Crosshair />

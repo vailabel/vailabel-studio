@@ -135,8 +135,8 @@ app.whenReady().then(async () => {
           typeof info.releaseNotes === "string"
             ? info.releaseNotes
             : Array.isArray(info.releaseNotes)
-              ? info.releaseNotes.map((n) => n.note || n).join("\n")
-              : ""
+            ? info.releaseNotes.map((n) => n.note || n).join("\n")
+            : ""
         dialog
           .showMessageBox({
             type: "info",

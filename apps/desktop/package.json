@@ -12,7 +12,8 @@
     "test": "jest --coverage",
     "prebuild": "npx electron-icon-maker --input=./assets/icon.png --output=./assets/icon",
     "publish": "tsc && pnpm run prebuild && electron-builder --publish always",
-    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\" --ignore-path .gitignore --ignore-path .prettierignore"
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\" --ignore-path .gitignore --ignore-path .prettierignore",
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [],
   "author": {
@@ -25,7 +26,8 @@
     "@types/semver": "^7.7.0",
     "@vailabel/core": "*",
     "electron": "36.2.1",
-    "electron-builder": "^26.0.12"
+    "electron-builder": "^26.0.12",
+    "typescript": "^5.8.3"
   },
   "dependencies": {
     "electron-devtools-installer": "^4.0.0",
