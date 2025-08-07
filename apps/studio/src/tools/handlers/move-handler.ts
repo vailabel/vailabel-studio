@@ -128,6 +128,9 @@ export class MoveHandler implements ToolHandler {
       }
     }
 
+    // Clear performance caches before clearing state
+    this.mouseMoveStrategyManager.clearCaches()
+
     // End move/resize operation and clear state
     this.context.setToolState({
       ...this.context.toolState,
@@ -144,6 +147,9 @@ export class MoveHandler implements ToolHandler {
   // Handle escape key to cancel current operations
   onKeyDown(e: KeyboardEvent) {
     if (e.key === "Escape") {
+      // Clear performance caches before clearing state
+      this.mouseMoveStrategyManager.clearCaches()
+
       this.context.setToolState({
         isResizing: false,
         resizeHandle: null,

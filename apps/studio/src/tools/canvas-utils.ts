@@ -37,6 +37,7 @@ export function isPointInLabel(point: Point, annotation: Annotation): boolean {
 
   if (annotation.type === "freeDraw") {
     const threshold = 5
+    const thresholdSquared = threshold * threshold // 25
 
     for (let i = 0; i < annotation.coordinates.length - 1; i++) {
       const p1 = annotation.coordinates[i]
@@ -67,9 +68,10 @@ export function isPointInLabel(point: Point, annotation: Annotation): boolean {
 
       const dx = point.x - xx
       const dy = point.y - yy
-      const distance = Math.sqrt(dx * dx + dy * dy)
+      // Use squared distance to avoid Math.sqrt
+      const distanceSquared = dx * dx + dy * dy
 
-      if (distance <= threshold) return true
+      if (distanceSquared <= thresholdSquared) return true
     }
   }
 
@@ -82,6 +84,10 @@ export function findLabelAtPoint(
   selectedAnnotation: Annotation | null,
   isPointInLabelFn: (point: Point, annotation: Annotation) => boolean
 ): Annotation | null {
+  // Early return if no annotations
+  if (!annotations.length) return null
+
+  // Check selected annotation first for better UX
   if (selectedAnnotation) {
     const selected = annotations.find((a) => a.id === selectedAnnotation.id)
     if (selected && isPointInLabelFn(point, selected)) {
@@ -89,6 +95,8 @@ export function findLabelAtPoint(
     }
   }
 
+  // Iterate in reverse order (top to bottom) for better hit detection
+  // Stop on first match for performance
   for (let i = annotations.length - 1; i >= 0; i--) {
     const annotation = annotations[i]
     if (
@@ -161,43 +169,16 @@ export function getResizeHandle(
     { name: "left", x: topLeft.x, y: (topLeft.y + bottomRight.y) / 2 },
   ]
 
-  let closestHandle = null
-  let minDistance = Infinity
-
   for (const handle of handles) {
     const dx = Math.abs(point.x - handle.x)
     const dy = Math.abs(point.y - handle.y)
-    const distance = Math.sqrt(dx * dx + dy * dy)
 
-    // console.log(`Handle ${handle.name}:`, {
-    //   handlePos: { x: handle.x, y: handle.y },
-    //   dx,
-    //   dy,
-    //   distance,
-    //   handleSize,
-    //   withinThreshold: dx <= handleSize && dy <= handleSize,
-    //   withinCircle: distance <= handleSize,
-    // })
-
-    // Track closest handle for debugging
-    if (distance < minDistance) {
-      minDistance = distance
-      closestHandle = handle.name
-    }
-
-    // Use box-based detection
+    // Early exit for box-based detection to improve performance
     if (dx <= handleSize && dy <= handleSize) {
-      console.log(
-        `getResizeHandle: Found handle ${handle.name} (box detection)`
-      )
       return handle.name
     }
   }
 
-  // For debugging when no handle is found
-  console.log(
-    `getResizeHandle: No handle found. Closest was ${closestHandle} at distance ${minDistance.toFixed(2)} (threshold: ${handleSize})`
-  )
   return null
 }
 

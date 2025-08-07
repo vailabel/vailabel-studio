@@ -9,6 +9,7 @@ import {
   AIModelRepository,
   SettingsRepository,
   TaskRepository,
+  UserRepository,
 } from "./models"
 import { app } from "electron" // Import Electron's app module
 import path from "path"
@@ -42,6 +43,7 @@ export const sequelize = new Sequelize({
     AIModelRepository,
     SettingsRepository,
     TaskRepository,
+    UserRepository
   ],
   logging: true,
 })
