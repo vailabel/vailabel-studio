@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from "react"
+import { useCallback, useEffect, useMemo, useRef } from "react"
 import type { Point, Annotation } from "@vailabel/core"
 import {
   getCanvasCoords as utilsGetCanvasCoords,
@@ -80,6 +80,25 @@ export function useCanvasHandlers() {
   } = canvasStore
   const { annotations } = annotationsStore
 
+  // Use refs to avoid recreating handler context too frequently
+  const lastMousePositionRef = useRef<Point | null>(null)
+  const lastCursorUpdateRef = useRef<number>(0)
+
+  // More aggressive throttling for cursor position updates
+  const updateCursorPosition = useCallback(
+    (point: Point) => {
+      const now = performance.now()
+      // Throttle to max 30fps for cursor updates (33ms interval)
+      if (now - lastCursorUpdateRef.current < 33) {
+        return
+      }
+
+      lastCursorUpdateRef.current = now
+      setCursorPosition(point)
+    },
+    [setCursorPosition]
+  )
+
   const handlerContext: ToolHandlerContext = useMemo(
     () => ({
       canvasStore,
@@ -119,14 +138,14 @@ export function useCanvasHandlers() {
     [
       canvasStore,
       annotationsStore,
-      zoom,
-      panOffset,
-      toolState,
+      annotations,
+      selectedAnnotation,
       setToolState,
       setIsPanning,
       setLastPanPoint,
-      annotations,
-      selectedAnnotation,
+      zoom,
+      panOffset,
+      toolState,
     ]
   )
 
@@ -147,8 +166,32 @@ export function useCanvasHandlers() {
   const handleMouseMove = useCallback(
     (e: React.MouseEvent) => {
       const point = handlerContext.getCanvasCoords(e.clientX, e.clientY)
-      setCursorPosition(point)
 
+      // Skip processing if mouse hasn't moved significantly (optimization for high-frequency events)
+      if (lastMousePositionRef.current) {
+        const dx = Math.abs(point.x - lastMousePositionRef.current.x)
+        const dy = Math.abs(point.y - lastMousePositionRef.current.y)
+        // Increase threshold to reduce processing load even more
+        if (dx < 3 && dy < 3) {
+          return
+        }
+      }
+      lastMousePositionRef.current = point
+
+      // Only update cursor position if no active operation is happening
+      // This reduces unnecessary animation frame calls during dragging/moving
+      const hasActiveOperation =
+        toolState.isDragging ||
+        toolState.isResizing ||
+        toolState.isMoving ||
+        toolState.isDrawing ||
+        isPanning
+
+      if (!hasActiveOperation) {
+        updateCursorPosition(point)
+      }
+
+      // Handle panning efficiently
       if (isPanning && lastPanPoint) {
         const dx = e.clientX - lastPanPoint.x
         const dy = e.clientY - lastPanPoint.y
@@ -160,17 +203,25 @@ export function useCanvasHandlers() {
         return
       }
 
-      toolHandler.onMouseMove(e, point)
+      // Only process tool-specific mouse move if there's actual interaction
+      // This is more restrictive to improve performance
+      if (hasActiveOperation) {
+        toolHandler.onMouseMove(e, point)
+      }
     },
     [
-      toolHandler,
+      handlerContext,
       isPanning,
       lastPanPoint,
       panOffset,
-      setCursorPosition,
       setLastPanPoint,
       canvasStore,
-      handlerContext,
+      toolHandler,
+      toolState.isDragging,
+      toolState.isResizing,
+      toolState.isMoving,
+      toolState.isDrawing,
+      updateCursorPosition,
     ]
   )
 

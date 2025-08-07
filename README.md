@@ -70,6 +70,13 @@
 
 ### Installation
 
+#### Install pnpm globally if you haven't already:
+
+```bash
+npm install -g pnpm
+```
+#### Clone the repository and install dependencies:
+
 ```bash
 # Clone the repository
 git clone https://github.com/vailabel/vailabel-studio.git
@@ -78,11 +85,27 @@ git clone https://github.com/vailabel/vailabel-studio.git
 cd vailabel-studio
 
 # Install dependencies
-yarn install
+pnpm install
+
 
 # Run the development server
-yarn dev
+pnpm dev
 ```
+
+
+### NPM Scripts
+| Command                | Description                                      |
+| ---------------------- | ------------------------------------------------ |
+| `pnpm dev`             | Start the development server both desktop and web                 |
+| `pnpm build`           | Build the project for production                  |
+| `pnpm lint`            | Run ESLint to check for code quality              |
+| `pnpm format`          | Format the code using Prettier                    |
+| `pnpm test`            | Run tests using Vitest                            |
+| `pnpm desktop`        | Start the desktop application development server with studio app                 |
+| `pnpm studio`          | Start the web-based labeling tool                 |
+| `pnpm api`             | Start the FastAPI server for YOLOv8 inference    |
+| `pnpm web`             | Start the documentation site                      |
+
 
 ---
 

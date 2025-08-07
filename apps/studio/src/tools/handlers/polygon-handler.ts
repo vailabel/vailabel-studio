@@ -20,13 +20,14 @@ export class PolygonHandler implements ToolHandler {
     // Check if we're clicking near the first point to close the polygon
     if (toolState.polygonPoints && toolState.polygonPoints.length >= 3) {
       const firstPoint = toolState.polygonPoints[0]
-      const distance = Math.sqrt(
-        Math.pow(point.x - firstPoint.x, 2) +
-          Math.pow(point.y - firstPoint.y, 2)
-      )
+      // Optimize distance calculation using squared distance
+      const dx = point.x - firstPoint.x
+      const dy = point.y - firstPoint.y
+      const distanceSquared = dx * dx + dy * dy
 
       // If clicking within 10 pixels of the first point, close the polygon
-      if (distance <= 10) {
+      // Using squared distance: 10^2 = 100
+      if (distanceSquared <= 100) {
         this.finishPolygon()
         return
       }

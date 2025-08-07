@@ -9,6 +9,10 @@ export type FreeDrawHandlerUIState = {
 }
 
 export class FreeDrawHandler implements ToolHandler {
+  private lastUpdateTime: number = 0
+  // Frame throttling - limit to 60fps maximum (16.67ms)
+  private readonly FRAME_THROTTLE_MS = 16
+
   constructor(private context: ToolHandlerContext) {}
 
   onMouseDown(e: React.MouseEvent) {
@@ -30,14 +34,25 @@ export class FreeDrawHandler implements ToolHandler {
     const { toolState } = this.context
     if (!toolState.isDrawing || !toolState.freeDrawPoints) return
 
+    const now = performance.now()
+
+    // Frame-based throttling - don't update more than 60fps
+    if (now - this.lastUpdateTime < this.FRAME_THROTTLE_MS) {
+      return
+    }
+
     const lastPoint =
       toolState.freeDrawPoints[toolState.freeDrawPoints.length - 1]
-    const distance = Math.sqrt(
-      Math.pow(point.x - lastPoint.x, 2) + Math.pow(point.y - lastPoint.y, 2)
-    )
+
+    // Optimize distance calculation using squared distance to avoid Math.sqrt
+    const dx = point.x - lastPoint.x
+    const dy = point.y - lastPoint.y
+    const distanceSquared = dx * dx + dy * dy
 
     // Only add point if significant movement (smoother drawing)
-    if (distance > 1.5) {
+    // Using squared distance: 1.5^2 = 2.25
+    if (distanceSquared > 2.25) {
+      this.lastUpdateTime = now
       const newPoints = [...toolState.freeDrawPoints, point]
       this.context.setToolState({
         freeDrawPoints: newPoints,
@@ -48,7 +63,6 @@ export class FreeDrawHandler implements ToolHandler {
       })
     }
   }
-
   onMouseUp() {
     const { toolState } = this.context
     if (!toolState.isDrawing || !toolState.freeDrawPoints) return

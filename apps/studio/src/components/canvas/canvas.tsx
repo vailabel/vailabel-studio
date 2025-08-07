@@ -119,19 +119,34 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
     setCanvasRef(canvasRef)
   }, [setCanvasRef])
 
-  const cursorStyles = {
-    box: "cursor-crosshair",
-    polygon: "cursor-crosshair",
-    freeDraw: "cursor-crosshair",
-    move: "cursor-move",
-    delete: "cursor-pointer",
-  }
+  const cursorStyles = useMemo(
+    () => ({
+      box: "cursor-crosshair",
+      polygon: "cursor-crosshair",
+      freeDraw: "cursor-crosshair",
+      move: "cursor-move",
+      delete: "cursor-pointer",
+    }),
+    []
+  )
 
-  // Use 'grabbing' cursor when panning
-  const canvasCursor = isPanning
-    ? "cursor-grabbing"
-    : cursorStyles[selectedTool as keyof typeof cursorStyles] ||
+  // Memoize cursor calculation to avoid recalculation on every render
+  const canvasCursor = useMemo(() => {
+    if (isPanning) return "cursor-grabbing"
+    return (
+      cursorStyles[selectedTool as keyof typeof cursorStyles] ||
       "cursor-default"
+    )
+  }, [isPanning, selectedTool, cursorStyles])
+
+  // Memoize transform style to avoid string concatenation on every render
+  const transformStyle = useMemo(
+    () => ({
+      transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom})`,
+      transformOrigin: "0 0",
+    }),
+    [panOffset.x, panOffset.y, zoom]
+  )
 
   return (
     <>
@@ -159,13 +174,7 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
               onDoubleClick={handleDoubleClick}
               role="button"
             >
-              <div
-                className="absolute"
-                style={{
-                  transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom})`,
-                  transformOrigin: "0 0",
-                }}
-              >
+              <div className="absolute" style={transformStyle}>
                 <img
                   src={image.data}
                   alt="Canvas"

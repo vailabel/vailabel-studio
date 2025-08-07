@@ -6,7 +6,7 @@ import { MoveStrategy } from "../move/move-strategy"
 
 export class MouseMoveStrategyManager {
   private resizeStrategy: MouseMoveStrategy
-  private moveStrategy: MouseMoveStrategy
+  private moveStrategy: MoveStrategy
 
   constructor() {
     this.resizeStrategy = new ResizeStrategy()
@@ -37,5 +37,10 @@ export class MouseMoveStrategyManager {
     ) {
       this.moveStrategy.handle(e, point, context)
     }
+  }
+
+  // Clear caches when operations end
+  clearCaches(): void {
+    this.moveStrategy.clearCache()
   }
 }

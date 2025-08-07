@@ -23,6 +23,7 @@
   },
   "license": "MIT",
   "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
     "@types/semver": "^7.7.0",
     "@vailabel/core": "*",
     "electron": "36.2.1",
@@ -30,6 +31,7 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
+    "bcrypt": "^6.0.0",
     "electron-devtools-installer": "^4.0.0",
     "electron-updater": "^6.6.2",
     "keytar": "^7.9.0",

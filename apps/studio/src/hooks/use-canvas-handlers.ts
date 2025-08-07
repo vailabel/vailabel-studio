@@ -98,9 +98,10 @@ export function useCanvasHandlers() {
 
           const dx = point.x - xx
           const dy = point.y - yy
-          const distance = Math.sqrt(dx * dx + dy * dy)
+          // Use squared distance to avoid Math.sqrt
+          const distanceSquared = dx * dx + dy * dy
 
-          if (distance <= threshold) {
+          if (distanceSquared <= threshold * threshold) {
             return true
           }
         }
@@ -474,13 +475,13 @@ export function useCanvasHandlers() {
       if (isDrawing) {
         // Add point only if it's far enough from the last point to avoid too many points
         const lastPoint = freeDrawPoints[freeDrawPoints.length - 1]
-        const distance = Math.sqrt(
-          Math.pow(point.x - lastPoint.x, 2) +
-            Math.pow(point.y - lastPoint.y, 2)
-        )
+        const dx = point.x - lastPoint.x
+        const dy = point.y - lastPoint.y
+        // Use squared distance to avoid Math.sqrt
+        const distanceSquared = dx * dx + dy * dy
 
-        if (distance > 2) {
-          // Minimum distance threshold
+        if (distanceSquared > 4) {
+          // Minimum distance threshold (2^2 = 4)
           const newPoints = [...freeDrawPoints, point]
           setFreeDrawPoints(newPoints)
           setTempAnnotation({

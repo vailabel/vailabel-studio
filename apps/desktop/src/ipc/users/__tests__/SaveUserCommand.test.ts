@@ -5,6 +5,11 @@ jest.mock("../../../db/models", () => ({
   UserRepository: { create: jest.fn() },
 }))
 
+jest.mock("bcrypt", () => ({
+  genSaltSync: jest.fn(() => "mockedSalt"),
+  hashSync: jest.fn(() => "hashedPassword"),
+}))
+
 describe("SaveUserCommand", () => {
   const command = new SaveUserCommand()
   const user = {
@@ -12,6 +17,7 @@ describe("SaveUserCommand", () => {
     name: "Test User",
     email: "test@example.com",
     role: "admin",
+    password: "plainPassword",
     createdAt: new Date("2023-01-01"),
     updatedAt: new Date("2023-01-02"),
   }
@@ -23,6 +29,7 @@ describe("SaveUserCommand", () => {
       name: "Test User",
       email: "test@example.com",
       role: "admin",
+      password: "hashedPassword",
       createdAt: new Date("2023-01-01"),
       updatedAt: new Date("2023-01-02"),
     })
