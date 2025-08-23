@@ -15,7 +15,8 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-
+    env:  
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
     steps:
       - uses: actions/checkout@v3
 
@@ -35,3 +36,5 @@ jobs:
 
       - name: Build Electron app
         run: pnpm run publish
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
