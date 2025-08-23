@@ -44,6 +44,7 @@ import { FetchSettingsQuery, SaveOrUpdateSettingsCommand } from "./settings"
 import {
   DeleteImageDataCommand,
   FetchImageDataByIdQuery,
+  FetchImageDataRangeQuery,
   FetchImageDataByProjectidQuery,
   FetchImageDataQuery,
   SaveImageDataCommand,
@@ -125,6 +126,7 @@ handlers.push(new DeleteImageDataCommand())
 handlers.push(new SaveImageDataCommand())
 handlers.push(new UpdateImageDataCommand())
 handlers.push(new FetchImageDataByProjectidQuery())
+handlers.push(new FetchImageDataRangeQuery())
 handlers.push(new FetchImageDataByIdQuery())
 
 // Register history

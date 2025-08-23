@@ -52,6 +52,14 @@ export class ElectronApiDataAdapter implements IDataAdapter {
     return this.api.invoke(`fetch:imageDataByProjectId`, projectId)
   }
 
+  fetchImageDataRange(
+    projectId: string,
+    offset: number,
+    limit: number
+  ): Promise<ImageData[]> {
+    return this.api.invoke(`fetch:imageDataRange`, { projectId, offset, limit })
+  }
+
   // Annotation-related methods
   updateAnnotation(
     annotationId: string,

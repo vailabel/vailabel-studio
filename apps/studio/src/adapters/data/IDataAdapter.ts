@@ -39,6 +39,12 @@ export interface IDataAdapter {
   deleteImageData(imageId: string): Promise<void>
   fetchImageDataByProjectId(projectId: string): Promise<ImageData[]>
   fetchImageDataById(imageId: string): Promise<ImageData | undefined>
+  // fetch a range (for pagination / lazy window). offset is zero-based.
+  fetchImageDataRange(
+    projectId: string,
+    offset: number,
+    limit: number
+  ): Promise<ImageData[]>
 
   // history management
   fetchHistory(projectId: string): Promise<History[]>
