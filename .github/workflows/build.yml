@@ -30,10 +30,9 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install
-          
-      - name: Build frontend
-        run: pnpm run build
-      
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
       - name: Debug GH_TOKEN
         run: |
           echo "GH_TOKEN length: ${#GH_TOKEN}"
