@@ -1,5 +1,5 @@
 {
-  "name": "@vailabel/desktop",
+  "name": "vailabel-desktop",
   "productName": "desktop",
   "version": "0.2.1",
   "description": "Vailabel Studio Desktop",
@@ -25,10 +25,10 @@
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
     "@types/semver": "^7.7.0",
-    "@vailabel/core": "*",
-    "electron": "36.2.1",
+    "@vailabel/core": "^2.0.0",
+    "electron": "37.3.1",
     "electron-builder": "^26.0.12",
-    "typescript": "^5.8.3"
+    "typescript": "^5.9.2"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

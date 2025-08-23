@@ -1,5 +1,5 @@
 appId: com.vailabel.studio
-productName: vision ai label studio
+productName: Vision AI Label Studio
 asar: true
 icon: icons/icon
 files:
@@ -29,15 +29,9 @@ asarUnpack:
   - "src/ai/**/*.py"
   - "src/db/migrations/**"
 mac:
-  target: dmg
-dmg:
-  contents:
-    - x: 130
-      y: 220
-    - x: 410
-      y: 220
-      type: link
-      path: /Applications
+  target: 
+    - zip
+    - dmg
 
 win:
   target:
