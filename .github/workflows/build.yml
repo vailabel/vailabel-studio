@@ -33,6 +33,13 @@ jobs:
           
       - name: Build frontend
         run: pnpm run build
+      
+      - name: Debug GH_TOKEN
+        run: |
+          echo "GH_TOKEN length: ${#GH_TOKEN}"
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
 
       - name: Build Electron app
         run: pnpm run publish
