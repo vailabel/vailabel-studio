@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "test": "jest --coverage",
     "test:watch": "jest --watch",
+    "publish": "pnpm run build",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\" --ignore-path .gitignore --ignore-path .prettierignore",
     "typecheck": "tsc --noEmit"
   },

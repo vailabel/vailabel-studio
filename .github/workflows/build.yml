@@ -31,7 +31,7 @@ jobs:
         run: pnpm install
           
       - name: Build frontend
-        run: pnpm run build --filter=studio
+        run: pnpm run build
 
       - name: Build Electron app
-        run: pnpm run publish --filter=desktop
+        run: pnpm run publish
