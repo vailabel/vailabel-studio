@@ -1,5 +1,11 @@
 # @vailabel/studio
 
+## 0.1.1
+
+### Patch Changes
+
+- c10074d: fix bug and improve annotation tools
+
 ## 0.1.0
 
 ### Minor Changes

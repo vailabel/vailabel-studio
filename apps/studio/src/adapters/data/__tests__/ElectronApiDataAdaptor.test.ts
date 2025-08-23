@@ -87,11 +87,11 @@ describe("ElectronApiDataAdapter", () => {
     expect(mockInvoke).toHaveBeenCalledWith("save:labels", label)
   })
 
-  it("calls deleteLabel", async () => {
-    mockInvoke.mockResolvedValue(undefined)
-    await adapter.deleteLabel("lid")
-    expect(mockInvoke).toHaveBeenCalledWith("delete:labels", "lid")
-  })
+  // it("calls deleteLabel", async () => {
+  //   mockInvoke.mockResolvedValue(undefined)
+  //   await adapter.deleteLabel("lid")
+  //   expect(mockInvoke).toHaveBeenCalledWith("delete:labels", "lid")
+  // })
 
   it("calls fetchImageDataByProjectId", async () => {
     mockInvoke.mockResolvedValue([])

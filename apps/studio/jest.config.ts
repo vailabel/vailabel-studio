@@ -10,6 +10,7 @@ const config: Config = {
   moduleNameMapper: {
     "\\.(css|less|scss)$": "identity-obj-proxy",
     "^@/(.*)$": "<rootDir>/src/$1",
+    "^@vailabel/core(.*)$": "<rootDir>/../core/src$1",
   },
   // Add src/types to moduleDirectories so Jest picks up global type definitions
   moduleDirectories: ["node_modules", "src/types", "src"],
