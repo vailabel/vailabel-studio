@@ -44,7 +44,11 @@ importers:
 
   apps/api: {}
 
-  apps/core: {}
+  apps/core:
+    devDependencies:
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
 
   apps/desktop:
     dependencies:
