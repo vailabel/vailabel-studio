@@ -1,4 +1,5 @@
 appId: com.vailabel.studio
+name: "@vailabel/studio"
 productName: Vision AI Label Studio
 asar: true
 icon: icons/icon
