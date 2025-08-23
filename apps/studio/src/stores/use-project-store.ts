@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { Project } from "@vailabel/core"
+import { Project, ImageData } from "@vailabel/core"
 import { create } from "zustand"
 import { IDataAdapter } from "@/adapters/data/IDataAdapter"
 import { exceptionMiddleware } from "@/hooks/exception-middleware"
@@ -34,6 +34,13 @@ type ProjectStoreType = {
     projectId: string,
     currentImageId: string
   ) => Promise<{ id: string; hasPrevious: boolean }>
+
+  // internal caches
+  imageIdListCache: Record<string, string[]>
+  imageDataCache: Record<string, Record<string, ImageData | undefined>>
+
+  // helper to clear cache for a project
+  clearImageCache: (projectId: string) => void
 
   nextImage: {
     id: string
@@ -97,14 +104,94 @@ export const useProjectStore = create<ProjectStoreType>(
       set({ projects: projects.filter((project) => project.id !== id) })
     },
 
+    // caches
+    imageIdListCache: {},
+    imageDataCache: {},
+    clearImageCache: (projectId: string) =>
+      set((state) => ({
+        imageIdListCache: { ...state.imageIdListCache, [projectId]: [] },
+        imageDataCache: { ...state.imageDataCache, [projectId]: {} },
+      })),
+
     getNextImage: async (projectId, currentImageId) => {
-      // Implementation for fetching the next image
-      return { id: `next-${currentImageId}-${projectId}`, hasNext: true }
+      const { data, imageIdListCache, imageDataCache } = get()
+
+      // ensure id list cache exists
+      let idList = imageIdListCache[projectId]
+      if (!idList || idList.length === 0) {
+        const all = await data.fetchImageDataByProjectId(projectId)
+        idList = all.map((img) => img.id)
+        set((state) => ({
+          imageIdListCache: { ...state.imageIdListCache, [projectId]: idList },
+        }))
+      }
+
+      const idx = idList.findIndex((id) => id === currentImageId)
+      const nextIndex = idx >= 0 ? idx + 1 : 0
+      const hasNext = nextIndex < idList.length
+      const nextId = hasNext ? idList[nextIndex] : ""
+
+      // prefetch next window (lazy): fetch up to 10 images starting at nextIndex
+      if (hasNext) {
+        const start = nextIndex
+        const limit = 10
+        try {
+          const images = await data.fetchImageDataRange(projectId, start, limit)
+          const projectCache = imageDataCache[projectId] || {}
+          images.forEach((img) => (projectCache[img.id] = img))
+          set((state) => ({
+            imageDataCache: {
+              ...state.imageDataCache,
+              [projectId]: projectCache,
+            },
+          }))
+        } catch {
+          // ignore
+        }
+      }
+
+      return { id: nextId, hasNext }
     },
 
     getPreviousImage: async (projectId, currentImageId) => {
-      // Implementation for fetching the previous image
-      return { id: `prev-${currentImageId}-${projectId}`, hasPrevious: true }
+      const { data, imageIdListCache, imageDataCache } = get()
+
+      // ensure id list cache exists
+      let idList = imageIdListCache[projectId]
+      if (!idList || idList.length === 0) {
+        const all = await data.fetchImageDataByProjectId(projectId)
+        idList = all.map((img) => img.id)
+        set((state) => ({
+          imageIdListCache: { ...state.imageIdListCache, [projectId]: idList },
+        }))
+      }
+
+      const idx = idList.findIndex((id) => id === currentImageId)
+      const prevIndex = idx >= 0 ? idx - 1 : -1
+      const hasPrevious = prevIndex >= 0
+      const prevId = hasPrevious ? idList[prevIndex] : ""
+
+      // prefetch previous window (lazy): fetch up to 10 images ending at prevIndex
+      if (hasPrevious) {
+        const end = prevIndex
+        const limit = 10
+        const start = Math.max(0, end - (limit - 1))
+        try {
+          const images = await data.fetchImageDataRange(projectId, start, limit)
+          const projectCache = imageDataCache[projectId] || {}
+          images.forEach((img) => (projectCache[img.id] = img))
+          set((state) => ({
+            imageDataCache: {
+              ...state.imageDataCache,
+              [projectId]: projectCache,
+            },
+          }))
+        } catch {
+          // ignore
+        }
+      }
+
+      return { id: prevId, hasPrevious }
     },
 
     nextImage: { id: "", hasNext: false },

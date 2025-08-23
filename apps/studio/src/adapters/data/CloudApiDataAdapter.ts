@@ -28,6 +28,9 @@ export class CloudApiDataAdapter implements IDataAdapter {
       cacheDuration: 5 * 60 * 1000, // 5 minutes
     }) // Initialize the API client here
   }
+  fetchImageDataRange(projectId: string, offset: number, limit: number): Promise<ImageData[]> {
+    return this.api.get<ImageData[]>(`/projects/${projectId}/images?offset=${offset}&limit=${limit}`)
+  }
   getAnnotationsByImageId(imageId: string): Promise<Annotation[]> {
     return this.api.get<Annotation[]>(`/images/${imageId}/annotations`)
   }

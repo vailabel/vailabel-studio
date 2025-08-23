@@ -7,6 +7,7 @@ export type AnnotationsStoreType = {
   data: IDataAdapter
   initDataAdapter: (dataAdapter: IDataAdapter) => void
   annotations: Annotation[]
+  fetchAnnotations: (projectId: string) => Promise<Annotation[]>
   getAnnotationsByImageId: (imageId: string) => Promise<Annotation[]>
   setAnnotations: (annotations: Annotation[]) => void
   createAnnotation: (annotation: Annotation) => Promise<void>
@@ -31,6 +32,12 @@ export const useAnnotationsStore = create<AnnotationsStoreType>(
         set({ annotations })
         return annotations
       })
+    },
+    fetchAnnotations: async (projectId: string) => {
+      const { data } = get()
+      const annotations = await data.fetchAnnotations(projectId)
+      set({ annotations })
+      return annotations
     },
     setAnnotations: (annotations) => set({ annotations }),
     createAnnotation: async (annotation: Annotation) => {
@@ -58,7 +65,9 @@ export const useAnnotationsStore = create<AnnotationsStoreType>(
       const { data } = get()
       // delete the annotation from the local state
       set((state) => ({
-        annotations: state.annotations.filter((annotation) => annotation.id !== id),
+        annotations: state.annotations.filter(
+          (annotation) => annotation.id !== id
+        ),
       }))
       return await data.deleteAnnotation(id)
     },
