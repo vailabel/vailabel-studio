@@ -41,7 +41,7 @@ jobs:
       - name: Build & Publish Electron app
         run: |
           echo "Running build with GH_TOKEN..."
-          pnpm run build
+          cd apps/studio && pnpm build
       
       - name: Publish Release
         run: |
