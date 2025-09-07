@@ -46,4 +46,4 @@ jobs:
       - name: Publish Release
         run: |
           echo "Publishing release..."
-          cd apps/desktop && pnpm publish --no-git-checks
+          cd apps/desktop && pnpm publish
