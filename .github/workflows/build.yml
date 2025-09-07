@@ -34,14 +34,9 @@ jobs:
         run: pnpm install
 
       - name: Debug GH_TOKEN
+        shell: bash
         run: |
-          if (-not $env:GH_TOKEN) {
-            Write-Output "❌ GH_TOKEN is missing"
-            exit 1
-          } else {
-            Write-Output "✅ GH_TOKEN is set (length: $($env:GH_TOKEN.Length))"
-          }
-
+          echo "GH_TOKEN length: ${{ secrets.GH_TOKEN }}" | awk '{print length($0)}'
 
       - name: Build & Publish Electron app
         run: |
