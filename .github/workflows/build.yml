@@ -46,7 +46,7 @@ jobs:
       - name: Publish Electron release
         run: |
           echo "Publishing release..."
-          cd apps/desktop && pnpm exec electron-builder --publish always --config electron-builder.yml --no-git-checks
+          cd apps/desktop && tsc && pnpm run prebuild && electron-builder --publish always --config electron-builder.yml --no-git-checks
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
