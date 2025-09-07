@@ -40,7 +40,10 @@ jobs:
 
       - name: Build & Publish Electron app
         run: |
-          echo "Running publish with GH_TOKEN..."
-          pnpm run publish
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          echo "Running build with GH_TOKEN..."
+          pnpm run build
+      
+      - name: Publish Release
+        run: |
+          echo "Publishing release..."
+          cd apps/desktop && pnpm publish
