@@ -43,5 +43,8 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/vailabel/vailabel-studio.git"
+  },
+  "build": {
+    "npmPublish": false
   }
 }
