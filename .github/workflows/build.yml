@@ -42,3 +42,5 @@ jobs:
         run: |
           echo "Running publish with GH_TOKEN..."
           pnpm run publish
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
