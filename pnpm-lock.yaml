@@ -87,11 +87,11 @@ importers:
         specifier: ^2.0.0
         version: link:../core
       electron:
-        specifier: 37.3.1
-        version: 37.3.1
+        specifier: 36.2.1
+        version: 36.2.1
       electron-builder:
         specifier: ^26.0.12
-        version: 26.0.12(electron-builder-squirrel-windows@26.0.12)
+        version: 26.0.20(electron-builder-squirrel-windows@26.0.20)
       typescript:
         specifier: ^5.9.2
         version: 5.9.2
@@ -2092,16 +2092,6 @@ packages:
       tslib: 2.8.1
     dev: false
 
-  /@electron/asar@3.2.18:
-    resolution: {integrity: sha512-2XyvMe3N3Nrs8cV39IKELRHTYUWFKrmqqSY1U+GMlc0jvqjIVnoxhNd2H4JolWQncbJi1DCvb5TNxZuI2fEjWg==}
-    engines: {node: '>=10.12.0'}
-    hasBin: true
-    dependencies:
-      commander: 5.1.0
-      glob: 7.2.3
-      minimatch: 3.1.2
-    dev: true
-
   /@electron/asar@3.4.1:
     resolution: {integrity: sha512-i4/rNPRS84t0vSRa2HorerGRXWyF4vThfHesw0dmcWHp+cspK743UanA0suA5Q5y8kzY2y6YKrvbIUn69BCAiA==}
     engines: {node: '>=10.12.0'}
@@ -2149,8 +2139,8 @@ packages:
       - supports-color
     dev: true
 
-  /@electron/osx-sign@1.3.1:
-    resolution: {integrity: sha512-BAfviURMHpmb1Yb50YbCxnOY0wfwaLXH5KJ4+80zS0gUkzDX3ec23naTlEqKsN+PwYn+a1cCzM7BJ4Wcd3sGzw==}
+  /@electron/osx-sign@1.3.3:
+    resolution: {integrity: sha512-KZ8mhXvWv2rIEgMbWZ4y33bDHyUKMXnx4M0sTyPNK/vcB81ImdeY9Ggdqy0SWbMDgmbqyQ+phgejh6V3R2QuSg==}
     engines: {node: '>=12.0.0'}
     hasBin: true
     dependencies:
@@ -2164,8 +2154,8 @@ packages:
       - supports-color
     dev: true
 
-  /@electron/rebuild@3.7.0:
-    resolution: {integrity: sha512-VW++CNSlZwMYP7MyXEbrKjpzEwhB5kDNbzGtiPEjwYysqyTCF+YbNJ210Dj3AjWsGSV4iEEwNkmJN9yGZmVvmw==}
+  /@electron/rebuild@3.7.2:
+    resolution: {integrity: sha512-19/KbIR/DAxbsCkiaGMXIdPnMCJLkcf8AvGnduJtWBs/CBwiAjY1apCqOLVxrXg+rtXFCngbXhBanWjxLUt1Mg==}
     engines: {node: '>=12.13.0'}
     hasBin: true
     dependencies:
@@ -2188,11 +2178,11 @@ packages:
       - supports-color
     dev: true
 
-  /@electron/universal@2.0.1:
-    resolution: {integrity: sha512-fKpv9kg4SPmt+hY7SVBnIYULE9QJl8L3sCfcBsnqbJwwBwAeTLokJ9TRt9y7bK0JAzIW2y78TVVjvnQEms/yyA==}
+  /@electron/universal@2.0.3:
+    resolution: {integrity: sha512-Wn9sPYIVFRFl5HmwMJkARCCf7rqK/EurkfQ/rJZ14mHP3iYTjZSIOSVonEAnhWeAXwtw7zOekGRlc6yTtZ0t+g==}
     engines: {node: '>=16.4'}
     dependencies:
-      '@electron/asar': 3.2.18
+      '@electron/asar': 3.4.1
       '@malept/cross-spawn-promise': 2.0.0
       debug: 4.4.1
       dir-compare: 4.2.0
@@ -7587,38 +7577,38 @@ packages:
     resolution: {integrity: sha512-j87o0j6LqPL3QRr8yid6c+Tt5gC7xNfYo6uQIQkorAC6MpeayVMZrEDzKmJJ/Hlv7EnOQpaRm53k6ktDYZyB6w==}
     dev: true
 
-  /app-builder-lib@26.0.12(dmg-builder@26.0.12)(electron-builder-squirrel-windows@26.0.12):
-    resolution: {integrity: sha512-+/CEPH1fVKf6HowBUs6LcAIoRcjeqgvAeoSE+cl7Y7LndyQ9ViGPYibNk7wmhMHzNgHIuIbw4nWADPO+4mjgWw==}
+  /app-builder-lib@26.0.20(dmg-builder@26.0.20)(electron-builder-squirrel-windows@26.0.20):
+    resolution: {integrity: sha512-MNEcm1M2+SAENsH2nxAAPt5qrGT4VwZNuvLC+GuwmcSDhDPWjrzsRPfx8/D0Juz446jVtTfAOguagv5EEssaaw==}
     engines: {node: '>=14.0.0'}
     peerDependencies:
-      dmg-builder: 26.0.12
-      electron-builder-squirrel-windows: 26.0.12
+      dmg-builder: 26.0.20
+      electron-builder-squirrel-windows: 26.0.20
     dependencies:
       '@develar/schema-utils': 2.6.5
-      '@electron/asar': 3.2.18
+      '@electron/asar': 3.4.1
       '@electron/fuses': 1.8.0
       '@electron/notarize': 2.5.0
-      '@electron/osx-sign': 1.3.1
-      '@electron/rebuild': 3.7.0
-      '@electron/universal': 2.0.1
+      '@electron/osx-sign': 1.3.3
+      '@electron/rebuild': 3.7.2
+      '@electron/universal': 2.0.3
       '@malept/flatpak-bundler': 0.4.0
       '@types/fs-extra': 9.0.13
       async-exit-hook: 2.0.1
-      builder-util: 26.0.11
-      builder-util-runtime: 9.3.1
+      builder-util: 26.0.20
+      builder-util-runtime: 9.4.0
       chromium-pickle-js: 0.2.0
-      config-file-ts: 0.2.8-rc1
+      ci-info: 4.3.0
       debug: 4.4.1
-      dmg-builder: 26.0.12(electron-builder-squirrel-windows@26.0.12)
+      dmg-builder: 26.0.20(electron-builder-squirrel-windows@26.0.20)
       dotenv: 16.6.1
       dotenv-expand: 11.0.7
       ejs: 3.1.10
-      electron-builder-squirrel-windows: 26.0.12(dmg-builder@26.0.12)
-      electron-publish: 26.0.11
+      electron-builder-squirrel-windows: 26.0.20(dmg-builder@26.0.20)
+      electron-publish: 26.0.20
       fs-extra: 10.1.0
       hosted-git-info: 4.1.0
-      is-ci: 3.0.1
       isbinaryfile: 5.0.4
+      jiti: 2.5.1
       js-yaml: 4.1.0
       json5: 2.2.3
       lazy-val: 1.0.5
@@ -7629,6 +7619,7 @@ packages:
       tar: 6.2.1
       temp-file: 3.4.0
       tiny-async-pool: 1.3.0
+      which: 5.0.0
     transitivePeerDependencies:
       - bluebird
       - supports-color
@@ -7932,21 +7923,32 @@ packages:
       sax: 1.4.1
     transitivePeerDependencies:
       - supports-color
+    dev: false
 
-  /builder-util@26.0.11:
-    resolution: {integrity: sha512-xNjXfsldUEe153h1DraD0XvDOpqGR0L5eKFkdReB7eFW5HqysDZFfly4rckda6y9dF39N3pkPlOblcfHKGw+uA==}
+  /builder-util-runtime@9.4.0:
+    resolution: {integrity: sha512-omkpaKbutPYqC0nwLEeGq540xND1YPhfVzwT6CFyCFzxhNDt/X+fykr17Yo3jxiuwI3zaAnY/1tKFoRN+FeHhg==}
+    engines: {node: '>=12.0.0'}
+    dependencies:
+      debug: 4.4.1
+      sax: 1.4.1
+    transitivePeerDependencies:
+      - supports-color
+    dev: true
+
+  /builder-util@26.0.20:
+    resolution: {integrity: sha512-LxT2Q7dcNMdJ34Y7IrTWvkSL0UHMqs76ZjbDSmhuC8vpC9DZfWYzLtOHUFHmZ67Cx8/8mNWFmXG8QJ/e+itc0A==}
     dependencies:
       7zip-bin: 5.2.0
       '@types/debug': 4.1.12
       app-builder-bin: 5.0.0-alpha.12
-      builder-util-runtime: 9.3.1
+      builder-util-runtime: 9.4.0
       chalk: 4.1.2
+      ci-info: 4.3.0
       cross-spawn: 7.0.6
       debug: 4.4.1
       fs-extra: 10.1.0
       http-proxy-agent: 7.0.2
       https-proxy-agent: 7.0.6
-      is-ci: 3.0.1
       js-yaml: 4.1.0
       sanitize-filename: 1.6.3
       source-map-support: 0.5.21
@@ -8403,13 +8405,6 @@ packages:
 
   /concat-map@0.0.1:
     resolution: {integrity: sha512-/Srv4dswyQNBfohGpz9o6Yb3Gz3SrUDqBH5rTuhGR7ahtlbYKnVxw2bCFMRljaA7EXHaXZ8wsHdodFvbkhKmqg==}
-
-  /config-file-ts@0.2.8-rc1:
-    resolution: {integrity: sha512-GtNECbVI82bT4RiDIzBSVuTKoSHufnU7Ce7/42bkWZJZFLjmDF2WBpVsvRkhKCfKBnTBb3qZrBwPpFBU/Myvhg==}
-    dependencies:
-      glob: 10.4.5
-      typescript: 5.9.2
-    dev: true
 
   /console-control-strings@1.1.0:
     resolution: {integrity: sha512-ty/fTekppD2fIwRvnZAVdeOiGd1c7YXEixbgJTNzqcxJWKQnjJ/V1bNEEE6hygpM3WjwHFUVK6HTjWSzV4a8sQ==}
@@ -9036,12 +9031,11 @@ packages:
   /dlv@1.1.3:
     resolution: {integrity: sha512-+HlytyjlPKnIG8XuRG8WvmBP8xs8P71y+SKKS6ZXWoEgLuePxtDoUEiH7WkdePWrQ5JBpE6aoVqfZfJUQkjXwA==}
 
-  /dmg-builder@26.0.12(electron-builder-squirrel-windows@26.0.12):
-    resolution: {integrity: sha512-59CAAjAhTaIMCN8y9kD573vDkxbs1uhDcrFLHSgutYdPcGOU35Rf95725snvzEOy4BFB7+eLJ8djCNPmGwG67w==}
+  /dmg-builder@26.0.20(electron-builder-squirrel-windows@26.0.20):
+    resolution: {integrity: sha512-8iiV/TMGoMqor9/54M/B5zRhyRsyTo2OUv/LalKGlKCZQ/0P96obvl5dQQg56AUlbVGzbMlu7hycLvpNXhqabA==}
     dependencies:
-      app-builder-lib: 26.0.12(dmg-builder@26.0.12)(electron-builder-squirrel-windows@26.0.12)
-      builder-util: 26.0.11
-      builder-util-runtime: 9.3.1
+      app-builder-lib: 26.0.20(dmg-builder@26.0.20)(electron-builder-squirrel-windows@26.0.20)
+      builder-util: 26.0.20
       fs-extra: 10.1.0
       iconv-lite: 0.6.3
       js-yaml: 4.1.0
@@ -9126,11 +9120,11 @@ packages:
       jake: 10.9.4
     dev: true
 
-  /electron-builder-squirrel-windows@26.0.12(dmg-builder@26.0.12):
-    resolution: {integrity: sha512-kpwXM7c/ayRUbYVErQbsZ0nQZX4aLHQrPEG9C4h9vuJCXylwFH8a7Jgi2VpKIObzCXO7LKHiCw4KdioFLFOgqA==}
+  /electron-builder-squirrel-windows@26.0.20(dmg-builder@26.0.20):
+    resolution: {integrity: sha512-NIXplPdsDqWtUW5EKVKGJT7ikgzsa6PYfPuCs6Dc1fXsBI/450l7F2x+1gyTQ2cUp4+DVrcom0sXHfCBo36PrQ==}
     dependencies:
-      app-builder-lib: 26.0.12(dmg-builder@26.0.12)(electron-builder-squirrel-windows@26.0.12)
-      builder-util: 26.0.11
+      app-builder-lib: 26.0.20(dmg-builder@26.0.20)(electron-builder-squirrel-windows@26.0.20)
+      builder-util: 26.0.20
       electron-winstaller: 5.4.0
     transitivePeerDependencies:
       - bluebird
@@ -9138,18 +9132,18 @@ packages:
       - supports-color
     dev: true
 
-  /electron-builder@26.0.12(electron-builder-squirrel-windows@26.0.12):
-    resolution: {integrity: sha512-cD1kz5g2sgPTMFHjLxfMjUK5JABq3//J4jPswi93tOPFz6btzXYtK5NrDt717NRbukCUDOrrvmYVOWERlqoiXA==}
+  /electron-builder@26.0.20(electron-builder-squirrel-windows@26.0.20):
+    resolution: {integrity: sha512-lntLb4ZuQ4UPVlOiWZKO+NhHlNf0T6Bn+6ZLo+wxTuhazKJSXycmIP6tp/xNZvE+0ApF0SizAgY4sLHZtrTJgw==}
     engines: {node: '>=14.0.0'}
     hasBin: true
     dependencies:
-      app-builder-lib: 26.0.12(dmg-builder@26.0.12)(electron-builder-squirrel-windows@26.0.12)
-      builder-util: 26.0.11
-      builder-util-runtime: 9.3.1
+      app-builder-lib: 26.0.20(dmg-builder@26.0.20)(electron-builder-squirrel-windows@26.0.20)
+      builder-util: 26.0.20
+      builder-util-runtime: 9.4.0
       chalk: 4.1.2
-      dmg-builder: 26.0.12(electron-builder-squirrel-windows@26.0.12)
+      ci-info: 4.3.0
+      dmg-builder: 26.0.20(electron-builder-squirrel-windows@26.0.20)
       fs-extra: 10.1.0
-      is-ci: 3.0.1
       lazy-val: 1.0.5
       simple-update-notifier: 2.0.0
       yargs: 17.7.2
@@ -9165,12 +9159,12 @@ packages:
       unzip-crx-3: 0.2.0
     dev: false
 
-  /electron-publish@26.0.11:
-    resolution: {integrity: sha512-a8QRH0rAPIWH9WyyS5LbNvW9Ark6qe63/LqDB7vu2JXYpi0Gma5Q60Dh4tmTqhOBQt0xsrzD8qE7C+D7j+B24A==}
+  /electron-publish@26.0.20:
+    resolution: {integrity: sha512-2OAcMmawYZCxRSGnGMkyWOYAPLS2ZEL2F886fkilYojy1lFXLdRCkcyQVD5GV2KeEjNBsuhcvz9pddWcYT9JMw==}
     dependencies:
       '@types/fs-extra': 9.0.13
-      builder-util: 26.0.11
-      builder-util-runtime: 9.3.1
+      builder-util: 26.0.20
+      builder-util-runtime: 9.4.0
       chalk: 4.1.2
       form-data: 4.0.4
       fs-extra: 10.1.0
@@ -9210,6 +9204,19 @@ packages:
       temp: 0.9.4
     optionalDependencies:
       '@electron/windows-sign': 1.2.2
+    transitivePeerDependencies:
+      - supports-color
+    dev: true
+
+  /electron@36.2.1:
+    resolution: {integrity: sha512-mm1Y+Ms46xcOTA69h8hpqfX392HfV4lga9aEkYkd/Syx1JBStvcACOIouCgGrnZpxNZPVS1jM8NTcMkNjuK6BQ==}
+    engines: {node: '>= 12.20.55'}
+    hasBin: true
+    requiresBuild: true
+    dependencies:
+      '@electron/get': 2.0.3
+      '@types/node': 22.17.2
+      extract-zip: 2.0.1
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -10668,13 +10675,6 @@ packages:
     engines: {node: '>=4'}
     dev: false
 
-  /is-ci@3.0.1:
-    resolution: {integrity: sha512-ZYvCgrefwqoQ6yTyYUbQu64HsITZ3NfKX1lzaEYdkTDcfKzzCI/wthRRYKkdjHKFVgNiXKAKm65Zo1pk2as/QQ==}
-    hasBin: true
-    dependencies:
-      ci-info: 3.9.0
-    dev: true
-
   /is-core-module@2.16.1:
     resolution: {integrity: sha512-UfoeMA6fIJ8wTYFEUjelnaGI67v6+N7qXJEvQuIGa99l4xsCruSYOVSQ0uPANn4dAzm8lkYPaKLrrijLq7x23w==}
     engines: {node: '>= 0.4'}
@@ -10779,6 +10779,11 @@ packages:
 
   /isexe@2.0.0:
     resolution: {integrity: sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==}
+
+  /isexe@3.1.1:
+    resolution: {integrity: sha512-LpB/54B+/2J5hqQ7imZHfdU31OlgQqx7ZicVlkm9kzg9/w8GKLEcFfJl/t7DCEDueOyBAD6zCCwTO6Fzs0NoEQ==}
+    engines: {node: '>=16'}
+    dev: true
 
   /istanbul-lib-coverage@3.2.2:
     resolution: {integrity: sha512-O8dpsF+r0WV/8MNRKfnmrtCWhuKjxrq2w+jpzBL5UZKTi2LeVWnWOmWRxFlesJONmc+wLAGvKQZEOanko0LFTg==}
@@ -15396,6 +15401,14 @@ packages:
     hasBin: true
     dependencies:
       isexe: 2.0.0
+
+  /which@5.0.0:
+    resolution: {integrity: sha512-JEdGzHwwkrbWoGOlIHqQ5gtprKGOenpDHpxE9zVR1bWbOtYRyPPHMe9FaP6x61CmNaTThSkb0DAJte5jD+DmzQ==}
+    engines: {node: ^18.17.0 || >=20.5.0}
+    hasBin: true
+    dependencies:
+      isexe: 3.1.1
+    dev: true
 
   /wide-align@1.1.5:
     resolution: {integrity: sha512-eDMORYaPNZ4sQIuuYPDHdQvf4gyCF9rEEV/yPxGfwPkRodwEgiMUUXTx/dex+Me0wxx53S+NgUHaP7y3MGlDmg==}

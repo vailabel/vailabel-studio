@@ -17,10 +17,9 @@
     "dev": "turbo run dev",
     "studio": "turbo run dev --filter=@vailabel/studio  --filter=@vailabel/api",
     "desktop": "turbo run dev --filter=@vailabel/desktop --filter=@vailabel/studio",
-    "publish": "turbo run publish --filter=@vailabel/studio --filter=vailabel-desktop",
+    "release": "turbo run release --filter=@vailabel/studio --filter=vailabel-desktop",
     "typecheck": "turbo run typecheck",
-    "lint": "turbo run lint",
-    "release": "changeset publish"
+    "lint": "turbo run lint"
   },
   "keywords": [],
   "workspaces": [

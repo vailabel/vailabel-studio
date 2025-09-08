@@ -11,7 +11,7 @@
     "dev": "NODE_ENV=development pnpm run pre-dev && tsc && electron . --trace-warnings",
     "test": "jest --coverage",
     "prebuild": "npx electron-icon-maker --input=./assets/icon.png --output=./assets/icon",
-    "release": "tsc && pnpm run prebuild && electron-builder --publish always --config electron-builder.yml --no-git-checks",
+    "release": "tsc && pnpm run prebuild && electron-builder --publish always",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\" --ignore-path .gitignore --ignore-path .prettierignore",
     "typecheck": "tsc --noEmit"
   },
@@ -26,7 +26,7 @@
     "@types/bcrypt": "^6.0.0",
     "@types/semver": "^7.7.0",
     "@vailabel/core": "^2.0.0",
-    "electron": "37.3.1",
+    "electron": "36.2.1",
     "electron-builder": "^26.0.12",
     "typescript": "^5.9.2"
   },
@@ -43,8 +43,5 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/vailabel/vailabel-studio.git"
-  },
-  "build": {
-    "npmPublish": false
   }
 }

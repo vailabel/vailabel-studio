@@ -28,8 +28,8 @@
       "dependsOn": ["^clean"],
       "outputs": []
     },
-    "publish": {
-      "dependsOn": ["^publish"],
+    "release": {
+      "dependsOn": ["^release"],
       "outputs": []
     }
   }
