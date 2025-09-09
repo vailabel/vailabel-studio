@@ -145,50 +145,65 @@ const LabelItem = memo(
   }: {
     label: Label
     onLabelSelect: (label: Label) => void
-  }) => (
-    <motion.div
-      key={label.id}
-      initial={{ opacity: 0, y: 5 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -5 }}
-      transition={{ duration: 0.2 }}
-      className={cn(
-        "rounded-lg border p-3 cursor-pointer flex flex-col gap-1 transition-all duration-200",
-        "dark:border-gray-700 dark:hover:bg-gray-700 border-gray-200 hover:bg-gray-50",
-        "hover:shadow-sm dark:hover:shadow-gray-900/20",
-        label.isAIGenerated
-          ? "ring-2 ring-green-200 dark:ring-green-700 bg-green-50/50 dark:bg-green-900/10"
-          : ""
-      )}
-      onClick={() => onLabelSelect(label)}
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-    >
-      <div className="flex items-center gap-2">
-        <div
-          style={{ backgroundColor: label.color }}
-          className={cn(
-            "h-4 w-4 rounded-full border-2 border-white shadow-sm flex-shrink-0",
-            label.isAIGenerated
-              ? "ring-2 ring-green-400 dark:ring-green-600"
-              : ""
-          )}
-        />
-        <span className="text-sm font-medium truncate flex-1 min-w-0">
-          {label.name}
-        </span>
-        {label.isAIGenerated && (
-          <motion.span
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="ml-2 px-2 py-0.5 rounded bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 text-xs font-semibold flex items-center gap-1 flex-shrink-0"
-          >
-            <span className="text-base leading-none">🤖</span> AI
-          </motion.span>
+  }) => {
+    const handleClick = useCallback(() => {
+      onLabelSelect(label)
+    }, [label, onLabelSelect])
+
+    return (
+      <motion.div
+        key={label.id}
+        initial={{ opacity: 0, y: 5 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -5 }}
+        transition={{ duration: 0.2 }}
+        className={cn(
+          "rounded-lg border p-3 cursor-pointer flex flex-col gap-1 transition-all duration-200",
+          "dark:border-gray-700 dark:hover:bg-gray-700 border-gray-200 hover:bg-gray-50",
+          "hover:shadow-sm dark:hover:shadow-gray-900/20",
+          label.isAIGenerated
+            ? "ring-2 ring-green-200 dark:ring-green-700 bg-green-50/50 dark:bg-green-900/10"
+            : ""
         )}
-      </div>
-    </motion.div>
-  )
+        onClick={handleClick}
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+      >
+        <div className="flex items-center gap-2">
+          <div
+            style={{ backgroundColor: label.color }}
+            className={cn(
+              "h-4 w-4 rounded-full border-2 border-white shadow-sm flex-shrink-0",
+              label.isAIGenerated
+                ? "ring-2 ring-green-400 dark:ring-green-600"
+                : ""
+            )}
+          />
+          <span className="text-sm font-medium truncate flex-1 min-w-0">
+            {label.name}
+          </span>
+          {label.isAIGenerated && (
+            <motion.span
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="ml-2 px-2 py-0.5 rounded bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 text-xs font-semibold flex items-center gap-1 flex-shrink-0"
+            >
+              <span className="text-base leading-none">🤖</span> AI
+            </motion.span>
+          )}
+        </div>
+      </motion.div>
+    )
+  },
+  (prevProps, nextProps) => {
+    // Only re-render if the label has actually changed
+    return (
+      prevProps.label.id === nextProps.label.id &&
+      prevProps.label.name === nextProps.label.name &&
+      prevProps.label.color === nextProps.label.color &&
+      prevProps.label.isAIGenerated === nextProps.label.isAIGenerated
+    )
+  }
 )
 
 LabelItem.displayName = "LabelItem"

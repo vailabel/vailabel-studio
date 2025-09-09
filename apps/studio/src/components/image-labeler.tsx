@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, memo } from "react"
+import React, { useState, useEffect, useMemo, memo, useCallback } from "react"
 import { AnimatePresence } from "framer-motion"
 import {
   ArrowLeft,
@@ -36,6 +36,44 @@ interface ImageLabelerProps {
   imageId?: string
 }
 
+// Memoized Toolbar wrapper to prevent unnecessary re-renders
+const MemoizedToolbar = memo(({ image }: { image: ImageData | null }) => (
+  <Toolbar
+    currentImage={image}
+    onOpenSettings={() => {}}
+    onOpenAISettings={() => {}}
+  />
+))
+
+MemoizedToolbar.displayName = "MemoizedToolbar"
+
+// Memoized Canvas wrapper
+const MemoizedCanvas = memo(
+  ({ image, annotations }: { image: ImageData; annotations: Annotation[] }) => (
+    <Canvas image={image} annotations={annotations} />
+  )
+)
+
+MemoizedCanvas.displayName = "MemoizedCanvas"
+
+// Memoized Empty State component
+const EmptyImageState = memo(() => (
+  <div className="flex h-full items-center justify-center bg-gray-100 dark:bg-gray-900">
+    <p className="text-gray-500 dark:text-gray-400">
+      No images in this project
+    </p>
+  </div>
+))
+
+EmptyImageState.displayName = "EmptyImageState"
+
+// Memoized LabelListPanel wrapper
+const MemoizedLabelListPanel = memo(({ projectId }: { projectId: string }) => (
+  <LabelListPanel onLabelSelect={() => {}} projectId={projectId} />
+))
+
+MemoizedLabelListPanel.displayName = "MemoizedLabelListPanel"
+
 export const ImageLabeler = memo(
   ({ projectId, imageId }: ImageLabelerProps) => {
     const {
@@ -56,37 +94,54 @@ export const ImageLabeler = memo(
     const [prevId, setPrevId] = useState<string | null>(null)
     const [hasNext, setHasNext] = useState(false)
     const [hasPrevious, setHasPrevious] = useState(false)
+
+    // Memoize the image loading effect to prevent unnecessary calls
     useEffect(() => {
+      let isCancelled = false
       ;(async () => {
         if (!projectId || !imageId) return
         const img = await getImageImageById(imageId)
-        if (img) {
-          setImage(img)
-          setAnnotations(img.annotations || [])
-        } else {
-          setImage(null)
-          setAnnotations([])
+        if (!isCancelled) {
+          if (img) {
+            setImage(img)
+            setAnnotations(img.annotations || [])
+          } else {
+            setImage(null)
+            setAnnotations([])
+          }
         }
 
         // update navigation state (next/previous)
         try {
           const next = await getNextImage(projectId, imageId)
-          setNextId(next?.id ?? null)
-          setHasNext(Boolean(next?.hasNext && next?.id))
+          if (!isCancelled) {
+            setNextId(next?.id ?? null)
+            setHasNext(Boolean(next?.hasNext && next?.id))
+          }
         } catch {
-          setNextId(null)
-          setHasNext(false)
+          if (!isCancelled) {
+            setNextId(null)
+            setHasNext(false)
+          }
         }
 
         try {
           const prev = await getPreviousImage(projectId, imageId)
-          setPrevId(prev?.id ?? null)
-          setHasPrevious(Boolean(prev?.hasPrevious && prev?.id))
+          if (!isCancelled) {
+            setPrevId(prev?.id ?? null)
+            setHasPrevious(Boolean(prev?.hasPrevious && prev?.id))
+          }
         } catch {
-          setPrevId(null)
-          setHasPrevious(false)
+          if (!isCancelled) {
+            setPrevId(null)
+            setHasPrevious(false)
+          }
         }
       })()
+
+      return () => {
+        isCancelled = true
+      }
     }, [
       projectId,
       imageId,
@@ -96,25 +151,29 @@ export const ImageLabeler = memo(
       setAnnotations,
     ])
 
-    const handleContextMenu = (e: React.MouseEvent) => {
-      e.preventDefault()
-      if (canvasContainerRef.current) {
-        setContainerRect(canvasContainerRef.current.getBoundingClientRect())
-      }
-      setContextMenuProps({
-        isOpen: true,
-        x: e.clientX,
-        y: e.clientY,
-      })
-      return false
-    }
-    const handleCloseContextMenu = () => {
+    const handleContextMenu = useCallback(
+      (e: React.MouseEvent) => {
+        e.preventDefault()
+        if (canvasContainerRef.current) {
+          setContainerRect(canvasContainerRef.current.getBoundingClientRect())
+        }
+        setContextMenuProps({
+          isOpen: true,
+          x: e.clientX,
+          y: e.clientY,
+        })
+        return false
+      },
+      [canvasContainerRef, setContainerRect, setContextMenuProps]
+    )
+
+    const handleCloseContextMenu = useCallback(() => {
       setContextMenuProps({
         isOpen: false,
         x: 0,
         y: 0,
       })
-    }
+    }, [setContextMenuProps])
 
     // Handle keyboard shortcuts
     useEffect(() => {
@@ -132,7 +191,7 @@ export const ImageLabeler = memo(
       return () => window.removeEventListener("keydown", handleKeyDown)
     }, [hasNext, hasPrevious, nextId, prevId, navigate, projectId])
 
-    const goNextImage = async () => {
+    const goNextImage = useCallback(async () => {
       if (!projectId || !imageId) return
       if (hasNext && nextId) {
         navigate(`/projects/${projectId}/studio/${nextId}`)
@@ -144,9 +203,9 @@ export const ImageLabeler = memo(
       } catch {
         // ignore
       }
-    }
+    }, [projectId, imageId, hasNext, nextId, navigate, getNextImage])
 
-    const goPreviousImage = async () => {
+    const goPreviousImage = useCallback(async () => {
       if (!projectId || !imageId) return
       if (hasPrevious && prevId) {
         navigate(`/projects/${projectId}/studio/${prevId}`)
@@ -158,16 +217,22 @@ export const ImageLabeler = memo(
       } catch {
         // ignore
       }
-    }
+    }, [projectId, imageId, hasPrevious, prevId, navigate, getPreviousImage])
+
+    // Memoize the header props to prevent unnecessary re-renders
+    const headerProps = useMemo(
+      () => ({
+        onNext: goNextImage,
+        onPrevious: goPreviousImage,
+        hasNext,
+        hasPrevious,
+      }),
+      [goNextImage, goPreviousImage, hasNext, hasPrevious]
+    )
 
     return (
       <div className="flex flex-col h-screen w-full overflow-hidden bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-        <Header
-          onNext={goNextImage}
-          onPrevious={goPreviousImage}
-          hasNext={hasNext}
-          hasPrevious={hasPrevious}
-        />
+        <Header {...headerProps} />
         <div className="flex flex-1 overflow-hidden">
           <ResizablePanel
             direction="horizontal"
@@ -177,10 +242,7 @@ export const ImageLabeler = memo(
             maxSize={400}
             className="h-full"
           >
-            <LabelListPanel
-              onLabelSelect={() => {}}
-              projectId={projectId || ""}
-            />
+            {projectId && <MemoizedLabelListPanel projectId={projectId} />}
           </ResizablePanel>
           <div
             role="button"
@@ -189,21 +251,13 @@ export const ImageLabeler = memo(
             onContextMenu={handleContextMenu}
             onClick={handleCloseContextMenu}
           >
-            <Toolbar
-              currentImage={image}
-              onOpenSettings={() => {}}
-              onOpenAISettings={() => {}}
-            />
+            <MemoizedToolbar image={image} />
 
             <div className="relative flex-1 overflow-hidden">
               {image ? (
-                <Canvas image={image} annotations={annotations} />
+                <MemoizedCanvas image={image} annotations={annotations} />
               ) : (
-                <div className="flex h-full items-center justify-center bg-gray-100 dark:bg-gray-900">
-                  <p className="text-gray-500 dark:text-gray-400">
-                    No images in this project
-                  </p>
-                </div>
+                <EmptyImageState />
               )}
 
               <AnimatePresence>

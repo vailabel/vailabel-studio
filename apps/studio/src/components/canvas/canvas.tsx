@@ -16,6 +16,33 @@ interface CanvasProps {
   annotations: Annotation[]
 }
 
+// Memoize the image component to prevent unnecessary re-renders
+const CanvasImage = memo(({ image }: { image: ImageData }) => (
+  <img
+    src={image.data}
+    alt="Canvas"
+    className="pointer-events-none select-none"
+    draggable={false}
+    width={image.width}
+    height={image.height}
+  />
+))
+
+CanvasImage.displayName = "CanvasImage"
+
+// Memoize empty state component
+const EmptyImageState = memo(() => (
+  <div className="flex h-full items-center justify-center">
+    <div className="text-center">
+      <p className="text-lg font-medium text-gray-500 dark:text-gray-300">
+        No image loaded
+      </p>
+    </div>
+  </div>
+))
+
+EmptyImageState.displayName = "EmptyImageState"
+
 export const Canvas = memo(({ image, annotations }: CanvasProps) => {
   const { zoom, panOffset, selectedTool, setCanvasRef, setToolState } =
     useCanvasStore()
@@ -55,6 +82,7 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
       : null
 
   // Create annotations array with preview coordinates for resizing or moving annotation
+  // Optimize this with shallow comparison to prevent unnecessary re-computation
   const displayAnnotations = useMemo(() => {
     if (previewCoordinates && (resizingAnnotationId || movingAnnotationId)) {
       const targetId = resizingAnnotationId || movingAnnotationId
@@ -119,6 +147,7 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
     setCanvasRef(canvasRef)
   }, [setCanvasRef])
 
+  // Memoize cursor styles to prevent object recreation
   const cursorStyles = useMemo(
     () => ({
       box: "cursor-crosshair",
@@ -148,26 +177,32 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
     [panOffset.x, panOffset.y, zoom]
   )
 
+  // Memoize canvas classes to prevent className string recalculation
+  const canvasClassName = useMemo(
+    () => cn("relative h-full w-full overflow-hidden", canvasCursor),
+    [canvasCursor]
+  )
+
+  // Memoize image dimensions for better performance
+  const imageDimensions = useMemo(
+    () => ({
+      width: image?.width,
+      height: image?.height,
+    }),
+    [image?.width, image?.height]
+  )
+
   return (
     <>
       <div className="relative h-full w-full overflow-hidden bg-gray-100 dark:bg-gray-900">
         <div className="relative h-full w-full overflow-hidden">
           {!image ? (
-            <div className="flex h-full items-center justify-center">
-              <div className="text-center">
-                <p className="text-lg font-medium text-gray-500 dark:text-gray-300">
-                  No image loaded
-                </p>
-              </div>
-            </div>
+            <EmptyImageState />
           ) : (
             <div
               data-testid="canvas"
               ref={canvasRef}
-              className={cn(
-                "relative h-full w-full overflow-hidden",
-                canvasCursor
-              )}
+              className={canvasClassName}
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
@@ -175,13 +210,14 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
               role="button"
             >
               <div className="absolute" style={transformStyle}>
-                <img
-                  src={image.data}
-                  alt="Canvas"
-                  className="pointer-events-none select-none"
-                  draggable={false}
-                  width={image.width}
-                  height={image.height}
+                <CanvasImage
+                  image={
+                    {
+                      ...image,
+                      width: imageDimensions.width,
+                      height: imageDimensions.height,
+                    } as ImageData
+                  }
                 />
                 <AnnotationRenderer annotations={displayAnnotations} />
                 {tempAnnotation && (
