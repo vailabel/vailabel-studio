@@ -174,7 +174,7 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
               onDoubleClick={handleDoubleClick}
               role="button"
             >
-              <div className="absolute" style={transformStyle}>
+              <div className="absolute will-change-transform" style={transformStyle}>
                 <img
                   src={image.data}
                   alt="Canvas"

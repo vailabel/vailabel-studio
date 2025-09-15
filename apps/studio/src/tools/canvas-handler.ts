@@ -185,6 +185,7 @@ export function useCanvasHandlers() {
         toolState.isResizing ||
         toolState.isMoving ||
         toolState.isDrawing ||
+        (toolState.polygonPoints && toolState.polygonPoints.length > 0) ||
         isPanning
 
       if (!hasActiveOperation) {
@@ -221,6 +222,7 @@ export function useCanvasHandlers() {
       toolState.isResizing,
       toolState.isMoving,
       toolState.isDrawing,
+      toolState.polygonPoints,
       updateCursorPosition,
     ]
   )

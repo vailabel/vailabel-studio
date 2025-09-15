@@ -113,7 +113,7 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
               role="button"
             >
               <div
-                className="absolute"
+                className="absolute will-change-transform"
                 style={{
                   transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom})`,
                   transformOrigin: "0 0",

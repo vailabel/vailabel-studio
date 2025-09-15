@@ -1,17 +1,21 @@
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 import { useCanvasStore } from "@/stores/canvas-store"
 
 export const PositionCoordinates: React.FC = () => {
   const { zoom, panOffset, cursorPosition, canvasRef } = useCanvasStore()
   const [tooltipPosition, setTooltipPosition] = useState({ left: 0, top: 0 })
 
+  const canvasRect = useMemo(() => {
+    return canvasRef?.current?.getBoundingClientRect()
+  }, [canvasRef?.current])
+
   useEffect(() => {
-    if (!cursorPosition || !canvasRef?.current) return
+    if (!cursorPosition || !canvasRect) return
 
     const tooltipOffset = 10
     const tooltipWidth = 100
     const tooltipHeight = 30
-    const canvasRect = canvasRef.current.getBoundingClientRect()
+    // Use memoized rect to avoid reflow on every mouse move
 
     const calculatedLeft = cursorPosition.x * zoom + panOffset.x + tooltipOffset
     const calculatedTop = cursorPosition.y * zoom + panOffset.y + tooltipOffset
@@ -27,7 +31,7 @@ export const PositionCoordinates: React.FC = () => {
         : Math.max(calculatedTop, tooltipOffset)
 
     setTooltipPosition({ left: adjustedLeft, top: adjustedTop })
-  }, [cursorPosition, zoom, panOffset, canvasRef])
+  }, [cursorPosition, zoom, panOffset, canvasRect])
 
   if (!cursorPosition) return null
 

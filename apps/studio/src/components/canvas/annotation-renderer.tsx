@@ -44,13 +44,9 @@ export const AnnotationRenderer = memo(
           }
           const type = annotation.type as AnnotationType
           const AnnotationComponent = annotationComponents[type] || null
-          return (
-            <div key={key}>
-              {AnnotationComponent && (
-                <AnnotationComponent annotation={annotation as Annotation} />
-              )}
-            </div>
-          )
+          return AnnotationComponent ? (
+            <AnnotationComponent key={key} annotation={annotation as Annotation} />
+          ) : null
         })}
       </>
     )
