@@ -10,9 +10,10 @@ import { useCanvasZoom, useCanvasPan, useCanvasTool } from "@/contexts/canvas-co
 interface CanvasProps {
   image: ImageData
   annotations: Annotation[]
+  onRefreshAnnotations?: () => Promise<void>
 }
 
-export const Canvas = memo(({ image, annotations }: CanvasProps) => {
+export const Canvas = memo(({ image, annotations, onRefreshAnnotations }: CanvasProps) => {
   const { zoom } = useCanvasZoom()
   const { panOffset } = useCanvasPan()
   const { selectedTool } = useCanvasTool()
@@ -24,8 +25,18 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
     handleMouseUp,
     handleDoubleClick,
   } = useCanvasHandlers(canvasRef, annotations, {
-    updateAnnotation: async () => {}, // TODO: Add proper store methods
-    deleteAnnotation: async () => {}
+    updateAnnotation: async (id: string, updates: Partial<Annotation>) => {
+      // TODO: Add proper store methods
+      if (onRefreshAnnotations) {
+        await onRefreshAnnotations()
+      }
+    },
+    deleteAnnotation: async (id: string) => {
+      // TODO: Add proper store methods
+      if (onRefreshAnnotations) {
+        await onRefreshAnnotations()
+      }
+    }
   }, { id: image.id })
 
   // Simplified canvas component - annotation creation handled elsewhere

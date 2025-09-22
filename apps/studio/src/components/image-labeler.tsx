@@ -47,8 +47,12 @@ MemoizedToolbar.displayName = "MemoizedToolbar"
 
 // Memoized Canvas wrapper
 const MemoizedCanvas = memo(
-  ({ image, annotations }: { image: ImageData; annotations: Annotation[] }) => (
-    <Canvas image={image} annotations={annotations} />
+  ({ image, annotations, onRefreshAnnotations }: { 
+    image: ImageData; 
+    annotations: Annotation[];
+    onRefreshAnnotations: () => Promise<void>;
+  }) => (
+    <Canvas image={image} annotations={annotations} onRefreshAnnotations={onRefreshAnnotations} />
   )
 )
 
@@ -81,6 +85,17 @@ export const ImageLabeler = memo(
     const [image, setImage] = useState<ImageData | null>(null)
     const [annotations, setAnnotations] = useState<Annotation[]>([])
     const navigate = useNavigate()
+
+    // Function to refresh annotations for the current image
+    const refreshAnnotations = useCallback(async () => {
+      if (!imageId) return
+      try {
+        const updatedAnnotations = await services.getAnnotationService().getAnnotationsByImageId(imageId)
+        setAnnotations(updatedAnnotations)
+      } catch (error) {
+        console.error("Failed to refresh annotations:", error)
+      }
+    }, [imageId, services])
 
     const [nextId, setNextId] = useState<string | null>(null)
     const [prevId, setPrevId] = useState<string | null>(null)
@@ -248,7 +263,7 @@ export const ImageLabeler = memo(
 
             <div className="relative flex-1 overflow-hidden">
               {image ? (
-                <MemoizedCanvas image={image} annotations={annotations} />
+                <MemoizedCanvas image={image} annotations={annotations} onRefreshAnnotations={refreshAnnotations} />
               ) : (
                 <EmptyImageState />
               )}

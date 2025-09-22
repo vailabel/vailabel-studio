@@ -315,14 +315,6 @@ const AnnotationTools = memo(
                   onClick={() => setSelectedTool(tool.id)}
                 >
                   <tool.icon className="h-4 w-4" />
-                  {selectedTool === tool.id && (
-                    <div
-                      className={cn(
-                        "absolute inset-0 rounded-md border-2 transition-all duration-200",
-                        "border-primary"
-                      )}
-                    />
-                  )}
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom">
