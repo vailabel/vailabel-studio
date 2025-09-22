@@ -63,11 +63,24 @@ import {
   SaveAnnotationCommand,
   UpdateAnnotationCommand,
 } from "./annotations"
+import {
+  LoginCommand,
+  RegisterCommand,
+  GetCurrentUserQuery,
+  UpdateProfileCommand,
+  ChangePasswordCommand,
+  LogoutCommand,
+  ValidateTokenQuery,
+  TestAuthHandler,
+} from "./auth"
 
 export function registerHandlers(handlers: IpcHandler[]) {
+  console.log(`Registering ${handlers.length} IPC handlers...`)
   for (const handler of handlers) {
+    console.log(`Registering handler: ${handler.channel}`)
     ipcMain.handle(handler.channel, handler.handle.bind(handler))
   }
+  console.log("All IPC handlers registered successfully")
 }
 
 const handlers: IpcHandler[] = []
@@ -141,5 +154,17 @@ handlers.push(new DeleteAnnotationCommand())
 handlers.push(new SaveAnnotationCommand())
 handlers.push(new UpdateAnnotationCommand())
 handlers.push(new FetchAnnotationByImageIdQuery())
+
+// Register auth handlers
+console.log("Registering auth handlers...")
+handlers.push(new TestAuthHandler())
+handlers.push(new LoginCommand())
+handlers.push(new RegisterCommand())
+handlers.push(new GetCurrentUserQuery())
+handlers.push(new UpdateProfileCommand())
+handlers.push(new ChangePasswordCommand())
+handlers.push(new LogoutCommand())
+handlers.push(new ValidateTokenQuery())
+console.log("Auth handlers registered successfully")
 
 registerHandlers(handlers)

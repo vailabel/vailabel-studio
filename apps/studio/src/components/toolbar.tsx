@@ -1,5 +1,4 @@
 import React from "react"
-import { motion } from "framer-motion"
 import {
   Square,
   OctagonIcon as Polygon,
@@ -26,9 +25,8 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { AIDetectionButton } from "@/components/ai-detection-button"
 import type { ImageData } from "@vailabel/core"
-import { useCanvasStore } from "@/stores/canvas-store"
-import { useAnnotationsStore } from "@/stores/annotation-store"
-import { memo } from "react"
+import { useCanvasTool, useCanvasZoom, useCanvasPan, useCanvasState } from "@/contexts/canvas-context"
+import { memo, useCallback } from "react"
 
 interface ToolbarProps {
   currentImage: ImageData | null
@@ -56,18 +54,18 @@ interface AdditionalTool {
 
 export const Toolbar = memo(
   ({ currentImage, onOpenAISettings }: ToolbarProps) => {
-    const {
-      selectedTool,
-      setSelectedTool,
-      resetView,
-      setZoom,
-      zoom,
-      setShowCrosshair,
-      setShowCoordinates,
-      showCrosshair,
-      showCoordinates,
-    } = useCanvasStore()
-    const { undo, redo, canUndo, canRedo } = useAnnotationsStore()
+  const { selectedTool, setSelectedTool } = useCanvasTool()
+  const { zoom, setZoom } = useCanvasZoom()
+  const { resetView } = useCanvasPan()
+  const { showCrosshair, showCoordinates } = useCanvasState(state => ({
+    showCrosshair: state.showCrosshair,
+    showCoordinates: state.showCoordinates
+  }))
+  // Note: Undo/Redo functionality would need to be implemented in the service layer
+  const undo = useCallback(() => console.log("Undo not implemented yet"), [])
+  const redo = useCallback(() => console.log("Redo not implemented yet"), [])
+  const canUndo = false
+  const canRedo = false
     const selectedTools = React.useMemo(
       (): Tool[] => [
         {
@@ -140,7 +138,7 @@ export const Toolbar = memo(
           shortcut: "C",
           active: showCrosshair,
           action: () => {
-            setShowCrosshair(!showCrosshair)
+            // TODO: Implement crosshair toggle in Context
           },
         },
         {
@@ -150,15 +148,15 @@ export const Toolbar = memo(
           shortcut: "Alt+Shift+C",
           active: showCoordinates,
           action: () => {
-            setShowCoordinates(!showCoordinates)
+            // TODO: Implement coordinates toggle in Context
           },
         },
       ],
-      [showCrosshair, showCoordinates, setShowCrosshair, setShowCoordinates]
+      [showCrosshair, showCoordinates]
     )
 
     return (
-      <div className="flex items-center justify-between border-b p-1 dark:bg-gray-800 dark:border-gray-700 bg-white border-gray-200">
+      <div className="flex items-center justify-between border-b p-1 bg-background border-border">
         <AnnotationTools
           selectedTool={selectedTool}
           setSelectedTool={setSelectedTool}
@@ -180,7 +178,7 @@ export const Toolbar = memo(
               </TooltipTrigger>
               <TooltipContent side="bottom">Zoom Out</TooltipContent>
             </Tooltip>
-            <p className="text-sm text-gray-700 dark:text-gray-200">
+            <p className="text-sm text-foreground">
               {(zoom * 100).toFixed(0)}%
             </p>
             <Tooltip>
@@ -216,7 +214,7 @@ export const Toolbar = memo(
 
           <Separator
             orientation="vertical"
-            className="mx-2 h-6 dark:bg-gray-700"
+            className="mx-2 h-6"
           />
           <TooltipProvider>
             {additionalTool.map((tool) => (
@@ -228,8 +226,8 @@ export const Toolbar = memo(
                     className={cn(
                       "h-8 w-8",
                       tool.active
-                        ? "bg-blue-50 text-blue-500 dark:bg-blue-900 dark:text-blue-300 border-2 border-blue-500 dark:border-blue-400 shadow"
-                        : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                        ? "bg-primary/10 text-primary border-2 border-primary"
+                        : "hover:bg-muted"
                     )}
                     onClick={tool.action}
                     aria-pressed={tool.active}
@@ -238,7 +236,7 @@ export const Toolbar = memo(
                       className={cn("h-4 w-4", tool.active ? "scale-110" : "")}
                     />
                     {tool.active && (
-                      <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-blue-500 dark:bg-blue-300 animate-pulse" />
+                      <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-primary animate-pulse" />
                     )}
                   </Button>
                 </TooltipTrigger>
@@ -248,7 +246,7 @@ export const Toolbar = memo(
                     <kbd
                       className={cn(
                         "ml-2 rounded border px-1.5 text-xs",
-                        "border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-800"
+                        "border-border bg-muted"
                       )}
                     >
                       {tool.shortcut}
@@ -261,7 +259,7 @@ export const Toolbar = memo(
 
           <Separator
             orientation="vertical"
-            className="mx-2 h-6 dark:bg-gray-700"
+            className="mx-2 h-6"
           />
           <AIDetectionButton image={currentImage} />
 
@@ -310,26 +308,19 @@ const AnnotationTools = memo(
                   variant="ghost"
                   size="sm"
                   className={cn(
-                    "relative h-8 w-8",
+                    "relative h-8 w-8 transition-all duration-200",
                     selectedTool === tool.id &&
-                      "bg-blue-50 text-blue-500 dark:bg-blue-900 dark:text-blue-300"
+                      "bg-primary/10 text-primary border-2 border-primary"
                   )}
                   onClick={() => setSelectedTool(tool.id)}
                 >
                   <tool.icon className="h-4 w-4" />
                   {selectedTool === tool.id && (
-                    <motion.div
-                      layoutId="active-tool"
+                    <div
                       className={cn(
-                        "absolute inset-0 rounded-md border-2",
-                        "border-blue-500 dark:border-blue-400"
+                        "absolute inset-0 rounded-md border-2 transition-all duration-200",
+                        "border-primary"
                       )}
-                      initial={false}
-                      transition={{
-                        type: "spring",
-                        bounce: 0.2,
-                        duration: 0.6,
-                      }}
                     />
                   )}
                 </Button>
@@ -340,7 +331,7 @@ const AnnotationTools = memo(
                   <kbd
                     className={cn(
                       "ml-2 rounded border px-1.5 text-xs",
-                      "border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-800"
+                      "border-border bg-muted"
                     )}
                   >
                     {tool.shortcut}
@@ -351,7 +342,7 @@ const AnnotationTools = memo(
           ))}
           <Separator
             orientation="vertical"
-            className="mx-2 h-6 dark:bg-gray-700"
+            className="mx-2 h-6"
           />
           {clickableTools.map((tool) => (
             <Tooltip key={tool.id}>
@@ -361,7 +352,7 @@ const AnnotationTools = memo(
                   size="sm"
                   disabled={!tool.condition}
                   className={cn(
-                    "relative h-8 w-8 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    "relative h-8 w-8 hover:bg-muted"
                   )}
                   onClick={() => tool.action && tool.action()}
                 >
@@ -374,7 +365,7 @@ const AnnotationTools = memo(
                   <kbd
                     className={cn(
                       "ml-2 rounded border px-1.5 text-xs",
-                      "border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-800"
+                      "border-border bg-muted"
                     )}
                   >
                     {tool.shortcut}

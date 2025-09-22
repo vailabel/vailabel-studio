@@ -8,12 +8,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { useToast } from "@/hooks/use-toast"
-import type { Annotation, ImageData } from "@vailabel/core"
-import { useSettingsStore } from "@/stores/use-settings-store"
-import { useLabelStore } from "@/stores/use-label-store"
+import type { Annotation, ImageData, Label } from "@vailabel/core"
 import { getRandomColor } from "@/lib/utils"
-import { useAnnotationsStore } from "@/stores/annotation-store"
-import { useProjectStore } from "@/stores/use-project-store"
+import { useServices } from "@/services/ServiceProvider"
 
 interface AIDetectionButtonProps {
   image: ImageData | null
@@ -26,10 +23,7 @@ export const AIDetectionButton = ({
 }: AIDetectionButtonProps) => {
   const { toast } = useToast()
   const [isDetecting, setIsDetecting] = useState(false)
-  const { getSetting } = useSettingsStore()
-  const { getOrCreateLabel } = useLabelStore()
-  const { createAnnotation } = useAnnotationsStore()
-  const { currentProject } = useProjectStore()
+  const services = useServices()
   const handleDetection = async () => {
     if (!image) {
       toast({
@@ -41,15 +35,15 @@ export const AIDetectionButton = ({
     }
     setIsDetecting(true)
     try {
-      const modelPath = await getSetting("modelPath")
-      const pythonPath = await getSetting("pythonPath")
+      const modelPathSetting = await services.getSettingsService().getSetting("modelPath")
+      const pythonPathSetting = await services.getSettingsService().getSetting("pythonPath")
       const detections = await window.ipc.invoke("command:runYolo", {
-        modelPath: modelPath?.value,
+        modelPath: modelPathSetting?.value,
         imagePath: image.data,
-        pythonPath: pythonPath?.value,
+        pythonPath: pythonPathSetting?.value,
       })
       // Render detections as annotations
-      if (Array.isArray(detections) && currentProject) {
+      if (Array.isArray(detections) && image.projectId) {
         for (const detection of detections) {
           const { box, name: className } = detection
           if (!box || typeof box !== "object") continue
@@ -57,29 +51,46 @@ export const AIDetectionButton = ({
           const y1 = box.y1
           const x2 = box.x2
           const y2 = box.y2
-          // First create or get label
-          const label = await getOrCreateLabel(
-            className,
-            getRandomColor(),
-            currentProject?.id
-          )
-          const annotation: Annotation = {
-            id: crypto.randomUUID(),
-            name: className,
-            type: "box",
-            coordinates: [
-              { x: x1, y: y1 },
-              { x: x2, y: y2 },
-            ],
-            imageId: image.id,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            label: label,
-            labelId: label.id,
-            color: label.color,
-            isAIGenerated: true,
+          
+          try {
+            // Get or create label
+            const existingLabels = await services.getLabelService().getLabelsByProjectId(image.projectId)
+            let label = existingLabels.find((l: Label) => l.name === className)
+            
+            if (!label) {
+              // Create new label
+              const newLabel = {
+                id: crypto.randomUUID(),
+                name: className,
+                color: getRandomColor(),
+                projectId: image.projectId,
+                createdAt: new Date(),
+                updatedAt: new Date()
+              }
+              await services.getLabelService().createLabel(newLabel)
+              label = newLabel
+            }
+            
+            const annotation: Annotation = {
+              id: crypto.randomUUID(),
+              name: className,
+              type: "box",
+              coordinates: [
+                { x: x1, y: y1 },
+                { x: x2, y: y2 },
+              ],
+              imageId: image.id,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              label: label,
+              labelId: label.id,
+              color: label.color,
+              isAIGenerated: true,
+            }
+            await services.getAnnotationService().createAnnotation(annotation)
+          } catch (error) {
+            console.error("Failed to create annotation for detection:", error)
           }
-          await createAnnotation(annotation)
         }
       }
     } catch (error) {

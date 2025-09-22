@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useState, useCallback } from "react"
 import { format } from "date-fns"
 import {
   Search,
@@ -48,7 +48,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
-import { useUserStore } from "@/stores/use-user-store"
+import { useServices } from "@/services/ServiceProvider"
 import { useToast } from "@/hooks/use-toast"
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog"
 import { User } from "@vailabel/core"
@@ -90,22 +90,91 @@ export default function UserPage() {
   const confirm = useConfirmDialog()
 
   // Store
-  const {
-    users,
-    loading,
-    error,
-    getUsers,
-    createUser,
-    updateUser,
-    deleteUser,
-    loadSampleUsers,
-  } = useUserStore()
+  const services = useServices()
 
   // Local state
+  const [users, setUsers] = useState<User[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [roleFilter, setRoleFilter] = useState<string>("all")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
+  // Functions
+  const getUsers = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const fetchedUsers = await services.getUserService().getUsers()
+      setUsers(fetchedUsers)
+    } catch (err) {
+      setError("Failed to fetch users")
+      console.error("Failed to fetch users:", err)
+    } finally {
+      setLoading(false)
+    }
+  }, [services])
+
+  const createUser = async (userData: UserFormData) => {
+    try {
+      const newUser: User = {
+        id: crypto.randomUUID(),
+        name: userData.name,
+        email: userData.email,
+        role: userData.role as "admin" | "manager" | "reviewer" | "annotator",
+        password: userData.password || "",
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+      await services.getUserService().createUser(newUser)
+      await getUsers() // Refresh the list
+      toast({
+        title: "Success",
+        description: "User created successfully",
+      })
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to create user",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const updateUser = async (userId: string, updates: Partial<User>) => {
+    try {
+      await services.getUserService().updateUser(userId, updates)
+      await getUsers() // Refresh the list
+      toast({
+        title: "Success",
+        description: "User updated successfully",
+      })
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to update user",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const deleteUser = async (userId: string) => {
+    try {
+      await services.getUserService().deleteUser(userId)
+      await getUsers() // Refresh the list
+      toast({
+        title: "Success",
+        description: "User deleted successfully",
+      })
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to delete user",
+        variant: "destructive",
+      })
+    }
+  }
+
   const [formData, setFormData] = useState<UserFormData>({
     name: "",
     email: "",
@@ -115,19 +184,8 @@ export default function UserPage() {
 
   // Load users on component mount
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const fetchedUsers = await getUsers()
-        if (fetchedUsers.length === 0) {
-          loadSampleUsers()
-        }
-      } catch {
-        console.error("Failed to load users")
-        loadSampleUsers()
-      }
-    }
-    loadData()
-  }, [getUsers, loadSampleUsers])
+    getUsers()
+  }, [getUsers])
 
   // Filter users based on search and role
   const filteredUsers = React.useMemo(() => {

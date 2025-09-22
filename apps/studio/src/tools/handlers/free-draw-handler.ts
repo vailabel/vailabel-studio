@@ -1,5 +1,5 @@
 import type { Point, Annotation } from "@vailabel/core"
-import { ToolHandlerContext } from "@/tools/canvas-handler"
+import { ToolHandlerContext } from "../../hooks/use-canvas-handlers-context"
 import { ToolHandler } from "../tool-handlers"
 
 export type FreeDrawHandlerUIState = {
@@ -32,7 +32,7 @@ export class FreeDrawHandler implements ToolHandler {
 
   onMouseMove(_e: React.MouseEvent, point: Point) {
     const { toolState } = this.context
-    if (!toolState.isDrawing || !toolState.freeDrawPoints) return
+    if (!(toolState.isDrawing as boolean) || !(toolState.freeDrawPoints as Point[])) return
 
     const now = performance.now()
 
@@ -42,7 +42,7 @@ export class FreeDrawHandler implements ToolHandler {
     }
 
     const lastPoint =
-      toolState.freeDrawPoints[toolState.freeDrawPoints.length - 1]
+      (toolState.freeDrawPoints as Point[])[(toolState.freeDrawPoints as Point[]).length - 1]
 
     // Optimize distance calculation using squared distance to avoid Math.sqrt
     const dx = point.x - lastPoint.x
@@ -53,11 +53,11 @@ export class FreeDrawHandler implements ToolHandler {
     // Using squared distance: 1.5^2 = 2.25
     if (distanceSquared > 2.25) {
       this.lastUpdateTime = now
-      const newPoints = [...toolState.freeDrawPoints, point]
+      const newPoints = [...(toolState.freeDrawPoints as Point[]), point]
       this.context.setToolState({
         freeDrawPoints: newPoints,
         tempAnnotation: {
-          ...toolState.tempAnnotation,
+          ...(toolState.tempAnnotation as Partial<Annotation>),
           coordinates: newPoints,
         },
       })
@@ -65,15 +65,15 @@ export class FreeDrawHandler implements ToolHandler {
   }
   onMouseUp() {
     const { toolState } = this.context
-    if (!toolState.isDrawing || !toolState.freeDrawPoints) return
+    if (!(toolState.isDrawing as boolean) || !(toolState.freeDrawPoints as Point[])) return
 
     // Require at least 2 points for a valid free draw annotation
-    if (toolState.freeDrawPoints.length >= 2) {
+    if ((toolState.freeDrawPoints as Point[]).length >= 2) {
       this.context.setToolState({
         showLabelInput: true,
         tempAnnotation: {
-          ...toolState.tempAnnotation,
-          coordinates: toolState.freeDrawPoints,
+          ...(toolState.tempAnnotation as Partial<Annotation>),
+          coordinates: toolState.freeDrawPoints as Point[],
         },
         isDrawing: false,
       })
@@ -89,7 +89,7 @@ export class FreeDrawHandler implements ToolHandler {
 
   // Handle escape key to cancel current drawing
   onKeyDown(e: KeyboardEvent) {
-    if (e.key === "Escape" && this.context.toolState.isDrawing) {
+    if (e.key === "Escape" && (this.context.toolState.isDrawing as boolean)) {
       this.context.setToolState({
         isDrawing: false,
         freeDrawPoints: [],
@@ -100,9 +100,9 @@ export class FreeDrawHandler implements ToolHandler {
 
   getUIState(): FreeDrawHandlerUIState {
     return {
-      isDrawing: this.context.toolState.isDrawing ?? false,
-      tempAnnotation: this.context.toolState.tempAnnotation || undefined,
-      showLabelInput: this.context.toolState.showLabelInput ?? false,
+      isDrawing: (this.context.toolState.isDrawing as boolean) ?? false,
+      tempAnnotation: (this.context.toolState.tempAnnotation as Partial<Annotation>) || undefined,
+      showLabelInput: (this.context.toolState.showLabelInput as boolean) ?? false,
     }
   }
 }

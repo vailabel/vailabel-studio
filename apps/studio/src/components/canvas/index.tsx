@@ -1,14 +1,11 @@
-import { memo, useCallback, useEffect, useRef } from "react"
+import { memo, useRef } from "react"
 import { cn } from "@/lib/utils"
 import { AnnotationRenderer } from "@/components/canvas/annotation-renderer"
 import { PositionCoordinates } from "@/components/canvas/position-coordinates"
-import { useCanvasHandlers } from "@/hooks/use-canvas-handlers"
+import { useCanvasHandlers } from "@/hooks/use-canvas-handlers-context"
 import { type Annotation, type ImageData } from "@vailabel/core"
-import { Crosshair } from "@/components/canvas/crosshair"
-import { CreateAnnotation } from "@/components/canvas/create-annotation"
-import { useAnnotationsStore } from "@/stores/annotation-store"
-import { useCanvasStore } from "@/stores/canvas-store"
-import { useLabelStore } from "@/stores/use-label-store"
+import { Crosshair } from "@/components/canvas/crosshair-context"
+import { useCanvasZoom, useCanvasPan, useCanvasTool } from "@/contexts/canvas-context"
 
 interface CanvasProps {
   image: ImageData
@@ -16,9 +13,9 @@ interface CanvasProps {
 }
 
 export const Canvas = memo(({ image, annotations }: CanvasProps) => {
-  const { zoom, panOffset, selectedTool, setCanvasRef } = useCanvasStore()
-  const { createAnnotation } = useAnnotationsStore()
-  const { getOrCreateLabel, labels } = useLabelStore()
+  const { zoom } = useCanvasZoom()
+  const { panOffset } = useCanvasPan()
+  const { selectedTool } = useCanvasTool()
 
   const canvasRef = useRef<HTMLDivElement | null>(null)
   const {
@@ -26,53 +23,14 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
     handleMouseMove,
     handleMouseUp,
     handleDoubleClick,
-    tempAnnotation,
-    showLabelInput,
-    setShowLabelInput,
-    setTempAnnotation,
-  } = useCanvasHandlers()
+  } = useCanvasHandlers(canvasRef, annotations, {
+    updateAnnotation: async () => {}, // TODO: Add proper store methods
+    deleteAnnotation: async () => {}
+  }, { id: image.id })
 
-  const handleCreateAnnotation = useCallback(
-    async (name: string, color: string) => {
-      if (!tempAnnotation) return
-      if (!image.projectId) return
-      const label = await getOrCreateLabel(name, color, image.projectId)
-      if (!label) return
-      const newAnnotation: Annotation = {
-        label: label,
-        labelId: label.id,
-        color: label.color ?? color,
-        imageId: image.id,
-        id: crypto.randomUUID(),
-        name: name,
-        type: tempAnnotation?.type ?? "box",
-        coordinates: tempAnnotation?.coordinates ?? [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }
-      createAnnotation(newAnnotation)
-      setShowLabelInput(false)
-      setTempAnnotation(null)
-    },
-    [
-      tempAnnotation,
-      image.projectId,
-      image.id,
-      getOrCreateLabel,
-      createAnnotation,
-      setShowLabelInput,
-      setTempAnnotation,
-    ]
-  )
+  // Simplified canvas component - annotation creation handled elsewhere
 
-  const handleCloseCreateAnnotationModal = useCallback(() => {
-    setShowLabelInput(false)
-    setTempAnnotation(null)
-  }, [setShowLabelInput, setTempAnnotation])
-
-  useEffect(() => {
-    setCanvasRef(canvasRef)
-  }, [setCanvasRef])
+  // Canvas ref is now passed directly to handlers
   const cursorStyles = {
     box: "cursor-crosshair",
     polygon: "cursor-crosshair",
@@ -80,12 +38,6 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
     move: "cursor-move",
     delete: "cursor-pointer",
   }
-
-  console.log("Canvas rendered with image:", image.id)
-  console.log("Annotations:", annotations.length)
-  console.log("Selected tool:", selectedTool)
-  console.log("Temp annotation:", tempAnnotation)
-
   return (
     <>
       <div className="relative h-full w-full overflow-hidden bg-gray-100 dark:bg-gray-900">
@@ -126,22 +78,23 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
                   draggable={false}
                   width={image.width}
                   height={image.height}
+                  style={{
+                    width: `${image.width}px`,
+                    height: `${image.height}px`,
+                    maxWidth: 'none',
+                    maxHeight: 'none',
+                    objectFit: 'none'
+                  }}
                 />
                 <AnnotationRenderer annotations={annotations} /> 
               </div>
 
-              <Crosshair />
+              <Crosshair canvasRef={canvasRef} />
               <PositionCoordinates />
             </div>
           )}
         </div>
       </div>
-      <CreateAnnotation
-        labels={labels}
-        onSubmit={handleCreateAnnotation}
-        isOpen={showLabelInput}
-        onClose={handleCloseCreateAnnotationModal}
-      />
     </>
   )
 })

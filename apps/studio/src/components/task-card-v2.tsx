@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Separator } from "@/components/ui/separator"
 import { TaskStatusBadge } from "@/components/task-status-badge"
 import { TaskPriorityBadge } from "@/components/task-priority-badge"
 import {
@@ -14,7 +15,17 @@ import {
   Trash2,
   CheckCircle,
   Play,
+  MoreVertical,
+  Eye,
+  Copy,
 } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu"
 import { Task } from "@vailabel/core"
 import { cn } from "@/lib/utils"
 
@@ -52,15 +63,21 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   return (
     <Card
       className={cn(
-        "transition-all duration-200 hover:shadow-md border-l-4",
-        priorityColor
+        "transition-all duration-300 hover:shadow-xl border-l-4 group hover:scale-105 cursor-pointer",
+        priorityColor,
+        "bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-lg"
       )}
     >
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <CardTitle className="text-lg font-semibold truncate pr-2">
-            {task.name}
-          </CardTitle>
+      <CardHeader className="pb-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <CardTitle className="text-lg font-semibold truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+              {task.name}
+            </CardTitle>
+            <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed mt-2">
+              {task.description}
+            </p>
+          </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <TaskPriorityBadge dueDate={task.dueDate} />
             <TaskStatusBadge status={task.status} />
@@ -69,19 +86,16 @@ export const TaskCard: React.FC<TaskCardProps> = ({
       </CardHeader>
 
       <CardContent className="pt-0 space-y-4">
-        <p className="text-sm text-muted-foreground line-clamp-2">
-          {task.description}
-        </p>
-
         {/* Task Details */}
-        <div className="space-y-2">
+        <div className="space-y-3">
           {task.assignedTo && (
-            <div className="flex items-center gap-2 text-sm">
-              <User className="w-4 h-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Assigned to:</span>
-              <div className="flex items-center gap-2">
-                <Avatar className="w-6 h-6">
-                  <AvatarFallback className="text-xs">
+            <div className="flex items-center gap-3 text-sm">
+              <div className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900">
+                <User className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <Avatar className="w-6 h-6 ring-2 ring-blue-200 dark:ring-blue-800">
+                  <AvatarFallback className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300">
                     {task.assignedTo
                       .split(" ")
                       .map((n) => n[0])
@@ -89,67 +103,77 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                       .toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <span className="font-medium">{task.assignedTo}</span>
+                <span className="font-medium truncate">{task.assignedTo}</span>
               </div>
             </div>
           )}
 
           {task.dueDate && (
-            <div className="flex items-center gap-2 text-sm">
-              <Calendar className="w-4 h-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Due:</span>
-              <span
-                className={cn(
-                  "font-medium",
-                  isOverdue && "text-red-600 dark:text-red-400"
-                )}
-              >
-                {format(new Date(task.dueDate), "MMM dd, yyyy")}
-                {isOverdue && " (Overdue)"}
-              </span>
+            <div className="flex items-center gap-3 text-sm">
+              <div className="p-1.5 rounded-lg bg-orange-100 dark:bg-orange-900">
+                <Calendar className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="text-muted-foreground">Due: </span>
+                <span
+                  className={cn(
+                    "font-medium",
+                    isOverdue && "text-red-600 dark:text-red-400 font-semibold"
+                  )}
+                >
+                  {format(new Date(task.dueDate), "MMM dd, yyyy")}
+                  {isOverdue && " (Overdue)"}
+                </span>
+              </div>
             </div>
           )}
 
-          <div className="flex items-center gap-2 text-sm">
-            <Clock className="w-4 h-4 text-muted-foreground" />
-            <span className="text-muted-foreground">Created:</span>
-            <span>
-              {task.createdAt
-                ? format(new Date(task.createdAt), "MMM dd, yyyy")
-                : "Unknown"}
-            </span>
+          <div className="flex items-center gap-3 text-sm">
+            <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700">
+              <Clock className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <span className="text-muted-foreground">Created: </span>
+              <span>
+                {task.createdAt
+                  ? format(new Date(task.createdAt), "MMM dd, yyyy")
+                  : "Unknown"}
+              </span>
+            </div>
           </div>
         </div>
 
         {/* Labels */}
         {task.labels && task.labels.length > 0 && (
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-2">
             {task.labels.slice(0, 3).map((label, index) => (
               <Badge
                 key={index}
                 variant="outline"
-                className="text-xs"
+                className="text-xs px-2 py-1 rounded-full border-2 hover:scale-105 transition-transform"
                 style={{ borderColor: label.color, color: label.color }}
               >
                 {label.name}
               </Badge>
             ))}
             {task.labels.length > 3 && (
-              <Badge variant="outline" className="text-xs">
+              <Badge variant="outline" className="text-xs px-2 py-1 rounded-full">
                 +{task.labels.length - 3} more
               </Badge>
             )}
           </div>
         )}
 
+        <Separator />
+
         {/* Actions */}
-        <div className="flex items-center justify-between pt-2 border-t">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-1">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => onEdit(task)}
-              className="h-8 px-2"
+              className="h-8 px-2 hover:bg-blue-100 dark:hover:bg-blue-900 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
             >
               <Edit className="w-4 h-4" />
             </Button>
@@ -157,18 +181,45 @@ export const TaskCard: React.FC<TaskCardProps> = ({
               variant="ghost"
               size="sm"
               onClick={() => onAssign(task.id)}
-              className="h-8 px-2"
+              className="h-8 px-2 hover:bg-green-100 dark:hover:bg-green-900 hover:text-green-600 dark:hover:text-green-400 transition-colors"
             >
               <User className="w-4 h-4" />
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onDelete(task.id)}
-              className="h-8 px-2 text-red-500 hover:text-red-600"
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  <MoreVertical className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={() => onEdit(task)}>
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit Task
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    navigator.clipboard.writeText(
+                      `Task: ${task.name}\nDescription: ${task.description}`
+                    )
+                  }}
+                >
+                  <Copy className="w-4 h-4 mr-2" />
+                  Copy Details
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => onDelete(task.id)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Task
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           <div className="flex items-center gap-1">
@@ -177,7 +228,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={() => onStatusChange(task.id, "completed")}
-                className="h-8 text-xs"
+                className="h-8 text-xs hover:bg-green-50 dark:hover:bg-green-900 hover:border-green-300 dark:hover:border-green-700 hover:text-green-700 dark:hover:text-green-300 transition-colors"
               >
                 <CheckCircle className="w-3 h-3 mr-1" />
                 Complete
@@ -188,7 +239,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={() => onStatusChange(task.id, "in-progress")}
-                className="h-8 text-xs"
+                className="h-8 text-xs hover:bg-blue-50 dark:hover:bg-blue-900 hover:border-blue-300 dark:hover:border-blue-700 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
               >
                 <Play className="w-3 h-3 mr-1" />
                 Start

@@ -3,11 +3,18 @@
 import type React from "react"
 
 import { useState, useRef } from "react"
-import { motion } from "framer-motion"
 import { X, ImageIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 interface ImageUploaderProps {
   onUpload: (imageUrl: string, imageName: string) => void
@@ -68,45 +75,32 @@ export const ImageUploader = ({ onUpload, onClose }: ImageUploaderProps) => {
   }
 
   return (
-    <motion.div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={onClose}
-    >
-      <motion.div
-        className="w-full max-w-lg rounded-lg bg-white p-6 shadow-xl"
-        initial={{ scale: 0.9, y: 20 }}
-        animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.9, y: 20 }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-medium">Upload Image</h3>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="h-4 w-4" />
-            <span className="sr-only">Close</span>
-          </Button>
-        </div>
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Upload Image</DialogTitle>
+          <DialogDescription>
+            Select an image file to upload
+          </DialogDescription>
+        </DialogHeader>
 
         <div className="mt-4">
           {!preview ? (
             <div
               role="button"
-              className={`flex h-64 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed ${
-                isDragging ? "border-blue-500 bg-blue-50" : "border-gray-300"
+              className={`flex h-64 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors ${
+                isDragging ? "border-primary bg-primary/10" : "border-muted-foreground/25"
               }`}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
             >
-              <ImageIcon className="mb-2 h-10 w-10 text-gray-400" />
-              <p className="mb-2 text-sm font-medium text-gray-700">
+              <ImageIcon className="mb-2 h-10 w-10 text-muted-foreground" />
+              <p className="mb-2 text-sm font-medium">
                 Drag and drop an image, or click to browse
               </p>
-              <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+              <p className="text-xs text-muted-foreground">PNG, JPG, GIF up to 10MB</p>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -117,7 +111,7 @@ export const ImageUploader = ({ onUpload, onClose }: ImageUploaderProps) => {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="relative h-64 w-full overflow-hidden rounded-lg border border-gray-200">
+              <div className="relative h-64 w-full overflow-hidden rounded-lg border border-border">
                 <img
                   src={preview || "/placeholder.svg"}
                   alt="Preview"
@@ -143,16 +137,15 @@ export const ImageUploader = ({ onUpload, onClose }: ImageUploaderProps) => {
                 />
               </div>
 
-              <div className="flex justify-end space-x-2">
+              <DialogFooter>
                 <Button variant="outline" onClick={onClose}>
                   Cancel
                 </Button>
                 <Button onClick={handleUpload}>Use Image</Button>
-              </div>
+              </DialogFooter>
             </div>
           )}
-        </div>
-      </motion.div>
-    </motion.div>
+      </DialogContent>
+    </Dialog>
   )
 }

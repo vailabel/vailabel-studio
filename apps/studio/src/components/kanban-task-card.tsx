@@ -47,19 +47,19 @@ const getPriorityInfo = (dueDate?: Date) => {
 
   if (daysDiff < 0)
     return {
-      color: "border-l-red-500 bg-red-50 dark:bg-red-950/20",
+      color: "border-l-red-500",
       urgency: "overdue",
       text: "Overdue",
     }
   if (daysDiff <= 1)
     return {
-      color: "border-l-orange-500 bg-orange-50 dark:bg-orange-950/20",
+      color: "border-l-orange-500",
       urgency: "urgent",
       text: "Due soon",
     }
   if (daysDiff <= 3)
     return {
-      color: "border-l-yellow-500 bg-yellow-50 dark:bg-yellow-950/20",
+      color: "border-l-yellow-500",
       urgency: "medium",
       text: "Due soon",
     }
@@ -110,20 +110,10 @@ export const KanbanTaskCard: React.FC<KanbanTaskCardProps> = ({
     onAssign(task.id, undefined)
   }
 
-  const defaultUsers = [
-    { id: "1", name: "John Doe" },
-    { id: "2", name: "Jane Smith" },
-    { id: "3", name: "Bob Johnson" },
-    { id: "4", name: "Alice Brown" },
-    { id: "5", name: "Charlie Wilson" },
-  ]
-
-  const users = availableUsers.length > 0 ? availableUsers : defaultUsers
-
   return (
     <Card
       className={cn(
-        "transition-all duration-200 border-l-4 group",
+        "transition-all duration-200 border-l-4 group hover:shadow-md cursor-pointer",
         priorityInfo.color
       )}
       onClick={handleCardClick}
@@ -176,7 +166,7 @@ export const KanbanTaskCard: React.FC<KanbanTaskCardProps> = ({
 
         {/* Task metadata */}
         <div className="space-y-2">
-          {/* Assignment - Azure DevOps style inline assignment */}
+          {/* Assignment */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 flex-1">
               {task.assignedTo ? (
@@ -213,7 +203,7 @@ export const KanbanTaskCard: React.FC<KanbanTaskCardProps> = ({
                       Unassign
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    {users.map((user) => (
+                    {availableUsers.map((user) => (
                       <DropdownMenuItem
                         key={user.id}
                         onClick={() => handleAssignUser(user.id)}
@@ -255,7 +245,7 @@ export const KanbanTaskCard: React.FC<KanbanTaskCardProps> = ({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-48">
-                    {users.map((user) => (
+                    {availableUsers.map((user) => (
                       <DropdownMenuItem
                         key={user.id}
                         onClick={() => handleAssignUser(user.id)}
@@ -277,7 +267,7 @@ export const KanbanTaskCard: React.FC<KanbanTaskCardProps> = ({
               )}
             </div>
 
-            {/* Quick Actions - Azure DevOps style */}
+            {/* Quick Actions */}
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               {task.status === "pending" && (
                 <Button
@@ -402,7 +392,7 @@ export const KanbanTaskCard: React.FC<KanbanTaskCardProps> = ({
           )}
         </div>
 
-        {/* Quick actions - only show on hover */}
+        {/* Status indicator */}
         <div className="flex items-center justify-end pt-2 border-t opacity-0 group-hover:opacity-100 transition-opacity">
           <p className="text-xs text-muted-foreground">
             {task.status === "completed"

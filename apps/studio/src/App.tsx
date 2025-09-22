@@ -3,83 +3,66 @@ import "./index.css"
 import { ThemeProvider } from "./components/theme-provider"
 import { StorageProvider } from "./contexts/storage-context-provider"
 import { ConfirmDialogProvider } from "@/hooks/use-confirm-dialog"
-import { useEffect } from "react"
+import { CanvasProvider } from "./contexts/canvas-context"
+import { AuthProvider, createAuthService } from "./contexts/auth-context"
+import { IAuthService } from "./services/contracts/IAuthService"
+import { AuthStorage } from "./services/contracts/IAuthService"
+import { useEffect, useState } from "react"
 import { ErrorBoundary } from "./ErrorBoundary"
 import ErrorFallback from "./components/error-fallback"
-import { useProjectStore } from "./stores/use-project-store"
 import { ElectronApiDataAdapter } from "./adapters/data/ElectronApiDataAdaptor"
-import { useAnnotationsStore } from "./stores/annotation-store"
-import { useLabelStore } from "./stores/use-label-store"
-import { useImageDataStore } from "./stores/use-image-data-store"
-import { useSettingsStore } from "./stores/use-settings-store"
-import { useAIModelStore } from "./stores/use-ai-model-store"
-import { useTaskStore } from "./stores/use-task-store"
-import { FileSystemStorageAdapter } from "./adapters/storage"
-import { isElectron } from "./lib/constants"
 import { CloudApiDataAdapter } from "./adapters/data/CloudApiDataAdapter"
-import { useCanvasStore } from "./stores/canvas-store"
-import { useUserStore } from "./stores/use-user-store"
+import { isElectron } from "./lib/constants"
+import { ServiceProvider } from "./services/ServiceProvider"
+import { initializeServices, getServices } from "./services/ServiceContainer"
 
 const App = () => {
-  const { initDataAdapter: initProjectsDataAdapter } = useProjectStore()
-  const { initDataAdapter: initAnnotationsDataAdapter } = useAnnotationsStore()
-  const { initDataAdapter: initLabelsDataAdapter } = useLabelStore()
-  const { initDataAdapter: initCanvasDataAdapter } = useCanvasStore()
-  const {
-    initDataAdapter: initImageDataStore,
-    initStorageAdapter: initImageStorageAdapter,
-  } = useImageDataStore()
-  const {
-    initDataAdapter: initSettingsDataAdapter,
-    getSettings,
-    settings,
-  } = useSettingsStore()
-  const { initDataAdapter: initAiModelsDataAdapter } = useAIModelStore()
-  const { initDataAdapter: initTaskDataAdapter } = useTaskStore()
-  const { initDataAdapter: initUserDataAdapter } = useUserStore()
+  const [servicesInitialized, setServicesInitialized] = useState(false)
+  const [authService, setAuthService] = useState<IAuthService | null>(null)
+  const [authStorage, setAuthStorage] = useState<AuthStorage | null>(null)
+
   useEffect(() => {
-    const data = isElectron()
+    // Initialize data adapter
+    const dataAdapter = isElectron()
       ? new ElectronApiDataAdapter()
       : new CloudApiDataAdapter()
-    initProjectsDataAdapter(data)
-    initAnnotationsDataAdapter(data)
-    initLabelsDataAdapter(data)
-    initImageDataStore(data)
-    initCanvasDataAdapter(data)
-    initSettingsDataAdapter(data)
-    initAiModelsDataAdapter(data)
-    initTaskDataAdapter(data)
-    initUserDataAdapter(data)
-  }, [
-    initProjectsDataAdapter,
-    initAnnotationsDataAdapter,
-    initLabelsDataAdapter,
-    initImageDataStore,
-    initSettingsDataAdapter,
-    initAiModelsDataAdapter,
-    initCanvasDataAdapter,
-    initTaskDataAdapter,
-    initUserDataAdapter,
-  ])
+    
+    // Initialize services with the data adapter
+    initializeServices(dataAdapter)
+    setServicesInitialized(true)
 
-  useEffect(() => {
-    const storageAdapter = new FileSystemStorageAdapter("images")
-    initImageStorageAdapter(storageAdapter)
-  }, [initImageStorageAdapter])
+    // Initialize auth service
+    const { authService: auth, storage } = createAuthService({
+      apiBaseUrl: "http://127.0.0.1:8000/api/v1",
+      useLocalAuth: isElectron(), // Use local auth in Electron, cloud auth in web
+    })
+    
+    setAuthService(auth)
+    setAuthStorage(storage)
+  }, [])
 
-  useEffect(() => {
-    if (settings.length === 0) {
-      getSettings()
-    }
-  }, [getSettings, settings.length])
+  // Don't render until services are initialized
+  if (!servicesInitialized || !authService || !authStorage) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-lg">Initializing services...</div>
+      </div>
+    )
+  }
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
       <StorageProvider>
         <ConfirmDialogProvider>
-          <ErrorBoundary fallback={<ErrorFallback />}>
-            <AppRoutes />
-          </ErrorBoundary>
+          <CanvasProvider>
+            <AuthProvider authService={authService} storage={authStorage}>
+              <ServiceProvider services={getServices()}>
+                <ErrorBoundary fallback={<ErrorFallback />}>
+                  <AppRoutes />
+                </ErrorBoundary>
+              </ServiceProvider>
+            </AuthProvider>
+          </CanvasProvider>
         </ConfirmDialogProvider>
       </StorageProvider>
     </ThemeProvider>

@@ -3,6 +3,7 @@ import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { KanbanTaskCard } from "@/components/kanban-task-card"
 import { Task } from "@vailabel/core"
+import { cn } from "@/lib/utils"
 
 interface DraggableTaskCardProps {
   task: Task
@@ -56,13 +57,14 @@ export const DraggableTaskCard: React.FC<DraggableTaskCardProps> = ({
       style={style}
       {...attributes}
       {...listeners}
-      className={`touch-none relative ${
+      className={cn(
+        "touch-none relative transition-all duration-200",
         isDragging
           ? "rotate-2 scale-110 shadow-2xl z-50"
           : isOver
             ? "border-2 border-blue-400 bg-blue-50/50 dark:bg-blue-950/50"
-            : "transition-all duration-200"
-      }`}
+            : ""
+      )}
     >
       <KanbanTaskCard
         task={task}

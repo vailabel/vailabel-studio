@@ -9,6 +9,8 @@ import {
   Users,
   ArrowLeft,
   ChevronDown,
+  LogOut,
+  User,
 } from "lucide-react"
 import { useNavigate, useOutlet, useLocation } from "react-router-dom"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -20,20 +22,24 @@ import {
 } from "@/components/ui/sheet"
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden"
 import { Menu } from "lucide-react"
+import { useAuth } from "@/contexts/auth-context"
+import { useAuthCondition } from "@/guards/auth-guards"
 
 type NavigationItem = {
   name: string
   href: string
   icon: React.ComponentType<React.SVGProps<SVGSVGElement>>
+  requiredPermission?: string
+  requiredRoles?: string[]
 }
 
 const navigation: NavigationItem[] = [
   { name: "Overview", href: "/", icon: Home },
   { name: "Projects", href: "/projects", icon: Folder },
   { name: "Task", href: "/tasks", icon: Layers2 },
-  { name: "Users", href: "/users", icon: Users },
-  { name: "Cloud Storage", href: "/cloud-storage", icon: Cloud },
-  { name: "AI Models", href: "/ai-models", icon: Brain },
+  { name: "Users", href: "/users", icon: Users, requiredRoles: ["admin", "manager"] },
+  { name: "Cloud Storage", href: "/cloud-storage", icon: Cloud, requiredPermission: "settings:write" },
+  { name: "AI Models", href: "/ai-models", icon: Brain, requiredPermission: "ai_models:read" },
   { name: "Settings", href: "/settings", icon: Settings2 },
 ]
 
@@ -41,6 +47,8 @@ const MainLayout = () => {
   const navigate = useNavigate()
   const outlet = useOutlet()
   const location = useLocation()
+  const { user, logout } = useAuth()
+  const { canAccess } = useAuthCondition()
   const [sheetOpen, setSheetOpen] = React.useState(false)
   const [profileMenuOpen, setProfileMenuOpen] = React.useState(false)
   const profileMenuRef = React.useRef<HTMLDivElement>(null)
@@ -103,30 +111,32 @@ const MainLayout = () => {
             <span className="text-xl font-bold">ProjectHub</span>
           </div>
           <nav className="space-y-2 p-4">
-            {navigation.map((item) => {
-              const isActive =
-                location.pathname === item.href ||
-                (item.href !== "/" && location.pathname.startsWith(item.href))
-              return (
-                <button
-                  key={item.name}
-                  onClick={() => {
-                    navigate(item.href)
-                    setSheetOpen(false)
-                  }}
-                  className={
-                    "flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors w-full text-left " +
-                    (isActive
-                      ? "bg-primary text-primary-foreground shadow"
-                      : "hover:bg-gray-200 dark:hover:bg-gray-700")
-                  }
-                  aria-current={isActive ? "page" : undefined}
-                >
-                  <item.icon className="h-5 w-5" />
-                  <span>{item.name}</span>
-                </button>
-              )
-            })}
+            {navigation
+              .filter(item => canAccess(item.requiredPermission, item.requiredRoles))
+              .map((item) => {
+                const isActive =
+                  location.pathname === item.href ||
+                  (item.href !== "/" && location.pathname.startsWith(item.href))
+                return (
+                  <button
+                    key={item.name}
+                    onClick={() => {
+                      navigate(item.href)
+                      setSheetOpen(false)
+                    }}
+                    className={
+                      "flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors w-full text-left " +
+                      (isActive
+                        ? "bg-primary text-primary-foreground shadow"
+                        : "hover:bg-gray-200 dark:hover:bg-gray-700")
+                    }
+                    aria-current={isActive ? "page" : undefined}
+                  >
+                    <item.icon className="h-5 w-5" />
+                    <span>{item.name}</span>
+                  </button>
+                )
+              })}
           </nav>
         </SheetContent>
       </Sheet>
@@ -164,7 +174,7 @@ const MainLayout = () => {
                   }
                 }}
               >
-                Vichea Nath
+                {user?.name || "User"}
                 <ChevronDown className="ml-2 h-4 w-4 text-muted-foreground inline-block align-middle" />
               </button>
               {profileMenuOpen && (
@@ -175,33 +185,38 @@ const MainLayout = () => {
                 >
                   <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
                     <span className="block font-bold text-lg text-primary">
-                      Vichea Nath
+                      {user?.name || "User"}
+                    </span>
+                    <span className="block text-sm text-muted-foreground capitalize">
+                      {user?.role || "User"}
                     </span>
                   </div>
                   <ul className="py-1">
                     <li>
                       <button
-                        className="w-full text-left px-4 py-2 text-sm hover:bg-accent/50 rounded-md transition-colors"
+                        className="w-full text-left px-4 py-2 text-sm hover:bg-accent/50 rounded-md transition-colors flex items-center gap-2"
                         role="menuitem"
                         tabIndex={0}
                         onClick={() => {
                           setProfileMenuOpen(false)
-                          // navigate to profile page or open profile modal
+                          navigate("/settings")
                         }}
                       >
+                        <User className="h-4 w-4" />
                         Profile
                       </button>
                     </li>
                     <li>
                       <button
-                        className="w-full text-left px-4 py-2 text-sm hover:bg-accent/50 rounded-md transition-colors"
+                        className="w-full text-left px-4 py-2 text-sm hover:bg-accent/50 rounded-md transition-colors flex items-center gap-2 text-red-600 hover:text-red-700"
                         role="menuitem"
                         tabIndex={0}
                         onClick={() => {
                           setProfileMenuOpen(false)
-                          // handle logout logic here
+                          logout()
                         }}
                       >
+                        <LogOut className="h-4 w-4" />
                         Logout
                       </button>
                     </li>
@@ -226,6 +241,8 @@ type AsideProps = {
 
 const Aside = React.memo(({ navigation, location }: AsideProps) => {
   const navigate = useNavigate()
+  const { canAccess } = useAuthCondition()
+  
   return (
     <aside className="hidden md:block w-64 bg-gray-100 dark:bg-gray-800 p-4">
       <div className="flex items-center gap-2 mb-6">
@@ -237,27 +254,29 @@ const Aside = React.memo(({ navigation, location }: AsideProps) => {
         <span className="text-xl font-bold">VAI Studio</span>
       </div>
       <nav className="space-y-2">
-        {navigation.map((item) => {
-          const isActive =
-            location.pathname === item.href ||
-            (item.href !== "/" && location.pathname.startsWith(item.href))
-          return (
-            <button
-              key={item.name}
-              onClick={() => navigate(item.href)}
-              className={
-                "flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors " +
-                (isActive
-                  ? "bg-primary text-primary-foreground shadow"
-                  : "hover:bg-gray-200 dark:hover:bg-gray-700")
-              }
-              aria-current={isActive ? "page" : undefined}
-            >
-              <item.icon className="h-5 w-5" />
-              <span>{item.name}</span>
-            </button>
-          )
-        })}
+        {navigation
+          .filter(item => canAccess(item.requiredPermission, item.requiredRoles))
+          .map((item) => {
+            const isActive =
+              location.pathname === item.href ||
+              (item.href !== "/" && location.pathname.startsWith(item.href))
+            return (
+              <button
+                key={item.name}
+                onClick={() => navigate(item.href)}
+                className={
+                  "flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors " +
+                  (isActive
+                    ? "bg-primary text-primary-foreground shadow"
+                    : "hover:bg-gray-200 dark:hover:bg-gray-700")
+                }
+                aria-current={isActive ? "page" : undefined}
+              >
+                <item.icon className="h-5 w-5" />
+                <span>{item.name}</span>
+              </button>
+            )
+          })}
       </nav>
     </aside>
   )

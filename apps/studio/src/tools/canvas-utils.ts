@@ -16,6 +16,25 @@ export function getCanvasCoords(
   }
 }
 
+// Get image coordinates without applying pan/zoom transformations
+// This ensures annotations maintain their absolute positions relative to the image
+export function getImageCoords(
+  container: HTMLDivElement | null,
+  clientX: number,
+  clientY: number
+): Point {
+  if (!container) return { x: 0, y: 0 }
+
+  const rect = container.getBoundingClientRect()
+  return {
+    x: clientX - rect.left,
+    y: clientY - rect.top,
+  }
+}
+
+// Cache for bounding boxes to avoid recalculation
+const boundingBoxCache = new Map<string, { minX: number; minY: number; maxX: number; maxY: number }>()
+
 export function isPointInLabel(point: Point, annotation: Annotation): boolean {
   if (!annotation.coordinates || annotation.coordinates.length === 0) {
     return false
@@ -32,12 +51,54 @@ export function isPointInLabel(point: Point, annotation: Annotation): boolean {
   }
 
   if (annotation.type === "polygon") {
+    // Use bounding box check first for early exit
+    const cacheKey = `${annotation.id}-bbox`
+    let bbox = boundingBoxCache.get(cacheKey)
+    
+    if (!bbox) {
+      const coords = annotation.coordinates
+      bbox = {
+        minX: Math.min(...coords.map(p => p.x)),
+        minY: Math.min(...coords.map(p => p.y)),
+        maxX: Math.max(...coords.map(p => p.x)),
+        maxY: Math.max(...coords.map(p => p.y))
+      }
+      boundingBoxCache.set(cacheKey, bbox)
+    }
+    
+    // Early exit if point is outside bounding box
+    if (point.x < bbox.minX || point.x > bbox.maxX || 
+        point.y < bbox.minY || point.y > bbox.maxY) {
+      return false
+    }
+    
     return isPointInPolygon(point, annotation.coordinates)
   }
 
   if (annotation.type === "freeDraw") {
     const threshold = 5
     const thresholdSquared = threshold * threshold // 25
+
+    // Use bounding box check first for freeDraw as well
+    const cacheKey = `${annotation.id}-freedraw-bbox`
+    let bbox = boundingBoxCache.get(cacheKey)
+    
+    if (!bbox) {
+      const coords = annotation.coordinates
+      bbox = {
+        minX: Math.min(...coords.map(p => p.x)) - threshold,
+        minY: Math.min(...coords.map(p => p.y)) - threshold,
+        maxX: Math.max(...coords.map(p => p.x)) + threshold,
+        maxY: Math.max(...coords.map(p => p.y)) + threshold
+      }
+      boundingBoxCache.set(cacheKey, bbox)
+    }
+    
+    // Early exit if point is outside bounding box
+    if (point.x < bbox.minX || point.x > bbox.maxX || 
+        point.y < bbox.minY || point.y > bbox.maxY) {
+      return false
+    }
 
     for (let i = 0; i < annotation.coordinates.length - 1; i++) {
       const p1 = annotation.coordinates[i]
@@ -78,6 +139,16 @@ export function isPointInLabel(point: Point, annotation: Annotation): boolean {
   return false
 }
 
+// Function to clear cache when annotations change
+export function clearBoundingBoxCache(annotationId?: string) {
+  if (annotationId) {
+    boundingBoxCache.delete(`${annotationId}-bbox`)
+    boundingBoxCache.delete(`${annotationId}-freedraw-bbox`)
+  } else {
+    boundingBoxCache.clear()
+  }
+}
+
 export function findLabelAtPoint(
   point: Point,
   annotations: Annotation[],
@@ -114,21 +185,44 @@ export function getResizeHandle(
   e: React.MouseEvent,
   annotation: Annotation,
   container: HTMLDivElement | null,
-  panOffset: Point,
   zoom: number
 ): string | null {
-  if (annotation.type !== "box") return null
+  if (!container) return null
 
+  const point = getImageCoords(
+    container,
+    e.clientX,
+    e.clientY
+  )
+
+  const handleSize = Math.max(8 / zoom, 4) // Ensure minimum handle size of 4 pixels
+
+  // Handle box annotations
+  if (annotation.type === "box") {
+    return getBoxResizeHandle(annotation, point, handleSize)
+  }
+
+  // Handle polygon and free draw annotations
+  if (annotation.type === "polygon" || annotation.type === "freeDraw") {
+    return getVertexResizeHandle(annotation, point, handleSize)
+  }
+
+  return null
+}
+
+function getBoxResizeHandle(
+  annotation: Annotation,
+  point: Point,
+  handleSize: number
+): string | null {
   // Validate coordinates structure
   if (!annotation.coordinates || annotation.coordinates.length !== 2) {
     console.warn(
-      "getResizeHandle: Invalid coordinates structure for box annotation",
+      "getBoxResizeHandle: Invalid coordinates structure for box annotation",
       annotation
     )
     return null
   }
-
-  if (!container) return null
 
   const [topLeft, bottomRight] = annotation.coordinates
 
@@ -141,22 +235,12 @@ export function getResizeHandle(
     typeof bottomRight.x !== "number" ||
     typeof bottomRight.y !== "number"
   ) {
-    console.warn("getResizeHandle: Invalid coordinate values", {
+    console.warn("getBoxResizeHandle: Invalid coordinate values", {
       topLeft,
       bottomRight,
     })
     return null
   }
-
-  const point = getCanvasCoords(
-    container,
-    panOffset,
-    zoom,
-    e.clientX,
-    e.clientY
-  )
-
-  const handleSize = Math.max(8 / zoom, 4) // Ensure minimum handle size of 4 pixels
 
   const handles = [
     { name: "top-left", x: topLeft.x, y: topLeft.y },
@@ -176,6 +260,40 @@ export function getResizeHandle(
     // Early exit for box-based detection to improve performance
     if (dx <= handleSize && dy <= handleSize) {
       return handle.name
+    }
+  }
+
+  return null
+}
+
+function getVertexResizeHandle(
+  annotation: Annotation,
+  point: Point,
+  handleSize: number
+): string | null {
+  // Validate coordinates structure
+  if (!annotation.coordinates || annotation.coordinates.length === 0) {
+    console.warn(
+      "getVertexResizeHandle: Invalid coordinates structure for polygon/freeDraw annotation",
+      annotation
+    )
+    return null
+  }
+
+  // Check each vertex to see if the mouse is close to it
+  for (let i = 0; i < annotation.coordinates.length; i++) {
+    const vertex = annotation.coordinates[i]
+    
+    if (!vertex || typeof vertex.x !== "number" || typeof vertex.y !== "number") {
+      console.warn("getVertexResizeHandle: Invalid vertex", { vertex, index: i })
+      continue
+    }
+
+    const dx = Math.abs(point.x - vertex.x)
+    const dy = Math.abs(point.y - vertex.y)
+
+    if (dx <= handleSize && dy <= handleSize) {
+      return `vertex-${i}`
     }
   }
 

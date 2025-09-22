@@ -9,6 +9,19 @@ type AnnotationType = "box" | "polygon" | "freeDraw"
 
 type RenderableAnnotation = Annotation | Partial<Annotation>
 
+// Memoized annotation component to prevent unnecessary re-renders
+const MemoizedAnnotation = memo(({ 
+  annotation, 
+  AnnotationComponent 
+}: { 
+  annotation: Annotation
+  AnnotationComponent: React.ComponentType<{ annotation: Annotation }>
+}) => (
+  <AnnotationComponent annotation={annotation} />
+))
+
+MemoizedAnnotation.displayName = "MemoizedAnnotation"
+
 export const AnnotationRenderer = memo(
   ({
     annotations,
@@ -26,30 +39,37 @@ export const AnnotationRenderer = memo(
       []
     )
 
+    // Filter out invalid annotations early to avoid processing them
+    const validAnnotations = useMemo(() => 
+      annotations.filter(annotation => 
+        annotation.type && 
+        annotation.coordinates && 
+        annotation.coordinates.length > 0
+      ), [annotations]
+    )
+
     return (
       <>
-        {annotations.map((annotation, idx) => {
-          // Skip if type or coordinates are missing or invalid
-          if (
-            !annotation.type ||
-            !annotation.coordinates ||
-            annotation.coordinates.length === 0
-          )
-            return null
+        {validAnnotations.map((annotation, idx) => {
           // Use annotation.id if present, otherwise fallback to idx
           const key = (annotation as Annotation).id || idx
+          
           if (isTemporary) {
             // Use TempAnnotation for temp/partial annotation rendering
             return <TempAnnotation key={key} annotation={annotation} />
           }
+          
           const type = annotation.type as AnnotationType
-          const AnnotationComponent = annotationComponents[type] || null
+          const AnnotationComponent = annotationComponents[type]
+          
+          if (!AnnotationComponent) return null
+          
           return (
-            <div key={key}>
-              {AnnotationComponent && (
-                <AnnotationComponent annotation={annotation as Annotation} />
-              )}
-            </div>
+            <MemoizedAnnotation
+              key={key}
+              annotation={annotation as Annotation}
+              AnnotationComponent={AnnotationComponent}
+            />
           )
         })}
       </>

@@ -1,5 +1,5 @@
 import type { Point, Annotation } from "@vailabel/core"
-import { ToolHandlerContext } from "@/tools/canvas-handler"
+import { ToolHandlerContext } from "../../hooks/use-canvas-handlers-context"
 import { ToolHandler } from "../tool-handlers"
 
 export type BoxHandlerUIState = {

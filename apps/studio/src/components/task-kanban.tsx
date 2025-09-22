@@ -33,24 +33,26 @@ const columns = [
   {
     id: "pending",
     title: "Pending",
-    color:
-      "bg-yellow-50 border-yellow-200 dark:bg-yellow-950 dark:border-yellow-800",
+    color: "border-yellow-200 dark:border-yellow-800",
+    bgColor: "bg-yellow-50/50 dark:bg-yellow-950/20",
   },
   {
     id: "in-progress",
     title: "In Progress",
-    color: "bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800",
+    color: "border-blue-200 dark:border-blue-800",
+    bgColor: "bg-blue-50/50 dark:bg-blue-950/20",
   },
   {
     id: "completed",
     title: "Completed",
-    color:
-      "bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800",
+    color: "border-green-200 dark:border-green-800",
+    bgColor: "bg-green-50/50 dark:bg-green-950/20",
   },
   {
     id: "blocked",
     title: "Blocked",
-    color: "bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800",
+    color: "border-red-200 dark:border-red-800",
+    bgColor: "bg-red-50/50 dark:bg-red-950/20",
   },
 ]
 
@@ -213,7 +215,7 @@ export const TaskKanban: React.FC<TaskKanbanProps> = ({
   }
 
   return (
-    <div className="w-full overflow-hidden">
+    <div className="w-full">
       <DndContext
         sensors={sensors}
         collisionDetection={customCollisionDetection}
@@ -221,7 +223,7 @@ export const TaskKanban: React.FC<TaskKanbanProps> = ({
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 h-[calc(100vh-500px)] min-h-[600px] overflow-hidden relative">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 min-h-[600px]">
           {columns.map((column) => {
             const columnTasks = getTasksByStatus(column.id)
 
@@ -231,6 +233,7 @@ export const TaskKanban: React.FC<TaskKanbanProps> = ({
                 id={column.id}
                 title={column.title}
                 color={column.color}
+                bgColor={column.bgColor}
                 tasks={columnTasks}
                 onEdit={onEdit}
                 onDelete={onDelete}

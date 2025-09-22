@@ -51,6 +51,7 @@
     "@radix-ui/react-tooltip": "1.2.8",
     "@radix-ui/react-visually-hidden": "^1.2.3",
     "@tailwindcss/vite": "^4.1.12",
+    "@tanstack/react-table": "^8.21.3",
     "@testing-library/jest-dom": "^6.8.0",
     "@vailabel/core": "^2.0.0",
     "autoprefixer": "^10.4.21",

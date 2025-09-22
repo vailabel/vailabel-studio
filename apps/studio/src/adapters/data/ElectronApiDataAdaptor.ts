@@ -162,8 +162,8 @@ export class ElectronApiDataAdapter implements IDataAdapter {
   }
 
   // Authentication methods
-  login(username: string, password: string): Promise<User> {
-    return this.api.invoke(`login:users`, { username, password })
+  login(email: string, password: string): Promise<User> {
+    return this.api.invoke(`login:users`, { email, password })
   }
   logout(): Promise<void> {
     return this.api.invoke(`logout:users`)

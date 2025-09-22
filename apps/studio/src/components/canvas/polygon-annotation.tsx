@@ -1,9 +1,9 @@
 import { motion } from "framer-motion"
 import { rgbToRgba } from "../../lib/utils"
 import type { Annotation, Point } from "@vailabel/core"
-import { useCanvasStore } from "@/stores/canvas-store"
-import { useAnnotationsStore } from "@/stores/annotation-store"
-import { memo } from "react"
+import { useCanvasZoom, useCanvasTool, useCanvasSelection } from "@/contexts/canvas-context"
+import { useServices } from "@/services/ServiceProvider"
+import { memo, useMemo, useCallback } from "react"
 
 interface PolygonAnnotationProps {
   annotation: Annotation
@@ -11,10 +11,17 @@ interface PolygonAnnotationProps {
 
 export const PolygonAnnotation = memo(
   ({ annotation }: Readonly<PolygonAnnotationProps>) => {
-    const { updateAnnotation } = useAnnotationsStore()
-    const { zoom, selectedTool, selectedAnnotation } = useCanvasStore()
+    const services = useServices()
+    const { zoom } = useCanvasZoom()
+    const { selectedTool } = useCanvasTool()
+    const { selectedAnnotation } = useCanvasSelection()
 
-    const styles = {
+    const isSelected = selectedAnnotation?.id === annotation.id
+    const isAIGenerated = annotation.isAIGenerated
+    const isMoveTool = selectedTool === "move"
+
+    // Memoize styles to prevent recalculation
+    const styles = useMemo(() => ({
       fill: {
         selected: rgbToRgba(annotation.color, 0.2),
         aiGenerated: rgbToRgba(annotation.color, 0.2),
@@ -40,13 +47,16 @@ export const PolygonAnnotation = memo(
         aiGenerated: annotation.color,
         default: annotation.color,
       },
-    }
+    }), [annotation.color])
 
-    const isSelected = selectedAnnotation?.id === annotation.id
-    const isAIGenerated = annotation.isAIGenerated
+    // Memoize polygon points string to avoid recalculation
+    const pointsString = useMemo(() => 
+      annotation.coordinates.map((p) => `${p.x},${p.y}`).join(" "),
+      [annotation.coordinates]
+    )
 
     // Helper to handle point drag
-    const handlePointMouseDown = (
+    const handlePointMouseDown = useCallback((
       e: React.MouseEvent<SVGCircleElement>,
       index: number
     ) => {
@@ -61,7 +71,7 @@ export const PolygonAnnotation = memo(
         const newCoordinates = annotation.coordinates.map((p, i) =>
           i === index ? { x: newX, y: newY } : p
         )
-        updateAnnotation(annotation.id, {
+        services.getAnnotationService().updateAnnotation(annotation.id, {
           coordinates: newCoordinates,
           updatedAt: new Date(),
         })
@@ -72,14 +82,34 @@ export const PolygonAnnotation = memo(
       }
       window.addEventListener("mousemove", onMouseMove)
       window.addEventListener("mouseup", onMouseUp)
-    }
+    }, [annotation.coordinates, annotation.id, zoom])
+
+    // Memoize edit points to prevent recreation
+    const editPoints = useMemo(() => {
+      if (!isMoveTool) return null
+      
+      const pointRadius = isSelected ? 4 / zoom : 3 / zoom
+      const pointOpacity = isSelected ? 1 : 0.6
+      
+      return annotation.coordinates.map((point: Point, index: number) => (
+        <circle
+          key={index}
+          cx={point.x}
+          cy={point.y}
+          r={pointRadius}
+          className="fill-white stroke-gray-400 stroke-1 cursor-pointer pointer-events-auto hover:fill-blue-200 transition-colors"
+          style={{ opacity: pointOpacity }}
+          onMouseDown={(e) => handlePointMouseDown(e, index)}
+        />
+      ))
+    }, [isMoveTool, isSelected, annotation.coordinates, zoom, handlePointMouseDown])
 
     return (
       <svg className="absolute left-0 top-0 h-full w-full pointer-events-none">
         <motion.polygon
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          points={annotation.coordinates.map((p) => `${p.x},${p.y}`).join(" ")}
+          points={pointsString}
           style={{
             fill: isSelected
               ? styles.fill.selected
@@ -92,16 +122,19 @@ export const PolygonAnnotation = memo(
                 ? styles.stroke.aiGenerated
                 : styles.stroke.default,
             strokeWidth: isSelected
-              ? styles.strokeWidth.selected
-              : isAIGenerated
-                ? styles.strokeWidth.aiGenerated
-                : styles.strokeWidth.default,
+              ? styles.strokeWidth.selected + 1 // Thicker when selected
+              : isMoveTool
+                ? styles.strokeWidth.default + 0.5 // Slightly thicker when move tool is active
+                : isAIGenerated
+                  ? styles.strokeWidth.aiGenerated
+                  : styles.strokeWidth.default,
             strokeDasharray: isSelected
               ? styles.strokeDashArray.selected
               : isAIGenerated
                 ? styles.strokeDashArray.aiGenerated
                 : styles.strokeDashArray.default,
           }}
+          className={isMoveTool ? "pointer-events-auto cursor-move" : "pointer-events-none"}
         />
         <text
           x={annotation.coordinates[0].x}
@@ -118,20 +151,7 @@ export const PolygonAnnotation = memo(
           {annotation.name}
         </text>
 
-        {isSelected && selectedTool === "move" && (
-          <>
-            {annotation.coordinates.map((point: Point, index: number) => (
-              <circle
-                key={index}
-                cx={point.x}
-                cy={point.y}
-                r={4 / zoom}
-                className="fill-white stroke-gray-400 stroke-1 cursor-pointer pointer-events-auto"
-                onMouseDown={(e) => handlePointMouseDown(e, index)}
-              />
-            ))}
-          </>
-        )}
+        {editPoints}
       </svg>
     )
   }

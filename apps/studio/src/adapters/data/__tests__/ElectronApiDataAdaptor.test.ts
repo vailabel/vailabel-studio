@@ -325,9 +325,9 @@ describe("ElectronApiDataAdapter", () => {
     user.email = "email@example.com"
     user.role = "role"
     mockInvoke.mockResolvedValue(user)
-    const result = await adapter.login("user", "pass")
+    const result = await adapter.login("email@example.com", "pass")
     expect(mockInvoke).toHaveBeenCalledWith("login:users", {
-      username: "user",
+      email: "email@example.com",
       password: "pass",
     })
     expect(result).toBe(user)

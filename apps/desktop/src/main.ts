@@ -76,9 +76,12 @@ function closeLoadingWindow() {
 }
 
 app.whenReady().then(async () => {
+  console.log("App is ready, initializing...")
   try {
     await initDatabase()
+    console.log("Database initialized successfully")
   } catch (err) {
+    console.error("Database initialization failed:", err)
     return
   }
 
@@ -89,6 +92,7 @@ app.whenReady().then(async () => {
       loadingWindow.close()
       loadingWindow = null
     }
+    console.log("Creating main window...")
     createWindow()
     setupAutoUpdate(mainWindow, loadingWindow, isDev)
   }, 2000) // Show splash for 2 seconds

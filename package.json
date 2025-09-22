@@ -16,7 +16,7 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "studio": "turbo run dev --filter=@vailabel/studio  --filter=@vailabel/api",
-    "desktop": "turbo run dev --filter=@vailabel/desktop --filter=@vailabel/studio",
+    "desktop": "turbo run dev --filter=vailabel-desktop --filter=@vailabel/studio",
     "release": "turbo run release --filter=@vailabel/studio --filter=vailabel-desktop",
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint"

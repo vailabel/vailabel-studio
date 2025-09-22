@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Undo2, Pencil } from "lucide-react"
 import { Combobox } from "@/components/ui/combobox"
-import { useSettingsStore } from "@/stores/use-settings-store"
+import { useServices } from "@/services/ServiceProvider"
 
 interface KeyboardShortcut {
   category: string
@@ -31,49 +31,41 @@ const CATEGORIES = [
 ]
 
 export function KeyboardShortcuts() {
-  const { getSetting, saveOrUpdateSettings } = useSettingsStore()
-  const [shortcuts, setShortcuts] = useState<KeyboardShortcut[]>(() => {
-    const setting = getSetting("keyboardShortcuts")
-    let parsed: unknown
-    try {
-      if (setting && typeof setting.value === "string") {
-        parsed = JSON.parse(setting.value)
-        if (Array.isArray(parsed)) {
-          return parsed as KeyboardShortcut[]
-        }
-      }
-    } catch {
-      // ignore parse error, fallback to default
-    }
-    return DEFAULT_SHORTCUTS
-  })
+  const services = useServices()
+  const [shortcuts, setShortcuts] = useState<KeyboardShortcut[]>(DEFAULT_SHORTCUTS)
   const [editingIdx, setEditingIdx] = useState<number | null>(null)
   const [editValue, setEditValue] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("All")
 
   // Load shortcuts from settings on mount
   useEffect(() => {
-    ;(async () => {
-      const saved = await getSetting("keyboardShortcuts")
-      if (saved && typeof saved === "string") {
-        try {
-          const parsed = JSON.parse(saved)
+    const loadShortcuts = async () => {
+      try {
+        const setting = await services.getSettingsService().getSetting("keyboardShortcuts")
+        if (setting && typeof setting.value === "string") {
+          const parsed = JSON.parse(setting.value)
           if (Array.isArray(parsed)) {
             setShortcuts(parsed as KeyboardShortcut[])
           }
-        } catch {
-          // ignore parse error, fallback to default
         }
+      } catch {
+        // ignore parse error, fallback to default
       }
-    })()
-  }, [getSetting])
+    }
+    loadShortcuts()
+  }, [])
 
   // Save to settings whenever shortcuts change
   useEffect(() => {
-    if (saveOrUpdateSettings) {
-      saveOrUpdateSettings("keyboardShortcuts", JSON.stringify(shortcuts))
+    const saveShortcuts = async () => {
+      try {
+        await services.getSettingsService().saveOrUpdateSetting("keyboardShortcuts", JSON.stringify(shortcuts))
+      } catch (error) {
+        console.error("Failed to save keyboard shortcuts:", error)
+      }
     }
-  }, [shortcuts, saveOrUpdateSettings])
+    saveShortcuts()
+  }, [shortcuts])
 
   const handleEdit = (idx: number) => {
     setEditingIdx(idx)

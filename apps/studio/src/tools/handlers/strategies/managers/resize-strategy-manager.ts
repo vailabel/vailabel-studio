@@ -1,5 +1,5 @@
 import { Annotation, Point } from "@vailabel/core"
-import { ToolHandlerContext } from "../../../canvas-handler"
+import { ToolHandlerContext } from "../../hooks/use-canvas-handlers-context"
 import { AnnotationResizeStrategy } from "../interfaces/annotation-resize-strategy"
 import {
   BoxResizeStrategy,

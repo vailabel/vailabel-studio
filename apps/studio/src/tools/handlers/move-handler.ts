@@ -1,5 +1,5 @@
 import { Annotation, Point } from "@vailabel/core"
-import { ToolHandlerContext } from "../canvas-handler"
+import { ToolHandlerContext } from "../../hooks/use-canvas-handlers-context"
 import { calculatePolygonCentroid } from "@/lib/canvas-utils"
 import { ToolHandler } from "../tool-handlers"
 import { MouseMoveStrategyManager } from "./strategies/managers"
@@ -27,9 +27,9 @@ export class MoveHandler implements ToolHandler {
     const annotation: Annotation | null = findLabelAtPoint(point)
 
     // Handle resize
-    if (this.context.canvasStore.selectedAnnotation) {
+    if (this.context.selectedAnnotation) {
       const selected = this.context.annotationsStore.annotations.find(
-        (a) => a.id === this.context.canvasStore.selectedAnnotation?.id
+        (a: Annotation) => a.id === this.context.selectedAnnotation?.id
       )
       if (selected) {
         const handle = getResizeHandle(e, selected)
@@ -47,7 +47,7 @@ export class MoveHandler implements ToolHandler {
     // Handle selection and moving
     if (e.button === 0) {
       if (annotation) {
-        this.context.canvasStore.setSelectedAnnotation(annotation)
+        this.context.setSelectedAnnotation(annotation)
 
         let movingOffset: Point | null = null
         if (annotation.type === "box") {
@@ -94,15 +94,15 @@ export class MoveHandler implements ToolHandler {
       toolState.previewCoordinates
     ) {
       const annotation = this.context.annotationsStore.annotations.find(
-        (a) => a.id === toolState.resizingAnnotationId
+        (a: Annotation) => a.id === toolState.resizingAnnotationId
       )
       if (annotation) {
-        annotation.coordinates = toolState.previewCoordinates
+        annotation.coordinates = (toolState.previewCoordinates as Point[])
         annotation.updatedAt = new Date()
         // Save the resized annotation with updated timestamp
         this.context.annotationsStore.updateAnnotation(
           annotation.id,
-          annotation
+          { coordinates: annotation.coordinates, updatedAt: annotation.updatedAt }
         )
       }
     }
@@ -115,15 +115,15 @@ export class MoveHandler implements ToolHandler {
       toolState.previewCoordinates
     ) {
       const annotation = this.context.annotationsStore.annotations.find(
-        (a) => a.id === toolState.movingAnnotationId
+        (a: Annotation) => a.id === toolState.movingAnnotationId
       )
       if (annotation) {
-        annotation.coordinates = toolState.previewCoordinates
+        annotation.coordinates = (toolState.previewCoordinates as Point[])
         annotation.updatedAt = new Date()
         // Save the moved annotation with updated timestamp
         this.context.annotationsStore.updateAnnotation(
           annotation.id,
-          annotation
+          { coordinates: annotation.coordinates, updatedAt: annotation.updatedAt }
         )
       }
     }
@@ -165,9 +165,9 @@ export class MoveHandler implements ToolHandler {
     const getMovingCoordinates = () => {
       const { movingAnnotationId, previewCoordinates } = this.context.toolState
       if (movingAnnotationId) {
-        if (previewCoordinates) return previewCoordinates
+        if (previewCoordinates) return previewCoordinates as Point[]
         const annotation = this.context.annotationsStore.annotations.find(
-          (a) => a.id === movingAnnotationId
+          (a: Annotation) => a.id === movingAnnotationId
         )
         if (annotation) return annotation.coordinates
       }
@@ -178,9 +178,9 @@ export class MoveHandler implements ToolHandler {
       const { resizingAnnotationId, previewCoordinates } =
         this.context.toolState
       if (resizingAnnotationId) {
-        if (previewCoordinates) return previewCoordinates
+        if (previewCoordinates) return previewCoordinates as Point[]
         const annotation = this.context.annotationsStore.annotations.find(
-          (a) => a.id === resizingAnnotationId
+          (a: Annotation) => a.id === resizingAnnotationId
         )
         if (annotation) return annotation.coordinates
       }
@@ -188,11 +188,11 @@ export class MoveHandler implements ToolHandler {
     }
 
     return {
-      isResizing: this.context.toolState.isResizing ?? false,
-      resizeHandle: this.context.toolState.resizeHandle ?? null,
-      movingAnnotationId: this.context.toolState.movingAnnotationId,
-      resizingAnnotationId: this.context.toolState.resizingAnnotationId,
-      previewCoordinates: this.context.toolState.previewCoordinates,
+      isResizing: (this.context.toolState.isResizing as boolean) ?? false,
+      resizeHandle: (this.context.toolState.resizeHandle as string) ?? null,
+      movingAnnotationId: this.context.toolState.movingAnnotationId as string | null,
+      resizingAnnotationId: this.context.toolState.resizingAnnotationId as string | null,
+      previewCoordinates: this.context.toolState.previewCoordinates as Point[] | null,
       getMovingCoordinates,
       getResizingCoordinates,
     }

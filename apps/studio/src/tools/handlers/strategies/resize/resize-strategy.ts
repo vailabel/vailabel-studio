@@ -20,7 +20,7 @@ export class ResizeStrategy implements MouseMoveStrategy {
     if (!toolState.isResizing || !toolState.resizeHandle) return
 
     const annotation = context.annotationsStore.annotations.find(
-      (a) => a.id === context.canvasStore.selectedAnnotation?.id
+      (a) => a.id === context.selectedAnnotation?.id
     )
 
     if (annotation) {
