@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
 import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -12,6 +11,15 @@ import {
   TableHead,
   TableCell,
 } from "@/components/ui/table"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
 import { AIModel } from "@vailabel/core"
 import { useServices } from "@/services/ServiceProvider"
@@ -90,34 +98,16 @@ export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
   }
 
   return (
-    <motion.div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 dark:bg-black/70"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={onClose}
-    >
-      <motion.div
-        className="w-full max-w-3xl min-h-[400px] rounded-xl p-10 shadow-2xl bg-white dark:bg-gray-800 dark:text-gray-100 flex flex-col"
-        initial={{ scale: 0.9, y: 20 }}
-        animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.9, y: 20 }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold">AI Detection Models</h2>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="h-5 w-5" />
-            <span className="sr-only">Close</span>
-          </Button>
-        </div>
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent className="max-w-3xl min-h-[400px]">
+        <DialogHeader>
+          <DialogTitle>AI Detection Models</DialogTitle>
+          <DialogDescription>
+            Select a pre-trained model or select your own custom YOLOv8 model (.pt file)
+          </DialogDescription>
+        </DialogHeader>
         <div className="flex flex-col md:flex-row gap-8 flex-1">
           <div className="flex-1 min-w-[300px]">
-            <p className="text-base text-gray-600 dark:text-gray-400 mb-4">
-              Select a pre-trained model or select your own custom YOLOv8 model
-              (.pt file)
-            </p>
-
             <RadioGroup
               value={selectedModelId}
               onValueChange={handleRadioChange}
@@ -125,7 +115,7 @@ export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-gray-100 dark:bg-gray-800">
+                    <TableRow>
                       <TableHead className="p-2 font-semibold text-left">
                         Select
                       </TableHead>
@@ -143,7 +133,7 @@ export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
                         key={model.id}
                         className={
                           selectedModelId === model.id
-                            ? "bg-blue-50 dark:bg-blue-900"
+                            ? "bg-primary/10"
                             : ""
                         }
                       >
@@ -168,27 +158,28 @@ export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
                   </TableBody>
                 </Table>
               </div>
-              <p className="mt-2 text-xs text-yellow-600 dark:text-yellow-400">
-                <strong>Note:</strong> All models must remain in their specific
-                file path. If you delete or move a model file, it will no longer
-                work in the app.
-              </p>
+              <Alert className="mt-4">
+                <AlertDescription>
+                  <strong>Note:</strong> All models must remain in their specific
+                  file path. If you delete or move a model file, it will no longer
+                  work in the app.
+                </AlertDescription>
+              </Alert>
             </RadioGroup>
           </div>
         </div>
-        <div className="mt-8 flex justify-end space-x-2">
+        <DialogFooter>
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
           <Button
-            variant="default"
             onClick={handleSave}
             disabled={!selectedModelId}
           >
             Save
           </Button>
-        </div>
-      </motion.div>
-    </motion.div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

@@ -1,4 +1,3 @@
-import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -151,14 +150,10 @@ const LabelItem = memo(
     }, [label, onLabelSelect])
 
     return (
-      <motion.div
+      <div
         key={label.id}
-        initial={{ opacity: 0, y: 5 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -5 }}
-        transition={{ duration: 0.2 }}
         className={cn(
-          "rounded-lg border p-3 cursor-pointer flex flex-col gap-1 transition-all duration-200",
+          "rounded-lg border p-3 cursor-pointer flex flex-col gap-1 transition-all duration-200 hover:scale-[1.02]",
           "dark:border-gray-700 dark:hover:bg-gray-700 border-gray-200 hover:bg-gray-50",
           "hover:shadow-sm dark:hover:shadow-gray-900/20",
           label.isAIGenerated
@@ -166,8 +161,6 @@ const LabelItem = memo(
             : ""
         )}
         onClick={handleClick}
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
       >
         <div className="flex items-center gap-2">
           <div
@@ -183,16 +176,12 @@ const LabelItem = memo(
             {label.name}
           </span>
           {label.isAIGenerated && (
-            <motion.span
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="ml-2 px-2 py-0.5 rounded bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 text-xs font-semibold flex items-center gap-1 flex-shrink-0"
-            >
+            <span className="ml-2 px-2 py-0.5 rounded bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 text-xs font-semibold flex items-center gap-1 flex-shrink-0 transition-all duration-200">
               <span className="text-base leading-none">🤖</span> AI
-            </motion.span>
+            </span>
           )}
         </div>
-      </motion.div>
+      </div>
     )
   },
   (prevProps, nextProps) => {
@@ -228,30 +217,20 @@ const CategorySection = memo(
             variant="ghost"
             className="w-full flex items-center justify-between px-2 py-2 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2 pl-1 gap-2 hover:bg-gray-100 dark:hover:bg-gray-700"
           >
-            <div className="flex items-center gap-2">
-              <motion.div
-                animate={{ rotate: isOpen ? 0 : -90 }}
-                transition={{ duration: 0.2 }}
-                className="w-3 h-3 flex items-center justify-center"
-              >
-                ▼
-              </motion.div>
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600"></span>
-              {category}
-            </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 flex items-center justify-center transition-transform duration-200 hover:rotate-90">
+                  ▼
+                </div>
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600"></span>
+                {category}
+              </div>
             <span className="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded-full">
               {labels.length}
             </span>
           </Button>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2 }}
-            className="space-y-2"
-          >
+          <div className="space-y-2 transition-all duration-200">
             {labels.map((label) => (
               <LabelItem
                 key={label.id}
@@ -259,7 +238,7 @@ const CategorySection = memo(
                 onLabelSelect={onLabelSelect}
               />
             ))}
-          </motion.div>
+          </div>
         </CollapsibleContent>
       </Collapsible>
     )
@@ -302,15 +281,11 @@ LabelList.displayName = "LabelList"
 
 // Improved empty state component
 const EmptyState = memo(() => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    className={cn(
-      "mt-8 rounded-lg border border-dashed p-8 text-center",
-      "dark:border-gray-700 dark:bg-gray-800/50",
-      "border-gray-300 bg-gray-50/50"
-    )}
-  >
+  <div className={cn(
+    "mt-8 rounded-lg border border-dashed p-8 text-center transition-all duration-200",
+    "dark:border-gray-700 dark:bg-gray-800/50",
+    "border-gray-300 bg-gray-50/50"
+  )}>
     <div className="mx-auto w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center mb-4">
       <span className="text-2xl">🏷️</span>
     </div>
@@ -326,7 +301,7 @@ const EmptyState = memo(() => (
     <p className={cn("text-xs", "dark:text-gray-500", "text-gray-400")}>
       Use the drawing tools to create your first label
     </p>
-  </motion.div>
+  </div>
 ))
 
 EmptyState.displayName = "EmptyState"

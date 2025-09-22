@@ -11,6 +11,7 @@ interface DroppableColumnProps {
   id: string
   title: string
   color: string
+  bgColor: string
   tasks: Task[]
   onEdit: (task: Task) => void
   onDelete: (taskId: string) => void
@@ -24,6 +25,7 @@ export const DroppableColumn: React.FC<DroppableColumnProps> = ({
   id,
   title,
   color,
+  bgColor,
   tasks,
   onEdit,
   onDelete,
@@ -43,15 +45,16 @@ export const DroppableColumn: React.FC<DroppableColumnProps> = ({
   return (
     <Card
       className={cn(
-        "flex flex-col transition-all duration-200 h-full",
+        "flex flex-col h-full transition-all duration-200",
         color,
+        bgColor,
         isOver && "ring-2 ring-primary ring-offset-2 scale-[1.02] shadow-lg"
       )}
     >
       <CardHeader className="pb-3 px-4 pt-4 border-b bg-muted/30">
         <CardTitle className="flex items-center justify-between text-sm font-semibold">
           {title}
-          <Badge variant="secondary" className="ml-2 text-xs bg-background">
+          <Badge variant="secondary" className="ml-2 text-xs">
             {tasks.length}
           </Badge>
         </CardTitle>

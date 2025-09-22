@@ -1,11 +1,18 @@
 "use client"
 
 import { useState } from "react"
-import { motion } from "framer-motion"
 import { X, Download, FileJson, FileCode, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
 import type { Annotation, Project } from "@vailabel/core"
 interface ExportModalProps {
@@ -61,38 +68,20 @@ export function ExportModal({ project, onClose }: ExportModalProps) {
   }
 
   return (
-    <motion.div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 dark:bg-black/70"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={onClose}
-    >
-      <motion.div
-        className="w-full max-w-md rounded-lg p-6 shadow-lg bg-white dark:bg-gray-800 dark:text-gray-100"
-        initial={{ scale: 0.9, y: 20 }}
-        animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.9, y: 20 }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold">Export Project</h2>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="h-4 w-4" />
-            <span className="sr-only">Close</span>
-          </Button>
-        </div>
-
-        <div className="mt-4">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Export Project</DialogTitle>
+          <DialogDescription>
             Choose a format to export your project data
-          </p>
+          </DialogDescription>
+        </DialogHeader>
 
-          <RadioGroup
-            value={exportFormat}
-            onValueChange={setExportFormat}
-            className="mt-4 space-y-3"
-          >
+        <RadioGroup
+          value={exportFormat}
+          onValueChange={setExportFormat}
+          className="space-y-3"
+        >
             <div className="flex items-start space-x-2">
               <RadioGroupItem value="json" id="json" className="mt-1" />
               <div>
@@ -100,7 +89,7 @@ export function ExportModal({ project, onClose }: ExportModalProps) {
                   <FileJson className="mr-2 h-4 w-4" />
                   Simple JSON
                 </Label>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
+                <p className="text-xs text-muted-foreground">
                   Export as a simple JSON file with all project data
                 </p>
               </div>
@@ -113,7 +102,7 @@ export function ExportModal({ project, onClose }: ExportModalProps) {
                   <FileJson className="mr-2 h-4 w-4" />
                   COCO JSON
                 </Label>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
+                <p className="text-xs text-muted-foreground">
                   MS COCO format, compatible with many computer vision
                   frameworks
                 </p>
@@ -127,7 +116,7 @@ export function ExportModal({ project, onClose }: ExportModalProps) {
                   <FileCode className="mr-2 h-4 w-4" />
                   Pascal VOC XML
                 </Label>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
+                <p className="text-xs text-muted-foreground">
                   XML format used by Pascal VOC dataset, one file per image
                 </p>
               </div>
@@ -140,7 +129,7 @@ export function ExportModal({ project, onClose }: ExportModalProps) {
                   <FileText className="mr-2 h-4 w-4" />
                   YOLO TXT
                 </Label>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
+                <p className="text-xs text-muted-foreground">
                   Darknet YOLO format, one text file per image with normalized
                   coordinates
                 </p>
@@ -148,26 +137,25 @@ export function ExportModal({ project, onClose }: ExportModalProps) {
             </div>
           </RadioGroup>
 
-          <div className="mt-6 flex justify-end space-x-2">
-            <Button variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button onClick={handleExport} disabled={isExporting}>
-              {isExporting ? (
-                <>
-                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                  Exporting...
-                </>
-              ) : (
-                <>
-                  <Download className="mr-2 h-4 w-4" />
-                  Export
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-      </motion.div>
-    </motion.div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleExport} disabled={isExporting}>
+            {isExporting ? (
+              <>
+                <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                Exporting...
+              </>
+            ) : (
+              <>
+                <Download className="mr-2 h-4 w-4" />
+                Export
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

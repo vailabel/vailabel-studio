@@ -1,170 +1,274 @@
+import React from "react"
 import { motion } from "framer-motion"
-import { useEffect, useState } from "react"
-import { useNavigate } from "react-router-dom"
-import { Users, Folder, Tag } from "lucide-react"
-import { useServices } from "@/services/ServiceProvider"
+import { 
+  Users, 
+  Folder, 
+  Tag, 
+  CheckSquare, 
+  Clock, 
+  RefreshCw,
+  AlertCircle,
+  FolderPlus,
+  BarChart3,
+  LucideIcon
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
+import { useOverviewViewModel } from "@/viewmodels/overview-viewmodel"
+import { 
+  StatCard, 
+  QuickActionCard, 
+  ActivityItem, 
+  ActivitySkeleton 
+} from "@/components/overview/overview-components"
+import { AuthStatusDemo } from "@/components/auth/AuthStatusDemo"
 
-interface RecentActivityItem {
-  activity: string
-  user: string
-  date: string
-}
+const Overview: React.FC = () => {
+  const {
+    statistics,
+    recentActivity,
+    quickActions,
+    isLoading,
+    error,
+    lastUpdated,
+    refreshData,
+    isEmpty,
+  } = useOverviewViewModel()
 
-const Overview = () => {
-  const services = useServices()
-  const navigate = useNavigate()
-  const [statistics, setStatistics] = useState({
-    totalProjects: 0,
-    activeUsers: 0,
-    labelsCreated: 0,
-  })
-  const [recentActivity, setRecentActivity] = useState<RecentActivityItem[]>([])
+  // Icon mapping for quick actions
+  const iconMap: Record<string, LucideIcon> = {
+    FolderPlus,
+    Tag,
+    Users,
+    CheckSquare,
+  }
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const [projects, labels] = await Promise.all([
-        services.getProjectService().getProjects(),
-        services.getLabelService().getLabelsByProjectId('') // Get all labels
-      ])
-      setStatistics({
-        totalProjects: projects.length,
-        activeUsers: 120, // Placeholder value; replace with real data if available
-        labelsCreated: labels.length,
-      })
-      setRecentActivity(
-        Array.from({ length: 3 }, (_, index) => ({
-          activity: `Action ${index + 1}`, // Mocked activity description
-          user: `User ${index + 1}`, // Mocked user
-          date: new Date().toISOString().split("T")[0], // Mocked date
-        }))
-      )
-    }
+  const statCards = [
+    {
+      title: "Total Projects",
+      value: statistics.totalProjects,
+      icon: Folder,
+      color: "bg-blue-500",
+      trend: { value: 12, isPositive: true },
+    },
+    {
+      title: "Active Users",
+      value: statistics.activeUsers,
+      icon: Users,
+      color: "bg-green-500",
+      trend: { value: 8, isPositive: true },
+    },
+    {
+      title: "Labels Created",
+      value: statistics.labelsCreated,
+      icon: Tag,
+      color: "bg-purple-500",
+      trend: { value: 15, isPositive: true },
+    },
+    {
+      title: "Annotations",
+      value: statistics.totalAnnotations,
+      icon: CheckSquare,
+      color: "bg-orange-500",
+      trend: { value: 23, isPositive: true },
+    },
+    {
+      title: "Completed Tasks",
+      value: statistics.completedTasks,
+      icon: CheckSquare,
+      color: "bg-emerald-500",
+      trend: { value: 5, isPositive: true },
+    },
+    {
+      title: "Pending Tasks",
+      value: statistics.pendingTasks,
+      icon: Clock,
+      color: "bg-amber-500",
+      trend: { value: -2, isPositive: false },
+    },
+  ]
 
-    fetchData()
-  }, [])
+  if (error) {
+    return (
+      <div className="p-6 min-h-screen">
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {error}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="ml-4"
+              onClick={refreshData}
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Retry
+            </Button>
+          </AlertDescription>
+        </Alert>
+      </div>
+    )
+  }
 
   return (
-    <div
-      className={`p-6 font-sans min-h-screen transition-colors duration-300`}
-    >
-      <h1 className="text-4xl font-extrabold mb-8">Dashboard</h1>
-      <section className="mb-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[
-            {
-              title: "Total Projects",
-              value: statistics.totalProjects,
-              color: "bg-blue-500",
-              icon: <Folder className="w-8 h-8 opacity-80" />,
-            },
-            {
-              title: "Active Users",
-              value: statistics.activeUsers,
-              color: "bg-green-500",
-              icon: <Users className="w-8 h-8 opacity-80" />,
-            },
-            {
-              title: "Labels Created",
-              value: statistics.labelsCreated,
-              color: "bg-purple-500",
-              icon: <Tag className="w-8 h-8 opacity-80" />,
-            },
-          ].map((stat, index) => {
-            return (
-              <motion.div
-                key={index}
-                className={`p-6 rounded-lg shadow-lg text-white ${stat.color} flex items-center gap-4`}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                {stat.icon}
-                <div>
-                  <h3 className="text-lg font-medium">{stat.title}</h3>
-                  <p className="text-3xl font-bold">{stat.value}</p>
-                </div>
-              </motion.div>
-            )
-          })}
+    <div className="p-6 font-sans min-h-screen bg-background">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-4xl font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Dashboard
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            Welcome to your labeling workspace
+          </p>
         </div>
-      </section>
-
-      {/* Recent Activity Section */}
-      <section className="mb-12">
-        <h2 className="text-2xl font-semibold mb-6">Recent Activity</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-white dark:bg-gray-800 rounded-lg shadow-md">
-            <thead>
-              <tr className="bg-gray-100 dark:bg-gray-700">
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Activity
-                </th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 dark:text-gray-300">
-                  User
-                </th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Date
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentActivity.map((item, index) => (
-                <tr
-                  key={index}
-                  className={`${
-                    index % 2 === 0
-                      ? "bg-gray-50 dark:bg-gray-700"
-                      : "bg-white dark:bg-gray-800"
-                  }`}
-                >
-                  <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
-                    {item.activity}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
-                    {item.user}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
-                    {item.date}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="flex items-center gap-4">
+          {lastUpdated && (
+            <Badge variant="outline" className="text-xs">
+              <RefreshCw className="h-3 w-3 mr-1" />
+              Updated {lastUpdated.toLocaleTimeString()}
+            </Badge>
+          )}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={refreshData}
+            disabled={isLoading}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
         </div>
-      </section>
+      </div>
 
-      {/* Quick Actions Section */}
-      <section>
-        <h2 className="text-2xl font-semibold mb-6">Quick Actions</h2>
-        <div className="flex flex-wrap gap-4">
-          {[
-            {
-              label: "Create New Project",
-              action: () => navigate("/projects"),
-              color: "bg-blue-600",
-            },
-            {
-              label: "View All Labels",
-              action: () => navigate("/labels"),
-              color: "bg-green-600",
-            },
-            {
-              label: "Manage Users",
-              action: () => navigate("/users"),
-              color: "bg-purple-600",
-            },
-          ].map((action, index) => (
-            <motion.button
-              key={index}
-              className={`px-6 py-3 text-white rounded-lg shadow-md hover:shadow-lg ${action.color}`}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={action.action}
+      {/* Statistics Grid */}
+      <section className="mb-12">
+        <div className="flex items-center gap-4 mb-6">
+          <BarChart3 className="h-6 w-6 text-muted-foreground" />
+          <h2 className="text-2xl font-semibold">Statistics</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+          {statCards.map((stat, index) => (
+            <motion.div
+              key={stat.title}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
             >
-              {action.label}
-            </motion.button>
+              <StatCard
+                title={stat.title}
+                value={stat.value}
+                icon={stat.icon}
+                color={stat.color}
+                isLoading={isLoading}
+                trend={stat.trend}
+              />
+            </motion.div>
           ))}
         </div>
       </section>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Recent Activity */}
+        <section className="lg:col-span-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5" />
+                Recent Activity
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <ActivitySkeleton count={5} />
+              ) : recentActivity.length > 0 ? (
+                <div className="space-y-2">
+                  {recentActivity.map((item, index) => (
+                    <motion.div
+                      key={item.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                    >
+                      <ActivityItem
+                        activity={item.activity}
+                        user={item.user}
+                        date={item.date}
+                        type={item.type}
+                        projectName={item.projectName}
+                      />
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No recent activity</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* Quick Actions */}
+        <section>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FolderPlus className="h-5 w-5" />
+                Quick Actions
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {quickActions.map((action, index) => (
+                  <motion.div
+                    key={action.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                  >
+                    <QuickActionCard
+                      label={action.label}
+                      description={action.description}
+                      icon={iconMap[action.icon] || FolderPlus}
+                      color={action.color}
+                      onClick={action.action}
+                      disabled={action.disabled}
+                    />
+                  </motion.div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* Authentication Status Demo */}
+        <section>
+          <AuthStatusDemo />
+        </section>
+      </div>
+
+      {/* Empty State */}
+      {isEmpty && !isLoading && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center py-16"
+        >
+          <Folder className="h-24 w-24 mx-auto mb-6 text-muted-foreground opacity-50" />
+          <h3 className="text-2xl font-semibold mb-4">Welcome to VaiLabeling</h3>
+          <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+            Get started by creating your first project and adding some labels to begin your labeling journey.
+          </p>
+          <Button onClick={quickActions[0]?.action} size="lg">
+            <FolderPlus className="h-5 w-5 mr-2" />
+            Create Your First Project
+          </Button>
+        </motion.div>
+      )}
     </div>
   )
 }

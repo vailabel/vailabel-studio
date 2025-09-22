@@ -1,7 +1,6 @@
 "use client"
 
 import { useRef, useEffect, memo, useMemo } from "react"
-import { motion } from "framer-motion"
 import {
   Square,
   OctagonIcon as Polygon,
@@ -64,15 +63,11 @@ export const ContextMenu = memo(
     }, [x, y, containerRect])
 
     return (
-      <motion.div
+      <div
         ref={menuRef}
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.9 }}
         className={cn(
-          "absolute z-50 w-48 rounded-md shadow-lg ring-1 ring-opacity-5",
-          "dark:bg-gray-800 dark:ring-gray-700",
-          "bg-white ring-gray-200"
+          "absolute z-50 w-48 rounded-md shadow-lg ring-1 ring-opacity-5 transition-all duration-200",
+          "bg-background border border-border"
         )}
         style={{ left: menuPosition.x, top: menuPosition.y }}
       >
@@ -80,8 +75,8 @@ export const ContextMenu = memo(
           <button
             className={cn(
               "flex w-full items-center px-4 py-2 text-sm",
-              "dark:text-gray-300 dark:hover:bg-gray-700",
-              "text-gray-700 hover:bg-gray-100"
+              "text-foreground hover:bg-muted",
+              ""
             )}
             onClick={() => handleToolSelect("select")}
           >
@@ -91,8 +86,8 @@ export const ContextMenu = memo(
           <button
             className={cn(
               "flex w-full items-center px-4 py-2 text-sm",
-              "dark:text-gray-300 dark:hover:bg-gray-700",
-              "text-gray-700 hover:bg-gray-100"
+              "text-foreground hover:bg-muted",
+              ""
             )}
             onClick={() => handleToolSelect("move")}
           >
@@ -102,8 +97,8 @@ export const ContextMenu = memo(
           <button
             className={cn(
               "flex w-full items-center px-4 py-2 text-sm",
-              "dark:text-gray-300 dark:hover:bg-gray-700",
-              "text-gray-700 hover:bg-gray-100"
+              "text-foreground hover:bg-muted",
+              ""
             )}
             onClick={() => handleToolSelect("box")}
           >
@@ -113,8 +108,8 @@ export const ContextMenu = memo(
           <button
             className={cn(
               "flex w-full items-center px-4 py-2 text-sm",
-              "dark:text-gray-300 dark:hover:bg-gray-700",
-              "text-gray-700 hover:bg-gray-100"
+              "text-foreground hover:bg-muted",
+              ""
             )}
             onClick={() => handleToolSelect("polygon")}
           >
@@ -124,8 +119,8 @@ export const ContextMenu = memo(
           <button
             className={cn(
               "flex w-full items-center px-4 py-2 text-sm",
-              "dark:text-gray-300 dark:hover:bg-gray-700",
-              "text-gray-700 hover:bg-gray-100"
+              "text-foreground hover:bg-muted",
+              ""
             )}
             onClick={() => handleToolSelect("freeDraw")}
           >
@@ -135,8 +130,8 @@ export const ContextMenu = memo(
           <button
             className={cn(
               "flex w-full items-center px-4 py-2 text-sm",
-              "dark:text-gray-300 dark:hover:bg-gray-700",
-              "text-gray-700 hover:bg-gray-100"
+              "text-foreground hover:bg-muted",
+              ""
             )}
             onClick={() => handleToolSelect("delete")}
           >
@@ -146,15 +141,14 @@ export const ContextMenu = memo(
           <div
             className={cn(
               "my-1 border-t",
-              "dark:border-gray-700",
-              "border-gray-200"
+              "border-border"
             )}
           ></div>
           <button
             className={cn(
               "flex w-full items-center px-4 py-2 text-sm",
-              "dark:text-gray-300 dark:hover:bg-gray-700",
-              "text-gray-700 hover:bg-gray-100"
+              "text-foreground hover:bg-muted",
+              ""
             )}
             onClick={() => resetView()}
           >
@@ -162,7 +156,7 @@ export const ContextMenu = memo(
             Reset Zoom
           </button>
         </div>
-      </motion.div>
+      </div>
     )
   }
 )

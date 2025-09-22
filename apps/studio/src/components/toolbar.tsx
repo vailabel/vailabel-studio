@@ -1,5 +1,4 @@
 import React from "react"
-import { motion } from "framer-motion"
 import {
   Square,
   OctagonIcon as Polygon,
@@ -157,7 +156,7 @@ export const Toolbar = memo(
     )
 
     return (
-      <div className="flex items-center justify-between border-b p-1 dark:bg-gray-800 dark:border-gray-700 bg-white border-gray-200">
+      <div className="flex items-center justify-between border-b p-1 bg-background border-border">
         <AnnotationTools
           selectedTool={selectedTool}
           setSelectedTool={setSelectedTool}
@@ -179,7 +178,7 @@ export const Toolbar = memo(
               </TooltipTrigger>
               <TooltipContent side="bottom">Zoom Out</TooltipContent>
             </Tooltip>
-            <p className="text-sm text-gray-700 dark:text-gray-200">
+            <p className="text-sm text-foreground">
               {(zoom * 100).toFixed(0)}%
             </p>
             <Tooltip>
@@ -215,7 +214,7 @@ export const Toolbar = memo(
 
           <Separator
             orientation="vertical"
-            className="mx-2 h-6 dark:bg-gray-700"
+            className="mx-2 h-6"
           />
           <TooltipProvider>
             {additionalTool.map((tool) => (
@@ -227,8 +226,8 @@ export const Toolbar = memo(
                     className={cn(
                       "h-8 w-8",
                       tool.active
-                        ? "bg-blue-50 text-blue-500 dark:bg-blue-900 dark:text-blue-300 border-2 border-blue-500 dark:border-blue-400 shadow"
-                        : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                        ? "bg-primary/10 text-primary border-2 border-primary"
+                        : "hover:bg-muted"
                     )}
                     onClick={tool.action}
                     aria-pressed={tool.active}
@@ -237,7 +236,7 @@ export const Toolbar = memo(
                       className={cn("h-4 w-4", tool.active ? "scale-110" : "")}
                     />
                     {tool.active && (
-                      <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-blue-500 dark:bg-blue-300 animate-pulse" />
+                      <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-primary animate-pulse" />
                     )}
                   </Button>
                 </TooltipTrigger>
@@ -247,7 +246,7 @@ export const Toolbar = memo(
                     <kbd
                       className={cn(
                         "ml-2 rounded border px-1.5 text-xs",
-                        "border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-800"
+                        "border-border bg-muted"
                       )}
                     >
                       {tool.shortcut}
@@ -260,7 +259,7 @@ export const Toolbar = memo(
 
           <Separator
             orientation="vertical"
-            className="mx-2 h-6 dark:bg-gray-700"
+            className="mx-2 h-6"
           />
           <AIDetectionButton image={currentImage} />
 
@@ -309,26 +308,19 @@ const AnnotationTools = memo(
                   variant="ghost"
                   size="sm"
                   className={cn(
-                    "relative h-8 w-8",
+                    "relative h-8 w-8 transition-all duration-200",
                     selectedTool === tool.id &&
-                      "bg-blue-50 text-blue-500 dark:bg-blue-900 dark:text-blue-300"
+                      "bg-primary/10 text-primary border-2 border-primary"
                   )}
                   onClick={() => setSelectedTool(tool.id)}
                 >
                   <tool.icon className="h-4 w-4" />
                   {selectedTool === tool.id && (
-                    <motion.div
-                      layoutId="active-tool"
+                    <div
                       className={cn(
-                        "absolute inset-0 rounded-md border-2",
-                        "border-blue-500 dark:border-blue-400"
+                        "absolute inset-0 rounded-md border-2 transition-all duration-200",
+                        "border-primary"
                       )}
-                      initial={false}
-                      transition={{
-                        type: "spring",
-                        bounce: 0.2,
-                        duration: 0.6,
-                      }}
                     />
                   )}
                 </Button>
@@ -339,7 +331,7 @@ const AnnotationTools = memo(
                   <kbd
                     className={cn(
                       "ml-2 rounded border px-1.5 text-xs",
-                      "border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-800"
+                      "border-border bg-muted"
                     )}
                   >
                     {tool.shortcut}
@@ -350,7 +342,7 @@ const AnnotationTools = memo(
           ))}
           <Separator
             orientation="vertical"
-            className="mx-2 h-6 dark:bg-gray-700"
+            className="mx-2 h-6"
           />
           {clickableTools.map((tool) => (
             <Tooltip key={tool.id}>
@@ -360,7 +352,7 @@ const AnnotationTools = memo(
                   size="sm"
                   disabled={!tool.condition}
                   className={cn(
-                    "relative h-8 w-8 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    "relative h-8 w-8 hover:bg-muted"
                   )}
                   onClick={() => tool.action && tool.action()}
                 >
@@ -373,7 +365,7 @@ const AnnotationTools = memo(
                   <kbd
                     className={cn(
                       "ml-2 rounded border px-1.5 text-xs",
-                      "border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-800"
+                      "border-border bg-muted"
                     )}
                   >
                     {tool.shortcut}
