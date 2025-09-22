@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -14,8 +14,7 @@ import {
 } from "@/components/ui/table"
 import { useToast } from "@/hooks/use-toast"
 import { AIModel } from "@vailabel/core"
-import { useAIModelStore } from "@/stores/use-ai-model-store"
-import { useSettingsStore } from "@/stores/use-settings-store"
+import { useServices } from "@/services/ServiceProvider"
 
 interface AIModelModalProps {
   onClose: () => void
@@ -23,43 +22,47 @@ interface AIModelModalProps {
 
 export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
   const { toast } = useToast()
-  const { getAIModels } = useAIModelStore()
-  const { saveOrUpdateSettings, getSetting } = useSettingsStore()
+  const services = useServices()
 
   const [availableModels, setAvailableModels] = useState<AIModel[]>([])
   const [selectedModelId, setSelectedModelId] = useState<string>("")
 
   // Fetch models and selected model on mount
-  useState(() => {
-    ;(async () => {
-      const models = await getAIModels()
-      setAvailableModels(models)
-      let selected = ""
+  useEffect(() => {
+    const loadModels = async () => {
       try {
-        const modalSelected = await getSetting("modalSelected")
-        // modalSelected may be an object, so get the value if needed
-        const selectedId =
-          typeof modalSelected === "string"
-            ? modalSelected
-            : modalSelected?.value || ""
-        if (selectedId && models.some((m) => m.id === selectedId)) {
-          selected = selectedId
-        } else if (models.length > 0) {
-          selected = models[0].id
+        const models = await services.getAIModelService().getAIModelsByProjectId("") // Get all models
+        setAvailableModels(models)
+        let selected = ""
+        try {
+          const modalSelected = await services.getSettingsService().getSetting("modalSelected")
+          // modalSelected may be an object, so get the value if needed
+          const selectedId =
+            typeof modalSelected === "string"
+              ? modalSelected
+              : modalSelected?.value || ""
+          if (selectedId && models.some((m) => m.id === selectedId)) {
+            selected = selectedId
+          } else if (models.length > 0) {
+            selected = models[0].id
+          }
+        } catch {
+          if (models.length > 0) {
+            selected = models[0].id
+          }
         }
-      } catch {
-        if (models.length > 0) {
-          selected = models[0].id
-        }
+        setSelectedModelId(selected)
+      } catch (error) {
+        console.error("Failed to load models:", error)
       }
-      setSelectedModelId(selected)
-    })()
-  })
+    }
+    loadModels()
+  }, [])
 
   const handleRadioChange = async (id: string) => {
     setSelectedModelId(id)
     try {
-      await saveOrUpdateSettings("modalSelected", id)
+      await services.getSettingsService().saveOrUpdateSetting("modalSelected", id)
     } catch {
       toast({
         title: "Error",
@@ -72,7 +75,7 @@ export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
   const handleSave = async () => {
     if (!selectedModelId) return
     try {
-      await saveOrUpdateSettings("modalSelected", selectedModelId)
+      await services.getSettingsService().saveOrUpdateSetting("modalSelected", selectedModelId)
       toast({
         title: "Model saved",
         description: `Selected model has been saved!`,

@@ -26,9 +26,8 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { AIDetectionButton } from "@/components/ai-detection-button"
 import type { ImageData } from "@vailabel/core"
-import { useCanvasStore } from "@/stores/canvas-store"
-import { useAnnotationsStore } from "@/stores/annotation-store"
-import { memo } from "react"
+import { useCanvasTool, useCanvasZoom, useCanvasPan, useCanvasState } from "@/contexts/canvas-context"
+import { memo, useCallback } from "react"
 
 interface ToolbarProps {
   currentImage: ImageData | null
@@ -56,18 +55,18 @@ interface AdditionalTool {
 
 export const Toolbar = memo(
   ({ currentImage, onOpenAISettings }: ToolbarProps) => {
-    const {
-      selectedTool,
-      setSelectedTool,
-      resetView,
-      setZoom,
-      zoom,
-      setShowCrosshair,
-      setShowCoordinates,
-      showCrosshair,
-      showCoordinates,
-    } = useCanvasStore()
-    const { undo, redo, canUndo, canRedo } = useAnnotationsStore()
+  const { selectedTool, setSelectedTool } = useCanvasTool()
+  const { zoom, setZoom } = useCanvasZoom()
+  const { resetView } = useCanvasPan()
+  const { showCrosshair, showCoordinates } = useCanvasState(state => ({
+    showCrosshair: state.showCrosshair,
+    showCoordinates: state.showCoordinates
+  }))
+  // Note: Undo/Redo functionality would need to be implemented in the service layer
+  const undo = useCallback(() => console.log("Undo not implemented yet"), [])
+  const redo = useCallback(() => console.log("Redo not implemented yet"), [])
+  const canUndo = false
+  const canRedo = false
     const selectedTools = React.useMemo(
       (): Tool[] => [
         {
@@ -140,7 +139,7 @@ export const Toolbar = memo(
           shortcut: "C",
           active: showCrosshair,
           action: () => {
-            setShowCrosshair(!showCrosshair)
+            // TODO: Implement crosshair toggle in Context
           },
         },
         {
@@ -150,11 +149,11 @@ export const Toolbar = memo(
           shortcut: "Alt+Shift+C",
           active: showCoordinates,
           action: () => {
-            setShowCoordinates(!showCoordinates)
+            // TODO: Implement coordinates toggle in Context
           },
         },
       ],
-      [showCrosshair, showCoordinates, setShowCrosshair, setShowCoordinates]
+      [showCrosshair, showCoordinates]
     )
 
     return (

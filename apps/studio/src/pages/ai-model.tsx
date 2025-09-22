@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import type { AIModel } from "@vailabel/core"
 import {
   Dialog,
@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Download, Plus, X } from "lucide-react"
-import { useAIModelStore } from "@/stores/use-ai-model-store"
+import { useServices } from "@/services/ServiceProvider"
 import { ElectronFileInput } from "@/components/electron-file"
 
 const SYSTEM_MODELS = [
@@ -62,11 +62,30 @@ const SYSTEM_MODELS = [
 ]
 
 export default function AIModelListPage() {
-  const { getAIModels, aiModels, createAIModel } = useAIModelStore()
+  const services = useServices()
+  const [aiModels, setAiModels] = useState<AIModel[]>([])
   const [showSystemModal, setShowSystemModal] = useState(false)
   const [detailModel, setDetailModel] = useState<AIModel | null>(null)
   const [showAddModelModal, setShowAddModelModal] = useState(false)
   const [addModelFile, setAddModelFile] = useState<File | null>(null)
+  // Functions
+  const getAIModels = useCallback(async () => {
+    try {
+      const models = await services.getAIModelService().getAIModelsByProjectId("") // Get all models
+      setAiModels(models)
+    } catch (error) {
+      console.error("Failed to fetch AI models:", error)
+    }
+  }, [])
+
+  const createAIModel = async (model: AIModel) => {
+    try {
+      await services.getAIModelService().createAIModel(model)
+      await getAIModels() // Refresh the list
+    } catch (error) {
+      console.error("Failed to create AI model:", error)
+    }
+  }
 
   // Handler for file input change
   // Accepts { target: { files: string[] } } from ElectronFileInput

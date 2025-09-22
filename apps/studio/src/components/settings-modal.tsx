@@ -11,7 +11,7 @@ import { Slider } from "@/components/ui/slider"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import { useTheme } from "./theme-provider"
-import { useSettingsStore } from "@/stores/use-settings-store"
+import { useServices } from "@/services/ServiceProvider"
 
 interface SettingsModalProps {
   onClose: () => void
@@ -25,7 +25,7 @@ export const SettingsModal = ({ onClose }: SettingsModalProps) => {
   const { toast } = useToast()
   const [isClearing, setIsClearing] = useState(false)
   const { theme, setTheme } = useTheme()
-  const { getSettings, saveOrUpdateSettings } = useSettingsStore()
+  const services = useServices()
 
   const [showRulers, setShowRulers] = useState(true)
   const [showCrosshairs, setShowCrosshairs] = useState(true)
@@ -35,37 +35,49 @@ export const SettingsModal = ({ onClose }: SettingsModalProps) => {
 
   // Fetch settings on mount
   useEffect(() => {
-    ;(async () => {
-      const settingsArray: { key: string; value: string }[] =
-        await getSettings()
-      const loadedSettings: Settings = settingsArray.reduce(
-        (acc, { key, value }) => {
-          acc[key] = value
-          return acc
-        },
-        {} as Settings
-      )
-      // Only update local state, not the store, to avoid type mismatch
-      setShowRulers(Boolean(loadedSettings.showRulers ?? true))
-      setShowCrosshairs(Boolean(loadedSettings.showCrosshairs ?? true))
-      setShowCoordinates(Boolean(loadedSettings.showCoordinates ?? true))
-      setBrightness(Number(loadedSettings.brightness ?? 100))
-      setContrast(Number(loadedSettings.contrast ?? 100))
-    })()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const loadSettings = async () => {
+      try {
+        const settingsArray = await services.getSettingsService().getSettings()
+        const loadedSettings: Settings = settingsArray.reduce(
+          (acc, { key, value }) => {
+            acc[key] = value
+            return acc
+          },
+          {} as Settings
+        )
+        // Only update local state, not the store, to avoid type mismatch
+        setShowRulers(Boolean(loadedSettings.showRulers ?? true))
+        setShowCrosshairs(Boolean(loadedSettings.showCrosshairs ?? true))
+        setShowCoordinates(Boolean(loadedSettings.showCoordinates ?? true))
+        setBrightness(Number(loadedSettings.brightness ?? 100))
+        setContrast(Number(loadedSettings.contrast ?? 100))
+      } catch (error) {
+        console.error("Failed to load settings:", error)
+      }
+    }
+    loadSettings()
   }, [])
 
   // Unified handler for toggles and sliders
-  const handleChangeSetting = (
+  const handleChangeSetting = async (
     key: string,
     value: string | number | boolean
   ) => {
-    // Convert value to string for updateSetting
-    saveOrUpdateSettings(key, String(value))
-    toast({
-      title: "Setting updated",
-      description: `${key} has been updated to ${value}`,
-    })
+    try {
+      // Convert value to string for updateSetting
+      await services.getSettingsService().saveOrUpdateSetting(key, String(value))
+      toast({
+        title: "Setting updated",
+        description: `${key} has been updated to ${value}`,
+      })
+    } catch (error) {
+      console.error("Failed to save setting:", error)
+      toast({
+        title: "Error",
+        description: "Failed to save setting",
+        variant: "destructive",
+      })
+    }
   }
 
   const handleClearAllData = async () => {

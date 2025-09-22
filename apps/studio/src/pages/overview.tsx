@@ -2,8 +2,7 @@ import { motion } from "framer-motion"
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Users, Folder, Tag } from "lucide-react"
-import { useProjectStore } from "@/stores/use-project-store"
-import { useLabelStore } from "@/stores/use-label-store"
+import { useServices } from "@/services/ServiceProvider"
 
 interface RecentActivityItem {
   activity: string
@@ -12,8 +11,7 @@ interface RecentActivityItem {
 }
 
 const Overview = () => {
-  const { getProjects } = useProjectStore()
-  const { getLabels } = useLabelStore()
+  const services = useServices()
   const navigate = useNavigate()
   const [statistics, setStatistics] = useState({
     totalProjects: 0,
@@ -24,8 +22,10 @@ const Overview = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const projects = await getProjects()
-      const labels = await getLabels()
+      const [projects, labels] = await Promise.all([
+        services.getProjectService().getProjects(),
+        services.getLabelService().getLabelsByProjectId('') // Get all labels
+      ])
       setStatistics({
         totalProjects: projects.length,
         activeUsers: 120, // Placeholder value; replace with real data if available
@@ -41,7 +41,7 @@ const Overview = () => {
     }
 
     fetchData()
-  }, [getProjects, getLabels])
+  }, [])
 
   return (
     <div

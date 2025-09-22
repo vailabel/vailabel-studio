@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useEffect, memo } from "react"
+import { useRef, useEffect, memo, useMemo } from "react"
 import { motion } from "framer-motion"
 import {
   Square,
@@ -12,7 +12,7 @@ import {
   Brain,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useCanvasStore } from "@/stores/canvas-store"
+import { useCanvasTool, useCanvasZoom, useCanvasPan } from "@/contexts/canvas-context"
 
 interface ContextMenuProps {
   x: number
@@ -24,7 +24,8 @@ interface ContextMenuProps {
 export const ContextMenu = memo(
   ({ x, y, containerRect, onClose }: ContextMenuProps) => {
     const menuRef = useRef<HTMLDivElement>(null)
-    const { setSelectedTool, resetView } = useCanvasStore()
+    const { setSelectedTool } = useCanvasTool()
+    const { resetView } = useCanvasPan()
 
     // Close menu when clicking outside
     useEffect(() => {
@@ -43,19 +44,24 @@ export const ContextMenu = memo(
       onClose()
     }
 
-    // Calculate position relative to the container
-    const menuX = containerRect ? Math.max(0, x - containerRect.left) : x
-    const menuY = containerRect ? Math.max(0, y - containerRect.top) : y
+    // Memoize position calculation to prevent unnecessary recalculations
+    const menuPosition = useMemo(() => {
+      // Calculate position relative to the container
+      const menuX = containerRect ? Math.max(0, x - containerRect.left) : x
+      const menuY = containerRect ? Math.max(0, y - containerRect.top) : y
 
-    // Adjust position to ensure menu stays within viewport
-    const adjustedX = Math.min(
-      menuX,
-      (containerRect?.width || window.innerWidth) - 200
-    )
-    const adjustedY = Math.min(
-      menuY,
-      (containerRect?.height || window.innerHeight) - 250
-    )
+      // Adjust position to ensure menu stays within viewport
+      const adjustedX = Math.min(
+        menuX,
+        (containerRect?.width || window.innerWidth) - 200
+      )
+      const adjustedY = Math.min(
+        menuY,
+        (containerRect?.height || window.innerHeight) - 250
+      )
+
+      return { x: adjustedX, y: adjustedY }
+    }, [x, y, containerRect])
 
     return (
       <motion.div
@@ -68,7 +74,7 @@ export const ContextMenu = memo(
           "dark:bg-gray-800 dark:ring-gray-700",
           "bg-white ring-gray-200"
         )}
-        style={{ left: adjustedX, top: adjustedY }}
+        style={{ left: menuPosition.x, top: menuPosition.y }}
       >
         <div className="py-1">
           <button

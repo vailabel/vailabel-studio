@@ -1,15 +1,15 @@
-import { memo, useCallback, useEffect, useRef, useMemo } from "react"
+import { memo, useCallback, useRef, useMemo, useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { AnnotationRenderer } from "@/components/canvas/annotation-renderer"
 import { PositionCoordinates } from "@/components/canvas/position-coordinates"
-import { useCanvasHandlers } from "@/tools/canvas-handler"
-import { type Annotation, type ImageData } from "@vailabel/core"
-import { Crosshair } from "@/components/canvas/crosshair"
+import { useCanvasHandlers } from "@/hooks/use-canvas-handlers-context"
+import { type Annotation, type ImageData, type Label } from "@vailabel/core"
+import { Crosshair } from "@/components/canvas/crosshair-context"
 import { CreateAnnotation } from "@/components/canvas/create-annotation"
-import { useAnnotationsStore } from "@/stores/annotation-store"
-import { useCanvasStore } from "@/stores/canvas-store"
-import { useLabelStore } from "@/stores/use-label-store"
+import { useServices } from "@/services/ServiceProvider"
+import { useCanvasPan, useCanvasZoom, useCanvasTool, useCanvasSelection } from "@/contexts/canvas-context"
 import { TempAnnotation } from "./temp-annotation"
+import { ToolStatus } from "./tool-status"
 
 interface CanvasProps {
   image: ImageData
@@ -25,6 +25,13 @@ const CanvasImage = memo(({ image }: { image: ImageData }) => (
     draggable={false}
     width={image.width}
     height={image.height}
+    style={{
+      width: `${image.width}px`,
+      height: `${image.height}px`,
+      maxWidth: 'none',
+      maxHeight: 'none',
+      objectFit: 'none'
+    }}
   />
 ))
 
@@ -44,19 +51,54 @@ const EmptyImageState = memo(() => (
 EmptyImageState.displayName = "EmptyImageState"
 
 export const Canvas = memo(({ image, annotations }: CanvasProps) => {
-  const { zoom, panOffset, selectedTool, setCanvasRef, setToolState } =
-    useCanvasStore()
-  const { createAnnotation } = useAnnotationsStore()
-  const { getOrCreateLabel, labels } = useLabelStore()
+  // Use Context hooks instead of Zustand
+  const { zoom } = useCanvasZoom()
+  const { panOffset } = useCanvasPan()
+  const { selectedTool, setToolState } = useCanvasTool()
+  const { setSelectedAnnotation } = useCanvasSelection()
+  
+  const services = useServices()
+  const [labels, setLabels] = useState<Label[]>([])
+
+  // Load labels for the project
+  useEffect(() => {
+    const loadLabels = async () => {
+      if (image.projectId) {
+        try {
+          const projectLabels = await services.getLabelService().getLabelsByProjectId(image.projectId)
+          setLabels(projectLabels)
+        } catch (error) {
+          console.error("Failed to load labels:", error)
+        }
+      }
+    }
+    loadLabels()
+  }, [image.projectId])
 
   const canvasRef = useRef<HTMLDivElement | null>(null)
 
   // Get all handler props
-  const handlerState = useCanvasHandlers()
+  const handlerState = useCanvasHandlers(canvasRef, annotations, {
+    updateAnnotation: async (id: string, updates: Partial<Annotation>) => {
+      try {
+        await services.getAnnotationService().updateAnnotation(id, updates)
+      } catch (error) {
+        console.error("Failed to update annotation:", error)
+      }
+    },
+    deleteAnnotation: async (id: string) => {
+      try {
+        await services.getAnnotationService().deleteAnnotation(id)
+      } catch (error) {
+        console.error("Failed to delete annotation:", error)
+      }
+    }
+  }, { id: image.id })
   const {
     handleMouseDown,
     handleMouseMove,
     handleMouseUp,
+    handleMouseLeave,
     handleDoubleClick,
     isPanning,
     // ...other UI state
@@ -104,48 +146,77 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
     async (name: string, color: string) => {
       if (!tempAnnotation) return
       if (!image.projectId) return
-      const label = await getOrCreateLabel(name, color, image.projectId)
-      if (!label) return
-      const newAnnotation: Annotation = {
-        label: label,
-        labelId: label.id,
-        color: label.color ?? color,
-        imageId: image.id,
-        id: crypto.randomUUID(),
-        name: name,
-        type: tempAnnotation.type ?? "box",
-        coordinates: tempAnnotation.coordinates ?? [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
+      
+      try {
+        // Get or create label
+        const existingLabels = await services.getLabelService().getLabelsByProjectId(image.projectId)
+        let label = existingLabels.find(l => l.name === name)
+        
+        if (!label) {
+          // Create new label
+          const newLabel = {
+            id: crypto.randomUUID(),
+            name: name,
+            color: color,
+            projectId: image.projectId,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }
+          await services.getLabelService().createLabel(newLabel)
+          label = newLabel
+        }
+        
+        if (!label) return
+        
+        const newAnnotation: Annotation = {
+          label: label,
+          labelId: label.id,
+          color: label.color ?? color,
+          imageId: image.id,
+          id: crypto.randomUUID(),
+          name: name,
+          type: tempAnnotation.type ?? "box",
+          coordinates: tempAnnotation.coordinates ?? [],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }
+        await services.getAnnotationService().createAnnotation(newAnnotation)
+        
+        // Clear tool state after successful creation
+        setToolState({
+          showLabelInput: false,
+          tempAnnotation: null,
+          resizingAnnotationId: null,
+          movingAnnotationId: null,
+          previewCoordinates: null,
+          polygonPoints: [], // Clear polygon points for fresh start
+        })
+        
+        // Select the newly created annotation so it can be moved immediately
+        setSelectedAnnotation(newAnnotation)
+      } catch (error) {
+        console.error("Failed to create annotation:", error)
       }
-      createAnnotation(newAnnotation)
-      setToolState({
-        showLabelInput: false,
-        tempAnnotation: null,
-        resizingAnnotationId: null,
-        movingAnnotationId: null,
-        previewCoordinates: null,
-      })
     },
     [
       tempAnnotation,
       image.projectId,
       image.id,
-      getOrCreateLabel,
-      createAnnotation,
+      services,
       setToolState,
+      setSelectedAnnotation,
     ]
   )
 
   const handleCloseCreateAnnotationModal = useCallback(() => {
     setToolState({
       showLabelInput: false,
+      tempAnnotation: null,
+      polygonPoints: [], // Clear polygon points when canceling
     })
   }, [setToolState])
 
-  useEffect(() => {
-    setCanvasRef(canvasRef)
-  }, [setCanvasRef])
+  // Canvas ref is now passed directly to handlers
 
   // Memoize cursor styles to prevent object recreation
   const cursorStyles = useMemo(
@@ -173,6 +244,7 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
     () => ({
       transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom})`,
       transformOrigin: "0 0",
+      willChange: "transform", // Hint to browser for GPU acceleration
     }),
     [panOffset.x, panOffset.y, zoom]
   )
@@ -183,14 +255,19 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
     [canvasCursor]
   )
 
-  // Memoize image dimensions for better performance
-  const imageDimensions = useMemo(
+  // Memoize canvas container styles for better performance
+  const canvasContainerStyle = useMemo(
     () => ({
-      width: image?.width,
-      height: image?.height,
+      contain: "layout style paint", // CSS containment for better performance
+      transform: "translateZ(0)", // Force GPU acceleration
+      // Ensure container doesn't affect image size
+      width: '100%',
+      height: '100%',
+      overflow: 'hidden'
     }),
-    [image?.width, image?.height]
+    []
   )
+
 
   return (
     <>
@@ -203,30 +280,35 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
               data-testid="canvas"
               ref={canvasRef}
               className={canvasClassName}
+              style={canvasContainerStyle}
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseLeave}
               onDoubleClick={handleDoubleClick}
               role="button"
             >
               <div className="absolute" style={transformStyle}>
-                <CanvasImage
-                  image={
-                    {
-                      ...image,
-                      width: imageDimensions.width,
-                      height: imageDimensions.height,
-                    } as ImageData
-                  }
-                />
+                <CanvasImage image={image} />
                 <AnnotationRenderer annotations={displayAnnotations} />
                 {tempAnnotation && (
                   <TempAnnotation annotation={tempAnnotation} />
                 )}
               </div>
 
-              <Crosshair />
+              <Crosshair canvasRef={canvasRef} />
               <PositionCoordinates />
+              
+              {/* Show tool status for all tools */}
+              <ToolStatus 
+                tool={selectedTool}
+                isVisible={!showLabelInput}
+                pointCount={"polygonPoints" in handlerState ? handlerState.polygonPoints?.length || 0 : 0}
+                isDragging={"isDragging" in handlerState ? handlerState.isDragging : false}
+                isDrawing={"isDrawing" in handlerState ? handlerState.isDrawing : false}
+                isMoving={"isMoving" in handlerState ? (handlerState.isMoving as boolean) : false}
+                isResizing={"isResizing" in handlerState ? (handlerState.isResizing as boolean) : false}
+              />
             </div>
           )}
         </div>

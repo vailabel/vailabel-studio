@@ -8,7 +8,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { Label } from "@vailabel/core"
-import { useLabelStore } from "@/stores/use-label-store"
+import { useServices } from "@/services/ServiceProvider"
 import { memo, useEffect, useState, useMemo, useCallback } from "react"
 
 interface LabelListPanelProps {
@@ -18,7 +18,7 @@ interface LabelListPanelProps {
 
 export const LabelListPanel = memo(
   ({ onLabelSelect, projectId }: LabelListPanelProps) => {
-    const { getLabelsByProjectId } = useLabelStore()
+    const services = useServices()
     const [labels, setLabels] = useState<Label[]>([])
     const [isLoading, setIsLoading] = useState(true)
 
@@ -39,7 +39,7 @@ export const LabelListPanel = memo(
     const fetchLabels = useCallback(async () => {
       try {
         setIsLoading(true)
-        const fetchedLabels = await getLabelsByProjectId(projectId)
+        const fetchedLabels = await services.getLabelService().getLabelsByProjectId(projectId)
         setLabels(fetchedLabels)
       } catch (error) {
         console.error("Failed to fetch labels:", error)
@@ -47,7 +47,7 @@ export const LabelListPanel = memo(
       } finally {
         setIsLoading(false)
       }
-    }, [getLabelsByProjectId, projectId])
+    }, [projectId])
 
     // Re-fetch labels when projectId changes
     useEffect(() => {

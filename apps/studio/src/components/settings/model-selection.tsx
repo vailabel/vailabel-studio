@@ -11,14 +11,12 @@ import {
 } from "@/components/ui/table"
 import { useToast } from "@/hooks/use-toast"
 import { AIModel } from "@vailabel/core"
-import { useAIModelStore } from "@/stores/use-ai-model-store"
-import { useSettingsStore } from "@/stores/use-settings-store"
+import { useServices } from "@/services/ServiceProvider"
 import { Button } from "@/components/ui/button"
 
 export function ModelSelection() {
   const { toast } = useToast()
-  const { getAIModels, getSelectedModel } = useAIModelStore()
-  const { saveOrUpdateSettings } = useSettingsStore()
+  const services = useServices()
   const [availableModels, setAvailableModels] = useState<AIModel[]>([])
   const [selectedModelId, setSelectedModelId] = useState<string>("")
 
@@ -26,10 +24,14 @@ export function ModelSelection() {
     // Load models on mount
     const fetchModels = async () => {
       try {
-        const models = await getAIModels()
+        const models = await services.getAIModelService().getAIModelsByProjectId("") // Get all models
         setAvailableModels(models)
-        const selected = await getSelectedModel()
-        if (selected) setSelectedModelId(selected.id)
+        
+        // Try to get selected model from settings
+        const selectedModelSetting = await services.getSettingsService().getSetting("selectedModelId")
+        if (selectedModelSetting && selectedModelSetting.value) {
+          setSelectedModelId(selectedModelSetting.value)
+        }
       } catch {
         toast({
           title: "Error",
@@ -39,22 +41,30 @@ export function ModelSelection() {
       }
     }
     fetchModels()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [toast])
 
   const handleRadioChange = (modelId: string) => {
     setSelectedModelId(modelId)
     // Optionally, persist the selected model if your store supports it
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const selectedModel = availableModels.find((m) => m.id === selectedModelId)
     if (selectedModel) {
-      saveOrUpdateSettings("modelPath", selectedModel.modelPath)
-      toast({
-        title: "Model Saved",
-        description: `Model path saved to settings: ${selectedModel.modelPath}`,
-      })
+      try {
+        await services.getSettingsService().saveOrUpdateSetting("modelPath", selectedModel.modelPath || "")
+        await services.getSettingsService().saveOrUpdateSetting("selectedModelId", selectedModelId)
+        toast({
+          title: "Model Saved",
+          description: `Model path saved to settings: ${selectedModel.modelPath}`,
+        })
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to save model settings.",
+          variant: "destructive",
+        })
+      }
     } else {
       toast({
         title: "No Model Selected",

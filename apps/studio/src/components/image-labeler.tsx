@@ -24,11 +24,9 @@ import { AIModelSelectModal } from "@/components/ai-model-modal"
 import { ContextMenu } from "@/components/context-menu"
 import { ThemeToggle } from "./theme-toggle"
 import { useNavigate } from "react-router-dom"
-import { useCanvasStore } from "@/stores/canvas-store"
-import { useProjectStore } from "@/stores/use-project-store"
+import { useCanvasContextMenu, useCanvasContainer } from "@/contexts/canvas-context"
+import { useServices } from "@/services/ServiceProvider"
 import { ImageData } from "@vailabel/core"
-import { useImageDataStore } from "@/stores/use-image-data-store"
-import { useAnnotationsStore } from "@/stores/annotation-store"
 import { Annotation } from "@vailabel/core"
 
 interface ImageLabelerProps {
@@ -76,18 +74,12 @@ MemoizedLabelListPanel.displayName = "MemoizedLabelListPanel"
 
 export const ImageLabeler = memo(
   ({ projectId, imageId }: ImageLabelerProps) => {
-    const {
-      contextMenuProps,
-      setContextMenuProps,
-      canvasContainerRef,
-      containerRect,
-      setContainerRect,
-    } = useCanvasStore()
+    const { contextMenuProps, setContextMenuProps } = useCanvasContextMenu()
+    const { canvasContainerRef, containerRect, setContainerRect } = useCanvasContainer()
+    const services = useServices()
 
-    const { getImageImageById } = useImageDataStore()
-    const { annotations, setAnnotations } = useAnnotationsStore()
     const [image, setImage] = useState<ImageData | null>(null)
-    const { getNextImage, getPreviousImage } = useProjectStore()
+    const [annotations, setAnnotations] = useState<Annotation[]>([])
     const navigate = useNavigate()
 
     const [nextId, setNextId] = useState<string | null>(null)
@@ -100,7 +92,7 @@ export const ImageLabeler = memo(
       let isCancelled = false
       ;(async () => {
         if (!projectId || !imageId) return
-        const img = await getImageImageById(imageId)
+        const img = await services.getImageDataService().getImageById(imageId)
         if (!isCancelled) {
           if (img) {
             setImage(img)
@@ -113,7 +105,7 @@ export const ImageLabeler = memo(
 
         // update navigation state (next/previous)
         try {
-          const next = await getNextImage(projectId, imageId)
+          const next = await services.getProjectService().getNextImage(projectId, imageId)
           if (!isCancelled) {
             setNextId(next?.id ?? null)
             setHasNext(Boolean(next?.hasNext && next?.id))
@@ -126,7 +118,7 @@ export const ImageLabeler = memo(
         }
 
         try {
-          const prev = await getPreviousImage(projectId, imageId)
+          const prev = await services.getProjectService().getPreviousImage(projectId, imageId)
           if (!isCancelled) {
             setPrevId(prev?.id ?? null)
             setHasPrevious(Boolean(prev?.hasPrevious && prev?.id))
@@ -145,16 +137,16 @@ export const ImageLabeler = memo(
     }, [
       projectId,
       imageId,
-      getImageImageById,
-      getNextImage,
-      getPreviousImage,
+      services,
       setAnnotations,
     ])
 
     const handleContextMenu = useCallback(
       (e: React.MouseEvent) => {
         e.preventDefault()
-        if (canvasContainerRef.current) {
+        // Only update containerRect if it's null or context menu is not open
+        // This prevents unnecessary updates during window resize
+        if (canvasContainerRef.current && (!containerRect || !contextMenuProps.isOpen)) {
           setContainerRect(canvasContainerRef.current.getBoundingClientRect())
         }
         setContextMenuProps({
@@ -164,7 +156,7 @@ export const ImageLabeler = memo(
         })
         return false
       },
-      [canvasContainerRef, setContainerRect, setContextMenuProps]
+      [canvasContainerRef, setContainerRect, setContextMenuProps, containerRect, contextMenuProps.isOpen]
     )
 
     const handleCloseContextMenu = useCallback(() => {
@@ -198,12 +190,12 @@ export const ImageLabeler = memo(
         return
       }
       try {
-        const next = await getNextImage(projectId, imageId)
+        const next = await services.getProjectService().getNextImage(projectId, imageId)
         if (next?.id) navigate(`/projects/${projectId}/studio/${next.id}`)
       } catch {
         // ignore
       }
-    }, [projectId, imageId, hasNext, nextId, navigate, getNextImage])
+    }, [projectId, imageId, hasNext, nextId, navigate])
 
     const goPreviousImage = useCallback(async () => {
       if (!projectId || !imageId) return
@@ -212,12 +204,12 @@ export const ImageLabeler = memo(
         return
       }
       try {
-        const prev = await getPreviousImage(projectId, imageId)
+        const prev = await services.getProjectService().getPreviousImage(projectId, imageId)
         if (prev?.id) navigate(`/projects/${projectId}/studio/${prev.id}`)
       } catch {
         // ignore
       }
-    }, [projectId, imageId, hasPrevious, prevId, navigate, getPreviousImage])
+    }, [projectId, imageId, hasPrevious, prevId, navigate])
 
     // Memoize the header props to prevent unnecessary re-renders
     const headerProps = useMemo(
@@ -226,8 +218,9 @@ export const ImageLabeler = memo(
         onPrevious: goPreviousImage,
         hasNext,
         hasPrevious,
+        projectId,
       }),
-      [goNextImage, goPreviousImage, hasNext, hasPrevious]
+      [goNextImage, goPreviousImage, hasNext, hasPrevious, projectId]
     )
 
     return (
@@ -293,14 +286,40 @@ const Header = memo(
     onPrevious,
     hasNext,
     hasPrevious,
+    projectId,
   }: {
     onNext: () => void
     onPrevious: () => void
     hasNext: boolean
     hasPrevious: boolean
+    projectId?: string
   }) => {
-    const { currentProject } = useProjectStore()
+    const services = useServices()
     const navigate = useNavigate()
+    const [currentProject, setCurrentProject] = useState<{ id: string; name: string; labelCount: number; imageCount: number } | null>(null)
+    
+    // Load project data
+    useEffect(() => {
+      const loadProject = async () => {
+        if (projectId) {
+          try {
+            const project = await services.getProjectService().getProject(projectId)
+            if (project) {
+              setCurrentProject({
+                id: project.id,
+                name: project.name,
+                labelCount: project.labelCount || 0,
+                imageCount: project.imageCount || 0
+              })
+            }
+          } catch (error) {
+            console.error("Failed to load project:", error)
+          }
+        }
+      }
+      loadProject()
+    }, [projectId])
+    
     const projectName = useMemo(
       () => currentProject?.name || "Project Name",
       [currentProject?.name]
@@ -326,8 +345,6 @@ const Header = memo(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [_, setShowExport] = useState(false)
     const [showAISettings, setShowAISettings] = useState(false)
-    const { data, imageIdListCache } = useProjectStore()
-    const fetchAnnotations = useAnnotationsStore((s) => s.fetchAnnotations)
 
     const [localImageCount, setLocalImageCount] = useState<number>(imageCount)
     const [localLabelCount, setLocalLabelCount] = useState<number>(labelCount)
@@ -343,20 +360,16 @@ const Header = memo(
         }
 
         // try using cached id list first
-        const cached = imageIdListCache[projectId]
-        if (cached && cached.length >= 0) {
-          setLocalImageCount(cached.length)
-        } else {
-          try {
-            const imgs = await data.fetchImageDataByProjectId(projectId)
-            if (!cancelled) setLocalImageCount(imgs.length)
-          } catch {
-            if (!cancelled) setLocalImageCount(0)
-          }
+        // Note: imageIdListCache would need to be implemented in the service layer
+        try {
+          const imgs = await services.getImageDataService().getImagesByProjectId(projectId)
+          if (!cancelled) setLocalImageCount(imgs.length)
+        } catch {
+          if (!cancelled) setLocalImageCount(0)
         }
 
         try {
-          const annotations: Annotation[] = await fetchAnnotations(projectId)
+          const annotations: Annotation[] = await services.getAnnotationService().getAnnotationsByProjectId(projectId)
           const unique = new Set(annotations.map((a: Annotation) => a.imageId))
           if (!cancelled) setLocalLabelCount(unique.size)
         } catch {
@@ -366,7 +379,7 @@ const Header = memo(
       return () => {
         cancelled = true
       }
-    }, [currentProject?.id, data, imageIdListCache, fetchAnnotations])
+    }, [currentProject?.id])
     return (
       <header className="flex justify-between border-b px-4 py-1 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
         <div className="flex items-center gap-4 min-w-[250px]">

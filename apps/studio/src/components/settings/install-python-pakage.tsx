@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { isElectron } from "@/lib/constants"
 import ExternalLink from "../exteral-link"
-import { useSettingsStore } from "@/stores/use-settings-store"
+import { useServices } from "@/services/ServiceProvider"
 import { ElectronFileInput } from "../electron-file"
 
 interface PythonInfo {
@@ -32,7 +32,7 @@ export const InstallPythonPackage = () => {
     error: null,
   })
 
-  const { saveOrUpdateSettings } = useSettingsStore()
+  const services = useServices()
 
   // Listen for python install progress (Electron only)
   useEffect(() => {
@@ -61,33 +61,39 @@ export const InstallPythonPackage = () => {
 
   // On mount, load pythonPath from settings and fetch version info if present
   useEffect(() => {
-    const storedPythonPath = useSettingsStore
-      .getState()
-      .settings.find((s) => s.key === "pythonPath")?.value
-    if (storedPythonPath) {
-      setIsDetectingPython(true)
-      window.ipc
-        .invoke("query:getPythonVersion", { pythonPath: storedPythonPath })
-        .then((info) => {
-          const pyInfo = info as PythonInfo
-          setPythonInfo({
-            pythonPath: pyInfo.pythonPath || storedPythonPath,
-            version: pyInfo.version || null,
-            pipVersion: pyInfo.pipVersion || null,
-            error: pyInfo.error || null,
-          })
-          setIsDetectingPython(false)
-        })
-        .catch((error: unknown) => {
-          setPythonInfo({
-            pythonPath: storedPythonPath,
-            version: null,
-            pipVersion: null,
-            error: error instanceof Error ? error.message : String(error),
-          })
-          setIsDetectingPython(false)
-        })
+    const loadPythonPath = async () => {
+      try {
+        const pythonPathSetting = await services.getSettingsService().getSetting("pythonPath")
+        const storedPythonPath = pythonPathSetting?.value
+        if (storedPythonPath) {
+          setIsDetectingPython(true)
+          window.ipc
+            .invoke("query:getPythonVersion", { pythonPath: storedPythonPath })
+            .then((info) => {
+              const pyInfo = info as PythonInfo
+              setPythonInfo({
+                pythonPath: pyInfo.pythonPath || storedPythonPath,
+                version: pyInfo.version || null,
+                pipVersion: pyInfo.pipVersion || null,
+                error: pyInfo.error || null,
+              })
+              setIsDetectingPython(false)
+            })
+            .catch((error: unknown) => {
+              setPythonInfo({
+                pythonPath: storedPythonPath,
+                version: null,
+                pipVersion: null,
+                error: error instanceof Error ? error.message : String(error),
+              })
+              setIsDetectingPython(false)
+            })
+        }
+      } catch (error) {
+        console.error("Failed to load Python path from settings:", error)
+      }
     }
+    loadPythonPath()
   }, [])
 
   // Handler to install Python packages (requirements.txt)
@@ -186,7 +192,7 @@ export const InstallPythonPackage = () => {
       })
       setIsDetectingPython(false)
       // Only update pythonPath in settings to the venv's pythonPath
-      saveOrUpdateSettings("pythonPath", result.pythonPath)
+      await services.getSettingsService().saveOrUpdateSetting("pythonPath", result.pythonPath)
     } catch (error) {
       setPythonError(error instanceof Error ? error.message : String(error))
       setIsDetectingPython(false)
@@ -229,7 +235,7 @@ export const InstallPythonPackage = () => {
       })
       setIsDetectingPython(false)
       // Update settings: set pythonPath
-      saveOrUpdateSettings("pythonPath", filePath)
+      await services.getSettingsService().saveOrUpdateSetting("pythonPath", filePath)
     } catch (error) {
       setPythonError(error instanceof Error ? error.message : String(error))
       setIsDetectingPython(false)

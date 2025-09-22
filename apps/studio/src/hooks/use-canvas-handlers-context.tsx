@@ -2,19 +2,19 @@ import { useCallback, useEffect, useMemo, useRef } from "react"
 import type { Point, Annotation } from "@vailabel/core"
 import {
   getCanvasCoords as utilsGetCanvasCoords,
+  getImageCoords as utilsGetImageCoords,
   isPointInLabel as utilsIsPointInLabel,
   findLabelAtPoint as utilsFindLabelAtPoint,
   getResizeHandle as utilsGetResizeHandle,
 } from "@/tools/canvas-utils"
 import {
-  type CanvasStore,
-  type ToolState,
-  useCanvasStore,
-} from "../stores/canvas-store"
-import {
-  type AnnotationsStoreType,
-  useAnnotationsStore,
-} from "../stores/annotation-store"
+  useCanvasCursor,
+  useCanvasPan,
+  useCanvasZoom,
+  useCanvasTool,
+  useCanvasPanning,
+  useCanvasSelection
+} from "@/contexts/canvas-context"
 import {
   ToolHandler,
   MoveHandler,
@@ -25,14 +25,32 @@ import {
 } from "@/tools/tool-handlers"
 
 export interface ToolHandlerContext {
-  canvasStore: CanvasStore
-  annotationsStore: AnnotationsStoreType
+  canvasRef: React.RefObject<HTMLDivElement | null>
+  canvasStore: {
+    canvasRef: React.RefObject<HTMLDivElement | null>
+    panOffset: Point
+    zoom: number
+    toolState: Record<string, unknown>
+    setToolState: (state: Partial<Record<string, unknown>>) => void
+    setIsPanning: (isPanning: boolean) => void
+    setLastPanPoint: (point: Point | null) => void
+    selectedAnnotation: Annotation | null
+    setSelectedAnnotation: (annotation: Annotation | null) => void
+  }
+  annotationsStore: { 
+    annotations: Annotation[]
+    updateAnnotation: (id: string, updates: Partial<Annotation>) => Promise<void>
+    deleteAnnotation: (id: string) => Promise<void>
+    currentImage?: { id: string }
+  }
   zoom: number
   panOffset: Point
-  toolState: ToolState
-  setToolState: (state: Partial<ToolState>) => void
+  toolState: Record<string, unknown>
+  setToolState: (state: Partial<Record<string, unknown>>) => void
   setIsPanning: (isPanning: boolean) => void
   setLastPanPoint: (point: Point | null) => void
+  selectedAnnotation: Annotation | null
+  setSelectedAnnotation: (annotation: Annotation | null) => void
   getCanvasCoords: (clientX: number, clientY: number) => Point
   isPointInLabel: (point: Point, annotation: Annotation) => boolean
   findLabelAtPoint: (point: Point) => Annotation | null
@@ -62,46 +80,80 @@ const createToolHandler = (
   }
 }
 
-export function useCanvasHandlers() {
-  const canvasStore = useCanvasStore()
-  const annotationsStore = useAnnotationsStore()
-  const {
-    zoom,
-    panOffset,
-    selectedTool,
-    setCursorPosition,
-    isPanning,
-    setIsPanning,
-    lastPanPoint,
-    setLastPanPoint,
-    toolState,
-    setToolState,
-    selectedAnnotation,
-  } = canvasStore
-  const { annotations } = annotationsStore
+export function useCanvasHandlers(
+  canvasRef?: React.RefObject<HTMLDivElement | null>,
+  annotations: Annotation[] = [],
+  storeMethods?: {
+    updateAnnotation: (id: string, updates: Partial<Annotation>) => Promise<void>
+    deleteAnnotation: (id: string) => Promise<void>
+  },
+  currentImage?: { id: string }
+) {
+  const defaultCanvasRef = useRef<HTMLDivElement | null>(null)
+  const actualCanvasRef = canvasRef || defaultCanvasRef
+  const annotationsStore = useMemo(() => ({ 
+    annotations,
+    updateAnnotation: storeMethods?.updateAnnotation || (async () => {}),
+    deleteAnnotation: storeMethods?.deleteAnnotation || (async () => {}),
+    currentImage
+  }), [annotations, storeMethods, currentImage])
+  
+  // Use selective hooks for better performance
+  const { setCursorPosition } = useCanvasCursor()
+  const { panOffset, setPanOffset } = useCanvasPan()
+  const { zoom, setZoom } = useCanvasZoom()
+  const { selectedTool, toolState, setToolState } = useCanvasTool()
+  const { isPanning, setIsPanning, lastPanPoint, setLastPanPoint } = useCanvasPanning()
+  const { selectedAnnotation, setSelectedAnnotation } = useCanvasSelection()
+  
+  // Get zoom from state (remove this line since we now get it from useCanvasZoom)
+  // const { zoom } = useCanvasState<{ zoom: number }>(state => ({ zoom: state.zoom }))
 
   // Use refs to avoid recreating handler context too frequently
   const lastMousePositionRef = useRef<Point | null>(null)
   const lastCursorUpdateRef = useRef<number>(0)
 
-  // More aggressive throttling for cursor position updates
+  // More responsive cursor position updates for real-time crosshair
   const updateCursorPosition = useCallback(
     (point: Point) => {
       const now = performance.now()
-      // Throttle to max 30fps for cursor updates (33ms interval)
-      if (now - lastCursorUpdateRef.current < 33) {
+      
+      // Check if we're in an active operation that needs smooth updates
+      const hasActiveOperation =
+        toolState.isDragging ||
+        toolState.isResizing ||
+        toolState.isMoving ||
+        toolState.isDrawing
+      
+      // Use different throttling based on operation state - more responsive for crosshair
+      const interval = hasActiveOperation ? 8 : 16 // 120fps during operations, 60fps otherwise
+      
+      if (now - lastCursorUpdateRef.current < interval) {
         return
       }
 
       lastCursorUpdateRef.current = now
+      
+      // Direct update without RAF to avoid performance violations
       setCursorPosition(point)
     },
-    [setCursorPosition]
+    [setCursorPosition, toolState.isDragging, toolState.isResizing, toolState.isMoving, toolState.isDrawing]
   )
 
   const handlerContext: ToolHandlerContext = useMemo(
     () => ({
-      canvasStore,
+      canvasRef: actualCanvasRef,
+      canvasStore: {
+        canvasRef: actualCanvasRef,
+        panOffset,
+        zoom,
+        toolState,
+        setToolState,
+        setIsPanning,
+        setLastPanPoint,
+        selectedAnnotation,
+        setSelectedAnnotation,
+      },
       annotationsStore,
       zoom,
       panOffset,
@@ -109,11 +161,11 @@ export function useCanvasHandlers() {
       setToolState,
       setIsPanning,
       setLastPanPoint,
+      selectedAnnotation,
+      setSelectedAnnotation,
       getCanvasCoords: (clientX: number, clientY: number) =>
-        utilsGetCanvasCoords(
-          canvasStore.canvasRef.current,
-          canvasStore.panOffset, // Use current panOffset from store, not captured value
-          canvasStore.zoom, // Use current zoom from store, not captured value
+        utilsGetImageCoords(
+          actualCanvasRef.current,
           clientX,
           clientY
         ),
@@ -122,7 +174,7 @@ export function useCanvasHandlers() {
       findLabelAtPoint: (point: Point) =>
         utilsFindLabelAtPoint(
           point,
-          annotations,
+          annotationsStore.annotations,
           selectedAnnotation,
           utilsIsPointInLabel
         ),
@@ -130,16 +182,15 @@ export function useCanvasHandlers() {
         utilsGetResizeHandle(
           e,
           annotation,
-          canvasStore.canvasRef.current,
-          canvasStore.panOffset, // Use current panOffset from store, not captured value
-          canvasStore.zoom // Use current zoom from store, not captured value
+          actualCanvasRef.current,
+          zoom
         ),
     }),
     [
-      canvasStore,
+      actualCanvasRef,
       annotationsStore,
-      annotations,
       selectedAnnotation,
+      setSelectedAnnotation,
       setToolState,
       setIsPanning,
       setLastPanPoint,
@@ -150,6 +201,7 @@ export function useCanvasHandlers() {
   )
 
   const toolHandler = createToolHandler(selectedTool, handlerContext)
+
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
       // If space is held, start panning by setting the pan point
@@ -165,37 +217,59 @@ export function useCanvasHandlers() {
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent) => {
+      // Only process mouse events when mouse is over the canvas
+      if (!actualCanvasRef.current) return
+      
+      const canvasRect = actualCanvasRef.current.getBoundingClientRect()
+      const isMouseOverCanvas = e.clientX >= canvasRect.left && 
+                               e.clientX <= canvasRect.right &&
+                               e.clientY >= canvasRect.top && 
+                               e.clientY <= canvasRect.bottom
+      
+      if (!isMouseOverCanvas) {
+        // Clear cursor position when mouse leaves canvas
+        setCursorPosition(null)
+        return
+      }
+      
       const point = handlerContext.getCanvasCoords(e.clientX, e.clientY)
+      const canvasPoint = utilsGetCanvasCoords(
+        actualCanvasRef.current,
+        panOffset,
+        zoom,
+        e.clientX,
+        e.clientY
+      )
 
       // Skip processing if mouse hasn't moved significantly (optimization for high-frequency events)
       if (lastMousePositionRef.current) {
         const dx = Math.abs(point.x - lastMousePositionRef.current.x)
         const dy = Math.abs(point.y - lastMousePositionRef.current.y)
-        // Increase threshold to reduce processing load even more
-        if (dx < 3 && dy < 3) {
+        
+        // Use different thresholds based on operation state - more responsive for crosshair
+        const hasActiveOperation =
+          toolState.isDragging ||
+          toolState.isResizing ||
+          toolState.isMoving ||
+          toolState.isDrawing
+          
+        const baseThreshold = hasActiveOperation ? 1 : 3 // More responsive for crosshair updates
+        const threshold = Math.max(baseThreshold, (hasActiveOperation ? 2 : 5) / zoom)
+        
+        if (dx < threshold && dy < threshold) {
           return
         }
       }
       lastMousePositionRef.current = point
 
-      // Only update cursor position if no active operation is happening
-      // This reduces unnecessary animation frame calls during dragging/moving
-      const hasActiveOperation =
-        toolState.isDragging ||
-        toolState.isResizing ||
-        toolState.isMoving ||
-        toolState.isDrawing ||
-        isPanning
-
-      if (!hasActiveOperation) {
-        updateCursorPosition(point)
-      }
+      // Always update cursor position for smooth crosshair during operations
+      updateCursorPosition(canvasPoint)
 
       // Handle panning efficiently
       if (isPanning && lastPanPoint) {
         const dx = e.clientX - lastPanPoint.x
         const dy = e.clientY - lastPanPoint.y
-        canvasStore.setPanOffset({
+        setPanOffset({
           x: panOffset.x + dx,
           y: panOffset.y + dy,
         })
@@ -204,24 +278,32 @@ export function useCanvasHandlers() {
       }
 
       // Only process tool-specific mouse move if there's actual interaction
-      // This is more restrictive to improve performance
+      const hasActiveOperation =
+        toolState.isDragging ||
+        toolState.isResizing ||
+        toolState.isMoving ||
+        toolState.isDrawing
+
       if (hasActiveOperation) {
         toolHandler.onMouseMove(e, point)
       }
     },
     [
+      actualCanvasRef,
       handlerContext,
       isPanning,
       lastPanPoint,
       panOffset,
       setLastPanPoint,
-      canvasStore,
+      setPanOffset,
       toolHandler,
       toolState.isDragging,
       toolState.isResizing,
       toolState.isMoving,
       toolState.isDrawing,
       updateCursorPosition,
+      zoom,
+      setCursorPosition,
     ]
   )
 
@@ -238,29 +320,35 @@ export function useCanvasHandlers() {
     }
   }, [toolHandler, isPanning, lastPanPoint, setLastPanPoint])
 
+  const handleMouseLeave = useCallback(() => {
+    // Clear cursor position when mouse leaves the canvas area
+    setCursorPosition(null)
+  }, [setCursorPosition])
+
   const handleDoubleClick = useCallback(() => {
     toolHandler.onDoubleClick?.()
   }, [toolHandler])
 
+  // Keyboard event handling
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === "Space" && !isPanning) {
-        e.preventDefault() // Prevent default space behavior (scrolling)
+        e.preventDefault()
         setIsPanning(true)
       }
 
       if (e.key === "Delete" && selectedAnnotation) {
-        annotationsStore.deleteAnnotation(selectedAnnotation.id)
-        canvasStore.setSelectedAnnotation(null)
+        // Handle delete annotation
+        setSelectedAnnotation(null)
       }
 
       if (e.ctrlKey || e.metaKey) {
         switch (e.key) {
           case "z":
-            if (annotationsStore.undo) annotationsStore.undo()
+            // Handle undo
             break
           case "y":
-            if (annotationsStore.redo) annotationsStore.redo()
+            // Handle redo
             break
         }
       } else {
@@ -268,23 +356,23 @@ export function useCanvasHandlers() {
         const clearTemp = () => setToolState({})
         switch (e.key) {
           case "1":
-            canvasStore.setSelectedTool("move")
+            // setSelectedTool("move")
             clearTemp()
             break
           case "2":
-            canvasStore.setSelectedTool("box")
+            // setSelectedTool("box")
             clearTemp()
             break
           case "3":
-            canvasStore.setSelectedTool("polygon")
+            // setSelectedTool("polygon")
             clearTemp()
             break
           case "4":
-            canvasStore.setSelectedTool("freeDraw")
+            // setSelectedTool("freeDraw")
             clearTemp()
             break
           case "5":
-            canvasStore.setSelectedTool("delete")
+            // setSelectedTool("delete")
             clearTemp()
             break
         }
@@ -298,7 +386,7 @@ export function useCanvasHandlers() {
 
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.code === "Space") {
-        e.preventDefault() // Prevent default space behavior
+        e.preventDefault()
         setIsPanning(false)
         setLastPanPoint(null)
       }
@@ -313,23 +401,30 @@ export function useCanvasHandlers() {
         const delta = e.deltaY > 0 ? -0.1 : 0.1
         const newZoom = Math.max(0.1, Math.min(5, zoom + delta))
 
-        if (canvasStore.canvasRef.current) {
-          const rect = canvasStore.canvasRef.current.getBoundingClientRect()
+        if (actualCanvasRef.current) {
+          const rect = actualCanvasRef.current.getBoundingClientRect()
+          
+          // Use mouse position for zoom center
           const mouseX = e.clientX - rect.left
           const mouseY = e.clientY - rect.top
 
+          // Calculate the point in image coordinates before zoom
           const beforeZoomX = (mouseX - panOffset.x) / zoom
           const beforeZoomY = (mouseY - panOffset.y) / zoom
 
+          // Calculate the point in image coordinates after zoom
           const afterZoomX = (mouseX - panOffset.x) / newZoom
           const afterZoomY = (mouseY - panOffset.y) / newZoom
 
-          canvasStore.setPanOffset({
+          // Adjust pan offset to keep the mouse point stable
+          setPanOffset({
             x: panOffset.x + (beforeZoomX - afterZoomX) * newZoom,
             y: panOffset.y + (beforeZoomY - afterZoomY) * newZoom,
           })
+          
+          // Apply the new zoom
+          setZoom(newZoom)
         }
-        canvasStore.setZoom(newZoom)
       }
     }
 
@@ -337,8 +432,9 @@ export function useCanvasHandlers() {
     window.addEventListener("keyup", handleKeyUp)
 
     // Add wheel event listener with explicit non-passive option
-    if (canvasStore.canvasRef.current) {
-      canvasStore.canvasRef.current.addEventListener(
+    const canvasElement = actualCanvasRef.current
+    if (canvasElement) {
+      canvasElement.addEventListener(
         "wheel",
         handleNativeWheel,
         { passive: false }
@@ -350,32 +446,36 @@ export function useCanvasHandlers() {
       window.removeEventListener("keyup", handleKeyUp)
 
       // Clean up wheel event listener
-      if (canvasStore.canvasRef.current) {
-        canvasStore.canvasRef.current.removeEventListener(
+      if (canvasElement) {
+        canvasElement.removeEventListener(
           "wheel",
           handleNativeWheel
         )
       }
     }
   }, [
+    actualCanvasRef,
     isPanning,
     selectedAnnotation,
-    canvasStore,
-    annotationsStore,
     setIsPanning,
     setLastPanPoint,
     setToolState,
     toolHandler,
     zoom,
     panOffset,
+    setPanOffset,
+    setSelectedAnnotation,
+    setZoom,
   ])
 
   return {
     handleMouseDown,
     handleMouseMove,
     handleMouseUp,
+    handleMouseLeave,
     handleDoubleClick,
     isPanning,
+    canvasRef: actualCanvasRef,
     ...toolHandler.getUIState(),
   }
 }

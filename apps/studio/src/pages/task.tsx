@@ -12,9 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { useTaskStore } from "@/stores/use-task-store"
-import { useProjectStore } from "@/stores/use-project-store"
-import { useSettingsStore } from "@/stores/use-settings-store"
+import { useServices } from "@/services/ServiceProvider"
 import { TaskCard } from "@/components/task-card-v2"
 import { TaskDialog } from "@/components/task-dialog"
 import { TaskDetailDialog } from "@/components/task-detail-dialog"
@@ -28,39 +26,119 @@ import { cn } from "@/lib/utils"
 export default function TaskPage() {
   const { toast } = useToast()
   const confirm = useConfirmDialog()
-
-  // Stores
-  const {
-    tasks,
-    createTask,
-    updateTask,
-    deleteTask,
-    getTasksByProjectId,
-    updateTaskStatus,
-    getTasksByStatus,
-    searchTasks,
-    loadSampleTasks,
-  } = useTaskStore()
-
-  const { projects, getProjects } = useProjectStore()
-  const { getSetting, saveOrUpdateSettings } = useSettingsStore()
+  const services = useServices()
 
   // Local state
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [projects, setProjects] = useState<any[]>([])
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [projectFilter, setProjectFilter] = useState<string>("all")
-  const [activeTab, setActiveTab] = useState(() => {
-    const savedTab = getSetting("task-page-active-tab")
-    return savedTab?.value || "all"
-  })
-  const [viewMode, setViewMode] = useState<"list" | "kanban">(() => {
-    const savedViewMode = getSetting("task-page-view-mode")
-    return (savedViewMode?.value as "list" | "kanban") || "list"
-  })
+  const [activeTab, setActiveTab] = useState("all")
+  const [viewMode, setViewMode] = useState<"list" | "kanban">("list")
   const [detailTask, setDetailTask] = useState<Task | null>(null)
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false)
+  // Functions
+  const getTasks = async () => {
+    try {
+      const fetchedTasks = await services.getTaskService().getAllTasks()
+      setTasks(fetchedTasks)
+    } catch (error) {
+      console.error("Failed to fetch tasks:", error)
+    }
+  }
+
+  const getProjects = async () => {
+    try {
+      const fetchedProjects = await services.getProjectService().getProjects()
+      setProjects(fetchedProjects)
+    } catch (error) {
+      console.error("Failed to fetch projects:", error)
+    }
+  }
+
+  const createTask = async (task: Task) => {
+    try {
+      await services.getTaskService().createTask(task)
+      await getTasks() // Refresh the list
+      toast({
+        title: "Success",
+        description: "Task created successfully",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create task",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const updateTask = async (taskId: string, updates: Partial<Task>) => {
+    try {
+      await services.getTaskService().updateTask(taskId, updates)
+      await getTasks() // Refresh the list
+      toast({
+        title: "Success",
+        description: "Task updated successfully",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update task",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const deleteTask = async (taskId: string) => {
+    try {
+      await services.getTaskService().deleteTask(taskId)
+      await getTasks() // Refresh the list
+      toast({
+        title: "Success",
+        description: "Task deleted successfully",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete task",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const getTasksByProjectId = async (projectId: string) => {
+    try {
+      const projectTasks = await services.getTaskService().getTasksByProjectId(projectId)
+      return projectTasks
+    } catch (error) {
+      console.error("Failed to fetch tasks by project:", error)
+      return []
+    }
+  }
+
+  const updateTaskStatus = async (taskId: string, status: string) => {
+    await updateTask(taskId, { status: status as any })
+  }
+
+  const getTasksByStatus = (status: string) => {
+    return tasks.filter(task => task.status === status)
+  }
+
+  const searchTasks = (query: string) => {
+    return tasks.filter(task => 
+      task.name.toLowerCase().includes(query.toLowerCase()) ||
+      task.description?.toLowerCase().includes(query.toLowerCase())
+    )
+  }
+
+  const loadSampleTasks = async () => {
+    // This would load sample tasks - for now just refresh
+    await getTasks()
+  }
 
   // Available users for assignment
   const availableUsers = [
@@ -76,12 +154,12 @@ export default function TaskPage() {
 
   // Persist settings to store
   useEffect(() => {
-    saveOrUpdateSettings("task-page-active-tab", activeTab)
-  }, [activeTab, saveOrUpdateSettings])
+    services.getSettingsService().saveOrUpdateSetting("task-page-active-tab", activeTab)
+  }, [activeTab])
 
   useEffect(() => {
-    saveOrUpdateSettings("task-page-view-mode", viewMode)
-  }, [viewMode, saveOrUpdateSettings])
+    services.getSettingsService().saveOrUpdateSetting("task-page-view-mode", viewMode)
+  }, [viewMode])
 
   // Load initial data
   useEffect(() => {

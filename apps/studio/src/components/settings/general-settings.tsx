@@ -5,9 +5,8 @@ import { Switch } from "@/components/ui/switch"
 import { useTheme } from "@/components/theme-provider"
 import { ChromePicker } from "react-color"
 import { Check } from "lucide-react"
-// ...existing code...
 import { ElectronFileInput } from "@/components/electron-file"
-import { useSettingsStore } from "@/stores/use-settings-store"
+import { useServices } from "@/services/ServiceProvider"
 
 const DEFAULTS = {
   brightness: 100,
@@ -32,11 +31,33 @@ const PRESET_COLORS = [
 
 export default function GeneralSettings() {
   const { theme, setTheme } = useTheme()
-  const { getSetting, saveOrUpdateSettings } = useSettingsStore()
+  const services = useServices()
+  const [settings, setSettings] = useState<Record<string, string>>({})
+  const [isLoading, setIsLoading] = useState(true)
 
-  // Helper to get value from zustand store or fallback to default
+  // Load settings on mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const allSettings = await services.getSettingsService().getSettings()
+        const settingsMap: Record<string, string> = {}
+        allSettings.forEach(setting => {
+          settingsMap[setting.key] = setting.value
+        })
+        setSettings(settingsMap)
+      } catch (error) {
+        console.error("Failed to load settings:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    loadSettings()
+  }, [])
+
+  // Helper to get value from settings or fallback to default
   const getValue = (key: string, fallback: string | number | boolean) => {
-    const val = getSetting(key)?.value
+    if (isLoading) return fallback
+    const val = settings[key]
     if (val === undefined || val === null) return fallback
     if (typeof fallback === "boolean") {
       if (typeof val === "boolean") return val
@@ -79,23 +100,43 @@ export default function GeneralSettings() {
     document.addEventListener("mousedown", handleClick)
     return () => document.removeEventListener("mousedown", handleClick)
   }, [showCustomColor])
-  const handleReset = () => {
-    saveOrUpdateSettings("brightness", String(DEFAULTS.brightness))
-    saveOrUpdateSettings("contrast", String(DEFAULTS.contrast))
-    saveOrUpdateSettings("annotationColor", DEFAULTS.annotationColor)
-    saveOrUpdateSettings("boxThickness", String(DEFAULTS.boxThickness))
-    saveOrUpdateSettings("showLabels", JSON.stringify(DEFAULTS.showLabels))
-    saveOrUpdateSettings("snapToGrid", JSON.stringify(DEFAULTS.snapToGrid))
-    saveOrUpdateSettings("autoSave", JSON.stringify(DEFAULTS.autoSave))
-    // ...also clear persisted settings if implemented...
+  const handleReset = async () => {
+    try {
+      await Promise.all([
+        services.getSettingsService().saveOrUpdateSetting("brightness", String(DEFAULTS.brightness)),
+        services.getSettingsService().saveOrUpdateSetting("contrast", String(DEFAULTS.contrast)),
+        services.getSettingsService().saveOrUpdateSetting("annotationColor", DEFAULTS.annotationColor),
+        services.getSettingsService().saveOrUpdateSetting("boxThickness", String(DEFAULTS.boxThickness)),
+        services.getSettingsService().saveOrUpdateSetting("showLabels", JSON.stringify(DEFAULTS.showLabels)),
+        services.getSettingsService().saveOrUpdateSetting("snapToGrid", JSON.stringify(DEFAULTS.snapToGrid)),
+        services.getSettingsService().saveOrUpdateSetting("autoSave", JSON.stringify(DEFAULTS.autoSave)),
+      ])
+      
+      // Update local state
+      setSettings(prev => ({
+        ...prev,
+        brightness: String(DEFAULTS.brightness),
+        contrast: String(DEFAULTS.contrast),
+        annotationColor: DEFAULTS.annotationColor,
+        boxThickness: String(DEFAULTS.boxThickness),
+        showLabels: JSON.stringify(DEFAULTS.showLabels),
+        snapToGrid: JSON.stringify(DEFAULTS.snapToGrid),
+        autoSave: JSON.stringify(DEFAULTS.autoSave),
+      }))
+    } catch (error) {
+      console.error("Failed to reset settings:", error)
+    }
   }
 
-  // Remove all local state and use zustand for settings
-  // Save theme to zustand on change
-  useEffect(() => {
-    saveOrUpdateSettings("theme", theme)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [theme])
+  // Helper function to save settings
+  const saveSetting = async (key: string, value: string) => {
+    try {
+      await services.getSettingsService().saveOrUpdateSetting(key, value)
+      setSettings(prev => ({ ...prev, [key]: value }))
+    } catch (error) {
+      console.error(`Failed to save setting ${key}:`, error)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -109,7 +150,7 @@ export default function GeneralSettings() {
             onChange={(e) => {
               const dir = e.target.files[0]
               if (dir) {
-                saveOrUpdateSettings("dataDirectory", dir)
+                saveSetting("dataDirectory", dir)
               }
             }}
             accept=""
@@ -158,7 +199,7 @@ export default function GeneralSettings() {
             step={1}
             value={[brightness]}
             onValueChange={(value) =>
-              saveOrUpdateSettings("brightness", String(value[0]))
+              saveSetting("brightness", String(value[0]))
             }
             className="flex-1"
           />
@@ -179,7 +220,7 @@ export default function GeneralSettings() {
             step={1}
             value={[contrast]}
             onValueChange={(value) =>
-              saveOrUpdateSettings("contrast", String(value[0]))
+              saveSetting("contrast", String(value[0]))
             }
             className="flex-1"
           />
@@ -202,7 +243,7 @@ export default function GeneralSettings() {
               style={{ backgroundColor: color }}
               aria-label={`Select ${color} as annotation color`}
               onClick={() => {
-                saveOrUpdateSettings("annotationColor", color)
+                saveSetting("annotationColor", color)
                 setShowCustomColor(false)
               }}
             >
@@ -236,7 +277,7 @@ export default function GeneralSettings() {
               <ChromePicker
                 color={annotationColor}
                 onChange={(color) =>
-                  saveOrUpdateSettings("annotationColor", color.hex)
+                  saveSetting("annotationColor", color.hex)
                 }
                 disableAlpha
               />
@@ -256,7 +297,7 @@ export default function GeneralSettings() {
           max={10}
           value={boxThickness}
           onChange={(e) =>
-            saveOrUpdateSettings("boxThickness", String(Number(e.target.value)))
+            saveSetting("boxThickness", String(Number(e.target.value)))
           }
           className="ml-2 w-20 border rounded px-2 py-1"
         />
@@ -267,7 +308,7 @@ export default function GeneralSettings() {
           id="show-labels"
           checked={showLabels}
           onCheckedChange={(checked) =>
-            saveOrUpdateSettings("showLabels", JSON.stringify(checked))
+            saveSetting("showLabels", JSON.stringify(checked))
           }
         />
         <label htmlFor="show-labels" className="text-base font-medium">
@@ -280,7 +321,7 @@ export default function GeneralSettings() {
           id="snap-to-grid"
           checked={snapToGrid}
           onCheckedChange={(checked) =>
-            saveOrUpdateSettings("snapToGrid", JSON.stringify(checked))
+            saveSetting("snapToGrid", JSON.stringify(checked))
           }
         />
         <label htmlFor="snap-to-grid" className="text-base font-medium">
@@ -293,7 +334,7 @@ export default function GeneralSettings() {
           id="auto-save"
           checked={autoSave}
           onCheckedChange={(checked) =>
-            saveOrUpdateSettings("autoSave", JSON.stringify(checked))
+            saveSetting("autoSave", JSON.stringify(checked))
           }
         />
         <label htmlFor="auto-save" className="text-base font-medium">

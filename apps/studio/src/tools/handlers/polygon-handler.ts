@@ -1,5 +1,5 @@
 import type { Point, Annotation } from "@vailabel/core"
-import { ToolHandlerContext } from "../canvas-handler"
+import { ToolHandlerContext } from "../../hooks/use-canvas-handlers-context"
 import { ToolHandler } from "../tool-handlers"
 
 export type PolygonHandlerUIState = {
@@ -12,10 +12,26 @@ export class PolygonHandler implements ToolHandler {
   constructor(private context: ToolHandlerContext) {}
 
   onMouseDown(e: React.MouseEvent) {
-    if (e.button !== 0) return // Only handle left clicks
-
     const point = this.context.getCanvasCoords(e.clientX, e.clientY)
     const { toolState } = this.context
+
+    // Handle right-click for undo
+    if (e.button === 2) { // Right click
+      if (toolState.polygonPoints && toolState.polygonPoints.length > 0) {
+        const newPoints = toolState.polygonPoints.slice(0, -1)
+        this.context.setToolState({
+          polygonPoints: newPoints,
+          tempAnnotation: newPoints.length > 0 ? {
+            type: "polygon",
+            coordinates: newPoints,
+            imageId: this.context.annotationsStore.currentImage?.id || "",
+          } : null,
+        })
+      }
+      return
+    }
+
+    if (e.button !== 0) return // Only handle left clicks
 
     // Check if we're clicking near the first point to close the polygon
     if (toolState.polygonPoints && toolState.polygonPoints.length >= 3) {
@@ -25,9 +41,8 @@ export class PolygonHandler implements ToolHandler {
       const dy = point.y - firstPoint.y
       const distanceSquared = dx * dx + dy * dy
 
-      // If clicking within 10 pixels of the first point, close the polygon
-      // Using squared distance: 10^2 = 100
-      if (distanceSquared <= 100) {
+      // Increased snap area for better UX: 15px radius (15^2 = 225)
+      if (distanceSquared <= 225) {
         this.finishPolygon()
         return
       }
@@ -87,13 +102,41 @@ export class PolygonHandler implements ToolHandler {
     }
   }
 
-  // Handle escape key to cancel current polygon
+  // Method to clear polygon state (called after annotation is saved)
+  clearState() {
+    this.context.setToolState({
+      polygonPoints: [],
+      tempAnnotation: null,
+      showLabelInput: false,
+    })
+  }
+
+  // Handle keyboard shortcuts for better UX
   onKeyDown(e: KeyboardEvent) {
+    const { toolState } = this.context
+    
     if (e.key === "Escape") {
+      // Cancel current polygon
       this.context.setToolState({
         polygonPoints: [],
         tempAnnotation: null,
       })
+    } else if (e.key === "Backspace" || e.key === "Delete") {
+      // Undo last point
+      if (toolState.polygonPoints && toolState.polygonPoints.length > 0) {
+        const newPoints = toolState.polygonPoints.slice(0, -1)
+        this.context.setToolState({
+          polygonPoints: newPoints,
+          tempAnnotation: newPoints.length > 0 ? {
+            type: "polygon",
+            coordinates: newPoints,
+            imageId: this.context.annotationsStore.currentImage?.id || "",
+          } : null,
+        })
+      }
+    } else if (e.key === "Enter") {
+      // Finish polygon with Enter key
+      this.finishPolygon()
     }
   }
 
