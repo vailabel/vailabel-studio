@@ -14,6 +14,7 @@ import { ToolStatus } from "./tool-status"
 interface CanvasProps {
   image: ImageData
   annotations: Annotation[]
+  onRefreshAnnotations?: () => Promise<void>
 }
 
 // Memoize the image component to prevent unnecessary re-renders
@@ -50,7 +51,7 @@ const EmptyImageState = memo(() => (
 
 EmptyImageState.displayName = "EmptyImageState"
 
-export const Canvas = memo(({ image, annotations }: CanvasProps) => {
+export const Canvas = memo(({ image, annotations, onRefreshAnnotations }: CanvasProps) => {
   // Use Context hooks instead of Zustand
   const { zoom } = useCanvasZoom()
   const { panOffset } = useCanvasPan()
@@ -82,6 +83,10 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
     updateAnnotation: async (id: string, updates: Partial<Annotation>) => {
       try {
         await services.getAnnotationService().updateAnnotation(id, updates)
+        // Refresh annotations after update
+        if (onRefreshAnnotations) {
+          await onRefreshAnnotations()
+        }
       } catch (error) {
         console.error("Failed to update annotation:", error)
       }
@@ -89,6 +94,10 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
     deleteAnnotation: async (id: string) => {
       try {
         await services.getAnnotationService().deleteAnnotation(id)
+        // Refresh annotations after delete
+        if (onRefreshAnnotations) {
+          await onRefreshAnnotations()
+        }
       } catch (error) {
         console.error("Failed to delete annotation:", error)
       }
@@ -182,6 +191,11 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
         }
         await services.getAnnotationService().createAnnotation(newAnnotation)
         
+        // Refresh annotations after creation
+        if (onRefreshAnnotations) {
+          await onRefreshAnnotations()
+        }
+        
         // Clear tool state after successful creation
         setToolState({
           showLabelInput: false,
@@ -205,6 +219,7 @@ export const Canvas = memo(({ image, annotations }: CanvasProps) => {
       services,
       setToolState,
       setSelectedAnnotation,
+      onRefreshAnnotations,
     ]
   )
 

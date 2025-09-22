@@ -1,5 +1,4 @@
 import React from "react"
-import { motion } from "framer-motion"
 import { 
   Users, 
   Folder, 
@@ -24,6 +23,7 @@ import {
   ActivitySkeleton 
 } from "@/components/overview/overview-components"
 import { AuthStatusDemo } from "@/components/auth/AuthStatusDemo"
+import { isDevMode, isElectron } from "@/lib/constants"
 
 const Overview: React.FC = () => {
   const {
@@ -150,22 +150,16 @@ const Overview: React.FC = () => {
           <h2 className="text-2xl font-semibold">Statistics</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
-          {statCards.map((stat, index) => (
-            <motion.div
+          {statCards.map((stat) => (
+            <StatCard
               key={stat.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-            >
-              <StatCard
-                title={stat.title}
-                value={stat.value}
-                icon={stat.icon}
-                color={stat.color}
-                isLoading={isLoading}
-                trend={stat.trend}
-              />
-            </motion.div>
+              title={stat.title}
+              value={stat.value}
+              icon={stat.icon}
+              color={stat.color}
+              isLoading={isLoading}
+              trend={stat.trend}
+            />
           ))}
         </div>
       </section>
@@ -185,21 +179,15 @@ const Overview: React.FC = () => {
                 <ActivitySkeleton count={5} />
               ) : recentActivity.length > 0 ? (
                 <div className="space-y-2">
-                  {recentActivity.map((item, index) => (
-                    <motion.div
+                  {recentActivity.map((item) => (
+                    <ActivityItem
                       key={item.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                    >
-                      <ActivityItem
-                        activity={item.activity}
-                        user={item.user}
-                        date={item.date}
-                        type={item.type}
-                        projectName={item.projectName}
-                      />
-                    </motion.div>
+                      activity={item.activity}
+                      user={item.user}
+                      date={item.date}
+                      type={item.type}
+                      projectName={item.projectName}
+                    />
                   ))}
                 </div>
               ) : (
@@ -223,22 +211,16 @@ const Overview: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {quickActions.map((action, index) => (
-                  <motion.div
+                {quickActions.map((action) => (
+                  <QuickActionCard
                     key={action.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                  >
-                    <QuickActionCard
-                      label={action.label}
-                      description={action.description}
-                      icon={iconMap[action.icon] || FolderPlus}
-                      color={action.color}
-                      onClick={action.action}
-                      disabled={action.disabled}
-                    />
-                  </motion.div>
+                    label={action.label}
+                    description={action.description}
+                    icon={iconMap[action.icon] || FolderPlus}
+                    color={action.color}
+                    onClick={action.action}
+                    disabled={action.disabled}
+                  />
                 ))}
               </div>
             </CardContent>
@@ -247,17 +229,17 @@ const Overview: React.FC = () => {
 
         {/* Authentication Status Demo */}
         <section>
-          <AuthStatusDemo />
+           {
+            isElectron() && isDevMode() && (
+              <AuthStatusDemo />
+            )
+           }
         </section>
       </div>
 
       {/* Empty State */}
       {isEmpty && !isLoading && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-center py-16"
-        >
+        <div className="text-center py-16">
           <Folder className="h-24 w-24 mx-auto mb-6 text-muted-foreground opacity-50" />
           <h3 className="text-2xl font-semibold mb-4">Welcome to VaiLabeling</h3>
           <p className="text-muted-foreground mb-8 max-w-md mx-auto">
@@ -267,7 +249,7 @@ const Overview: React.FC = () => {
             <FolderPlus className="h-5 w-5 mr-2" />
             Create Your First Project
           </Button>
-        </motion.div>
+        </div>
       )}
     </div>
   )
