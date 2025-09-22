@@ -106,7 +106,6 @@ pnpm dev
 | `pnpm api`             | Start the FastAPI server for YOLOv8 inference    |
 | `pnpm web`             | Start the documentation site                      |
 
-
 ---
 
 ## 📦 Export Formats
@@ -134,13 +133,16 @@ pnpm dev
 - [x] 🖼️ Multi-Image Labeling Projects
 - [x] 🖥️ Desktop App (Electron)
 - [ ] 🤖 AI YOLOv8 Auto-Detection (In Progress)
-- [x] 📤 Export Multiple Formats
+- [ ] 🛠️ Custom Model Training Pipeline
+- [x] 📤 Export Multiple Formats (In Progress) YOLO, Pascal VOC, COCO
 - [x] 🏷️ Multi-Class Annotation (Class Picker)
 - [ ] 🎥 Video Frame-by-Frame Annotation
 - [ ] 🖼️ Image Segmentation (Polygon)
 - [ ] 🖼️ Text Annotation (OCR)
 - [ ] 👥 Collaborative Labeling (Team mode) - Cloud Self-host
+- [ ] 📝 Task Assignment & Review System
 - [ ] ☁️ Cloud Storage Integration (S3, GCS, Azure)
+- [ ] 🔒 OAuth2 User Authentication (Google, GitHub, etc.)
 
 ---
 
@@ -163,7 +165,6 @@ This project is licensed under the **GNU GENERAL PUBLIC LICENSE** — see the [L
 - [Ultralytics YOLOv8](https://github.com/ultralytics/ultralytics)
 - [TailwindCSS](https://tailwindcss.com/)
 - [Framer Motion](https://www.framer.com/motion/)
-- [Dexie.js](https://dexie.org/)
 - Inspiration: Roboflow, Label Studio, CVAT
 
 ---
