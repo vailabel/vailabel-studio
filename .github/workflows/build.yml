@@ -33,13 +33,8 @@ jobs:
         with:
           node-version: 22
 
-      - name: Enable Corepack
-        run: corepack enable
-
       - name: Install dependencies
-        run: |
-          yarn install --immutable
-          yarn workspaces focus --production
+        run: yarn install --immutable
 
       - name: Check for changes
         id: changes
@@ -52,61 +47,6 @@ jobs:
             echo "Changes detected, will release"
             echo "should_release=true" >> $GITHUB_OUTPUT
           fi
-
-      - name: Auto Release
-        if: steps.changes.outputs.should_release == 'true'
-        run: |
-          echo "🚀 Starting auto-release process..."
-          # Configure git identity for GitHub Actions
-          git config --global user.email "action@github.com"
-          git config --global user.name "GitHub Action"
-          
-          # Get current version and increment
-          CURRENT_VERSION=$(node -p "require('./package.json').version")
-          echo "Current version: $CURRENT_VERSION"
-          
-          # Increment patch version
-          NEW_VERSION=$(node -e "
-            const [major, minor, patch] = '$CURRENT_VERSION'.split('.').map(Number);
-            console.log(\`\${major}.\${minor}.\${patch + 1}\`);
-          ")
-          echo "New version: $NEW_VERSION"
-          
-          # Update all package.json files
-          node -e "
-            const fs = require('fs');
-            const path = require('path');
-            const newVersion = '$NEW_VERSION';
-            
-            // Update root package.json
-            const rootPkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-            rootPkg.version = newVersion;
-            fs.writeFileSync('package.json', JSON.stringify(rootPkg, null, 2));
-            
-            // Update app package.json files
-            const apps = ['desktop', 'studio', 'core', 'web'];
-            apps.forEach(app => {
-              const appPath = path.join('apps', app, 'package.json');
-              if (fs.existsSync(appPath)) {
-                const appPkg = JSON.parse(fs.readFileSync(appPath, 'utf8'));
-                appPkg.version = newVersion;
-                fs.writeFileSync(appPath, JSON.stringify(appPkg, null, 2));
-                console.log(\`✅ Updated \${app} to v\${newVersion}\`);
-              }
-            });
-          "
-          
-          # Commit and tag
-          git add .
-          git commit -m "chore: auto-increment version to $NEW_VERSION"
-          git tag "v$NEW_VERSION"
-          git push origin main --follow-tags
-          
-          echo "🎉 Successfully released v$NEW_VERSION!"
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Build & Publish Electron app
         if: steps.changes.outputs.should_release == 'true'
         run: |
