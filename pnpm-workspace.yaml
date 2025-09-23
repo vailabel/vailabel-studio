@@ -1,6 +1,0 @@
-packages:
-  - apps/core
-  - apps/desktop
-  - apps/studio
-  - apps/web
-  - apps/api 

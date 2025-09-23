@@ -18,7 +18,7 @@
     "build": "tsc",
     "test": "jest --coverage",
     "lint": "eslint . --ext .ts,.tsx",
-    "prepublishOnly": "pnpm run build",
+    "prepublishOnly": "yarn run build",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\" --ignore-path .gitignore --ignore-path .prettierignore",
     "typecheck": "tsc --noEmit"
   },
