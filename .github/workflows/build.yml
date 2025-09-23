@@ -43,7 +43,8 @@ jobs:
         id: changes
         run: |
           # Check if this is a version bump commit (skip auto-release)
-          if git log -1 --pretty=%B | grep -q "chore: auto-increment version"; then
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          if echo "$COMMIT_MSG" | grep -q "chore: auto-increment version"; then
             echo "This is a version bump commit, skipping auto-release"
             echo "should_release=false" >> $GITHUB_OUTPUT
           else
