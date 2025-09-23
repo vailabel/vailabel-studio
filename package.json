@@ -1,6 +1,6 @@
 {
   "name": "vailabel",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "description": "image labeling",
   "private": true,
   "authors": {
@@ -19,7 +19,19 @@
     "desktop": "turbo run dev --filter=vailabel-desktop --filter=@vailabel/studio",
     "release": "turbo run release --filter=@vailabel/studio --filter=vailabel-desktop",
     "typecheck": "turbo run typecheck",
-    "lint": "turbo run lint"
+    "lint": "turbo run lint",
+    "changeset": "changeset",
+    "changeset:patch": "changeset add --empty",
+    "changeset:minor": "changeset add --empty",
+    "changeset:major": "changeset add --empty",
+    "version": "changeset version",
+    "release:patch": "yarn changeset:patch && yarn version && git push --follow-tags",
+    "release:minor": "yarn changeset:minor && yarn version && git push --follow-tags",
+    "release:major": "yarn changeset:major && yarn version && git push --follow-tags",
+    "auto-release": "node scripts/auto-release.js",
+    "release:auto": "yarn auto-release",
+    "release:simple": "node scripts/simple-release.js",
+    "release:now": "yarn release:simple"
   },
   "keywords": [],
   "workspaces": [

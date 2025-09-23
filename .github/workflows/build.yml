@@ -1,12 +1,16 @@
-name: Build and Release
+name: Auto Release
 
 on:
   push:
-    tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+*'
+    branches:
+      - main
+    paths:
+      - 'apps/**'
+      - 'package.json'
+      - 'apps/*/package.json'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   release:
@@ -20,6 +24,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -32,19 +39,36 @@ jobs:
       - name: Install dependencies
         run: yarn install
 
-      - name: Debug GH_TOKEN
-        shell: bash
+      - name: Check for changes
+        id: changes
         run: |
-          echo "GH_TOKEN length: ${{ secrets.GH_TOKEN }}" | awk '{print length($0)}'
+          if git diff --quiet HEAD~1 HEAD -- apps/ package.json apps/*/package.json; then
+            echo "No changes to release"
+            echo "should_release=false" >> $GITHUB_OUTPUT
+          else
+            echo "Changes detected, will release"
+            echo "should_release=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Auto Release
+        if: steps.changes.outputs.should_release == 'true'
+        run: |
+          echo "🚀 Starting auto-release process..."
+          node scripts/auto-release.js
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build & Publish Electron app
+        if: steps.changes.outputs.should_release == 'true'
         run: |
-          echo "Running build with GH_TOKEN..."
+          echo "Building studio app..."
           cd apps/studio && yarn build
       
       - name: Publish Electron release
+        if: steps.changes.outputs.should_release == 'true'
         run: |
-          echo "Publishing release..."
+          echo "Publishing Electron release..."
           cd apps/desktop && yarn tsc && yarn prebuild && ELECTRON_BUILDER_CACHE=/tmp/electron-builder-cache npx electron-builder --publish always
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
