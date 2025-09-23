@@ -1,7 +1,8 @@
 appId: com.vailabel.studio
 productName: Vision AI Label Studio
 asar: true
-icon: icons/icon
+npmRebuild: false
+nodeGypRebuild: false
 files:
   - "package.json"
   - from: "dist"
@@ -56,7 +57,7 @@ linux:
     - AppImage
     - deb
   category: Graphics
-  
+
 directories:
   buildResources: assets
 publish:

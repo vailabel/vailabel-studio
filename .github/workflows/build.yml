@@ -26,12 +26,11 @@ jobs:
         with:
           node-version: 22
 
-      - uses: pnpm/action-setup@v3
-        with:
-          version: 9
+      - name: Enable Corepack
+        run: corepack enable
 
       - name: Install dependencies
-        run: pnpm install
+        run: yarn install
 
       - name: Debug GH_TOKEN
         shell: bash
@@ -41,12 +40,12 @@ jobs:
       - name: Build & Publish Electron app
         run: |
           echo "Running build with GH_TOKEN..."
-          cd apps/studio && pnpm build
+          cd apps/studio && yarn build
       
       - name: Publish Electron release
         run: |
           echo "Publishing release..."
-          cd apps/desktop && pnpm release
+          cd apps/desktop && yarn tsc && yarn prebuild && ELECTRON_BUILDER_CACHE=/tmp/electron-builder-cache npx electron-builder --publish always
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 

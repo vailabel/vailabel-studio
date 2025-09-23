@@ -6,12 +6,12 @@
   "main": "dist/main.js",
   "scripts": {
     "copy-python": "copyfiles -u -1 ./src/ai/requirements.txt ./dist/ai && copyfiles -u -1 ./src/ai/yolo.py ./dist/ai",
-    "pre-dev": "pnpm run copy-python",
-    "build": "tsc && electron-builder",
-    "dev": "NODE_ENV=development pnpm run pre-dev && tsc && electron . --trace-warnings",
+    "pre-dev": "yarn copy-python",
+    "build": "yarn tsc && ELECTRON_BUILDER_CACHE=/tmp/electron-builder-cache npx electron-builder --publish never",
+    "dev": "NODE_ENV=development yarn pre-dev && tsc && electron . --trace-warnings",
     "test": "jest --coverage",
     "prebuild": "npx electron-icon-maker --input=./assets/icon.png --output=./assets/icon",
-    "release": "tsc && pnpm run prebuild && electron-builder --publish always",
+    "release": "yarn tsc && yarn prebuild && ELECTRON_BUILDER_CACHE=/tmp/electron-builder-cache npx electron-builder --publish always",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\" --ignore-path .gitignore --ignore-path .prettierignore",
     "typecheck": "tsc --noEmit"
   },
