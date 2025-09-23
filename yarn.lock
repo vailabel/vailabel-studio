@@ -7507,7 +7507,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@vailabel/core@npm:^2.0.0, @vailabel/core@workspace:apps/core":
+"@vailabel/core@npm:^1.0.3, @vailabel/core@workspace:apps/core":
   version: 0.0.0-use.local
   resolution: "@vailabel/core@workspace:apps/core"
   dependencies:
@@ -7566,7 +7566,7 @@ __metadata:
     "@types/react": "npm:^19.1.11"
     "@types/react-color": "npm:^3.0.13"
     "@types/react-dom": "npm:^19.1.7"
-    "@vailabel/core": "npm:^2.0.0"
+    "@vailabel/core": "npm:^1.0.3"
     "@vitejs/plugin-react": "npm:^5.0.1"
     autoprefixer: "npm:^10.4.21"
     babel-jest: "npm:^30.0.5"
@@ -17977,7 +17977,7 @@ __metadata:
   dependencies:
     "@types/bcrypt": "npm:^6.0.0"
     "@types/semver": "npm:^7.7.0"
-    "@vailabel/core": "npm:^2.0.0"
+    "@vailabel/core": "npm:^1.0.3"
     bcrypt: "npm:^6.0.0"
     electron: "npm:36.2.1"
     electron-builder: "npm:^26.0.12"

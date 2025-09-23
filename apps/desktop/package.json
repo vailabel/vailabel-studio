@@ -25,7 +25,7 @@
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
     "@types/semver": "^7.7.0",
-    "@vailabel/core": "^2.0.0",
+    "@vailabel/core": "^1.0.3",
     "electron": "36.2.1",
     "electron-builder": "^26.0.12",
     "typescript": "^5.9.2"
