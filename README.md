@@ -30,9 +30,21 @@
 
 ---
 
+## 📦 Installation
+
+### Desktop App
+
+Download the latest release from the [Releases](https://github.com/vailabel/vailabel-studio/releases) page.
+  - If you see a warning about an unsigned app, see our [desktop installation guide](/docs/install-on-desktop) for troubleshooting steps.
+  - Username: `admin@vailabel.com`
+  - Password: `admin123`
+- Web App
+  - Visit [https://studio.vailabel.com](https://studio.vailabel.com) to use the web-based labeling tool.
+
+
 ## ✨ Features
 
-- 🚀 **Project Management**: Create, Save, Load, and Export labeling projects offline using Dexie.js.
+- 🚀 **Project Management**: Create, Save, Load, and Export labeling projects offline using SQLite.
 - 🖌️ **Manual Annotation**: Draw bounding boxes, polygons, and freehand shapes on images.
 - 📈 **Custom Canvas Tools**: Zoom, Pan, Resizable Divider, Ruler Guides, Dynamic Cursor Coordinates.
 - ⚡ **AI Auto-Labeling**: Integrate YOLOv8 models to automatically detect and label objects.
