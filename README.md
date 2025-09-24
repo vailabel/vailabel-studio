@@ -35,7 +35,7 @@
 ### Desktop App
 
 Download the latest release from the [Releases](https://github.com/vailabel/vailabel-studio/releases) page.
-  - If you see a warning about an unsigned app, see our [desktop installation guide](/docs/install-on-desktop) for troubleshooting steps.
+  - If you see a warning about an unsigned app, see our [desktop installation guide](/apps/web/docs/install-on-desktop.md) for troubleshooting steps.
   - Username: `admin@vailabel.com`
   - Password: `admin123`
 - Web App
