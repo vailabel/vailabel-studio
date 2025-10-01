@@ -1,7 +1,6 @@
 "use client"
 
 import { motion } from "framer-motion"
-import Image from "next/image"
 import React from "react"
 
 const DemoSection = () => {
@@ -32,30 +31,13 @@ const DemoSection = () => {
           transition={{ duration: 0.7 }}
         >
           <div className="aspect-video relative bg-gray-200 dark:bg-gray-800">
-            <Image
-              src="/dog.jpg"
-              alt="Vision AI Label Studio Demo"
-              fill
-              className="object-cover"
+            <iframe
+              src="https://www.youtube.com/embed/uYJQIKAVBw8"
+              title="Vision AI Label Studio Demo"
+              className="w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
             />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <button className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-white">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                  className="w-8 h-8"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z"
-                  />
-                </svg>
-              </button>
-            </div>
           </div>
           <div className="bg-white dark:bg-gray-800 p-4 flex justify-between items-center">
             <div className="text-sm text-gray-600 dark:text-gray-400">
