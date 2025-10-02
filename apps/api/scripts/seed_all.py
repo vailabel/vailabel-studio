@@ -20,11 +20,12 @@ from uuid import uuid4
 from datetime import datetime, timezone
 
 
-def get_password_hash(password: str) -> str:
-    """Hash password using SHA256 for development"""
-    import hashlib
+from argon2 import PasswordHasher
 
-    return hashlib.sha256(password.encode()).hexdigest()
+def get_password_hash(password: str) -> str:
+    """Hash password securely using Argon2"""
+    ph = PasswordHasher()
+    return ph.hash(password)
 
 
 def seed_permissions_and_roles():
