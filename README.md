@@ -30,6 +30,18 @@
 
 ---
 
+## 📑 Table of Contents
+- [✨ Features](#-features)
+- [📂 Sub-Projects](#-sub-projects)
+- [📸 Demo Screenshots](#-demo-screenshots)
+- [🚀 Getting Started](#-getting-started)
+- [📦 Export Formats](#-export-formats)
+- [🤖 AI Auto-Labeling (YOLOv8 Integration)](#-ai-auto-labeling-yolov8-integration)
+- [📝 Roadmap](#-roadmap)
+- [🤝 Contributing](#-contributing)
+- [📄 License](#-license)
+- [❤️ Acknowledgements](#-acknowledgements)
+
 ## ✨ Features
 
 - 🚀 **Project Management**: Create, Save, Load, and Export labeling projects offline using Dexie.js.
