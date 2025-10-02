@@ -32,7 +32,8 @@ const CATEGORIES = [
 
 export function KeyboardShortcuts() {
   const services = useServices()
-  const [shortcuts, setShortcuts] = useState<KeyboardShortcut[]>(DEFAULT_SHORTCUTS)
+  const [shortcuts, setShortcuts] =
+    useState<KeyboardShortcut[]>(DEFAULT_SHORTCUTS)
   const [editingIdx, setEditingIdx] = useState<number | null>(null)
   const [editValue, setEditValue] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("All")
@@ -41,7 +42,9 @@ export function KeyboardShortcuts() {
   useEffect(() => {
     const loadShortcuts = async () => {
       try {
-        const setting = await services.getSettingsService().getSetting("keyboardShortcuts")
+        const setting = await services
+          .getSettingsService()
+          .getSetting("keyboardShortcuts")
         if (setting && typeof setting.value === "string") {
           const parsed = JSON.parse(setting.value)
           if (Array.isArray(parsed)) {
@@ -59,7 +62,9 @@ export function KeyboardShortcuts() {
   useEffect(() => {
     const saveShortcuts = async () => {
       try {
-        await services.getSettingsService().saveOrUpdateSetting("keyboardShortcuts", JSON.stringify(shortcuts))
+        await services
+          .getSettingsService()
+          .saveOrUpdateSetting("keyboardShortcuts", JSON.stringify(shortcuts))
       } catch (error) {
         console.error("Failed to save keyboard shortcuts:", error)
       }
@@ -123,7 +128,7 @@ export function KeyboardShortcuts() {
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm border rounded">
           <thead>
-            <tr className="bg-gray-100 dark:bg-gray-800">
+            <tr className="bg-muted">
               <th className="p-2 text-left font-semibold">Category</th>
               <th className="p-2 text-left font-semibold">Action</th>
               <th className="p-2 text-left font-semibold">Shortcut</th>
@@ -150,7 +155,7 @@ export function KeyboardShortcuts() {
                       className="w-32"
                     />
                   ) : (
-                    <span className="inline-block px-2 py-0.5 rounded bg-gray-50 dark:bg-gray-900 border text-xs">
+                    <span className="inline-block px-2 py-0.5 rounded bg-muted border text-xs">
                       {s.key}
                     </span>
                   )}

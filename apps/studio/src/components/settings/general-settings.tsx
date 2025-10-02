@@ -2,24 +2,29 @@ import { FolderOpen, Save, RotateCcw } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { ElectronFileInput } from "@/components/electron-file"
 import { useSettingsViewModel } from "@/viewmodels/settings-viewmodel"
 
 export default function GeneralSettings() {
-  const {
-    getSettingValue,
-    updateSetting,
-    resetToDefaults,
-  } = useSettingsViewModel()
+  const { getSettingValue, updateSetting, resetToDefaults } =
+    useSettingsViewModel()
 
   // Get general settings
-  const dataDirectory = getSettingValue("dataDirectory") as string || ""
-  const autoSave = getSettingValue("autoSave") as boolean || true
-  const showLabels = getSettingValue("showLabels") as boolean || true
-  const snapToGrid = getSettingValue("snapToGrid") as boolean || false
+  const dataDirectory = (getSettingValue("dataDirectory") as string) || ""
+  const autoSave = (getSettingValue("autoSave") as boolean) || true
+  const showLabels = (getSettingValue("showLabels") as boolean) || true
+  const snapToGrid = (getSettingValue("snapToGrid") as boolean) || false
 
-  const handleDataDirectoryChange = (event: { target: { files: string[] } }) => {
+  const handleDataDirectoryChange = (event: {
+    target: { files: string[] }
+  }) => {
     const dir = event.target.files?.[0]
     if (dir) {
       updateSetting("dataDirectory", dir)
@@ -65,12 +70,13 @@ export default function GeneralSettings() {
               placeholder="Select a folder..."
             />
           </div>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            This is the folder where application data (e.g., downloaded files) will be stored.
+          <p className="text-sm text-muted-foreground">
+            This is the folder where application data (e.g., downloaded files)
+            will be stored.
           </p>
           {dataDirectory && (
-            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg transition-all duration-200 opacity-100">
-              <p className="text-sm text-blue-700 dark:text-blue-300">
+            <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg transition-all duration-200 opacity-100">
+              <p className="text-sm text-primary">
                 <strong>Selected:</strong> {dataDirectory}
               </p>
             </div>
@@ -91,12 +97,15 @@ export default function GeneralSettings() {
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Auto Save */}
-          <div className="flex items-center justify-between p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all duration-200 hover:translate-x-1">
+          <div className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/50 transition-all duration-200 hover:translate-x-1">
             <div className="space-y-1">
-              <Label htmlFor="auto-save" className="text-base font-medium cursor-pointer">
+              <Label
+                htmlFor="auto-save"
+                className="text-base font-medium cursor-pointer"
+              >
                 Auto Save Annotations
               </Label>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-muted-foreground">
                 Automatically save your work as you annotate
               </p>
             </div>
@@ -108,12 +117,15 @@ export default function GeneralSettings() {
           </div>
 
           {/* Show Labels */}
-          <div className="flex items-center justify-between p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all duration-200 hover:translate-x-1">
+          <div className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/50 transition-all duration-200 hover:translate-x-1">
             <div className="space-y-1">
-              <Label htmlFor="show-labels" className="text-base font-medium cursor-pointer">
+              <Label
+                htmlFor="show-labels"
+                className="text-base font-medium cursor-pointer"
+              >
                 Show Labels on Annotations
               </Label>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-muted-foreground">
                 Display label names on annotation boxes
               </p>
             </div>
@@ -125,12 +137,15 @@ export default function GeneralSettings() {
           </div>
 
           {/* Snap to Grid */}
-          <div className="flex items-center justify-between p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all duration-200 hover:translate-x-1">
+          <div className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/50 transition-all duration-200 hover:translate-x-1">
             <div className="space-y-1">
-              <Label htmlFor="snap-to-grid" className="text-base font-medium cursor-pointer">
+              <Label
+                htmlFor="snap-to-grid"
+                className="text-base font-medium cursor-pointer"
+              >
                 Snap to Grid
               </Label>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-muted-foreground">
                 Align annotations to a grid for better organization
               </p>
             </div>
@@ -159,13 +174,13 @@ export default function GeneralSettings() {
             <Button
               onClick={handleReset}
               variant="outline"
-              className="w-full border-gray-300 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800"
+              className="w-full border-border hover:bg-muted"
             >
               <RotateCcw className="w-4 h-4 mr-2" />
               Reset to Defaults
             </Button>
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
+          <p className="text-xs text-muted-foreground mt-2 text-center">
             This will reset all general settings to their default values
           </p>
         </CardContent>

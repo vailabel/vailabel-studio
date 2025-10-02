@@ -63,7 +63,9 @@ export const InstallPythonPackage = () => {
   useEffect(() => {
     const loadPythonPath = async () => {
       try {
-        const pythonPathSetting = await services.getSettingsService().getSetting("pythonPath")
+        const pythonPathSetting = await services
+          .getSettingsService()
+          .getSetting("pythonPath")
         const storedPythonPath = pythonPathSetting?.value
         if (storedPythonPath) {
           setIsDetectingPython(true)
@@ -192,7 +194,9 @@ export const InstallPythonPackage = () => {
       })
       setIsDetectingPython(false)
       // Only update pythonPath in settings to the venv's pythonPath
-      await services.getSettingsService().saveOrUpdateSetting("pythonPath", result.pythonPath)
+      await services
+        .getSettingsService()
+        .saveOrUpdateSetting("pythonPath", result.pythonPath)
     } catch (error) {
       setPythonError(error instanceof Error ? error.message : String(error))
       setIsDetectingPython(false)
@@ -235,7 +239,9 @@ export const InstallPythonPackage = () => {
       })
       setIsDetectingPython(false)
       // Update settings: set pythonPath
-      await services.getSettingsService().saveOrUpdateSetting("pythonPath", filePath)
+      await services
+        .getSettingsService()
+        .saveOrUpdateSetting("pythonPath", filePath)
     } catch (error) {
       setPythonError(error instanceof Error ? error.message : String(error))
       setIsDetectingPython(false)
@@ -243,44 +249,46 @@ export const InstallPythonPackage = () => {
   }
 
   return (
-    <div className="flex-1 min-w-[350px] p-5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 flex flex-col justify-between">
+    <div className="flex-1 min-w-[350px] p-5 rounded-xl bg-card border border-border flex flex-col justify-between">
       <div>
         {/* Help/Documentation Link */}
         <div className="mb-3">
           <ExternalLink
             href="https://vailabel.com/docs/python-venv-setup"
             target="_blank"
-            className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium"
+            className="inline-flex items-center gap-1 text-xs text-primary hover:underline font-medium"
           >
             <span>Need help with Python setup?</span>
           </ExternalLink>
         </div>
         <div className="font-semibold text-lg mb-1">Python Environment</div>
         {isDetectingPython ? (
-          <div className="text-xs text-gray-500">Detecting Python...</div>
+          <div className="text-xs text-muted-foreground">
+            Detecting Python...
+          </div>
         ) : pythonInfo.error ? (
-          <div className="text-xs text-red-500">{pythonInfo.error}</div>
+          <div className="text-xs text-destructive">{pythonInfo.error}</div>
         ) : pythonInfo.pythonPath ? (
           <>
-            <div className="text-xs text-gray-700 dark:text-gray-300">
+            <div className="text-xs text-foreground">
               Path:{" "}
               <span className="font-mono break-all">
                 {pythonInfo.pythonPath}
               </span>
             </div>
-            <div className="text-xs text-gray-700 dark:text-gray-300">
+            <div className="text-xs text-foreground">
               Python: {pythonInfo.version}
             </div>
-            <div className="text-xs text-gray-700 dark:text-gray-300">
+            <div className="text-xs text-foreground">
               Pip: {pythonInfo.pipVersion}
             </div>
           </>
         ) : (
-          <div className="text-xs text-red-500">Python 3 not found</div>
+          <div className="text-xs text-destructive">Python 3 not found</div>
         )}
         {isInstalling && (
           <div className="mt-4 flex-1 flex flex-col">
-            <div className="font-semibold text-xs mb-1 text-gray-700 dark:text-gray-300">
+            <div className="font-semibold text-xs mb-1 text-foreground">
               Install Progress
             </div>
             {/* Split installProgress into command and output */}
@@ -290,10 +298,10 @@ export const InstallPythonPackage = () => {
               ).split(/\r?\n/)
               return (
                 <div className="flex flex-col">
-                  <div className="mb-2 px-2 py-1 rounded bg-blue-900 text-blue-200 font-mono text-xs font-semibold border border-blue-700">
+                  <div className="mb-2 px-2 py-1 rounded bg-primary text-primary-foreground font-mono text-xs font-semibold border border-primary">
                     {command}
                   </div>
-                  <pre className="flex-1 max-h-56 overflow-y-auto text-xs bg-black text-green-200 rounded p-2 whitespace-pre-wrap border border-gray-700">
+                  <pre className="flex-1 max-h-56 overflow-y-auto text-xs bg-muted text-foreground rounded p-2 whitespace-pre-wrap border border-border">
                     {outputLines.join("\n")}
                   </pre>
                 </div>
@@ -317,7 +325,7 @@ export const InstallPythonPackage = () => {
               ],
             }}
           />
-          <span className="text-xs text-gray-500">or</span>
+          <span className="text-xs text-muted-foreground">or</span>
           <ElectronFileInput
             placeholder="Select Python executable"
             onChange={handlePythonBinaryChange}
@@ -335,7 +343,7 @@ export const InstallPythonPackage = () => {
         </div>
         {/* Python error message display */}
         {pythonError && (
-          <div style={{ color: "red", marginTop: 8 }}>{pythonError}</div>
+          <div className="text-destructive mt-2">{pythonError}</div>
         )}
       </div>
       <div className="mt-6 flex justify-end">
@@ -351,7 +359,7 @@ export const InstallPythonPackage = () => {
           className="w-full"
         >
           {alreadyInstalled ? (
-            <span className="flex items-center text-yellow-500">
+            <span className="flex items-center text-yellow-600">
               <Check className="mr-2 h-4 w-4" />
               All Packages Installed
             </span>

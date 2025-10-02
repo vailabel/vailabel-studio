@@ -11,6 +11,8 @@ import {
   ChevronDown,
   LogOut,
   User,
+  Menu,
+  Tag,
 } from "lucide-react"
 import { useNavigate, useOutlet, useLocation } from "react-router-dom"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -20,8 +22,16 @@ import {
   SheetTrigger,
   SheetTitle,
 } from "@/components/ui/sheet"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Button } from "@/components/ui/button"
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden"
-import { Menu } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { useAuthCondition } from "@/guards/auth-guards"
 
@@ -36,10 +46,26 @@ type NavigationItem = {
 const navigation: NavigationItem[] = [
   { name: "Overview", href: "/", icon: Home },
   { name: "Projects", href: "/projects", icon: Folder },
+  { name: "Labels", href: "/labels", icon: Tag },
   { name: "Task", href: "/tasks", icon: Layers2 },
-  { name: "Users", href: "/users", icon: Users, requiredRoles: ["admin", "manager"] },
-  { name: "Cloud Storage", href: "/cloud-storage", icon: Cloud, requiredPermission: "settings:write" },
-  { name: "AI Models", href: "/ai-models", icon: Brain, requiredPermission: "ai_models:read" },
+  {
+    name: "Users",
+    href: "/users",
+    icon: Users,
+    requiredRoles: ["admin", "manager"],
+  },
+  {
+    name: "Cloud Storage",
+    href: "/cloud-storage",
+    icon: Cloud,
+    requiredPermission: "settings:write",
+  },
+  {
+    name: "AI Models",
+    href: "/ai-models",
+    icon: Brain,
+    requiredPermission: "ai_models:read",
+  },
   { name: "Settings", href: "/settings", icon: Settings2 },
 ]
 
@@ -50,39 +76,6 @@ const MainLayout = () => {
   const { user, logout } = useAuth()
   const { canAccess } = useAuthCondition()
   const [sheetOpen, setSheetOpen] = React.useState(false)
-  const [profileMenuOpen, setProfileMenuOpen] = React.useState(false)
-  const profileMenuRef = React.useRef<HTMLDivElement>(null)
-
-  // Close dropdown on click outside
-  React.useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (
-        profileMenuRef.current &&
-        !profileMenuRef.current.contains(e.target as Node)
-      ) {
-        setProfileMenuOpen(false)
-      }
-    }
-    if (profileMenuOpen) {
-      document.addEventListener("mousedown", handleClick)
-    } else {
-      document.removeEventListener("mousedown", handleClick)
-    }
-    return () => document.removeEventListener("mousedown", handleClick)
-  }, [profileMenuOpen])
-
-  // Keyboard accessibility: close on Escape
-  React.useEffect(() => {
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setProfileMenuOpen(false)
-    }
-    if (profileMenuOpen) {
-      document.addEventListener("keydown", handleKey)
-    } else {
-      document.removeEventListener("keydown", handleKey)
-    }
-    return () => document.removeEventListener("keydown", handleKey)
-  }, [profileMenuOpen])
 
   return (
     <div className="flex min-h-screen">
@@ -93,48 +86,46 @@ const MainLayout = () => {
         {/* Menu button in header, only on mobile */}
         <div className="md:hidden fixed top-4 left-4 z-40">
           <SheetTrigger asChild>
-            <button className="rounded-md p-2 bg-white dark:bg-gray-900 border shadow">
+            <Button variant="outline" size="icon" className="shadow">
               <Menu className="h-6 w-6" />
               <span className="sr-only">Open menu</span>
-            </button>
+            </Button>
           </SheetTrigger>
         </div>
         <SheetContent
           side="left"
-          className="p-0 w-64 bg-gray-100 dark:bg-gray-800 left-0 top-0 h-full fixed md:hidden"
+          className="p-0 w-64 bg-background left-0 top-0 h-full fixed md:hidden"
         >
           <VisuallyHidden asChild>
             <SheetTitle>Main navigation</SheetTitle>
           </VisuallyHidden>
-          <div className="flex items-center gap-2 mb-6 p-4">
+          <div className="flex items-center gap-2 mb-6 p-6">
             <img src="/logo.png" alt="ProjectHub Logo" className="h-7 w-7" />
             <span className="text-xl font-bold">ProjectHub</span>
           </div>
-          <nav className="space-y-2 p-4">
+          <nav className="space-y-1 p-6">
             {navigation
-              .filter(item => canAccess(item.requiredPermission, item.requiredRoles))
+              .filter((item) =>
+                canAccess(item.requiredPermission, item.requiredRoles)
+              )
               .map((item) => {
                 const isActive =
                   location.pathname === item.href ||
                   (item.href !== "/" && location.pathname.startsWith(item.href))
                 return (
-                  <button
+                  <Button
                     key={item.name}
+                    variant={isActive ? "default" : "ghost"}
                     onClick={() => {
                       navigate(item.href)
                       setSheetOpen(false)
                     }}
-                    className={
-                      "flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors w-full text-left " +
-                      (isActive
-                        ? "bg-primary text-primary-foreground shadow"
-                        : "hover:bg-gray-200 dark:hover:bg-gray-700")
-                    }
+                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium w-full justify-start h-9"
                     aria-current={isActive ? "page" : undefined}
                   >
                     <item.icon className="h-5 w-5" />
                     <span>{item.name}</span>
-                  </button>
+                  </Button>
                 )
               })}
           </nav>
@@ -143,90 +134,62 @@ const MainLayout = () => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-white px-4 md:px-6 dark:bg-gray-900">
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background px-6">
           <div className="flex items-center gap-3">
             {/* Back button, hidden on root path */}
             {location.pathname !== "/" && (
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => navigate(-1)}
-                className="rounded-md p-2 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors"
                 aria-label="Go back"
               >
                 <ArrowLeft className="h-6 w-6" />
-              </button>
+              </Button>
             )}
             {/* Only show space for menu button on mobile, but button itself is fixed above */}
-            <div className="md:hidden w-10" />
+            <div className="md:hidden w-12" />
             {/* Removed logo and app name from header */}
           </div>
           <div className="flex items-center gap-4">
             <ThemeToggle />
-            {/* Redesigned Profile Dropdown */}
-            <div className="relative" ref={profileMenuRef}>
-              <button
-                className="px-4 py-2 rounded-md border border-gray-300 dark:border-gray-700 bg-background hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow shadow-sm font-semibold text-base text-primary"
-                aria-haspopup="menu"
-                aria-expanded={profileMenuOpen}
-                onClick={() => setProfileMenuOpen((v) => !v)}
-                onBlur={(e) => {
-                  if (!e.currentTarget.contains(e.relatedTarget)) {
-                    setProfileMenuOpen(false)
-                  }
-                }}
-              >
-                {user?.name || "User"}
-                <ChevronDown className="ml-2 h-4 w-4 text-muted-foreground inline-block align-middle" />
-              </button>
-              {profileMenuOpen && (
-                <div
-                  className="absolute right-0 mt-2 w-44 rounded-md border border-gray-200 dark:border-gray-700 bg-popover shadow-lg z-40 focus:outline-none"
-                  role="menu"
-                  tabIndex={-1}
-                >
-                  <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
-                    <span className="block font-bold text-lg text-primary">
+            {/* Profile Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                  {user?.name || "User"}
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">
                       {user?.name || "User"}
-                    </span>
-                    <span className="block text-sm text-muted-foreground capitalize">
+                    </p>
+                    <p className="text-xs leading-none text-muted-foreground capitalize">
                       {user?.role || "User"}
-                    </span>
+                    </p>
                   </div>
-                  <ul className="py-1">
-                    <li>
-                      <button
-                        className="w-full text-left px-4 py-2 text-sm hover:bg-accent/50 rounded-md transition-colors flex items-center gap-2"
-                        role="menuitem"
-                        tabIndex={0}
-                        onClick={() => {
-                          setProfileMenuOpen(false)
-                          navigate("/settings")
-                        }}
-                      >
-                        <User className="h-4 w-4" />
-                        Profile
-                      </button>
-                    </li>
-                    <li>
-                      <button
-                        className="w-full text-left px-4 py-2 text-sm hover:bg-accent/50 rounded-md transition-colors flex items-center gap-2 text-red-600 hover:text-red-700"
-                        role="menuitem"
-                        tabIndex={0}
-                        onClick={() => {
-                          setProfileMenuOpen(false)
-                          logout()
-                        }}
-                      >
-                        <LogOut className="h-4 w-4" />
-                        Logout
-                      </button>
-                    </li>
-                  </ul>
-                </div>
-              )}
-            </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => navigate("/settings")}>
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profile</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={logout}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Logout</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
-        <main className="flex-1 p-4">{outlet}</main>
+        <main className="flex-1 p-6">{outlet}</main>
       </div>
     </div>
   )
@@ -242,9 +205,9 @@ type AsideProps = {
 const Aside = React.memo(({ navigation, location }: AsideProps) => {
   const navigate = useNavigate()
   const { canAccess } = useAuthCondition()
-  
+
   return (
-    <aside className="hidden md:block w-64 bg-gray-100 dark:bg-gray-800 p-4">
+    <aside className="hidden md:block w-64 bg-muted/30 p-6 sticky top-0 h-screen overflow-y-auto">
       <div className="flex items-center gap-2 mb-6">
         <img
           src="/logo.png"
@@ -253,28 +216,26 @@ const Aside = React.memo(({ navigation, location }: AsideProps) => {
         />
         <span className="text-xl font-bold">VAI Studio</span>
       </div>
-      <nav className="space-y-2">
+      <nav className="space-y-1">
         {navigation
-          .filter(item => canAccess(item.requiredPermission, item.requiredRoles))
+          .filter((item) =>
+            canAccess(item.requiredPermission, item.requiredRoles)
+          )
           .map((item) => {
             const isActive =
               location.pathname === item.href ||
               (item.href !== "/" && location.pathname.startsWith(item.href))
             return (
-              <button
+              <Button
                 key={item.name}
+                variant={isActive ? "default" : "ghost"}
                 onClick={() => navigate(item.href)}
-                className={
-                  "flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors " +
-                  (isActive
-                    ? "bg-primary text-primary-foreground shadow"
-                    : "hover:bg-gray-200 dark:hover:bg-gray-700")
-                }
+                className="flex items-center gap-2 px-3 py-2 text-sm font-medium w-full justify-start h-9"
                 aria-current={isActive ? "page" : undefined}
               >
                 <item.icon className="h-5 w-5" />
                 <span>{item.name}</span>
-              </button>
+              </Button>
             )
           })}
       </nav>

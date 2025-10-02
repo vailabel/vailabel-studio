@@ -11,7 +11,10 @@ import { ImageUploadArea, ImageGrid } from "@/components/ui/image-upload"
 import { LabelManager } from "@/components/ui/label-manager"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { ProjectDetailSchema, useProjectCreateViewModel } from "@/viewmodels/project-create-viewmodel"
+import {
+  ProjectDetailSchema,
+  useProjectCreateViewModel,
+} from "@/viewmodels/project-create-viewmodel"
 import type { ProjectDetailForm } from "@/viewmodels/project-create-viewmodel"
 
 const steps = [
@@ -21,7 +24,7 @@ const steps = [
 
 export const ProjectCreate = memo(() => {
   const viewModel = useProjectCreateViewModel()
-  
+
   const {
     register,
     handleSubmit,
@@ -43,12 +46,12 @@ export const ProjectCreate = memo(() => {
   const handleCreateProject = async () => {
     const formData = getValues()
     const validationErrors = viewModel.validateForm(formData)
-    
+
     if (Object.keys(validationErrors).length > 0) {
       // Handle validation errors
       return
     }
-    
+
     await viewModel.createProject(formData)
   }
 
@@ -66,7 +69,7 @@ export const ProjectCreate = memo(() => {
   const stepIndex = viewModel.step === "details" ? 0 : 1
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <motion.div
@@ -74,10 +77,10 @@ export const ProjectCreate = memo(() => {
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-8"
         >
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+          <h1 className="text-3xl font-bold text-foreground mb-2">
             Create New Project
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-muted-foreground">
             Set up your annotation project with labels and images
           </p>
         </motion.div>
@@ -92,7 +95,7 @@ export const ProjectCreate = memo(() => {
           transition={{ delay: 0.2 }}
           className="max-w-4xl mx-auto"
         >
-          <Card className="shadow-xl border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
+          <Card className="shadow-xl border-0 bg-card backdrop-blur-sm">
             <CardContent className="p-8">
               <AnimatePresence mode="wait">
                 {viewModel.step === "details" && (
@@ -107,7 +110,10 @@ export const ProjectCreate = memo(() => {
                     <form onSubmit={handleNextStep} className="space-y-8">
                       {/* Project Name */}
                       <div className="space-y-2">
-                        <Label htmlFor="project-name" className="text-base font-semibold">
+                        <Label
+                          htmlFor="project-name"
+                          className="text-base font-semibold"
+                        >
                           Project Name *
                         </Label>
                         <Input
@@ -121,7 +127,7 @@ export const ProjectCreate = memo(() => {
                           <motion.div
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="text-red-500 text-sm flex items-center gap-1"
+                            className="text-destructive text-sm flex items-center gap-1"
                           >
                             <span>⚠</span>
                             {errors.name.message}
@@ -131,7 +137,10 @@ export const ProjectCreate = memo(() => {
 
                       {/* Description */}
                       <div className="space-y-2">
-                        <Label htmlFor="project-desc" className="text-base font-semibold">
+                        <Label
+                          htmlFor="project-desc"
+                          className="text-base font-semibold"
+                        >
                           Description
                         </Label>
                         <Textarea
@@ -141,7 +150,7 @@ export const ProjectCreate = memo(() => {
                           className="min-h-[100px] text-base resize-none"
                           maxLength={500}
                         />
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                        <p className="text-xs text-muted-foreground">
                           {watch("description")?.length || 0}/500 characters
                         </p>
                       </div>
@@ -191,12 +200,15 @@ export const ProjectCreate = memo(() => {
                     {/* Image Upload */}
                     <div className="space-y-4">
                       <div>
-                        <Label className="text-base font-semibold">Images *</Label>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                          Upload images for annotation. Supported formats: PNG, JPG, GIF
+                        <Label className="text-base font-semibold">
+                          Images *
+                        </Label>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Upload images for annotation. Supported formats: PNG,
+                          JPG, GIF
                         </p>
                       </div>
-                      
+
                       <ImageUploadArea
                         onFiles={viewModel.handleFiles}
                         isUploading={viewModel.isUploading}
@@ -210,7 +222,7 @@ export const ProjectCreate = memo(() => {
                     />
 
                     {/* Action Buttons */}
-                    <div className="flex justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex justify-between pt-6 border-t border-border">
                       <Button
                         variant="outline"
                         size="lg"
@@ -220,10 +232,14 @@ export const ProjectCreate = memo(() => {
                         <ArrowLeft className="mr-2 h-5 w-5" />
                         Back
                       </Button>
-                      
+
                       <Button
                         onClick={handleCreateProject}
-                        disabled={viewModel.isUploading || viewModel.isCreating || viewModel.images.length === 0}
+                        disabled={
+                          viewModel.isUploading ||
+                          viewModel.isCreating ||
+                          viewModel.images.length === 0
+                        }
                         size="lg"
                         className="px-8 py-3 text-base font-semibold"
                       >
@@ -254,9 +270,9 @@ export const ProjectCreate = memo(() => {
           transition={{ delay: 0.5 }}
           className="text-center mt-8"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/60 dark:bg-gray-800/60 rounded-full backdrop-blur-sm">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-card/60 rounded-full backdrop-blur-sm">
             <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-            <span className="text-sm text-gray-600 dark:text-gray-400">
+            <span className="text-sm text-muted-foreground">
               Step {stepIndex + 1} of {steps.length}
             </span>
           </div>

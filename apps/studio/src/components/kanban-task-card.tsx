@@ -175,12 +175,12 @@ export const KanbanTaskCard: React.FC<KanbanTaskCardProps> = ({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-auto p-1 hover:bg-blue-50 dark:hover:bg-blue-950/50 rounded"
+                      className="h-auto p-1 hover:bg-primary/10 rounded"
                       data-prevent-click="true"
                     >
                       <div className="flex items-center gap-2">
                         <Avatar className="w-5 h-5">
-                          <AvatarFallback className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                          <AvatarFallback className="text-xs bg-primary/10 text-primary">
                             {task.assignedTo
                               .split(" ")
                               .map((n) => n[0])
@@ -188,7 +188,7 @@ export const KanbanTaskCard: React.FC<KanbanTaskCardProps> = ({
                               .toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
-                        <span className="text-xs text-slate-700 dark:text-slate-300 font-medium truncate max-w-20">
+                        <span className="text-xs text-foreground font-medium truncate max-w-20">
                           {task.assignedTo}
                         </span>
                       </div>
@@ -197,7 +197,7 @@ export const KanbanTaskCard: React.FC<KanbanTaskCardProps> = ({
                   <DropdownMenuContent align="start" className="w-48">
                     <DropdownMenuItem
                       onClick={handleUnassign}
-                      className="text-red-600 focus:text-red-600"
+                      className="text-destructive focus:text-destructive"
                     >
                       <User className="w-4 h-4 mr-2" />
                       Unassign
@@ -208,13 +208,11 @@ export const KanbanTaskCard: React.FC<KanbanTaskCardProps> = ({
                         key={user.id}
                         onClick={() => handleAssignUser(user.id)}
                         className={
-                          task.assignedTo === user.name
-                            ? "bg-blue-50 dark:bg-blue-950"
-                            : ""
+                          task.assignedTo === user.name ? "bg-primary/10" : ""
                         }
                       >
                         <Avatar className="w-4 h-4 mr-2">
-                          <AvatarFallback className="text-xs bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                          <AvatarFallback className="text-xs bg-muted text-muted-foreground">
                             {user.name
                               .split(" ")
                               .map((n) => n[0])
@@ -233,11 +231,11 @@ export const KanbanTaskCard: React.FC<KanbanTaskCardProps> = ({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-auto p-1 hover:bg-blue-50 dark:hover:bg-blue-950/50 rounded text-xs text-slate-500 hover:text-blue-600"
+                      className="h-auto p-1 hover:bg-primary/10 rounded text-xs text-muted-foreground hover:text-primary"
                       data-prevent-click="true"
                     >
                       <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 rounded-full border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center">
+                        <div className="w-5 h-5 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center">
                           <UserPlus className="w-3 h-3" />
                         </div>
                         <span>Assign</span>
@@ -251,7 +249,7 @@ export const KanbanTaskCard: React.FC<KanbanTaskCardProps> = ({
                         onClick={() => handleAssignUser(user.id)}
                       >
                         <Avatar className="w-4 h-4 mr-2">
-                          <AvatarFallback className="text-xs bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                          <AvatarFallback className="text-xs bg-muted text-muted-foreground">
                             {user.name
                               .split(" ")
                               .map((n) => n[0])
@@ -273,7 +271,7 @@ export const KanbanTaskCard: React.FC<KanbanTaskCardProps> = ({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 w-6 p-0 hover:bg-blue-50 dark:hover:bg-blue-950/50 text-blue-600"
+                  className="h-6 w-6 p-0 hover:bg-primary/10 text-primary"
                   onClick={(e) => {
                     e.stopPropagation()
                     onStatusChange(task.id, "in-progress")
@@ -288,7 +286,7 @@ export const KanbanTaskCard: React.FC<KanbanTaskCardProps> = ({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 w-6 p-0 hover:bg-green-50 dark:hover:bg-green-950/50 text-green-600"
+                  className="h-6 w-6 p-0 hover:bg-green-50 dark:hover:bg-green-900/20 text-green-600"
                   onClick={(e) => {
                     e.stopPropagation()
                     onStatusChange(task.id, "completed")
@@ -304,7 +302,7 @@ export const KanbanTaskCard: React.FC<KanbanTaskCardProps> = ({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-6 w-6 p-0 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    className="h-6 w-6 p-0 hover:bg-muted"
                     onClick={(e) => e.stopPropagation()}
                     data-prevent-click="true"
                   >

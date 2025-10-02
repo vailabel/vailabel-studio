@@ -1,9 +1,6 @@
 import { app, BrowserWindow } from "electron"
 import { autoUpdater } from "electron-updater"
 import * as path from "path"
-import "./ipc/filesystemIpc"
-import "./ipc/updateIpc"
-import "./ipc/index"
 import { jsonSetting } from "./utils"
 import { initDatabase } from "./db/init"
 
@@ -16,9 +13,9 @@ import { isVersionSkipped, setupAutoUpdate } from "./autoUpdate/autoUpdate"
 
 let mainWindow: BrowserWindow
 let loadingWindow: BrowserWindow | null = null
-const isDev = !app.isPackaged
 
 function createWindow() {
+  const isDev = !app.isPackaged
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -27,7 +24,7 @@ function createWindow() {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true,
+      sandbox: false,
     },
   })
 
@@ -77,6 +74,12 @@ function closeLoadingWindow() {
 
 app.whenReady().then(async () => {
   console.log("App is ready, initializing...")
+
+  // Import IPC handlers after app is ready
+  await import("./ipc/filesystemIpc")
+  await import("./ipc/updateIpc")
+  await import("./ipc/index")
+
   try {
     await initDatabase()
     console.log("Database initialized successfully")
@@ -94,9 +97,11 @@ app.whenReady().then(async () => {
     }
     console.log("Creating main window...")
     createWindow()
+    const isDev = !app.isPackaged
     setupAutoUpdate(mainWindow, loadingWindow, isDev)
   }, 2000) // Show splash for 2 seconds
 
+  const isDev = !app.isPackaged
   if (isDev) {
     // Simulate update available after 2 seconds
     setTimeout(() => {

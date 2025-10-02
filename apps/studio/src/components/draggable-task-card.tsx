@@ -62,7 +62,7 @@ export const DraggableTaskCard: React.FC<DraggableTaskCardProps> = ({
         isDragging
           ? "rotate-2 scale-110 shadow-2xl z-50"
           : isOver
-            ? "border-2 border-blue-400 bg-blue-50/50 dark:bg-blue-950/50"
+            ? "border-2 border-primary/40 bg-primary/5"
             : ""
       )}
     >

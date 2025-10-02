@@ -1,17 +1,17 @@
 import { memo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { 
-  Plus, 
-  Trash2, 
-  FolderOpen, 
-  ImageIcon, 
-  Search, 
-  SortAsc, 
+import {
+  Plus,
+  Trash2,
+  FolderOpen,
+  ImageIcon,
+  Search,
+  SortAsc,
   SortDesc,
   RefreshCw,
   Calendar,
   Clock,
-  Loader2
+  Loader2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -55,7 +55,7 @@ const ProjectList = memo(() => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <motion.div
@@ -65,10 +65,10 @@ const ProjectList = memo(() => {
         >
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+              <h1 className="text-3xl font-bold text-foreground mb-2">
                 Projects
               </h1>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-muted-foreground">
                 Manage your annotation projects and datasets
               </p>
             </div>
@@ -80,7 +80,12 @@ const ProjectList = memo(() => {
                 disabled={viewModel.isLoading}
                 className="gap-2"
               >
-                <RefreshCw className={cn("h-4 w-4", viewModel.isLoading && "animate-spin")} />
+                <RefreshCw
+                  className={cn(
+                    "h-4 w-4",
+                    viewModel.isLoading && "animate-spin"
+                  )}
+                />
                 Refresh
               </Button>
               <Button onClick={viewModel.navigateToCreate} className="gap-2">
@@ -95,11 +100,11 @@ const ProjectList = memo(() => {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-lg p-4 border border-gray-200 dark:border-gray-700"
+            className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-card/60 backdrop-blur-sm rounded-lg p-4 border border-border"
           >
             <div className="flex-1 max-w-md">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search projects..."
                   value={viewModel.searchQuery}
@@ -108,11 +113,11 @@ const ProjectList = memo(() => {
                 />
               </div>
             </div>
-            
+
             <div className="flex gap-2 items-center">
               <Select
                 value={viewModel.sortBy}
-                onValueChange={(value: "name" | "createdAt" | "updatedAt") => 
+                onValueChange={(value: "name" | "createdAt" | "updatedAt") =>
                   viewModel.setSortBy(value)
                 }
               >
@@ -125,12 +130,14 @@ const ProjectList = memo(() => {
                   <SelectItem value="updatedAt">Modified</SelectItem>
                 </SelectContent>
               </Select>
-              
+
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => 
-                  viewModel.setSortOrder(viewModel.sortOrder === "asc" ? "desc" : "asc")
+                onClick={() =>
+                  viewModel.setSortOrder(
+                    viewModel.sortOrder === "asc" ? "desc" : "asc"
+                  )
                 }
                 className="gap-1"
               >
@@ -155,7 +162,7 @@ const ProjectList = memo(() => {
             <div className="flex items-center justify-center h-64">
               <div className="flex flex-col items-center gap-4">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="text-gray-600 dark:text-gray-400">Loading projects...</p>
+                <p className="text-muted-foreground">Loading projects...</p>
               </div>
             </div>
           ) : viewModel.error ? (
@@ -164,18 +171,18 @@ const ProjectList = memo(() => {
               animate={{ opacity: 1, scale: 1 }}
               className="text-center py-12"
             >
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6 max-w-md mx-auto">
-                <p className="text-red-600 dark:text-red-400 font-medium mb-2">
+              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-6 max-w-md mx-auto">
+                <p className="text-destructive font-medium mb-2">
                   Error Loading Projects
                 </p>
-                <p className="text-red-500 dark:text-red-300 text-sm mb-4">
+                <p className="text-destructive/80 text-sm mb-4">
                   {viewModel.error}
                 </p>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={viewModel.loadProjects}
-                  className="border-red-300 text-red-600 hover:bg-red-50"
+                  className="border-destructive/30 text-destructive hover:bg-destructive/10"
                 >
                   Try Again
                 </Button>
@@ -187,16 +194,15 @@ const ProjectList = memo(() => {
               animate={{ opacity: 1, scale: 1 }}
               className="text-center py-12"
             >
-              <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-lg p-12 border-2 border-dashed border-gray-300 dark:border-gray-700 max-w-md mx-auto">
-                <FolderOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              <div className="bg-card/60 backdrop-blur-sm rounded-lg p-12 border-2 border-dashed border-border max-w-md mx-auto">
+                <FolderOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-foreground mb-2">
                   No projects found
                 </h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-6">
-                  {viewModel.searchQuery 
+                <p className="text-muted-foreground mb-6">
+                  {viewModel.searchQuery
                     ? "No projects match your search criteria"
-                    : "Create your first project to get started with annotation"
-                  }
+                    : "Create your first project to get started with annotation"}
                 </p>
                 <Button onClick={viewModel.navigateToCreate} className="gap-2">
                   <Plus className="h-4 w-4" />
@@ -216,8 +222,8 @@ const ProjectList = memo(() => {
                     transition={{ duration: 0.3, delay: index * 0.1 }}
                     layout
                   >
-                    <Card className="group overflow-hidden bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                      <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-600">
+                    <Card className="group overflow-hidden bg-card backdrop-blur-sm border-border hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                      <CardHeader className="bg-muted/30">
                         <div className="flex items-start justify-between">
                           <div className="flex-1 min-w-0">
                             <CardTitle className="text-lg font-semibold truncate">
@@ -235,36 +241,40 @@ const ProjectList = memo(() => {
                           </Badge>
                         </div>
                       </CardHeader>
-                      
+
                       <CardContent className="p-6">
                         <div className="space-y-3">
-                          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <ImageIcon className="h-4 w-4" />
                             <span>{project.images?.length || 0} images</span>
                           </div>
-                          
-                          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Clock className="h-4 w-4" />
-                            <span>Modified {formatTime(project.updatedAt)}</span>
+                            <span>
+                              Modified {formatTime(project.updatedAt)}
+                            </span>
                           </div>
                         </div>
                       </CardContent>
-                      
-                      <CardFooter className="flex justify-between p-4 bg-gray-50/50 dark:bg-gray-700/50">
+
+                      <CardFooter className="flex justify-between p-4 bg-muted/20">
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => viewModel.navigateToProject(project.id)}
+                          onClick={() =>
+                            viewModel.navigateToProject(project.id)
+                          }
                           className="gap-2 hover:bg-primary hover:text-white transition-colors"
                         >
                           <FolderOpen className="h-4 w-4" />
                           Open
                         </Button>
-                        
+
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10 transition-colors"
                           onClick={() => viewModel.deleteProject(project.id)}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -286,8 +296,9 @@ const ProjectList = memo(() => {
             transition={{ delay: 0.5 }}
             className="text-center mt-8"
           >
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Showing {viewModel.filteredProjects.length} of {viewModel.projects.length} projects
+            <p className="text-sm text-muted-foreground">
+              Showing {viewModel.filteredProjects.length} of{" "}
+              {viewModel.projects.length} projects
               {viewModel.searchQuery && ` matching "${viewModel.searchQuery}"`}
             </p>
           </motion.div>

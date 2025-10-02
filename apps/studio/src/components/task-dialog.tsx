@@ -136,12 +136,12 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
           <DialogTitle className="text-2xl font-bold flex items-center gap-2">
             {task ? (
               <>
-                <Save className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                <Save className="w-5 h-5 text-primary" />
                 Edit Task
               </>
             ) : (
               <>
-                <Plus className="w-5 h-5 text-green-600 dark:text-green-400" />
+                <Plus className="w-5 h-5 text-primary" />
                 Create New Task
               </>
             )}
@@ -156,9 +156,11 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Basic Information Card */}
-            <Card className="border-0 shadow-lg">
+            <Card className="border-0 shadow-lg bg-card">
               <CardHeader className="pb-4">
-                <CardTitle className="text-lg font-semibold">Basic Information</CardTitle>
+                <CardTitle className="text-lg font-semibold">
+                  Basic Information
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -167,12 +169,14 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
                     name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-medium">Task Name *</FormLabel>
+                        <FormLabel className="text-sm font-medium">
+                          Task Name *
+                        </FormLabel>
                         <FormControl>
-                          <Input 
-                            placeholder="Enter task name..." 
+                          <Input
+                            placeholder="Enter task name..."
                             className="h-10"
-                            {...field} 
+                            {...field}
                           />
                         </FormControl>
                         <FormMessage />
@@ -185,7 +189,9 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
                     name="projectId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-medium">Project *</FormLabel>
+                        <FormLabel className="text-sm font-medium">
+                          Project *
+                        </FormLabel>
                         <Select
                           onValueChange={field.onChange}
                           defaultValue={field.value}
@@ -214,7 +220,9 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
                   name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-sm font-medium">Description *</FormLabel>
+                      <FormLabel className="text-sm font-medium">
+                        Description *
+                      </FormLabel>
                       <FormControl>
                         <Textarea
                           placeholder="Enter task description..."
@@ -230,9 +238,11 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
             </Card>
 
             {/* Task Configuration Card */}
-            <Card className="border-0 shadow-lg">
+            <Card className="border-0 shadow-lg bg-card">
               <CardHeader className="pb-4">
-                <CardTitle className="text-lg font-semibold">Task Configuration</CardTitle>
+                <CardTitle className="text-lg font-semibold">
+                  Task Configuration
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -241,7 +251,9 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
                     name="status"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-medium">Status</FormLabel>
+                        <FormLabel className="text-sm font-medium">
+                          Status
+                        </FormLabel>
                         <Select
                           onValueChange={field.onChange}
                           defaultValue={field.value}
@@ -253,7 +265,10 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
                           </FormControl>
                           <SelectContent>
                             {statusOptions.map((status) => (
-                              <SelectItem key={status.value} value={status.value}>
+                              <SelectItem
+                                key={status.value}
+                                value={status.value}
+                              >
                                 {status.label}
                               </SelectItem>
                             ))}
@@ -269,7 +284,9 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
                     name="assignedTo"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-medium">Assigned To</FormLabel>
+                        <FormLabel className="text-sm font-medium">
+                          Assigned To
+                        </FormLabel>
                         <Select
                           onValueChange={(value) => {
                             field.onChange(value === "unassigned" ? "" : value)
@@ -282,7 +299,9 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="unassigned">Unassigned</SelectItem>
+                            <SelectItem value="unassigned">
+                              Unassigned
+                            </SelectItem>
                             {users.map((user) => (
                               <SelectItem key={user.id} value={user.name}>
                                 {user.name} ({user.email})
@@ -300,7 +319,9 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
                     name="dueDate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-medium">Due Date</FormLabel>
+                        <FormLabel className="text-sm font-medium">
+                          Due Date
+                        </FormLabel>
                         <Popover>
                           <PopoverTrigger asChild>
                             <FormControl>
@@ -352,10 +373,7 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
                 <X className="w-4 h-4" />
                 Cancel
               </Button>
-              <Button 
-                type="submit"
-                className="gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg"
-              >
+              <Button type="submit" className="gap-2 shadow-lg">
                 {task ? (
                   <>
                     <Save className="w-4 h-4" />

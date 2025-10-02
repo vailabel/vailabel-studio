@@ -46,16 +46,16 @@ export interface OverviewActions {
   // Data operations
   loadDashboardData: () => Promise<void>
   refreshData: () => Promise<void>
-  
+
   // Navigation
   navigateToProjects: () => void
   navigateToLabels: () => void
   navigateToUsers: () => void
   navigateToTasks: () => void
-  
+
   // Activity operations
   // loadRecentActivity: () => Promise<void> // Removed - now integrated into loadDashboardData
-  
+
   // Computed values
   hasData: boolean
   isEmpty: boolean
@@ -86,21 +86,21 @@ export function useOverviewViewModel(): OverviewState & OverviewActions {
 
   // Actions
   const loadDashboardData = useCallback(async () => {
-    setState(prev => ({ ...prev, isLoading: true, error: null }))
-    
+    setState((prev) => ({ ...prev, isLoading: true, error: null }))
+
     try {
       const [projects, labels, users, annotations] = await Promise.all([
         services.getProjectService().getProjects(),
-        services.getLabelService().getLabelsByProjectId(''), // Get all labels
+        services.getLabelService().getLabelsByProjectId(""), // Get all labels
         services.getUserService().getUsers(),
-        services.getAnnotationService().getAnnotationsByProjectId(''), // Get all annotations
+        services.getAnnotationService().getAnnotationsByProjectId(""), // Get all annotations
       ])
 
       // Mock task data for now
       const completedTasks = 0
       const pendingTasks = 0
 
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         statistics: {
           totalProjects: projects.length,
@@ -150,12 +150,14 @@ export function useOverviewViewModel(): OverviewState & OverviewActions {
           projectId: projectsForActivity[0]?.id,
           projectName: projectsForActivity[0]?.name,
         },
-      ].filter(item => item.user !== "System" || projectsForActivity.length > 0)
+      ].filter(
+        (item) => item.user !== "System" || projectsForActivity.length > 0
+      )
 
-      setState(prev => ({ ...prev, recentActivity: mockActivity }))
+      setState((prev) => ({ ...prev, recentActivity: mockActivity }))
     } catch (error) {
       const errorMessage = "Failed to load dashboard data"
-      setState(prev => ({ ...prev, error: errorMessage }))
+      setState((prev) => ({ ...prev, error: errorMessage }))
       toast({
         title: "Error",
         description: errorMessage,
@@ -163,7 +165,7 @@ export function useOverviewViewModel(): OverviewState & OverviewActions {
       })
       console.error("Failed to load dashboard data:", error)
     } finally {
-      setState(prev => ({ ...prev, isLoading: false }))
+      setState((prev) => ({ ...prev, isLoading: false }))
     }
   }, [services, toast])
 
@@ -197,7 +199,7 @@ export function useOverviewViewModel(): OverviewState & OverviewActions {
         description: "Start a new labeling project",
         icon: "FolderPlus",
         action: navigateToProjects,
-        color: "bg-blue-600 hover:bg-blue-700",
+        color: "bg-primary hover:bg-primary/90",
       },
       {
         id: "manage-labels",
@@ -225,7 +227,7 @@ export function useOverviewViewModel(): OverviewState & OverviewActions {
       },
     ]
 
-    setState(prev => ({ ...prev, quickActions }))
+    setState((prev) => ({ ...prev, quickActions }))
   }, [navigateToProjects, navigateToLabels, navigateToUsers, navigateToTasks])
 
   // Load data on mount
@@ -234,7 +236,8 @@ export function useOverviewViewModel(): OverviewState & OverviewActions {
   }, [loadDashboardData])
 
   // Computed values
-  const hasData = state.statistics.totalProjects > 0 || state.statistics.activeUsers > 0
+  const hasData =
+    state.statistics.totalProjects > 0 || state.statistics.activeUsers > 0
   const isEmpty = !hasData && !state.isLoading
   const statisticsLoaded = state.lastUpdated !== null
 

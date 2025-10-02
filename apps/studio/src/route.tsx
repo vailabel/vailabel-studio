@@ -4,6 +4,7 @@ import Overview from "./pages/overview"
 import NotFound from "./pages/not-found"
 import UserPage from "./pages/user"
 import LoginPage from "./pages/login"
+import LabelsPage from "./pages/labels"
 
 import { HashRouter, Routes, Route } from "react-router-dom"
 import MainLayout from "./components/main-layout"
@@ -22,32 +23,32 @@ const AppRoutes = () => {
       <Routes>
         {/* Public routes */}
         <Route path="/login" element={<LoginPage />} />
-        
+
         {/* Protected routes */}
         <Route element={<MainLayout />}>
-          <Route 
-            path="/" 
+          <Route
+            path="/"
             element={
               <AuthRoute>
                 <Overview />
               </AuthRoute>
-            } 
+            }
           />
-          <Route 
-            path="/projects" 
+          <Route
+            path="/projects"
             element={
               <AuthRoute>
                 <ProjectList />
               </AuthRoute>
-            } 
+            }
           />
-          <Route 
-            path="/projects/create" 
+          <Route
+            path="/projects/create"
             element={
               <AuthRoute requiredPermission="projects:write">
                 <ProjectCreate />
               </AuthRoute>
-            } 
+            }
           />
           <Route
             path="/projects/detail/:projectId"
@@ -57,48 +58,56 @@ const AppRoutes = () => {
               </AuthRoute>
             }
           />
-          <Route 
-            path="/ai-models" 
+          <Route
+            path="/ai-models"
             element={
               <AuthRoute requiredPermission="ai_models:read">
                 <AIModelListPage />
               </AuthRoute>
-            } 
+            }
           />
-          <Route 
-            path="/tasks" 
+          <Route
+            path="/tasks"
             element={
               <AuthRoute>
                 <TaskPage />
               </AuthRoute>
-            } 
+            }
           />
-          <Route 
-            path="/users" 
+          <Route
+            path="/labels"
+            element={
+              <AuthRoute>
+                <LabelsPage />
+              </AuthRoute>
+            }
+          />
+          <Route
+            path="/users"
             element={
               <AuthRoute requiredRoles={["admin", "manager"]}>
                 <UserPage />
               </AuthRoute>
-            } 
+            }
           />
-          <Route 
-            path="/cloud-storage" 
+          <Route
+            path="/cloud-storage"
             element={
               <AuthRoute requiredPermission="settings:write">
                 <CloudStorageConfigPage />
               </AuthRoute>
-            } 
+            }
           />
-          <Route 
-            path="/settings" 
+          <Route
+            path="/settings"
             element={
               <AuthRoute>
                 <Setting />
               </AuthRoute>
-            } 
+            }
           />
         </Route>
-        
+
         {/* Studio route - requires authentication */}
         <Route
           path="/projects/:projectId/studio/:imageId"
@@ -108,7 +117,7 @@ const AppRoutes = () => {
             </AuthRoute>
           }
         />
-        
+
         {/* Catch all */}
         <Route path="*" element={<NotFound />} />
       </Routes>

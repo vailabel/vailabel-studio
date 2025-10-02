@@ -8,7 +8,7 @@
     "copy-python": "copyfiles -u -1 ./src/ai/requirements.txt ./dist/ai && copyfiles -u -1 ./src/ai/yolo.py ./dist/ai",
     "pre-dev": "yarn copy-python",
     "build": "yarn tsc && ELECTRON_BUILDER_CACHE=/tmp/electron-builder-cache npx electron-builder --publish never",
-    "dev": "NODE_ENV=development yarn pre-dev && tsc && electron . --trace-warnings",
+    "dev": "NODE_ENV=development yarn pre-dev && tsc && electron . --trace-warnings --no-sandbox",
     "test": "jest --coverage",
     "prebuild": "npx electron-icon-maker --input=./assets/icon.png --output=./assets/icon",
     "release": "yarn tsc && yarn prebuild && ELECTRON_BUILDER_CACHE=/tmp/electron-builder-cache npx electron-builder --publish always",
@@ -26,12 +26,12 @@
     "@types/bcrypt": "^6.0.0",
     "@types/semver": "^7.7.0",
     "@vailabel/core": "^1.0.3",
-    "electron": "36.2.1",
     "electron-builder": "^26.0.12",
     "typescript": "^5.9.2"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
+    "electron": "36.2.1",
     "electron-devtools-installer": "^4.0.0",
     "electron-updater": "^6.6.2",
     "keytar": "^7.9.0",
