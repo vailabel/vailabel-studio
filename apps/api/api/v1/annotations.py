@@ -13,6 +13,17 @@ def get_by_project(
     db: Session = Depends(get_db),
     service: AnnotationService = Depends(get_annotation_service),
 ):
+    """
+    Retrieve all annotations associated with a specific project.
+    
+    Args:
+        project_id: The unique identifier of the project
+        db: Database session dependency
+        service: Annotation service dependency
+    
+    Returns:
+        List of annotations belonging to the project
+    """
     return service.get_annotations_by_project(db, project_id)
 
 
@@ -22,6 +33,17 @@ def get_by_image(
     db: Session = Depends(get_db),
     service: AnnotationService = Depends(get_annotation_service),
 ):
+    """
+    Retrieve all annotations associated with a specific image.
+    
+    Args:
+        image_id: The unique identifier of the image
+        db: Database session dependency
+        service: Annotation service dependency
+    
+    Returns:
+        List of annotations belonging to the image
+    """
     return service.get_annotations_by_image(db, image_id)
 
 
@@ -31,6 +53,17 @@ def create(
     db: Session = Depends(get_db),
     service: AnnotationService = Depends(get_annotation_service),
 ):
+    """
+    Create a new annotation.
+    
+    Args:
+        data: The data for creating a new annotation
+        db: Database session dependency
+        service: Annotation service dependency
+    
+    Returns:
+        The newly created annotation object
+    """
     return service.create_annotation(db, data)
 
 
@@ -41,6 +74,21 @@ def update(
     db: Session = Depends(get_db),
     service: AnnotationService = Depends(get_annotation_service),
 ):
+    """
+    Update an existing annotation.
+    
+    Args:
+        annotation_id: The unique identifier of the annotation to update
+        data: The data for updating the annotation
+        db: Database session dependency
+        service: Annotation service dependency
+    
+    Returns:
+        The updated annotation object
+    
+    Raises:
+        HTTPException: 404 error if the annotation is not found
+    """
     updated = service.update_annotation(db, annotation_id, data)
     if not updated:
         raise HTTPException(404, "Annotation not found")
@@ -53,6 +101,20 @@ def delete(
     db: Session = Depends(get_db),
     service: AnnotationService = Depends(get_annotation_service),
 ):
+    """
+    Delete an annotation by its ID.
+    
+    Args:
+        annotation_id: The unique identifier of the annotation to delete
+        db: Database session dependency
+        service: Annotation service dependency
+    
+    Returns:
+        Success message confirming deletion
+    
+    Raises:
+        HTTPException: 404 error if the annotation is not found
+    """
     deleted = service.delete_annotation(db, annotation_id)
     if not deleted:
         raise HTTPException(404, "Annotation not found")
