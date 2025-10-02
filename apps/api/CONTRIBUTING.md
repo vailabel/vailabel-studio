@@ -1,5 +1,6 @@
 # 🤝 Contributing to Vailabel API
 
+
 Thank you for your interest in contributing to the Vailabel API! This guide will help you get started with contributing to the FastAPI backend service that powers the Vailabel Studio platform.
 
 ## 📋 Table of Contents
