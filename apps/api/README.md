@@ -17,7 +17,6 @@
 - [Scripts](#-scripts)
 - [Project Structure](#-project-structure)
 - [Contributing](#-contributing)
-- [Support](#-support)
 
 ## 🎯 Overview
 
