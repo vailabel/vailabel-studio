@@ -13,6 +13,20 @@ def get_ai_model(
     db: Session = Depends(get_db),
     service: AIModelService = Depends(get_ai_model_service),
 ):
+    """
+    Retrieve a specific AI model by its ID.
+    
+    Args:
+        model_id: The unique identifier of the AI model
+        db: Database session dependency
+        service: AI model service dependency
+    
+    Returns:
+        The requested AI model object
+    
+    Raises:
+        HTTPException: 404 error if the model is not found
+    """
     model = service.get_ai_model(db, model_id)
     if not model:
         raise HTTPException(404, "Model not found")
@@ -25,6 +39,17 @@ def get_models_by_project(
     db: Session = Depends(get_db),
     service: AIModelService = Depends(get_ai_model_service),
 ):
+    """
+    Retrieve all AI models associated with a specific project.
+    
+    Args:
+        project_id: The unique identifier of the project
+        db: Database session dependency
+        service: AI model service dependency
+    
+    Returns:
+        List of AI models belonging to the project
+    """
     return service.get_ai_models_by_project(db, project_id)
 
 
@@ -34,6 +59,17 @@ def create_model(
     db: Session = Depends(get_db),
     service: AIModelService = Depends(get_ai_model_service),
 ):
+    """
+    Create a new AI model.
+    
+    Args:
+        data: The data for creating a new AI model
+        db: Database session dependency
+        service: AI model service dependency
+    
+    Returns:
+        The newly created AI model object
+    """
     return service.create_ai_model(db, data)
 
 
@@ -44,6 +80,21 @@ def update_model(
     db: Session = Depends(get_db),
     service: AIModelService = Depends(get_ai_model_service),
 ):
+    """
+    Update an existing AI model.
+    
+    Args:
+        model_id: The unique identifier of the AI model to update
+        data: The data for updating the AI model
+        db: Database session dependency
+        service: AI model service dependency
+    
+    Returns:
+        The updated AI model object
+    
+    Raises:
+        HTTPException: 404 error if the model is not found
+    """
     updated = service.update_ai_model(db, model_id, data)
     if not updated:
         raise HTTPException(404, "Model not found")
@@ -56,6 +107,20 @@ def delete_model(
     db: Session = Depends(get_db),
     service: AIModelService = Depends(get_ai_model_service),
 ):
+    """
+    Delete an AI model by its ID.
+    
+    Args:
+        model_id: The unique identifier of the AI model to delete
+        db: Database session dependency
+        service: AI model service dependency
+    
+    Returns:
+        Success message confirming deletion
+    
+    Raises:
+        HTTPException: 404 error if the model is not found
+    """
     deleted = service.delete_ai_model(db, model_id)
     if not deleted:
         raise HTTPException(404, "Model not found")

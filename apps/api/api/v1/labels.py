@@ -13,6 +13,17 @@ def get_by_project(
     db: Session = Depends(get_db),
     service: LabelService = Depends(get_label_service),
 ):
+    """
+    Retrieve all labels associated with a specific project.
+    
+    Args:
+        project_id: The unique identifier of the project
+        db: Database session dependency
+        service: Label service dependency
+    
+    Returns:
+        List of labels belonging to the project
+    """
     return service.get_labels_by_project(db, project_id)
 
 
@@ -22,6 +33,17 @@ def create(
     db: Session = Depends(get_db),
     service: LabelService = Depends(get_label_service),
 ):
+    """
+    Create a new label.
+    
+    Args:
+        data: The data for creating a new label
+        db: Database session dependency
+        service: Label service dependency
+    
+    Returns:
+        The newly created label object
+    """
     return service.create_label(db, data)
 
 
@@ -32,6 +54,21 @@ def update(
     db: Session = Depends(get_db),
     service: LabelService = Depends(get_label_service),
 ):
+    """
+    Update an existing label.
+    
+    Args:
+        label_id: The unique identifier of the label to update
+        data: The data for updating the label
+        db: Database session dependency
+        service: Label service dependency
+    
+    Returns:
+        The updated label object
+    
+    Raises:
+        HTTPException: 404 error if the label is not found
+    """
     updated = service.update_label(db, label_id, data)
     if not updated:
         raise HTTPException(404, "Label not found")
@@ -44,6 +81,20 @@ def delete(
     db: Session = Depends(get_db),
     service: LabelService = Depends(get_label_service),
 ):
+    """
+    Delete a label by its ID.
+    
+    Args:
+        label_id: The unique identifier of the label to delete
+        db: Database session dependency
+        service: Label service dependency
+    
+    Returns:
+        Success message confirming deletion
+    
+    Raises:
+        HTTPException: 404 error if the label is not found
+    """
     deleted = service.delete_label(db, label_id)
     if not deleted:
         raise HTTPException(404, "Label not found")
