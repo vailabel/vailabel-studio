@@ -47,15 +47,11 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    import hashlib
-
-    return hashlib.sha256(plain_password.encode()).hexdigest() == hashed_password
+    return pwd_context.verify(plain_password, hashed_password)
 
 
 def get_password_hash(password: str) -> str:
-    import hashlib
-
-    return hashlib.sha256(password.encode()).hexdigest()
+    return pwd_context.hash(password)
 
 
 def get_user_by_email(db: Session, email: str) -> Optional[User]:
