@@ -40,6 +40,7 @@
 - [📝 Roadmap](#-roadmap)
 - [🤝 Contributing](#-contributing)
 - [📄 License](#-license)
+- [Acknowledgements](#acknowledgements)
 
 ## ✨ Features
 
@@ -169,7 +170,7 @@ This project is licensed under the **GNU GENERAL PUBLIC LICENSE** — see the [L
 
 ---
 
-## ❤️ Acknowledgements
+## Acknowledgements
 
 - [Ultralytics YOLOv8](https://github.com/ultralytics/ultralytics)
 - [TailwindCSS](https://tailwindcss.com/)
