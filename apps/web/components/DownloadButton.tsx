@@ -58,7 +58,12 @@ const DownloadButton: React.FC = () => {
             assetMap.windows = asset.browser_download_url
           if (/\.dmg$/.test(asset.name))
             assetMap.mac = asset.browser_download_url
-          if (/\.AppImage$|\.deb$|\.tar\.gz$/.test(asset.name))
+          if (/amd64\.deb$/.test(asset.name))
+            assetMap.linux = asset.browser_download_url
+          else if (
+            !assetMap.linux &&
+            /\.AppImage$|\.tar\.gz$/.test(asset.name)
+          )
             assetMap.linux = asset.browser_download_url
         })
         setReleaseAssets(assetMap)
