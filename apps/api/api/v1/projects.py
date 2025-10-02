@@ -14,6 +14,16 @@ def list_projects(
     service: ProjectService = Depends(get_project_service),
     _: None = Depends(require_permission("projects:read")),
 ):
+    """
+    Retrieve all projects.
+    
+    Args:
+        db: Database session dependency
+        service: Project service dependency
+    
+    Returns:
+        List of all projects
+    """
     return service.get_projects(db)
 
 
@@ -24,6 +34,20 @@ def get_project(
     service: ProjectService = Depends(get_project_service),
     _: None = Depends(require_permission("projects:read")),
 ):
+    """
+    Retrieve a specific project by its ID.
+    
+    Args:
+        project_id: The unique identifier of the project
+        db: Database session dependency
+        service: Project service dependency
+    
+    Returns:
+        The requested project object
+    
+    Raises:
+        HTTPException: 404 error if the project is not found
+    """
     project = service.get_project_by_id(db, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -37,6 +61,17 @@ def create(
     service: ProjectService = Depends(get_project_service),
     _: None = Depends(require_permission("projects:write")),
 ):
+    """
+    Create a new project.
+    
+    Args:
+        project: The data for creating a new project
+        db: Database session dependency
+        service: Project service dependency
+    
+    Returns:
+        The newly created project object
+    """
     return service.create_project(db, project)
 
 
@@ -48,6 +83,21 @@ def update(
     service: ProjectService = Depends(get_project_service),
     _: None = Depends(require_permission("projects:write")),
 ):
+    """
+    Update an existing project.
+    
+    Args:
+        project_id: The unique identifier of the project to update
+        updates: The data for updating the project
+        db: Database session dependency
+        service: Project service dependency
+    
+    Returns:
+        The updated project object
+    
+    Raises:
+        HTTPException: 404 error if the project is not found
+    """
     updated = service.update_project(db, project_id, updates)
     if not updated:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -61,6 +111,20 @@ def delete(
     service: ProjectService = Depends(get_project_service),
     _: None = Depends(require_permission("projects:delete")),
 ):
+    """
+    Delete a project by its ID.
+    
+    Args:
+        project_id: The unique identifier of the project to delete
+        db: Database session dependency
+        service: Project service dependency
+    
+    Returns:
+        Success message confirming deletion
+    
+    Raises:
+        HTTPException: 404 error if the project is not found
+    """
     deleted = service.delete_project(db, project_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Project not found")
