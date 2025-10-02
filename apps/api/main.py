@@ -11,9 +11,15 @@ from api.v1 import (
     users,
     auth,
     oauth,
+    sync,
+    permissions,
 )
 from db.base import Base
-from db.session import engine
+from config.database import engine
+from config.settings import settings as app_settings
+
+# Import all models to ensure they are registered with SQLAlchemy
+import db.models
 from exception_handlers import register_exception_handlers
 from openapi_config import openapi_config
 from fastapi.middleware.cors import CORSMiddleware
@@ -26,10 +32,7 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(**openapi_config)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://studio.vailabel.app",
-        "http://localhost:5173",  # local dev
-    ],
+    allow_origins=app_settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
@@ -49,4 +52,6 @@ app.include_router(images.router)
 app.include_router(labels.router)
 app.include_router(tasks.router)
 app.include_router(history.router)
+app.include_router(permissions.router)
 app.include_router(oauth.social_router)
+app.include_router(sync.router, prefix="/api/v1", tags=["sync"])

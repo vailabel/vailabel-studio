@@ -32,14 +32,14 @@ import {
 
 const Overview: React.FC = () => {
   const {
-    statistics,
-    recentActivity,
+    stats: statistics,
+    recentProjects: recentActivity,
     quickActions,
     isLoading,
     error,
+    isEmpty,
     lastUpdated,
     refreshData,
-    isEmpty,
   } = useOverviewViewModel()
 
   // Icon mapping for quick actions
@@ -101,7 +101,7 @@ const Overview: React.FC = () => {
         <Alert variant="destructive" className="mb-6">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            {error}
+            {error instanceof Error ? error.message : String(error)}
             <Button
               variant="outline"
               size="sm"
@@ -184,14 +184,18 @@ const Overview: React.FC = () => {
                 <ActivitySkeleton count={5} />
               ) : recentActivity.length > 0 ? (
                 <div className="space-y-2">
-                  {recentActivity.map((item) => (
+                  {recentActivity.map((project) => (
                     <ActivityItem
-                      key={item.id}
-                      activity={item.activity}
-                      user={item.user}
-                      date={item.date}
-                      type={item.type}
-                      projectName={item.projectName}
+                      key={project.id}
+                      activity={`Updated project "${project.name}"`}
+                      user="System"
+                      date={
+                        new Date(
+                          project.updatedAt || project.createdAt || new Date()
+                        )
+                      }
+                      type="project"
+                      projectName={project.name}
                     />
                   ))}
                 </div>

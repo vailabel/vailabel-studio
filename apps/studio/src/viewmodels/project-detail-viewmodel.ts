@@ -1,369 +1,339 @@
-import { useState, useCallback, useEffect, useMemo } from "react"
-import { useNavigate, useParams } from "react-router-dom"
-import { useToast } from "@/hooks/use-toast"
-import { useServices } from "@/services/ServiceProvider"
-import { usePaginatedImages } from "@/hooks/use-paginated-images"
-import { createImageDataService } from "@/services/image-data-service"
-import type { Project, Label, ImageData } from "@vailabel/core"
+/**
+ * Project Detail ViewModel
+ * Manages project detail state and operations using React Query
+ * Follows MVVM pattern with React Query as the binding layer
+ */
+
+import { useState, useMemo } from "react"
+import { useMutation, useQueryClient } from "react-query"
+import {
+  useProject,
+  useUpdateProject,
+  useDeleteProject,
+  useImages,
+  useAnnotations,
+  useLabels,
+  useTasks,
+} from "@/hooks/useFastAPIQuery"
+import { Project, ImageData, Annotation, Label, Task } from "@vailabel/core"
 import { z } from "zod"
 
-// Validation schemas
+// Schema for project editing
 export const ProjectEditSchema = z.object({
-  name: z.string().min(1, "Project name is required").max(100, "Project name too long"),
-  description: z.string().max(500, "Description too long").optional(),
-})
-
-export const LabelCreateSchema = z.object({
-  name: z.string().min(1, "Label name is required").max(50, "Label name too long"),
-  color: z.string().min(1, "Color is required"),
+  name: z
+    .string()
+    .min(1, "Project name is required")
+    .max(100, "Project name must be less than 100 characters"),
+  description: z
+    .string()
+    .max(500, "Description must be less than 500 characters")
+    .optional(),
+  type: z.string().min(1, "Project type is required"),
+  settings: z.record(z.any()).optional(),
 })
 
 export type ProjectEditForm = z.infer<typeof ProjectEditSchema>
+
+// Schema for label creation
+export const LabelCreateSchema = z.object({
+  name: z
+    .string()
+    .min(1, "Label name is required")
+    .max(50, "Label name must be less than 50 characters"),
+  description: z
+    .string()
+    .max(200, "Description must be less than 200 characters")
+    .optional(),
+  color: z
+    .string()
+    .regex(/^#[0-9A-F]{6}$/i, "Color must be a valid hex color")
+    .optional(),
+  category: z
+    .string()
+    .max(50, "Category must be less than 50 characters")
+    .optional(),
+})
+
 export type LabelCreateForm = z.infer<typeof LabelCreateSchema>
 
-export interface ProjectDetailState {
-  project: Project | null
-  labels: Label[]
-  isLoading: boolean
-  error: string | null
-  activeTab: "images" | "labels"
-  // Modal states
-  isEditProjectModalOpen: boolean
-  isAddLabelModalOpen: boolean
-  isEditingProject: boolean
-  isCreatingLabel: boolean
-}
-
-export interface ProjectDetailActions {
-  // Data operations
-  loadProjectData: () => Promise<void>
-  refreshData: () => Promise<void>
-  
-  // Navigation
-  navigateToImage: (imageId: string) => void
-  navigateBack: () => void
-  
-  // UI operations
-  setActiveTab: (tab: "images" | "labels") => void
-  
-  // Modal operations
-  openEditProjectModal: () => void
-  closeEditProjectModal: () => void
-  openAddLabelModal: () => void
-  closeAddLabelModal: () => void
-  
-  // Project operations
-  updateProject: (formData: ProjectEditForm) => Promise<void>
-  
-  // Label operations
-  createLabel: (formData: LabelCreateForm) => Promise<void>
-  deleteLabel: (labelId: string) => Promise<void>
-  
-  // Validation
-  validateProjectForm: (formData: Partial<ProjectEditForm>) => Record<string, string>
-  validateLabelForm: (formData: Partial<LabelCreateForm>) => Record<string, string>
-  
-  // Computed values
-  projectName: string
-  labelCount: number
-  hasData: boolean
-  
-  // Paginated images properties
-  images: ImageData[]
-  totalCount: number
-  isLoading: boolean
-  error: string | null
-  pageIndex: number
-  pageSize: number
-  hasNextPage: boolean
-  hasPreviousPage: boolean
-  deleteImage: (imageId: string) => Promise<void>
-}
-
-export function useProjectDetailViewModel(): ProjectDetailState & ProjectDetailActions {
-  const { projectId } = useParams<{ projectId: string }>()
-  const navigate = useNavigate()
-  const { toast } = useToast()
-  const services = useServices()
-  
-  // Create image data service - memoize to prevent recreation
-  const imageDataService = useMemo(() => createImageDataService(
-    (projectId: string) => services.getImageDataService().getImagesByProjectId(projectId),
-    (imageId: string) => services.getImageDataService().deleteImage(imageId),
-    (imageId: string, updates: Partial<ImageData>) => services.getImageDataService().updateImage(imageId, updates)
-  ), [])
-  
-  // Use paginated images hook
-  const paginatedImages = usePaginatedImages(imageDataService, {
-    projectId: projectId || "",
-    initialPageSize: 10,
-    autoLoad: !!projectId,
-  })
+export const useProjectDetailViewModel = (projectId: string) => {
+  const queryClient = useQueryClient()
 
   // State
-  const [state, setState] = useState<ProjectDetailState>({
-    project: null,
-    labels: [],
-    isLoading: false,
-    error: null,
-    activeTab: "images",
-    isEditProjectModalOpen: false,
-    isAddLabelModalOpen: false,
-    isEditingProject: false,
-    isCreatingLabel: false,
-  })
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "images" | "annotations" | "labels" | "tasks"
+  >("overview")
+  const [selectedImages, setSelectedImages] = useState<string[]>([])
+  const [selectedAnnotations, setSelectedAnnotations] = useState<string[]>([])
+
+  // Queries
+  const {
+    data: project,
+    isLoading: projectLoading,
+    error: projectError,
+  } = useProject(projectId)
+  const {
+    data: images = [],
+    isLoading: imagesLoading,
+    error: imagesError,
+  } = useImages(projectId)
+  const {
+    data: annotations = [],
+    isLoading: annotationsLoading,
+    error: annotationsError,
+  } = useAnnotations(projectId)
+  const {
+    data: labels = [],
+    isLoading: labelsLoading,
+    error: labelsError,
+  } = useLabels(projectId)
+  const {
+    data: tasks = [],
+    isLoading: tasksLoading,
+    error: tasksError,
+  } = useTasks(projectId)
+
+  // Mutations
+  const updateProjectMutation = useUpdateProject()
+  const deleteProjectMutation = useDeleteProject()
+
+  // Computed values
+  const projectStats = useMemo(() => {
+    if (!project) return null
+
+    const totalImages = images.length
+    const annotatedImages = new Set(annotations.map((a) => a.image_id)).size
+    const totalAnnotations = annotations.length
+    const totalLabels = labels.length
+    const totalTasks = tasks.length
+    const completedTasks = tasks.filter((t) => t.status === "completed").length
+
+    const progress = totalImages > 0 ? (annotatedImages / totalImages) * 100 : 0
+
+    return {
+      totalImages,
+      annotatedImages,
+      totalAnnotations,
+      totalLabels,
+      totalTasks,
+      completedTasks,
+      progress: Math.round(progress),
+    }
+  }, [project, images, annotations, labels, tasks])
+
+  const annotationStats = useMemo(() => {
+    const stats = labels.reduce(
+      (acc, label) => {
+        acc[label.name] = 0
+        return acc
+      },
+      {} as Record<string, number>
+    )
+
+    annotations.forEach((annotation) => {
+      const label = labels.find((l) => l.id === annotation.label_id)
+      if (label) {
+        stats[label.name] = (stats[label.name] || 0) + 1
+      }
+    })
+
+    return Object.entries(stats).map(([label, count]) => ({
+      label,
+      count,
+      percentage: totalAnnotations > 0 ? (count / totalAnnotations) * 100 : 0,
+    }))
+  }, [annotations, labels])
+
+  const recentActivity = useMemo(() => {
+    const activities = [
+      ...images.map((img) => ({
+        type: "image",
+        data: img,
+        date: img.createdAt,
+      })),
+      ...annotations.map((ann) => ({
+        type: "annotation",
+        data: ann,
+        date: ann.createdAt,
+      })),
+      ...tasks.map((task) => ({
+        type: "task",
+        data: task,
+        date: task.createdAt,
+      })),
+    ]
+
+    return activities
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 10)
+  }, [images, annotations, tasks])
 
   // Actions
-  const loadProjectData = useCallback(async () => {
-    if (!projectId) return
-
-    setState(prev => ({ ...prev, isLoading: true, error: null }))
+  const updateProject = async (updates: Partial<Project>) => {
+    if (!project) throw new Error("Project not found")
 
     try {
-      // Load project and labels in parallel
-      const [project, projectLabels] = await Promise.all([
-        services.getProjectService().getProject(projectId),
-        services.getLabelService().getLabelsByProjectId(projectId),
-      ])
-
-      setState(prev => ({
-        ...prev,
-        project: project || null,
-        labels: projectLabels,
-        isLoading: false,
-      }))
-    } catch (error) {
-      console.error("Failed to load project data:", error)
-      setState(prev => ({
-        ...prev,
-        isLoading: false,
-        error: "Failed to load project data",
-      }))
-      toast({
-        title: "Error",
-        description: "Failed to load project data",
-        variant: "destructive",
-      })
-    }
-  }, [projectId, toast])
-
-  // Load data on mount
-  useEffect(() => {
-    if (projectId) {
-      loadProjectData()
-    }
-  }, [projectId, loadProjectData])
-
-  const refreshData = useCallback(async () => {
-    await Promise.all([
-      loadProjectData(),
-      paginatedImages.refresh(),
-    ])
-    toast({
-      title: "Refreshed",
-      description: "Project data has been updated",
-    })
-  }, [loadProjectData, paginatedImages, toast])
-
-  const navigateToImage = useCallback((imageId: string) => {
-    if (!projectId) return
-    navigate(`/projects/${projectId}/studio/${imageId}`)
-  }, [navigate, projectId])
-
-  const navigateBack = useCallback(() => {
-    navigate("/projects")
-  }, [navigate])
-
-  const setActiveTab = useCallback((tab: "images" | "labels") => {
-    setState(prev => ({ ...prev, activeTab: tab }))
-  }, [])
-
-  // Modal operations
-  const openEditProjectModal = useCallback(() => {
-    setState(prev => ({ ...prev, isEditProjectModalOpen: true }))
-  }, [])
-
-  const closeEditProjectModal = useCallback(() => {
-    setState(prev => ({ ...prev, isEditProjectModalOpen: false }))
-  }, [])
-
-  const openAddLabelModal = useCallback(() => {
-    setState(prev => ({ ...prev, isAddLabelModalOpen: true }))
-  }, [])
-
-  const closeAddLabelModal = useCallback(() => {
-    setState(prev => ({ ...prev, isAddLabelModalOpen: false }))
-  }, [])
-
-  // Validation
-  const validateProjectForm = useCallback((formData: Partial<ProjectEditForm>): Record<string, string> => {
-    try {
-      ProjectEditSchema.parse(formData)
-      return {}
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        const errors: Record<string, string> = {}
-        error.issues.forEach((err: z.ZodIssue) => {
-          const path = err.path.join('.')
-          errors[path] = err.message
-        })
-        return errors
-      }
-      return { general: "Validation failed" }
-    }
-  }, [])
-
-  const validateLabelForm = useCallback((formData: Partial<LabelCreateForm>): Record<string, string> => {
-    try {
-      LabelCreateSchema.parse(formData)
-      return {}
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        const errors: Record<string, string> = {}
-        error.issues.forEach((err: z.ZodIssue) => {
-          const path = err.path.join('.')
-          errors[path] = err.message
-        })
-        return errors
-      }
-      return { general: "Validation failed" }
-    }
-  }, [])
-
-  // Project operations
-  const updateProject = useCallback(async (formData: ProjectEditForm) => {
-    if (!projectId || !state.project) return
-
-    setState(prev => ({ ...prev, isEditingProject: true }))
-
-    try {
-      await services.getProjectService().updateProject(projectId, {
-        name: formData.name.trim(),
-      })
-
-      // Update local state
-      setState(prev => ({
-        ...prev,
-        project: prev.project ? {
-          ...prev.project,
-          name: formData.name.trim(),
-        } : null,
-        isEditProjectModalOpen: false,
-        isEditingProject: false,
-      }))
-
-      toast({
-        title: "Project updated",
-        description: "Project details have been saved successfully.",
+      await updateProjectMutation.mutateAsync({
+        id: project.id,
+        updates,
       })
     } catch (error) {
       console.error("Failed to update project:", error)
-      toast({
-        title: "Error",
-        description: "Failed to update project",
-        variant: "destructive",
-      })
-      setState(prev => ({ ...prev, isEditingProject: false }))
+      throw error
     }
-  }, [projectId, state.project, toast])
+  }
 
-  // Label operations
-  const createLabel = useCallback(async (formData: LabelCreateForm) => {
-    if (!projectId) return
-
-    setState(prev => ({ ...prev, isCreatingLabel: true }))
+  const deleteProject = async () => {
+    if (!project) throw new Error("Project not found")
 
     try {
-      await services.getLabelService().createLabel({
-        id: crypto.randomUUID(),
-        name: formData.name.trim(),
-        color: formData.color,
-        projectId,
-      })
+      await deleteProjectMutation.mutateAsync(project.id)
+    } catch (error) {
+      console.error("Failed to delete project:", error)
+      throw error
+    }
+  }
 
-      // Create the label object for local state
-      const newLabel: Label = {
-        id: crypto.randomUUID(),
-        name: formData.name.trim(),
-        color: formData.color,
-        projectId,
+  const updateProjectSettings = async (settings: Record<string, any>) => {
+    if (!project) throw new Error("Project not found")
+
+    try {
+      await updateProjectMutation.mutateAsync({
+        id: project.id,
+        updates: {
+          settings: {
+            ...project.settings,
+            ...settings,
+          },
+        },
+      })
+    } catch (error) {
+      console.error("Failed to update project settings:", error)
+      throw error
+    }
+  }
+
+  const exportProject = () => {
+    if (!project) return
+
+    const exportData = {
+      project,
+      images,
+      annotations,
+      labels,
+      tasks,
+      exportedAt: new Date().toISOString(),
+    }
+
+    const dataStr = JSON.stringify(exportData, null, 2)
+    const dataBlob = new Blob([dataStr], { type: "application/json" })
+
+    const url = URL.createObjectURL(dataBlob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `${project.name}-export.json`
+    link.click()
+
+    URL.revokeObjectURL(url)
+  }
+
+  const duplicateProject = async () => {
+    if (!project) throw new Error("Project not found")
+
+    try {
+      const duplicateData = {
+        name: `${project.name} (Copy)`,
+        description: project.description,
+        type: project.type,
+        settings: project.settings,
       }
 
-      // Update local state
-      setState(prev => ({
-        ...prev,
-        labels: [...prev.labels, newLabel],
-        isAddLabelModalOpen: false,
-        isCreatingLabel: false,
-      }))
-
-      toast({
-        title: "Label created",
-        description: `Label "${formData.name}" has been added successfully.`,
-      })
+      // This would typically call a duplicate API endpoint
+      console.log("Duplicating project:", duplicateData)
     } catch (error) {
-      console.error("Failed to create label:", error)
-      toast({
-        title: "Error",
-        description: "Failed to create label",
-        variant: "destructive",
-      })
-      setState(prev => ({ ...prev, isCreatingLabel: false }))
+      console.error("Failed to duplicate project:", error)
+      throw error
     }
-  }, [projectId, toast])
+  }
 
-  const deleteLabel = useCallback(async (labelId: string) => {
-    setState(prev => ({ ...prev, isCreatingLabel: true }))
+  const toggleImageSelection = (imageId: string) => {
+    setSelectedImages((prev) =>
+      prev.includes(imageId)
+        ? prev.filter((id) => id !== imageId)
+        : [...prev, imageId]
+    )
+  }
 
-    try {
-      await services.getLabelService().deleteLabel(labelId)
+  const toggleAnnotationSelection = (annotationId: string) => {
+    setSelectedAnnotations((prev) =>
+      prev.includes(annotationId)
+        ? prev.filter((id) => id !== annotationId)
+        : [...prev, annotationId]
+    )
+  }
 
-      // Update local state
-      setState(prev => ({
-        ...prev,
-        labels: prev.labels.filter(label => label.id !== labelId),
-        isCreatingLabel: false,
-      }))
+  const clearSelections = () => {
+    setSelectedImages([])
+    setSelectedAnnotations([])
+  }
 
-      toast({
-        title: "Label deleted",
-        description: "Label has been removed successfully.",
-      })
-    } catch (error) {
-      console.error("Failed to delete label:", error)
-      toast({
-        title: "Error",
-        description: "Failed to delete label",
-        variant: "destructive",
-      })
-      setState(prev => ({ ...prev, isCreatingLabel: false }))
-    }
-  }, [toast])
+  const getImageAnnotations = (imageId: string) => {
+    return annotations.filter((annotation) => annotation.image_id === imageId)
+  }
 
-  // Computed values
-  const projectName = state.project?.name || "Unknown Project"
-  const labelCount = state.labels.length
-  const hasData = !state.isLoading && !state.error
+  const getAnnotationLabel = (annotation: Annotation) => {
+    return labels.find((label) => label.id === annotation.label_id)
+  }
+
+  const getTaskProgress = (task: Task) => {
+    if (task.status === "completed") return 100
+    if (task.status === "in_progress") return 50
+    return 0
+  }
+
+  const isLoading =
+    projectLoading ||
+    imagesLoading ||
+    annotationsLoading ||
+    labelsLoading ||
+    tasksLoading
+  const error =
+    projectError || imagesError || annotationsError || labelsError || tasksError
 
   return {
-    ...state,
-    ...paginatedImages,
-    loadProjectData,
-    refreshData,
-    navigateToImage,
-    navigateBack,
+    // State
+    project,
+    images,
+    annotations,
+    labels,
+    tasks,
+    activeTab,
+    selectedImages,
+    selectedAnnotations,
+    isLoading,
+    error,
+
+    // Computed values
+    projectStats,
+    annotationStats,
+    recentActivity,
+
+    // Actions
     setActiveTab,
-    openEditProjectModal,
-    closeEditProjectModal,
-    openAddLabelModal,
-    closeAddLabelModal,
     updateProject,
-    createLabel,
-    deleteLabel,
-    validateProjectForm,
-    validateLabelForm,
-    projectName,
-    labelCount,
-    hasData,
+    deleteProject,
+    updateProjectSettings,
+    exportProject,
+    duplicateProject,
+    toggleImageSelection,
+    toggleAnnotationSelection,
+    clearSelections,
+    getImageAnnotations,
+    getAnnotationLabel,
+    getTaskProgress,
+
+    // Mutation state
+    updateProjectMutation,
+    deleteProjectMutation,
   }
 }

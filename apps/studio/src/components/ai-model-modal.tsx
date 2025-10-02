@@ -1,5 +1,3 @@
-import { useState, useEffect } from "react"
-import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -21,8 +19,7 @@ import {
 } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
-import { AIModel } from "@vailabel/core"
-import { useServices } from "@/services/ServiceProvider"
+import { useAIModelViewModel } from "@/viewmodels/ai-model-viewmodel"
 
 interface AIModelModalProps {
   onClose: () => void
@@ -30,47 +27,13 @@ interface AIModelModalProps {
 
 export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
   const { toast } = useToast()
-  const services = useServices()
-
-  const [availableModels, setAvailableModels] = useState<AIModel[]>([])
-  const [selectedModelId, setSelectedModelId] = useState<string>("")
-
-  // Fetch models and selected model on mount
-  useEffect(() => {
-    const loadModels = async () => {
-      try {
-        const models = await services.getAIModelService().getAIModelsByProjectId("") // Get all models
-        setAvailableModels(models)
-        let selected = ""
-        try {
-          const modalSelected = await services.getSettingsService().getSetting("modalSelected")
-          // modalSelected may be an object, so get the value if needed
-          const selectedId =
-            typeof modalSelected === "string"
-              ? modalSelected
-              : modalSelected?.value || ""
-          if (selectedId && models.some((m) => m.id === selectedId)) {
-            selected = selectedId
-          } else if (models.length > 0) {
-            selected = models[0].id
-          }
-        } catch {
-          if (models.length > 0) {
-            selected = models[0].id
-          }
-        }
-        setSelectedModelId(selected)
-      } catch (error) {
-        console.error("Failed to load models:", error)
-      }
-    }
-    loadModels()
-  }, [])
+  const { availableModels, selectedModelId, selectModel, saveModelSelection } =
+    useAIModelViewModel()
 
   const handleRadioChange = async (id: string) => {
-    setSelectedModelId(id)
+    selectModel(id)
     try {
-      await services.getSettingsService().saveOrUpdateSetting("modalSelected", id)
+      await saveModelSelection()
     } catch {
       toast({
         title: "Error",
@@ -83,7 +46,7 @@ export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
   const handleSave = async () => {
     if (!selectedModelId) return
     try {
-      await services.getSettingsService().saveOrUpdateSetting("modalSelected", selectedModelId)
+      await saveModelSelection()
       toast({
         title: "Model saved",
         description: `Selected model has been saved!`,
@@ -103,7 +66,8 @@ export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
         <DialogHeader>
           <DialogTitle>AI Detection Models</DialogTitle>
           <DialogDescription>
-            Select a pre-trained model or select your own custom YOLOv8 model (.pt file)
+            Select a pre-trained model or select your own custom YOLOv8 model
+            (.pt file)
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col md:flex-row gap-8 flex-1">
@@ -132,9 +96,7 @@ export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
                       <TableRow
                         key={model.id}
                         className={
-                          selectedModelId === model.id
-                            ? "bg-primary/10"
-                            : ""
+                          selectedModelId === model.id ? "bg-primary/10" : ""
                         }
                       >
                         <TableCell className="p-2 align-middle">
@@ -160,9 +122,9 @@ export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
               </div>
               <Alert className="mt-4">
                 <AlertDescription>
-                  <strong>Note:</strong> All models must remain in their specific
-                  file path. If you delete or move a model file, it will no longer
-                  work in the app.
+                  <strong>Note:</strong> All models must remain in their
+                  specific file path. If you delete or move a model file, it
+                  will no longer work in the app.
                 </AlertDescription>
               </Alert>
             </RadioGroup>
@@ -172,10 +134,7 @@ export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button
-            onClick={handleSave}
-            disabled={!selectedModelId}
-          >
+          <Button onClick={handleSave} disabled={!selectedModelId}>
             Save
           </Button>
         </DialogFooter>

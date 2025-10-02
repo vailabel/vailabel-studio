@@ -1,256 +1,274 @@
-import { useState, useCallback, useEffect } from "react"
-import { useNavigate } from "react-router-dom"
-import { useServices } from "@/services/ServiceProvider"
-import { useToast } from "@/hooks/use-toast"
+/**
+ * Overview ViewModel
+ * Manages overview/dashboard state and operations using React Query
+ * Follows MVVM pattern with React Query as the binding layer
+ */
 
-export interface DashboardStatistics {
-  totalProjects: number
-  activeUsers: number
-  labelsCreated: number
-  totalAnnotations: number
-  completedTasks: number
-  pendingTasks: number
-}
+import { useMemo } from "react"
+import { useProjects, useCurrentUser } from "@/hooks/useFastAPIQuery"
 
-export interface RecentActivityItem {
-  id: string
-  activity: string
-  user: string
-  userAvatar?: string
-  date: Date
-  type: "project" | "annotation" | "label" | "user"
-  projectId?: string
-  projectName?: string
-}
-
-export interface QuickAction {
-  id: string
-  label: string
-  description: string
-  icon: string
-  action: () => void
-  color: string
-  disabled?: boolean
-}
-
-export interface OverviewState {
-  statistics: DashboardStatistics
-  recentActivity: RecentActivityItem[]
-  quickActions: QuickAction[]
-  isLoading: boolean
-  error: string | null
-  lastUpdated: Date | null
-}
-
-export interface OverviewActions {
-  // Data operations
-  loadDashboardData: () => Promise<void>
-  refreshData: () => Promise<void>
-
-  // Navigation
-  navigateToProjects: () => void
-  navigateToLabels: () => void
-  navigateToUsers: () => void
-  navigateToTasks: () => void
-
-  // Activity operations
-  // loadRecentActivity: () => Promise<void> // Removed - now integrated into loadDashboardData
+export const useOverviewViewModel = () => {
+  // Queries
+  const {
+    data: projects = [],
+    isLoading: projectsLoading,
+    error: projectsError,
+  } = useProjects()
+  const {
+    data: user,
+    isLoading: userLoading,
+    error: userError,
+  } = useCurrentUser()
 
   // Computed values
-  hasData: boolean
-  isEmpty: boolean
-  statisticsLoaded: boolean
-}
+  const stats = useMemo(() => {
+    const totalProjects = projects.length
+    const activeProjects = projects.filter((p) => p.status === "active").length
+    const completedProjects = projects.filter(
+      (p) => p.status === "completed"
+    ).length
+    const draftProjects = projects.filter((p) => p.status === "draft").length
 
-export function useOverviewViewModel(): OverviewState & OverviewActions {
-  const navigate = useNavigate()
-  const services = useServices()
-  const { toast } = useToast()
+    // Calculate project types distribution
+    const projectTypes = projects.reduce(
+      (acc, project) => {
+        acc[project.type] = (acc[project.type] || 0) + 1
+        return acc
+      },
+      {} as Record<string, number>
+    )
 
-  // State
-  const [state, setState] = useState<OverviewState>({
-    statistics: {
-      totalProjects: 0,
-      activeUsers: 0,
-      labelsCreated: 0,
-      totalAnnotations: 0,
-      completedTasks: 0,
-      pendingTasks: 0,
-    },
-    recentActivity: [],
-    quickActions: [],
-    isLoading: false,
-    error: null,
-    lastUpdated: null,
-  })
+    // Calculate recent activity (last 7 days)
+    const sevenDaysAgo = new Date()
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
 
-  // Actions
-  const loadDashboardData = useCallback(async () => {
-    setState((prev) => ({ ...prev, isLoading: true, error: null }))
+    const recentProjects = projects.filter((project) => {
+      if (!project.updatedAt) return false
+      try {
+        const updatedDate = new Date(project.updatedAt)
+        return !isNaN(updatedDate.getTime()) && updatedDate > sevenDaysAgo
+      } catch {
+        return false
+      }
+    }).length
 
-    try {
-      const [projects, labels, users, annotations] = await Promise.all([
-        services.getProjectService().getProjects(),
-        services.getLabelService().getLabelsByProjectId(""), // Get all labels
-        services.getUserService().getUsers(),
-        services.getAnnotationService().getAnnotationsByProjectId(""), // Get all annotations
-      ])
+    // Calculate total annotations (if available in project data)
+    const totalAnnotations = projects.reduce((total, project) => {
+      return total + (project.metadata?.annotationCount || 0)
+    }, 0)
 
-      // Mock task data for now
-      const completedTasks = 0
-      const pendingTasks = 0
-
-      setState((prev) => ({
-        ...prev,
-        statistics: {
-          totalProjects: projects.length,
-          activeUsers: users.length,
-          labelsCreated: labels.length,
-          totalAnnotations: annotations.length,
-          completedTasks,
-          pendingTasks,
-        },
-        lastUpdated: new Date(),
-      }))
-
-      // Load recent activity after setting statistics
-      const [projectsForActivity, usersForActivity] = await Promise.all([
-        services.getProjectService().getProjects(),
-        services.getUserService().getUsers(),
-      ])
-
-      const mockActivity: RecentActivityItem[] = [
-        {
-          id: "1",
-          activity: "Created new project",
-          user: usersForActivity[0]?.name || "System",
-          userAvatar: undefined,
-          date: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
-          type: "project" as const,
-          projectId: projectsForActivity[0]?.id,
-          projectName: projectsForActivity[0]?.name,
-        },
-        {
-          id: "2",
-          activity: "Added new label",
-          user: usersForActivity[1]?.name || "Admin",
-          userAvatar: undefined,
-          date: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
-          type: "label" as const,
-          projectId: projectsForActivity[1]?.id,
-          projectName: projectsForActivity[1]?.name,
-        },
-        {
-          id: "3",
-          activity: "Completed annotation task",
-          user: usersForActivity[2]?.name || "Annotator",
-          userAvatar: undefined,
-          date: new Date(Date.now() - 1000 * 60 * 60 * 4), // 4 hours ago
-          type: "annotation" as const,
-          projectId: projectsForActivity[0]?.id,
-          projectName: projectsForActivity[0]?.name,
-        },
-      ].filter(
-        (item) => item.user !== "System" || projectsForActivity.length > 0
-      )
-
-      setState((prev) => ({ ...prev, recentActivity: mockActivity }))
-    } catch (error) {
-      const errorMessage = "Failed to load dashboard data"
-      setState((prev) => ({ ...prev, error: errorMessage }))
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      })
-      console.error("Failed to load dashboard data:", error)
-    } finally {
-      setState((prev) => ({ ...prev, isLoading: false }))
+    return {
+      totalProjects,
+      activeProjects,
+      completedProjects,
+      draftProjects,
+      recentProjects,
+      totalAnnotations,
+      projectTypes,
+      labelsCreated: projects.reduce((total, project) => {
+        return total + (project.metadata?.labelCount || 0)
+      }, 0),
+      pendingTasks: projects.reduce((total, project) => {
+        return total + (project.metadata?.pendingTaskCount || 0)
+      }, 0),
     }
-  }, [services, toast])
+  }, [projects])
 
-  const refreshData = useCallback(async () => {
-    await loadDashboardData()
-  }, [loadDashboardData])
+  const recentProjects = useMemo(() => {
+    return projects
+      .filter((project) => project.updatedAt)
+      .sort((a, b) => {
+        try {
+          const aDate = new Date(a.updatedAt!)
+          const bDate = new Date(b.updatedAt!)
+          if (isNaN(aDate.getTime()) || isNaN(bDate.getTime())) return 0
+          return bDate.getTime() - aDate.getTime()
+        } catch {
+          return 0
+        }
+      })
+      .slice(0, 5)
+  }, [projects])
 
-  // Navigation actions
-  const navigateToProjects = useCallback(() => {
-    navigate("/projects")
-  }, [navigate])
+  const projectTypeDistribution = useMemo(() => {
+    const distribution = Object.entries(stats.projectTypes).map(
+      ([type, count]) => ({
+        type,
+        count,
+        percentage: (count / stats.totalProjects) * 100,
+      })
+    )
 
-  const navigateToLabels = useCallback(() => {
-    navigate("/labels")
-  }, [navigate])
+    return distribution.sort((a, b) => b.count - a.count)
+  }, [stats.projectTypes, stats.totalProjects])
 
-  const navigateToUsers = useCallback(() => {
-    navigate("/users")
-  }, [navigate])
+  const activityTimeline = useMemo(() => {
+    const timeline = []
+    const now = new Date()
 
-  const navigateToTasks = useCallback(() => {
-    navigate("/tasks")
-  }, [navigate])
+    // Generate last 7 days
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(now)
+      date.setDate(date.getDate() - i)
 
-  // Initialize quick actions
-  useEffect(() => {
-    const quickActions: QuickAction[] = [
+      const dayProjects = projects.filter((project) => {
+        if (!project.updatedAt) return false
+        try {
+          const projectDate = new Date(project.updatedAt)
+          if (isNaN(projectDate.getTime())) return false
+          return projectDate.toDateString() === date.toDateString()
+        } catch {
+          return false
+        }
+      })
+
+      timeline.push({
+        date: date.toISOString().split("T")[0],
+        count: dayProjects.length,
+        projects: dayProjects,
+      })
+    }
+
+    return timeline
+  }, [projects])
+
+  const quickActions = useMemo(() => {
+    return [
       {
         id: "create-project",
-        label: "Create Project",
-        description: "Start a new labeling project",
-        icon: "FolderPlus",
-        action: navigateToProjects,
-        color: "bg-primary hover:bg-primary/90",
+        label: "Create New Project",
+        description: "Start a new annotation project",
+        icon: "plus",
+        color: "bg-primary",
+        action: () => {
+          // This would typically navigate to the create project page
+          console.log("Navigate to create project")
+        },
+        disabled: false,
       },
       {
-        id: "manage-labels",
-        label: "Manage Labels",
-        description: "View and organize labels",
-        icon: "Tag",
-        action: navigateToLabels,
-        color: "bg-green-600 hover:bg-green-700",
+        id: "import-data",
+        label: "Import Data",
+        description: "Import images and annotations",
+        icon: "upload",
+        color: "bg-green-600",
+        action: () => {
+          console.log("Navigate to import data")
+        },
+        disabled: false,
       },
       {
-        id: "manage-users",
-        label: "Manage Users",
-        description: "Add and manage team members",
-        icon: "Users",
-        action: navigateToUsers,
-        color: "bg-purple-600 hover:bg-purple-700",
+        id: "view-projects",
+        label: "View All Projects",
+        description: "Browse your projects",
+        icon: "folder",
+        color: "bg-blue-600",
+        action: () => {
+          console.log("Navigate to projects")
+        },
+        disabled: false,
       },
       {
-        id: "view-tasks",
-        label: "View Tasks",
-        description: "Monitor task progress",
-        icon: "CheckSquare",
-        action: navigateToTasks,
-        color: "bg-orange-600 hover:bg-orange-700",
+        id: "settings",
+        label: "Settings",
+        description: "Configure application settings",
+        icon: "settings",
+        color: "bg-gray-600",
+        action: () => {
+          console.log("Navigate to settings")
+        },
+        disabled: false,
       },
     ]
+  }, [])
 
-    setState((prev) => ({ ...prev, quickActions }))
-  }, [navigateToProjects, navigateToLabels, navigateToUsers, navigateToTasks])
+  const isLoading = projectsLoading || userLoading
+  const error = projectsError || userError
 
-  // Load data on mount
-  useEffect(() => {
-    loadDashboardData()
-  }, [loadDashboardData])
+  // Helper functions
+  const refreshData = () => {
+    // This would typically refetch the data
+    // For now, we'll just log it
+    console.log("Refreshing overview data...")
+  }
 
-  // Computed values
-  const hasData =
-    state.statistics.totalProjects > 0 || state.statistics.activeUsers > 0
-  const isEmpty = !hasData && !state.isLoading
-  const statisticsLoaded = state.lastUpdated !== null
+  const isEmpty = projects.length === 0
+  const lastUpdated = new Date()
 
   return {
-    ...state,
-    loadDashboardData,
-    refreshData,
-    navigateToProjects,
-    navigateToLabels,
-    navigateToUsers,
-    navigateToTasks,
-    hasData,
+    // State
+    user,
+    projects,
+    isLoading,
+    error,
+
+    // Computed values
+    stats,
+    recentProjects,
+    projectTypeDistribution,
+    activityTimeline,
+    quickActions,
     isEmpty,
-    statisticsLoaded,
+    lastUpdated,
+    refreshData,
+
+    // Helper functions
+    getProjectStatusColor: (status: string) => {
+      switch (status) {
+        case "active":
+          return "green"
+        case "completed":
+          return "blue"
+        case "draft":
+          return "gray"
+        case "archived":
+          return "orange"
+        default:
+          return "gray"
+      }
+    },
+
+    getProjectTypeIcon: (type: string) => {
+      switch (type) {
+        case "image_annotation":
+          return "image"
+        case "object_detection":
+          return "target"
+        case "segmentation":
+          return "layers"
+        case "classification":
+          return "tag"
+        default:
+          return "folder"
+      }
+    },
+
+    formatDate: (dateString: string) => {
+      try {
+        const date = new Date(dateString)
+        if (isNaN(date.getTime())) return "Invalid date"
+        return date.toLocaleDateString()
+      } catch {
+        return "Invalid date"
+      }
+    },
+
+    formatRelativeTime: (dateString: string) => {
+      try {
+        const date = new Date(dateString)
+        if (isNaN(date.getTime())) return "Invalid date"
+        const now = new Date()
+        const diffInHours = Math.floor(
+          (now.getTime() - date.getTime()) / (1000 * 60 * 60)
+        )
+
+        if (diffInHours < 1) return "Just now"
+        if (diffInHours < 24) return `${diffInHours}h ago`
+        if (diffInHours < 168) return `${Math.floor(diffInHours / 24)}d ago`
+        return date.toLocaleDateString()
+      } catch {
+        return "Invalid date"
+      }
+    },
   }
 }

@@ -37,21 +37,33 @@ import { cn } from "@/lib/utils"
 const ProjectList = memo(() => {
   const viewModel = useProjectListViewModel()
 
-  const formatDate = (date: Date | undefined) => {
+  const formatDate = (date: Date | string | undefined) => {
     if (!date) return "Unknown"
-    return new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    }).format(date)
+    try {
+      const dateObj = typeof date === "string" ? new Date(date) : date
+      if (isNaN(dateObj.getTime())) return "Unknown"
+      return new Intl.DateTimeFormat("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      }).format(dateObj)
+    } catch {
+      return "Unknown"
+    }
   }
 
-  const formatTime = (date: Date | undefined) => {
+  const formatTime = (date: Date | string | undefined) => {
     if (!date) return "Unknown"
-    return new Intl.DateTimeFormat("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(date)
+    try {
+      const dateObj = typeof date === "string" ? new Date(date) : date
+      if (isNaN(dateObj.getTime())) return "Unknown"
+      return new Intl.DateTimeFormat("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(dateObj)
+    } catch {
+      return "Unknown"
+    }
   }
 
   return (
@@ -176,7 +188,9 @@ const ProjectList = memo(() => {
                   Error Loading Projects
                 </p>
                 <p className="text-destructive/80 text-sm mb-4">
-                  {viewModel.error}
+                  {viewModel.error instanceof Error
+                    ? viewModel.error.message
+                    : String(viewModel.error)}
                 </p>
                 <Button
                   variant="outline"
@@ -213,7 +227,7 @@ const ProjectList = memo(() => {
           ) : (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               <AnimatePresence>
-                {viewModel.filteredProjects.map((project, index) => (
+                {viewModel.projects.map((project, index) => (
                   <motion.div
                     key={project.id}
                     initial={{ opacity: 0, y: 20 }}
@@ -297,8 +311,8 @@ const ProjectList = memo(() => {
             className="text-center mt-8"
           >
             <p className="text-sm text-muted-foreground">
-              Showing {viewModel.filteredProjects.length} of{" "}
-              {viewModel.projects.length} projects
+              Showing {viewModel.projects.length} of {viewModel.projects.length}{" "}
+              projects
               {viewModel.searchQuery && ` matching "${viewModel.searchQuery}"`}
             </p>
           </motion.div>

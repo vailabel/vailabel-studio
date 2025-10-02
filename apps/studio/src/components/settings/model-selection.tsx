@@ -10,42 +10,28 @@ import {
   TableCell,
 } from "@/components/ui/table"
 import { useToast } from "@/hooks/use-toast"
-import { AIModel } from "@vailabel/core"
-import { useServices } from "@/services/ServiceProvider"
+import {
+  useAIModels,
+  useSetting,
+  useUpdateSettings,
+} from "@/hooks/useFastAPIQuery"
 import { Button } from "@/components/ui/button"
 
 export function ModelSelection() {
   const { toast } = useToast()
-  const services = useServices()
-  const [availableModels, setAvailableModels] = useState<AIModel[]>([])
+  const { data: availableModels = [] } = useAIModels("") // Get all models
+  const { data: selectedModelSetting } = useSetting("selectedModelId")
+  const updateSettingsMutation = useUpdateSettings()
   const [selectedModelId, setSelectedModelId] = useState<string>("")
 
+  // Set selected model when settings are loaded
   useEffect(() => {
-    // Load models on mount
-    const fetchModels = async () => {
-      try {
-        const models = await services
-          .getAIModelService()
-          .getAIModelsByProjectId("") // Get all models
-        setAvailableModels(models)
-
-        // Try to get selected model from settings
-        const selectedModelSetting = await services
-          .getSettingsService()
-          .getSetting("selectedModelId")
-        if (selectedModelSetting && selectedModelSetting.value) {
-          setSelectedModelId(selectedModelSetting.value)
-        }
-      } catch {
-        toast({
-          title: "Error",
-          description: "Failed to load models.",
-          variant: "destructive",
-        })
-      }
+    if (selectedModelSetting?.value) {
+      setSelectedModelId(selectedModelSetting.value)
+    } else if (availableModels.length > 0 && !selectedModelId) {
+      setSelectedModelId(availableModels[0].id)
     }
-    fetchModels()
-  }, [toast])
+  }, [selectedModelSetting, availableModels, selectedModelId])
 
   const handleRadioChange = (modelId: string) => {
     setSelectedModelId(modelId)
@@ -56,12 +42,14 @@ export function ModelSelection() {
     const selectedModel = availableModels.find((m) => m.id === selectedModelId)
     if (selectedModel) {
       try {
-        await services
-          .getSettingsService()
-          .saveOrUpdateSetting("modelPath", selectedModel.modelPath || "")
-        await services
-          .getSettingsService()
-          .saveOrUpdateSetting("selectedModelId", selectedModelId)
+        await updateSettingsMutation.mutateAsync({
+          key: "modelPath",
+          value: selectedModel.modelPath || "",
+        })
+        await updateSettingsMutation.mutateAsync({
+          key: "selectedModelId",
+          value: selectedModelId,
+        })
         toast({
           title: "Model Saved",
           description: `Model path saved to settings: ${selectedModel.modelPath}`,

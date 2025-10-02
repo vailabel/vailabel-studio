@@ -26,9 +26,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { SketchPicker } from "react-color"
-import { useServices } from "@/services/ServiceProvider"
+import { useProjects } from "@/hooks/useFastAPIQuery"
 import { Label as LabelType } from "@vailabel/core"
-import { Project } from "@vailabel/core"
 
 const colorPalette = [
   "#3b82f6", // blue
@@ -50,10 +49,9 @@ interface LabelCreateFormProps {
 export const LabelCreateForm: React.FC<LabelCreateFormProps> = ({
   onCreateLabel,
 }) => {
-  const services = useServices()
+  const { data: projects = [] } = useProjects()
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [projects, setProjects] = useState<Project[]>([])
   const [formData, setFormData] = useState({
     name: "",
     color: "#3b82f6",
@@ -62,23 +60,12 @@ export const LabelCreateForm: React.FC<LabelCreateFormProps> = ({
   })
   const [showColorPicker, setShowColorPicker] = useState(false)
 
-  // Load projects when dialog opens
+  // Set default project when projects are loaded
   React.useEffect(() => {
-    if (open) {
-      const loadProjects = async () => {
-        try {
-          const projectList = await services.getProjectService().getProjects()
-          setProjects(projectList)
-          if (projectList.length > 0) {
-            setFormData((prev) => ({ ...prev, projectId: projectList[0].id }))
-          }
-        } catch (error) {
-          console.error("Failed to load projects:", error)
-        }
-      }
-      loadProjects()
+    if (projects.length > 0 && !formData.projectId) {
+      setFormData((prev) => ({ ...prev, projectId: projects[0].id }))
     }
-  }, [open, services])
+  }, [projects, formData.projectId])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

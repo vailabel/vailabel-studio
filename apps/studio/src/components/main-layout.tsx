@@ -13,6 +13,7 @@ import {
   User,
   Menu,
   Tag,
+  Shield,
 } from "lucide-react"
 import { useNavigate, useOutlet, useLocation } from "react-router-dom"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -53,6 +54,12 @@ const navigation: NavigationItem[] = [
     href: "/users",
     icon: Users,
     requiredRoles: ["admin", "manager"],
+  },
+  {
+    name: "Permissions",
+    href: "/permissions",
+    icon: Shield,
+    requiredRoles: ["admin"],
   },
   {
     name: "Cloud Storage",

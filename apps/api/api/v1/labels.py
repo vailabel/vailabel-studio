@@ -3,6 +3,9 @@ from sqlalchemy.orm import Session
 from db.session import get_db
 from services.label_service import LabelService, get_label_service
 from models.label import Label, LabelCreate, LabelUpdate
+from api.v1.auth import require_permission
+from services.auth_service import get_current_active_user
+from db.models.user import User
 
 router = APIRouter(prefix="/api/v1/labels", tags=["Labels"])
 
@@ -12,6 +15,7 @@ def get_by_project(
     project_id: str,
     db: Session = Depends(get_db),
     service: LabelService = Depends(get_label_service),
+    _: User = Depends(require_permission("labels:read")),
 ):
     return service.get_labels_by_project(db, project_id)
 
@@ -21,6 +25,7 @@ def create(
     data: LabelCreate,
     db: Session = Depends(get_db),
     service: LabelService = Depends(get_label_service),
+    _: User = Depends(require_permission("labels:write")),
 ):
     return service.create_label(db, data)
 
@@ -31,6 +36,7 @@ def update(
     data: LabelUpdate,
     db: Session = Depends(get_db),
     service: LabelService = Depends(get_label_service),
+    _: User = Depends(require_permission("labels:write")),
 ):
     updated = service.update_label(db, label_id, data)
     if not updated:
@@ -43,6 +49,7 @@ def delete(
     label_id: str,
     db: Session = Depends(get_db),
     service: LabelService = Depends(get_label_service),
+    _: User = Depends(require_permission("labels:delete")),
 ):
     deleted = service.delete_label(db, label_id)
     if not deleted:

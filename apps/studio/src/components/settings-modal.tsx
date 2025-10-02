@@ -16,7 +16,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import { useTheme } from "./theme-provider"
-import { useServices } from "@/services/ServiceProvider"
+import { useSettings, useUpdateSettings } from "@/hooks/useFastAPIQuery"
 
 interface SettingsModalProps {
   onClose: () => void
@@ -30,7 +30,8 @@ export const SettingsModal = ({ onClose }: SettingsModalProps) => {
   const { toast } = useToast()
   const [isClearing, setIsClearing] = useState(false)
   const { theme, setTheme } = useTheme()
-  const services = useServices()
+  const { data: settingsArray = [], isLoading: settingsLoading } = useSettings()
+  const updateSettingsMutation = useUpdateSettings()
 
   const [showRulers, setShowRulers] = useState(true)
   const [showCrosshairs, setShowCrosshairs] = useState(true)
@@ -38,30 +39,23 @@ export const SettingsModal = ({ onClose }: SettingsModalProps) => {
   const [brightness, setBrightness] = useState(100)
   const [contrast, setContrast] = useState(100)
 
-  // Fetch settings on mount
+  // Load settings when data is available
   useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        const settingsArray = await services.getSettingsService().getSettings()
-        const loadedSettings: Settings = settingsArray.reduce(
-          (acc, { key, value }) => {
-            acc[key] = value
-            return acc
-          },
-          {} as Settings
-        )
-        // Only update local state, not the store, to avoid type mismatch
-        setShowRulers(Boolean(loadedSettings.showRulers ?? true))
-        setShowCrosshairs(Boolean(loadedSettings.showCrosshairs ?? true))
-        setShowCoordinates(Boolean(loadedSettings.showCoordinates ?? true))
-        setBrightness(Number(loadedSettings.brightness ?? 100))
-        setContrast(Number(loadedSettings.contrast ?? 100))
-      } catch (error) {
-        console.error("Failed to load settings:", error)
-      }
+    if (settingsArray.length > 0) {
+      const loadedSettings: Settings = settingsArray.reduce(
+        (acc, { key, value }) => {
+          acc[key] = value
+          return acc
+        },
+        {} as Settings
+      )
+      setShowRulers(Boolean(loadedSettings.showRulers ?? true))
+      setShowCrosshairs(Boolean(loadedSettings.showCrosshairs ?? true))
+      setShowCoordinates(Boolean(loadedSettings.showCoordinates ?? true))
+      setBrightness(Number(loadedSettings.brightness ?? 100))
+      setContrast(Number(loadedSettings.contrast ?? 100))
     }
-    loadSettings()
-  }, [])
+  }, [settingsArray])
 
   // Unified handler for toggles and sliders
   const handleChangeSetting = async (
@@ -70,7 +64,10 @@ export const SettingsModal = ({ onClose }: SettingsModalProps) => {
   ) => {
     try {
       // Convert value to string for updateSetting
-      await services.getSettingsService().saveOrUpdateSetting(key, String(value))
+      await updateSettingsMutation.mutateAsync({
+        key,
+        value: String(value),
+      })
       toast({
         title: "Setting updated",
         description: `${key} has been updated to ${value}`,
@@ -140,9 +137,7 @@ export const SettingsModal = ({ onClose }: SettingsModalProps) => {
                 <Label htmlFor="dark-mode" className="text-base">
                   Dark Mode
                 </Label>
-                <p
-                  className={cn("text-sm", "text-muted-foreground")}
-                >
+                <p className={cn("text-sm", "text-muted-foreground")}>
                   Use dark theme for the application
                 </p>
               </div>
@@ -161,9 +156,7 @@ export const SettingsModal = ({ onClose }: SettingsModalProps) => {
                 <Label htmlFor="keyboard-shortcuts" className="text-base">
                   Keyboard Shortcuts
                 </Label>
-                <p
-                  className={cn("text-sm", "text-muted-foreground")}
-                >
+                <p className={cn("text-sm", "text-muted-foreground")}>
                   Enable keyboard shortcuts for tools
                 </p>
               </div>
@@ -177,9 +170,7 @@ export const SettingsModal = ({ onClose }: SettingsModalProps) => {
                 <Label htmlFor="show-rulers" className="text-base">
                   Show Rulers
                 </Label>
-                <p
-                  className={cn("text-sm", "text-muted-foreground")}
-                >
+                <p className={cn("text-sm", "text-muted-foreground")}>
                   Show rulers on the canvas
                 </p>
               </div>
@@ -198,9 +189,7 @@ export const SettingsModal = ({ onClose }: SettingsModalProps) => {
                 <Label htmlFor="show-crosshairs" className="text-base">
                   Show Crosshairs
                 </Label>
-                <p
-                  className={cn("text-sm", "text-muted-foreground")}
-                >
+                <p className={cn("text-sm", "text-muted-foreground")}>
                   Show crosshairs when drawing
                 </p>
               </div>
@@ -219,9 +208,7 @@ export const SettingsModal = ({ onClose }: SettingsModalProps) => {
                 <Label htmlFor="show-coordinates" className="text-base">
                   Show Coordinates
                 </Label>
-                <p
-                  className={cn("text-sm", "text-muted-foreground")}
-                >
+                <p className={cn("text-sm", "text-muted-foreground")}>
                   Show cursor coordinates on canvas
                 </p>
               </div>
@@ -240,9 +227,7 @@ export const SettingsModal = ({ onClose }: SettingsModalProps) => {
                 Brightness
               </Label>
               <div className="flex items-center gap-2">
-                <Sun
-                  className={cn("h-4 w-4", "text-muted-foreground")}
-                />
+                <Sun className={cn("h-4 w-4", "text-muted-foreground")} />
                 <Slider
                   id="brightness"
                   min={50}
@@ -264,9 +249,7 @@ export const SettingsModal = ({ onClose }: SettingsModalProps) => {
                 Contrast
               </Label>
               <div className="flex items-center gap-2">
-                <Moon
-                  className={cn("h-4 w-4", "text-muted-foreground")}
-                />
+                <Moon className={cn("h-4 w-4", "text-muted-foreground")} />
                 <Slider
                   id="contrast"
                   min={50}

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { isElectron } from "@/lib/constants"
 import ExternalLink from "../exteral-link"
-import { useServices } from "@/services/ServiceProvider"
+import { useSetting, useUpdateSettings } from "@/hooks/useFastAPIQuery"
 import { ElectronFileInput } from "../electron-file"
 
 interface PythonInfo {
@@ -32,7 +32,8 @@ export const InstallPythonPackage = () => {
     error: null,
   })
 
-  const services = useServices()
+  const { data: pythonPathSetting } = useSetting("pythonPath")
+  const updateSettingsMutation = useUpdateSettings()
 
   // Listen for python install progress (Electron only)
   useEffect(() => {
@@ -63,9 +64,6 @@ export const InstallPythonPackage = () => {
   useEffect(() => {
     const loadPythonPath = async () => {
       try {
-        const pythonPathSetting = await services
-          .getSettingsService()
-          .getSetting("pythonPath")
         const storedPythonPath = pythonPathSetting?.value
         if (storedPythonPath) {
           setIsDetectingPython(true)
@@ -96,7 +94,7 @@ export const InstallPythonPackage = () => {
       }
     }
     loadPythonPath()
-  }, [])
+  }, [pythonPathSetting])
 
   // Handler to install Python packages (requirements.txt)
   const handleInstallPythonPackages = async () => {
@@ -194,9 +192,10 @@ export const InstallPythonPackage = () => {
       })
       setIsDetectingPython(false)
       // Only update pythonPath in settings to the venv's pythonPath
-      await services
-        .getSettingsService()
-        .saveOrUpdateSetting("pythonPath", result.pythonPath)
+      await updateSettingsMutation.mutateAsync({
+        key: "pythonPath",
+        value: result.pythonPath,
+      })
     } catch (error) {
       setPythonError(error instanceof Error ? error.message : String(error))
       setIsDetectingPython(false)
@@ -239,9 +238,10 @@ export const InstallPythonPackage = () => {
       })
       setIsDetectingPython(false)
       // Update settings: set pythonPath
-      await services
-        .getSettingsService()
-        .saveOrUpdateSetting("pythonPath", filePath)
+      await updateSettingsMutation.mutateAsync({
+        key: "pythonPath",
+        value: filePath,
+      })
     } catch (error) {
       setPythonError(error instanceof Error ? error.message : String(error))
       setIsDetectingPython(false)

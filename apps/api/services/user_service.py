@@ -10,6 +10,9 @@ class UserService:
     def get_user_by_id(self, db: Session, user_id: str):
         return self.repo.get(db, user_id)
 
+    def get_users(self, db: Session):
+        return self.repo.get_all(db)
+
     def create_user(self, db: Session, data: UserCreate):
         return self.repo.create(db, data)
 

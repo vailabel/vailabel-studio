@@ -4,12 +4,28 @@ import { Eye, EyeOff, Mail, Lock, User, Github, Chrome } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"
 import { useAuth } from "@/contexts/auth-context"
-import { LoginCredentials, RegisterCredentials } from "@/services/contracts/IAuthService"
+// Define auth credential types locally
+interface LoginCredentials {
+  email: string
+  password: string
+}
+
+interface RegisterCredentials {
+  email: string
+  password: string
+  name: string
+}
 import { AuthModeSwitch } from "./AuthModeSwitch"
 
 interface LoginFormProps {
@@ -37,26 +53,28 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     clearError()
-    
+
     try {
-      await login(credentials)
+      await login(credentials.email, credentials.password)
       onSuccess?.()
     } catch {
       // Error is handled by the auth context
     }
   }
 
-  const handleInputChange = (field: keyof LoginCredentials) => (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    setCredentials(prev => ({ ...prev, [field]: e.target.value }))
-    if (error) clearError()
-  }
+  const handleInputChange =
+    (field: keyof LoginCredentials) =>
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setCredentials((prev) => ({ ...prev, [field]: e.target.value }))
+      if (error) clearError()
+    }
 
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold text-center">Welcome back</CardTitle>
+        <CardTitle className="text-2xl font-bold text-center">
+          Welcome back
+        </CardTitle>
         <CardDescription className="text-center">
           Sign in to your account to continue
         </CardDescription>
@@ -65,10 +83,12 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
             <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription>
+                {error instanceof Error ? error.message : String(error)}
+              </AlertDescription>
             </Alert>
           )}
-          
+
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <div className="relative">
@@ -155,13 +175,15 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
   )
 }
 
-export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) {
+export function RegisterForm({
+  onSuccess,
+  onSwitchToLogin,
+}: RegisterFormProps) {
   const { register, isLoading, error, clearError } = useAuth()
   const [credentials, setCredentials] = useState<RegisterCredentials>({
     name: "",
     email: "",
     password: "",
-    role: "annotator",
   })
   const [showPassword, setShowPassword] = useState(false)
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -173,26 +195,28 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
     if (credentials.password !== confirmPassword) {
       return
     }
-    
+
     try {
-      await register(credentials)
+      await register(credentials.email, credentials.password, credentials.name)
       onSuccess?.()
     } catch {
       // Error is handled by the auth context
     }
   }
 
-  const handleInputChange = (field: keyof RegisterCredentials) => (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    setCredentials(prev => ({ ...prev, [field]: e.target.value }))
-    if (error) clearError()
-  }
+  const handleInputChange =
+    (field: keyof RegisterCredentials) =>
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setCredentials((prev) => ({ ...prev, [field]: e.target.value }))
+      if (error) clearError()
+    }
 
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold text-center">Create account</CardTitle>
+        <CardTitle className="text-2xl font-bold text-center">
+          Create account
+        </CardTitle>
         <CardDescription className="text-center">
           Sign up to get started with VaiLabeling
         </CardDescription>
@@ -201,10 +225,12 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
             <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription>
+                {error instanceof Error ? error.message : String(error)}
+              </AlertDescription>
             </Alert>
           )}
-          
+
           <div className="space-y-2">
             <Label htmlFor="name">Full Name</Label>
             <div className="relative">
@@ -285,12 +311,18 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
                 disabled={isLoading}
               />
             </div>
-            {credentials.password && confirmPassword && credentials.password !== confirmPassword && (
-              <p className="text-sm text-red-600">Passwords do not match</p>
-            )}
+            {credentials.password &&
+              confirmPassword &&
+              credentials.password !== confirmPassword && (
+                <p className="text-sm text-red-600">Passwords do not match</p>
+              )}
           </div>
 
-          <Button type="submit" className="w-full" disabled={isLoading || credentials.password !== confirmPassword}>
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={isLoading || credentials.password !== confirmPassword}
+          >
             {isLoading ? "Creating account..." : "Create account"}
           </Button>
         </form>
@@ -311,7 +343,9 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
         </div>
 
         <div className="mt-6 text-center text-sm">
-          <span className="text-muted-foreground">Already have an account? </span>
+          <span className="text-muted-foreground">
+            Already have an account?{" "}
+          </span>
           <Button
             variant="link"
             className="p-0 h-auto font-normal"
@@ -333,13 +367,8 @@ export function SocialLogin({ onSuccess }: SocialLoginProps) {
     try {
       // In a real implementation, this would redirect to the OAuth provider
       // For now, we'll simulate the OAuth flow
-      const mockCode = `mock_${provider}_code_${Date.now()}`
-      
-      await socialLogin({
-        provider,
-        code: mockCode,
-      })
-      
+      await socialLogin(provider)
+
       onSuccess?.()
     } catch (error) {
       console.error(`${provider} login failed:`, error)
@@ -372,6 +401,7 @@ export function SocialLogin({ onSuccess }: SocialLoginProps) {
 
 export function AuthPage() {
   const [activeTab, setActiveTab] = useState<"login" | "register">("login")
+  const { isLocalMode } = useAuth()
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
@@ -382,25 +412,56 @@ export function AuthPage() {
         className="w-full max-w-md space-y-4"
       >
         <AuthModeSwitch />
-        
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "login" | "register")}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="login">Sign In</TabsTrigger>
-            <TabsTrigger value="register">Sign Up</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="login" className="mt-6">
-            <LoginForm 
-              onSwitchToRegister={() => setActiveTab("register")}
-            />
-          </TabsContent>
-          
-          <TabsContent value="register" className="mt-6">
-            <RegisterForm 
-              onSwitchToLogin={() => setActiveTab("login")}
-            />
-          </TabsContent>
-        </Tabs>
+
+        {!isLocalMode && (
+          <Tabs
+            value={activeTab}
+            onValueChange={(value) =>
+              setActiveTab(value as "login" | "register")
+            }
+          >
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="login">Sign In</TabsTrigger>
+              <TabsTrigger value="register">Sign Up</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="login" className="mt-6">
+              <LoginForm onSwitchToRegister={() => setActiveTab("register")} />
+            </TabsContent>
+
+            <TabsContent value="register" className="mt-6">
+              <RegisterForm onSwitchToLogin={() => setActiveTab("login")} />
+            </TabsContent>
+          </Tabs>
+        )}
+
+        {isLocalMode && (
+          <Card>
+            <CardContent className="p-6 text-center space-y-4">
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold">Local Mode Active</h3>
+                <p className="text-sm text-muted-foreground">
+                  You're using local database authentication with the default
+                  admin user.
+                </p>
+                <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
+                  <strong>Admin User:</strong> admin@vailabel.local
+                  <br />
+                  <strong>Password:</strong> admin123
+                </div>
+              </div>
+              <Button
+                onClick={() => {
+                  // Navigate to the main app
+                  window.location.href = "/"
+                }}
+                className="w-full"
+              >
+                Continue to Application
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </motion.div>
     </div>
   )
@@ -435,11 +496,18 @@ export function UserProfile() {
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       return
     }
-    
+
     try {
-      await changePassword(passwordData.currentPassword, passwordData.newPassword)
+      await changePassword(
+        passwordData.currentPassword,
+        passwordData.newPassword
+      )
       setIsChangingPassword(false)
-      setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" })
+      setPasswordData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      })
     } catch {
       // Error is handled by the auth context
     }
@@ -477,7 +545,9 @@ export function UserProfile() {
                   <Input
                     id="name"
                     value={formData.name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, name: e.target.value }))
+                    }
                     disabled={isLoading}
                   />
                 </div>
@@ -487,7 +557,12 @@ export function UserProfile() {
                     id="email"
                     type="email"
                     value={formData.email}
-                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        email: e.target.value,
+                      }))
+                    }
                     disabled={isLoading}
                   />
                 </div>
@@ -509,20 +584,32 @@ export function UserProfile() {
           ) : (
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-sm font-medium text-muted-foreground">Name</Label>
+                <Label className="text-sm font-medium text-muted-foreground">
+                  Name
+                </Label>
                 <p className="text-sm">{user.name}</p>
               </div>
               <div>
-                <Label className="text-sm font-medium text-muted-foreground">Email</Label>
+                <Label className="text-sm font-medium text-muted-foreground">
+                  Email
+                </Label>
                 <p className="text-sm">{user.email}</p>
               </div>
               <div>
-                <Label className="text-sm font-medium text-muted-foreground">Role</Label>
+                <Label className="text-sm font-medium text-muted-foreground">
+                  Role
+                </Label>
                 <p className="text-sm capitalize">{user.role}</p>
               </div>
               <div>
-                <Label className="text-sm font-medium text-muted-foreground">Member Since</Label>
-                <p className="text-sm">{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "Unknown"}</p>
+                <Label className="text-sm font-medium text-muted-foreground">
+                  Member Since
+                </Label>
+                <p className="text-sm">
+                  {user.createdAt
+                    ? new Date(user.createdAt).toLocaleDateString()
+                    : "Unknown"}
+                </p>
               </div>
             </div>
           )}
@@ -551,7 +638,12 @@ export function UserProfile() {
                   id="currentPassword"
                   type="password"
                   value={passwordData.currentPassword}
-                  onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                  onChange={(e) =>
+                    setPasswordData((prev) => ({
+                      ...prev,
+                      currentPassword: e.target.value,
+                    }))
+                  }
                   disabled={isLoading}
                 />
               </div>
@@ -561,7 +653,12 @@ export function UserProfile() {
                   id="newPassword"
                   type="password"
                   value={passwordData.newPassword}
-                  onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                  onChange={(e) =>
+                    setPasswordData((prev) => ({
+                      ...prev,
+                      newPassword: e.target.value,
+                    }))
+                  }
                   disabled={isLoading}
                 />
               </div>
@@ -571,17 +668,29 @@ export function UserProfile() {
                   id="confirmPassword"
                   type="password"
                   value={passwordData.confirmPassword}
-                  onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  onChange={(e) =>
+                    setPasswordData((prev) => ({
+                      ...prev,
+                      confirmPassword: e.target.value,
+                    }))
+                  }
                   disabled={isLoading}
                 />
-                {passwordData.newPassword && passwordData.confirmPassword && passwordData.newPassword !== passwordData.confirmPassword && (
-                  <p className="text-sm text-red-600">Passwords do not match</p>
-                )}
+                {passwordData.newPassword &&
+                  passwordData.confirmPassword &&
+                  passwordData.newPassword !== passwordData.confirmPassword && (
+                    <p className="text-sm text-red-600">
+                      Passwords do not match
+                    </p>
+                  )}
               </div>
               <div className="flex gap-2">
-                <Button 
-                  type="submit" 
-                  disabled={isLoading || passwordData.newPassword !== passwordData.confirmPassword}
+                <Button
+                  type="submit"
+                  disabled={
+                    isLoading ||
+                    passwordData.newPassword !== passwordData.confirmPassword
+                  }
                 >
                   {isLoading ? "Changing..." : "Change Password"}
                 </Button>

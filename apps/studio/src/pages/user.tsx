@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react"
+import { useState } from "react"
 import { format } from "date-fns"
 import {
   Search,
@@ -48,11 +48,18 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
-import { useServices } from "@/services/ServiceProvider"
+import { useUserViewModel } from "@/viewmodels/user-viewmodel"
 import { useToast } from "@/hooks/use-toast"
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog"
 import { User } from "@vailabel/core"
-import { cn } from "@/lib/utils"
+import {
+  AdminGuard,
+  ManagerGuard,
+  AdminBadge,
+  ManagerBadge,
+  AnnotatorBadge,
+  ViewerBadge,
+} from "@/components/permissions"
 
 interface UserFormData {
   name: string
@@ -61,73 +68,42 @@ interface UserFormData {
   password?: string
 }
 
-const roles = [
-  {
-    value: "admin",
-    label: "Administrator",
-    color: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
-  },
-  {
-    value: "manager",
-    label: "Manager",
-    color: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
-  },
-  {
-    value: "reviewer",
-    label: "Reviewer",
-    color: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
-  },
-  {
-    value: "annotator",
-    label: "Annotator",
-    color:
-      "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
-  },
-]
-
 export default function UserPage() {
   const { toast } = useToast()
   const confirm = useConfirmDialog()
 
-  // Store
-  const services = useServices()
+  // Use ViewModel
+  const {
+    users,
+    roles,
+    searchQuery,
+    roleFilter,
+    isDialogOpen,
+    editingUser,
+    userStats,
+    isLoading: loading,
+    error,
+    updateSearchQuery,
+    updateRoleFilter,
+    openCreateDialog,
+    openEditDialog,
+    closeDialog,
+    createUser,
+    updateUser,
+    deleteUser,
+  } = useUserViewModel()
 
-  // Local state
-  const [users, setUsers] = useState<User[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [roleFilter, setRoleFilter] = useState<string>("all")
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [editingUser, setEditingUser] = useState<User | null>(null)
-  // Functions
-  const getUsers = useCallback(async () => {
-    setLoading(true)
-    setError(null)
+  const handleCreateUser = async (userData: UserFormData) => {
     try {
-      const fetchedUsers = await services.getUserService().getUsers()
-      setUsers(fetchedUsers)
-    } catch (err) {
-      setError("Failed to fetch users")
-      console.error("Failed to fetch users:", err)
-    } finally {
-      setLoading(false)
-    }
-  }, [services])
-
-  const createUser = async (userData: UserFormData) => {
-    try {
-      const newUser: User = {
-        id: crypto.randomUUID(),
+      const newUser: Omit<User, "id"> = {
         name: userData.name,
         email: userData.email,
         role: userData.role as "admin" | "manager" | "reviewer" | "annotator",
         password: userData.password || "",
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       }
-      await services.getUserService().createUser(newUser)
-      await getUsers() // Refresh the list
+      await createUser(newUser)
       toast({
         title: "Success",
         description: "User created successfully",
@@ -141,10 +117,9 @@ export default function UserPage() {
     }
   }
 
-  const updateUser = async (userId: string, updates: Partial<User>) => {
+  const handleUpdateUser = async (userId: string, updates: Partial<User>) => {
     try {
-      await services.getUserService().updateUser(userId, updates)
-      await getUsers() // Refresh the list
+      await updateUser(userId, updates)
       toast({
         title: "Success",
         description: "User updated successfully",
@@ -158,10 +133,9 @@ export default function UserPage() {
     }
   }
 
-  const deleteUser = async (userId: string) => {
+  const handleDeleteUser = async (userId: string) => {
     try {
-      await services.getUserService().deleteUser(userId)
-      await getUsers() // Refresh the list
+      await deleteUser(userId)
       toast({
         title: "Success",
         description: "User deleted successfully",
@@ -183,66 +157,29 @@ export default function UserPage() {
   })
 
   // Load users on component mount
-  useEffect(() => {
-    getUsers()
-  }, [getUsers])
-
-  // Filter users based on search and role
-  const filteredUsers = React.useMemo(() => {
-    let filtered = users
-
-    // Search filter
-    if (searchQuery) {
-      filtered = filtered.filter(
-        (user) =>
-          user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          user.email.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    }
-
-    // Role filter
-    if (roleFilter !== "all") {
-      filtered = filtered.filter((user) => user.role === roleFilter)
-    }
-
-    return filtered
-  }, [users, searchQuery, roleFilter])
-
-  // User statistics
-  const userStats = React.useMemo(() => {
-    const total = users.length
-    const admins = users.filter((u) => u.role === "admin").length
-    const managers = users.filter((u) => u.role === "manager").length
-    const reviewers = users.filter((u) => u.role === "reviewer").length
-    const annotators = users.filter((u) => u.role === "annotator").length
-
-    return { total, admins, managers, reviewers, annotators }
-  }, [users])
 
   // Handlers
-  const handleCreateUser = () => {
-    setEditingUser(null)
+  const handleCreateUserClick = () => {
     setFormData({
       name: "",
       email: "",
       role: "annotator",
       password: "",
     })
-    setIsDialogOpen(true)
+    openCreateDialog()
   }
 
-  const handleEditUser = (user: User) => {
-    setEditingUser(user)
+  const handleEditUserClick = (user: User) => {
     setFormData({
       name: user.name,
       email: user.email,
       role: user.role,
       password: "",
     })
-    setIsDialogOpen(true)
+    openEditDialog(user)
   }
 
-  const handleDeleteUser = async (userId: string) => {
+  const handleDeleteUserClick = async (userId: string) => {
     const user = users.find((u) => u.id === userId)
     const confirmed = await confirm({
       title: "Delete User",
@@ -252,19 +189,7 @@ export default function UserPage() {
     })
 
     if (confirmed) {
-      try {
-        await deleteUser(userId)
-        toast({
-          title: "Success",
-          description: "User deleted successfully",
-        })
-      } catch {
-        toast({
-          title: "Error",
-          description: "Failed to delete user",
-          variant: "destructive",
-        })
-      }
+      await handleDeleteUser(userId)
     }
   }
 
@@ -281,15 +206,11 @@ export default function UserPage() {
 
       if (editingUser) {
         // Update existing user
-        await updateUser(editingUser.id, {
+        await handleUpdateUser(editingUser.id, {
           name: formData.name,
           email: formData.email,
           role: formData.role,
           ...(formData.password && { password: formData.password }),
-        })
-        toast({
-          title: "Success",
-          description: "User updated successfully",
         })
       } else {
         // Create new user
@@ -302,19 +223,15 @@ export default function UserPage() {
           return
         }
 
-        await createUser({
+        await handleCreateUser({
           name: formData.name,
           email: formData.email,
           role: formData.role,
           password: formData.password,
         })
-        toast({
-          title: "Success",
-          description: "User created successfully",
-        })
       }
 
-      setIsDialogOpen(false)
+      closeDialog()
       setFormData({
         name: "",
         email: "",
@@ -333,12 +250,18 @@ export default function UserPage() {
   }
 
   const getRoleBadge = (role: string) => {
-    const roleInfo = roles.find((r) => r.value === role)
-    return (
-      <Badge className={cn("text-xs", roleInfo?.color)}>
-        {roleInfo?.label || role}
-      </Badge>
-    )
+    switch (role) {
+      case "admin":
+        return <AdminBadge />
+      case "manager":
+        return <ManagerBadge />
+      case "annotator":
+        return <AnnotatorBadge />
+      case "viewer":
+        return <ViewerBadge />
+      default:
+        return <Badge variant="secondary">{role}</Badge>
+    }
   }
 
   return (
@@ -354,10 +277,12 @@ export default function UserPage() {
             Manage users, roles, and permissions
           </p>
         </div>
-        <Button onClick={handleCreateUser} className="w-full sm:w-auto">
-          <UserPlus className="w-4 h-4 mr-2" />
-          Add User
-        </Button>
+        <ManagerGuard>
+          <Button onClick={handleCreateUserClick} className="w-full sm:w-auto">
+            <UserPlus className="w-4 h-4 mr-2" />
+            Add User
+          </Button>
+        </ManagerGuard>
       </div>
 
       {/* Statistics Cards */}
@@ -448,21 +373,21 @@ export default function UserPage() {
                 <Input
                   placeholder="Search by name or email..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => updateSearchQuery(e.target.value)}
                   className="pl-10"
                 />
               </div>
             </div>
 
-            <Select value={roleFilter} onValueChange={setRoleFilter}>
+            <Select value={roleFilter} onValueChange={updateRoleFilter}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filter by role" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Roles</SelectItem>
                 {roles.map((role) => (
-                  <SelectItem key={role.value} value={role.value}>
-                    {role.label}
+                  <SelectItem key={role.id} value={role.name}>
+                    {role.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -475,7 +400,7 @@ export default function UserPage() {
       {error && (
         <Card className="mb-6 border-destructive">
           <CardContent className="p-4">
-            <p className="text-destructive">Error: {error}</p>
+            <p className="text-destructive">Error: {String(error)}</p>
           </CardContent>
         </Card>
       )}
@@ -489,7 +414,7 @@ export default function UserPage() {
             </div>
           </CardContent>
         </Card>
-      ) : filteredUsers.length > 0 ? (
+      ) : users.length > 0 ? (
         <Card>
           <CardContent className="p-0">
             <Table>
@@ -503,7 +428,7 @@ export default function UserPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredUsers.map((user) => (
+                {users.map((user) => (
                   <TableRow key={user.id} className="hover:bg-muted/50">
                     <TableCell>
                       <div className="flex items-center gap-3">
@@ -548,20 +473,24 @@ export default function UserPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => handleEditUser(user)}
-                          >
-                            <Edit className="w-4 h-4 mr-2" />
-                            Edit User
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() => handleDeleteUser(user.id)}
-                            className="text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Delete User
-                          </DropdownMenuItem>
+                          <ManagerGuard>
+                            <DropdownMenuItem
+                              onClick={() => handleEditUserClick(user)}
+                            >
+                              <Edit className="w-4 h-4 mr-2" />
+                              Edit User
+                            </DropdownMenuItem>
+                          </ManagerGuard>
+                          <AdminGuard>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteUserClick(user.id)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete User
+                            </DropdownMenuItem>
+                          </AdminGuard>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -583,10 +512,12 @@ export default function UserPage() {
                   : "Get started by adding your first user."}
               </p>
               {!searchQuery && roleFilter === "all" && (
-                <Button onClick={handleCreateUser}>
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  Add First User
-                </Button>
+                <ManagerGuard>
+                  <Button onClick={handleCreateUserClick}>
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Add First User
+                  </Button>
+                </ManagerGuard>
               )}
             </div>
           </CardContent>
@@ -594,7 +525,10 @@ export default function UserPage() {
       )}
 
       {/* User Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog
+        open={isDialogOpen}
+        onOpenChange={(open) => !open && closeDialog()}
+      >
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>
@@ -646,8 +580,8 @@ export default function UserPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {roles.map((role) => (
-                    <SelectItem key={role.value} value={role.value}>
-                      {role.label}
+                    <SelectItem key={role.id} value={role.name}>
+                      {role.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -673,7 +607,7 @@ export default function UserPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+            <Button variant="outline" onClick={closeDialog}>
               Cancel
             </Button>
             <Button onClick={handleSaveUser} disabled={loading}>

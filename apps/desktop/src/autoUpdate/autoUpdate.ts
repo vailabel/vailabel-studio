@@ -55,6 +55,13 @@ export function setupAutoUpdate(
     if (!loadingWindow) {
       createLoadingWindow("Downloading update...")
     }
+    if (loadingWindow && !loadingWindow.isDestroyed()) {
+      loadingWindow.webContents.send("loading-progress", progress.percent)
+      loadingWindow.webContents.send(
+        "loading-message",
+        `Downloading update... ${Math.round(progress.percent)}%`
+      )
+    }
     mainWindow.webContents.send("download-progress", progress)
   })
   autoUpdater.on("update-downloaded", () => {

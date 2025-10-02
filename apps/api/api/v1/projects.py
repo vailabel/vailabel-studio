@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from db.session import get_db
 from services.project_service import ProjectService, get_project_service
 from models.project import Project, ProjectCreate, ProjectUpdate
+from api.v1.auth import require_permission
 
 router = APIRouter(prefix="/api/v1/projects", tags=["Projects"])
 
@@ -11,6 +12,7 @@ router = APIRouter(prefix="/api/v1/projects", tags=["Projects"])
 def list_projects(
     db: Session = Depends(get_db),
     service: ProjectService = Depends(get_project_service),
+    _: None = Depends(require_permission("projects:read")),
 ):
     return service.get_projects(db)
 
@@ -20,6 +22,7 @@ def get_project(
     project_id: str,
     db: Session = Depends(get_db),
     service: ProjectService = Depends(get_project_service),
+    _: None = Depends(require_permission("projects:read")),
 ):
     project = service.get_project_by_id(db, project_id)
     if not project:
@@ -32,6 +35,7 @@ def create(
     project: ProjectCreate,
     db: Session = Depends(get_db),
     service: ProjectService = Depends(get_project_service),
+    _: None = Depends(require_permission("projects:write")),
 ):
     return service.create_project(db, project)
 
@@ -42,6 +46,7 @@ def update(
     updates: ProjectUpdate,
     db: Session = Depends(get_db),
     service: ProjectService = Depends(get_project_service),
+    _: None = Depends(require_permission("projects:write")),
 ):
     updated = service.update_project(db, project_id, updates)
     if not updated:
@@ -54,6 +59,7 @@ def delete(
     project_id: str,
     db: Session = Depends(get_db),
     service: ProjectService = Depends(get_project_service),
+    _: None = Depends(require_permission("projects:delete")),
 ):
     deleted = service.delete_project(db, project_id)
     if not deleted:
