@@ -7,5 +7,11 @@
     "lint": "flake8 app",
     "format": "bash scripts/format.sh",
     "typecheck": "bash scripts/typecheck.sh"
+  },
+  "devDependencies": {
+    "jest-environment-jsdom": "^30.2.0"
+  },
+  "jest": {
+    "testEnvironment": "jest-environment-jsdom"
   }
 }
