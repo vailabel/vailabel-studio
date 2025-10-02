@@ -41,19 +41,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const isInitialized = !isLoading && (!!user || isError)
   const [isLocalMode, setIsLocalMode] = React.useState(true) // Default to local mode for easier testing
 
-  // Auto-login in local mode on mount
+  // Auto-login in local mode on mount (only once)
   React.useEffect(() => {
-    if (isLocalMode && !user && !isLoading) {
-      loginMutation.mutate(
-        { email: "admin@example.com", password: "admin123" },
-        {
-          onError: (error) => {
-            console.error("Auto-login failed:", error)
-          },
-        }
-      )
+    if (isLocalMode && !user && !isLoading && !loginMutation.isLoading) {
+      // Check if we already have a token
+      const existingToken = localStorage.getItem("authToken")
+      if (!existingToken) {
+        loginMutation.mutate(
+          { email: "admin@example.com", password: "admin123" },
+          {
+            onError: (error) => {
+              console.error("Auto-login failed:", error)
+            },
+          }
+        )
+      }
     }
-  }, [isLocalMode, user, isLoading, loginMutation])
+  }, [isLocalMode, user, isLoading, loginMutation.isLoading])
 
   const login = async (email: string, password: string): Promise<User> => {
     return new Promise((resolve, reject) => {

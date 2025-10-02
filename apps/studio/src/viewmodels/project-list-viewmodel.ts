@@ -5,10 +5,13 @@
  */
 
 import { useState, useMemo } from "react"
+import { useNavigate } from "react-router-dom"
 import { useProjects } from "@/hooks/useFastAPIQuery"
 import { Project } from "@vailabel/core"
 
 export const useProjectListViewModel = () => {
+  const navigate = useNavigate()
+  
   // State
   const [searchQuery, setSearchQuery] = useState("")
   const [sortBy, setSortBy] = useState<"name" | "createdAt" | "updatedAt">(
@@ -184,13 +187,11 @@ export const useProjectListViewModel = () => {
 
   // Helper functions for navigation and other actions
   const navigateToCreate = () => {
-    // This would typically use a navigation hook
-    console.log("Navigate to create project")
+    navigate("/projects/create")
   }
 
   const navigateToProject = (projectId: string) => {
-    // This would typically use a navigation hook
-    console.log("Navigate to project:", projectId)
+    navigate(`/projects/detail/${projectId}`)
   }
 
   const handleSetSearchQuery = (query: string) => {

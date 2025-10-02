@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+from argon2 import PasswordHasher
 from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.responses import RedirectResponse
@@ -43,15 +44,26 @@ oauth.register(
 )
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+argon2_hasher = PasswordHasher()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    """Verify password using Argon2 (primary) or bcrypt (fallback)"""
+    try:
+        # Try Argon2 first (new format)
+        return argon2_hasher.verify(hashed_password, plain_password)
+    except Exception:
+        try:
+            # Fallback to bcrypt (legacy format)
+            return pwd_context.verify(plain_password, hashed_password)
+        except Exception:
+            return False
 
 
 def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
+    """Hash password using Argon2"""
+    return argon2_hasher.hash(password)
 
 
 def get_user_by_email(db: Session, email: str) -> Optional[User]:

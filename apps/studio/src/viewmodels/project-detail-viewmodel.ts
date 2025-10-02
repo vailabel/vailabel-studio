@@ -5,7 +5,7 @@
  */
 
 import { useState, useMemo } from "react"
-import { useMutation, useQueryClient } from "react-query"
+import { useQueryClient } from "react-query"
 import {
   useProject,
   useUpdateProject,
@@ -15,8 +15,9 @@ import {
   useLabels,
   useTasks,
 } from "@/hooks/useFastAPIQuery"
-import { Project, ImageData, Annotation, Label, Task } from "@vailabel/core"
+import { Project, Annotation, Task } from "@vailabel/core"
 import { z } from "zod"
+import { v4 as uuidv4 } from "uuid"
 
 // Schema for project editing
 export const ProjectEditSchema = z.object({
@@ -29,7 +30,7 @@ export const ProjectEditSchema = z.object({
     .max(500, "Description must be less than 500 characters")
     .optional(),
   type: z.string().min(1, "Project type is required"),
-  settings: z.record(z.any()).optional(),
+  settings: z.record(z.unknown()).optional(),
 })
 
 export type ProjectEditForm = z.infer<typeof ProjectEditSchema>
@@ -56,15 +57,33 @@ export const LabelCreateSchema = z.object({
 
 export type LabelCreateForm = z.infer<typeof LabelCreateSchema>
 
+interface ImageFile {
+  id: string
+  name: string
+  data: string
+  width: number
+  height: number
+  file?: File
+  size?: number
+}
+
 export const useProjectDetailViewModel = (projectId: string) => {
   const queryClient = useQueryClient()
 
   // State
   const [activeTab, setActiveTab] = useState<
-    "overview" | "images" | "annotations" | "labels" | "tasks"
+    "overview" | "images" | "upload" | "annotations" | "labels" | "tasks"
   >("overview")
   const [selectedImages, setSelectedImages] = useState<string[]>([])
   const [selectedAnnotations, setSelectedAnnotations] = useState<string[]>([])
+  const [newImages, setNewImages] = useState<ImageFile[]>([])
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isEditProjectModalOpen, setIsEditProjectModalOpen] = useState(false)
+  const [isAddLabelModalOpen, setIsAddLabelModalOpen] = useState(false)
+  const [isEditingProject, setIsEditingProject] = useState(false)
+  const [isCreatingLabel, setIsCreatingLabel] = useState(false)
 
   // Queries
   const {
@@ -140,7 +159,8 @@ export const useProjectDetailViewModel = (projectId: string) => {
     return Object.entries(stats).map(([label, count]) => ({
       label,
       count,
-      percentage: totalAnnotations > 0 ? (count / totalAnnotations) * 100 : 0,
+      percentage:
+        annotations.length > 0 ? (count / annotations.length) * 100 : 0,
     }))
   }, [annotations, labels])
 
@@ -164,7 +184,11 @@ export const useProjectDetailViewModel = (projectId: string) => {
     ]
 
     return activities
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .sort((a, b) => {
+        const dateA = a.date ? new Date(a.date).getTime() : 0
+        const dateB = b.date ? new Date(b.date).getTime() : 0
+        return dateB - dateA
+      })
       .slice(0, 10)
   }, [images, annotations, tasks])
 
@@ -194,7 +218,7 @@ export const useProjectDetailViewModel = (projectId: string) => {
     }
   }
 
-  const updateProjectSettings = async (settings: Record<string, any>) => {
+  const updateProjectSettings = async (settings: Record<string, unknown>) => {
     if (!project) throw new Error("Project not found")
 
     try {
@@ -291,6 +315,79 @@ export const useProjectDetailViewModel = (projectId: string) => {
     return 0
   }
 
+  // Image upload handling
+  const handleFiles = async (files: File[]) => {
+    setIsUploading(true)
+    setUploadProgress(0)
+
+    try {
+      const totalFiles = files.length
+      const newImages: ImageFile[] = []
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i]
+
+        // Simulate progress for each file
+        const fileProgress = ((i + 1) / totalFiles) * 100
+        setUploadProgress(fileProgress)
+
+        // Add a small delay to simulate processing time
+        await new Promise((resolve) => setTimeout(resolve, 200))
+
+        const data = await readFileAsDataURL(file)
+        const dimensions = await getImageDimensions(data)
+
+        newImages.push({
+          id: uuidv4(),
+          name: file.name,
+          data,
+          width: dimensions.width,
+          height: dimensions.height,
+          file,
+          size: file.size,
+        })
+      }
+
+      setNewImages((prev) => [...prev, ...newImages])
+      setUploadProgress(100)
+
+      // Reset progress after a short delay
+      setTimeout(() => {
+        setUploadProgress(0)
+      }, 1000)
+    } catch (error) {
+      console.error("Error processing files:", error)
+      setUploadProgress(0)
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  const handleRemoveImage = (index: number) => {
+    setNewImages((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const saveImages = async () => {
+    if (newImages.length === 0) return
+
+    setIsSaving(true)
+
+    try {
+      // Simulate saving images to the project
+      await new Promise((resolve) => setTimeout(resolve, 2000))
+
+      // Clear the new images after saving
+      setNewImages([])
+
+      // Refresh the images list
+      queryClient.invalidateQueries(["images", projectId])
+    } catch (error) {
+      console.error("Error saving images:", error)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   const isLoading =
     projectLoading ||
     imagesLoading ||
@@ -299,6 +396,72 @@ export const useProjectDetailViewModel = (projectId: string) => {
     tasksLoading
   const error =
     projectError || imagesError || annotationsError || labelsError || tasksError
+
+  // Computed properties for the UI
+  const projectName = project?.name || "Loading..."
+  const totalCount = images.length
+  const labelCount = labels.length
+  const pageSize = 20
+
+  // Navigation and modal state (these would typically be in separate state)
+  const navigateBack = () => {
+    // Implementation would depend on router setup
+    window.history.back()
+  }
+
+  const openEditProjectModal = () => {
+    setIsEditProjectModalOpen(true)
+  }
+
+  const closeEditProjectModal = () => {
+    setIsEditProjectModalOpen(false)
+  }
+
+  const refreshData = () => {
+    queryClient.invalidateQueries(["project", projectId])
+    queryClient.invalidateQueries(["images", projectId])
+    queryClient.invalidateQueries(["labels", projectId])
+  }
+
+  const loadProjectData = () => {
+    queryClient.invalidateQueries(["project", projectId])
+  }
+
+  const navigateToImage = (imageId: string) => {
+    // Implementation would depend on router setup
+    console.log("Navigate to image:", imageId)
+  }
+
+  const deleteImage = (imageId: string) => {
+    // Implementation would depend on API
+    console.log("Delete image:", imageId)
+  }
+
+  const openAddLabelModal = () => {
+    setIsAddLabelModalOpen(true)
+  }
+
+  const closeAddLabelModal = () => {
+    setIsAddLabelModalOpen(false)
+  }
+
+  const createLabel = async (labelData: LabelCreateForm) => {
+    setIsCreatingLabel(true)
+    try {
+      // Implementation would depend on API
+      console.log("Create label:", labelData)
+      setIsAddLabelModalOpen(false)
+    } catch (error) {
+      console.error("Error creating label:", error)
+    } finally {
+      setIsCreatingLabel(false)
+    }
+  }
+
+  const deleteLabel = (labelId: string) => {
+    // Implementation would depend on API
+    console.log("Delete label:", labelId)
+  }
 
   return {
     // State
@@ -310,6 +473,14 @@ export const useProjectDetailViewModel = (projectId: string) => {
     activeTab,
     selectedImages,
     selectedAnnotations,
+    newImages,
+    isUploading,
+    uploadProgress,
+    isSaving,
+    isEditProjectModalOpen,
+    isAddLabelModalOpen,
+    isEditingProject,
+    isCreatingLabel,
     isLoading,
     error,
 
@@ -317,6 +488,10 @@ export const useProjectDetailViewModel = (projectId: string) => {
     projectStats,
     annotationStats,
     recentActivity,
+    projectName,
+    totalCount,
+    labelCount,
+    pageSize,
 
     // Actions
     setActiveTab,
@@ -331,9 +506,46 @@ export const useProjectDetailViewModel = (projectId: string) => {
     getImageAnnotations,
     getAnnotationLabel,
     getTaskProgress,
+    handleFiles,
+    handleRemoveImage,
+    saveImages,
+    navigateBack,
+    openEditProjectModal,
+    closeEditProjectModal,
+    refreshData,
+    loadProjectData,
+    navigateToImage,
+    deleteImage,
+    openAddLabelModal,
+    closeAddLabelModal,
+    createLabel,
+    deleteLabel,
 
     // Mutation state
     updateProjectMutation,
     deleteProjectMutation,
   }
+}
+
+// Helper functions
+function readFileAsDataURL(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
+function getImageDimensions(
+  dataUrl: string
+): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => {
+      resolve({ width: img.width, height: img.height })
+    }
+    img.onerror = reject
+    img.src = dataUrl
+  })
 }

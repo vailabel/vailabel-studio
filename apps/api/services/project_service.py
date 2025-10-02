@@ -10,6 +10,9 @@ class ProjectService:
     def get_projects(self, db: Session):
         return self.repo.get_all(db)
 
+    def get_projects_by_user(self, db: Session, user_id: str):
+        return self.repo.get_by_user(db, user_id)
+
     def get_project_by_id(self, db: Session, project_id: str):
         return self.repo.get(db, project_id)
 

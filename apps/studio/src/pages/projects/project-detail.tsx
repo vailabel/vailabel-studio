@@ -10,6 +10,7 @@ import {
   Edit,
   Plus,
   Trash2,
+  Upload,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -18,11 +19,14 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { ImageTable } from "@/components/tables/image-table"
 import { EditProjectModal } from "@/components/modals/edit-project-modal"
 import { AddLabelModal } from "@/components/modals/add-label-modal"
+import { ImageUploadArea, ImageGrid } from "@/components/ui/image-upload"
 import { useProjectDetailViewModel } from "@/viewmodels/project-detail-viewmodel"
+import { useParams } from "react-router-dom"
 import { cn } from "@/lib/utils"
 
 const ProjectDetails = memo(() => {
-  const viewModel = useProjectDetailViewModel()
+  const { id } = useParams<{ id: string }>()
+  const viewModel = useProjectDetailViewModel(id || "")
 
   const formatDate = (date: Date | undefined) => {
     if (!date) return "Unknown"
@@ -172,7 +176,9 @@ const ProjectDetails = memo(() => {
                   Error Loading Project
                 </p>
                 <p className="text-destructive/80 text-sm mb-4">
-                  {viewModel.error}
+                  {typeof viewModel.error === "string"
+                    ? viewModel.error
+                    : "An error occurred"}
                 </p>
                 <Button
                   variant="outline"
@@ -189,13 +195,19 @@ const ProjectDetails = memo(() => {
               <Tabs
                 value={viewModel.activeTab}
                 onValueChange={(value) =>
-                  viewModel.setActiveTab(value as "images" | "labels")
+                  viewModel.setActiveTab(
+                    value as "images" | "upload" | "labels"
+                  )
                 }
               >
-                <TabsList className="grid w-full grid-cols-2 bg-muted">
+                <TabsList className="grid w-full grid-cols-3 bg-muted">
                   <TabsTrigger value="images" className="gap-2">
                     <ImageIcon className="h-4 w-4" />
                     Images ({viewModel.totalCount})
+                  </TabsTrigger>
+                  <TabsTrigger value="upload" className="gap-2">
+                    <Upload className="h-4 w-4" />
+                    Upload
                   </TabsTrigger>
                   <TabsTrigger value="labels" className="gap-2">
                     <Tag className="h-4 w-4" />
@@ -221,6 +233,56 @@ const ProjectDetails = memo(() => {
                       showPagination={true}
                       pageSize={viewModel.pageSize}
                     />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="upload" className="p-6">
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h2 className="text-xl font-semibold">Upload Images</h2>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Add new images to your project for annotation
+                        </p>
+                      </div>
+                      <Badge variant="secondary">
+                        {viewModel.newImages.length} selected
+                      </Badge>
+                    </div>
+
+                    <ImageUploadArea
+                      onFiles={viewModel.handleFiles}
+                      isUploading={viewModel.isUploading}
+                      uploadProgress={viewModel.uploadProgress}
+                    />
+
+                    <ImageGrid
+                      images={viewModel.newImages}
+                      onRemove={viewModel.handleRemoveImage}
+                    />
+
+                    {viewModel.newImages.length > 0 && (
+                      <div className="flex justify-end pt-4 border-t border-border/50">
+                        <Button
+                          onClick={viewModel.saveImages}
+                          disabled={viewModel.isUploading || viewModel.isSaving}
+                          className="px-8 py-3 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 shadow-lg hover:shadow-xl transition-all duration-200"
+                        >
+                          {viewModel.isSaving ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Saving Images...
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="mr-2 h-4 w-4" />
+                              Save {viewModel.newImages.length} Image
+                              {viewModel.newImages.length !== 1 ? "s" : ""}
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </TabsContent>
 

@@ -92,11 +92,21 @@ export const queryKeys = {
 
 // Auth hooks
 export function useCurrentUser() {
+  const queryClient = useQueryClient()
+  
   return useQuery({
     queryKey: queryKeys.currentUser,
     queryFn: () => apiClient.get<User>("/auth/me"),
     retry: false,
     staleTime: 10 * 60 * 1000, // 10 minutes
+    enabled: !!localStorage.getItem("authToken"), // Only run if we have a token
+    onError: (error: any) => {
+      // If we get a 401, the token is invalid, so clear it
+      if (error?.message?.includes("401") || error?.message?.includes("Unauthorized")) {
+        localStorage.removeItem("authToken")
+        queryClient.setQueryData(queryKeys.currentUser, null)
+      }
+    },
   })
 }
 
@@ -159,7 +169,7 @@ export function useCreateProject() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (project: Omit<Project, "id">) =>
+    mutationFn: (project: any) =>
       apiClient.post<Project>("/projects/", project),
     onSuccess: () => {
       // Invalidate and refetch projects

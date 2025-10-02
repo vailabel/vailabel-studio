@@ -28,3 +28,6 @@ class User(Base):
     user_permissions = relationship(
         "Permission", secondary=user_permissions, back_populates="users"
     )
+    projects = relationship(
+        "Project", back_populates="user", cascade="all, delete-orphan"
+    )

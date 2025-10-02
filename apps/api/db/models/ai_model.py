@@ -35,3 +35,6 @@ class AIModel(Base):
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
     )
+
+    # Relationships
+    project = relationship("Project", back_populates="ai_models")
