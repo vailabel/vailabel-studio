@@ -40,7 +40,6 @@
 - [📝 Roadmap](#-roadmap)
 - [🤝 Contributing](#-contributing)
 - [📄 License](#-license)
-- [❤️ Acknowledgements](#acknowledgements)
 
 ## ✨ Features
 
