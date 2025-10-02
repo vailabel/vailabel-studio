@@ -1,4 +1,11 @@
-import React, { useState, useEffect, useMemo, memo, useCallback } from "react"
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  memo,
+  useCallback,
+  useRef,
+} from "react"
 import { AnimatePresence } from "framer-motion"
 import {
   ArrowLeft,
@@ -24,8 +31,11 @@ import { AIModelSelectModal } from "@/components/ai-model-modal"
 import { ContextMenu } from "@/components/context-menu"
 import { ThemeToggle } from "./theme-toggle"
 import { useNavigate } from "react-router-dom"
-import { useCanvasContextMenu, useCanvasContainer } from "@/contexts/canvas-context"
-import { useServices } from "@/services/ServiceProvider"
+import {
+  useCanvasContextMenu,
+  useCanvasContainer,
+} from "@/contexts/canvas-context"
+import { useImageLabelerViewModel } from "@/viewmodels/image-labeler-viewmodel"
 import { ImageData } from "@vailabel/core"
 import { Annotation } from "@vailabel/core"
 
@@ -47,12 +57,20 @@ MemoizedToolbar.displayName = "MemoizedToolbar"
 
 // Memoized Canvas wrapper
 const MemoizedCanvas = memo(
-  ({ image, annotations, onRefreshAnnotations }: { 
-    image: ImageData; 
-    annotations: Annotation[];
-    onRefreshAnnotations: () => Promise<void>;
+  ({
+    image,
+    annotations,
+    onRefreshAnnotations,
+  }: {
+    image: ImageData
+    annotations: Annotation[]
+    onRefreshAnnotations: () => Promise<void>
   }) => (
-    <Canvas image={image} annotations={annotations} onRefreshAnnotations={onRefreshAnnotations} />
+    <Canvas
+      image={image}
+      annotations={annotations}
+      onRefreshAnnotations={onRefreshAnnotations}
+    />
   )
 )
 
@@ -78,109 +96,79 @@ MemoizedLabelListPanel.displayName = "MemoizedLabelListPanel"
 
 export const ImageLabeler = memo(
   ({ projectId, imageId }: ImageLabelerProps) => {
-    const { contextMenuProps, setContextMenuProps } = useCanvasContextMenu()
-    const { canvasContainerRef, containerRect, setContainerRect } = useCanvasContainer()
-    const services = useServices()
-
-    const [image, setImage] = useState<ImageData | null>(null)
-    const [annotations, setAnnotations] = useState<Annotation[]>([])
+    const { contextMenu, setContextMenu } = useCanvasContextMenu()
+    const { container, setContainer } = useCanvasContainer()
+    const canvasContainerRef = useRef<HTMLDivElement>(null)
+    const {
+      image,
+      annotations,
+      nextId,
+      prevId,
+      hasNext,
+      hasPrevious,
+      refreshAnnotations,
+      goToNextImage,
+      goToPreviousImage,
+    } = useImageLabelerViewModel(projectId, imageId)
     const navigate = useNavigate()
 
-    // Function to refresh annotations for the current image
-    const refreshAnnotations = useCallback(async () => {
-      if (!imageId) return
-      try {
-        const updatedAnnotations = await services.getAnnotationService().getAnnotationsByImageId(imageId)
-        setAnnotations(updatedAnnotations)
-      } catch (error) {
-        console.error("Failed to refresh annotations:", error)
-      }
-    }, [imageId, services])
-
-    const [nextId, setNextId] = useState<string | null>(null)
-    const [prevId, setPrevId] = useState<string | null>(null)
-    const [hasNext, setHasNext] = useState(false)
-    const [hasPrevious, setHasPrevious] = useState(false)
-
-    // Memoize the image loading effect to prevent unnecessary calls
-    useEffect(() => {
-      let isCancelled = false
-      ;(async () => {
-        if (!projectId || !imageId) return
-        const img = await services.getImageDataService().getImageById(imageId)
-        if (!isCancelled) {
-          if (img) {
-            setImage(img)
-            setAnnotations(img.annotations || [])
-          } else {
-            setImage(null)
-            setAnnotations([])
-          }
-        }
-
-        // update navigation state (next/previous)
-        try {
-          const next = await services.getProjectService().getNextImage(projectId, imageId)
-          if (!isCancelled) {
-            setNextId(next?.id ?? null)
-            setHasNext(Boolean(next?.hasNext && next?.id))
-          }
-        } catch {
-          if (!isCancelled) {
-            setNextId(null)
-            setHasNext(false)
-          }
-        }
-
-        try {
-          const prev = await services.getProjectService().getPreviousImage(projectId, imageId)
-          if (!isCancelled) {
-            setPrevId(prev?.id ?? null)
-            setHasPrevious(Boolean(prev?.hasPrevious && prev?.id))
-          }
-        } catch {
-          if (!isCancelled) {
-            setPrevId(null)
-            setHasPrevious(false)
-          }
-        }
-      })()
-
-      return () => {
-        isCancelled = true
-      }
-    }, [
-      projectId,
-      imageId,
-      services,
-      setAnnotations,
-    ])
+    const [showSettingsModal, setShowSettingsModal] = useState(false)
+    const [showAIModelModal, setShowAIModelModal] = useState(false)
 
     const handleContextMenu = useCallback(
       (e: React.MouseEvent) => {
         e.preventDefault()
-        // Only update containerRect if it's null or context menu is not open
+        // Only update container if it's null or context menu is not open
         // This prevents unnecessary updates during window resize
-        if (canvasContainerRef.current && (!containerRect || !contextMenuProps.isOpen)) {
-          setContainerRect(canvasContainerRef.current.getBoundingClientRect())
+        if (
+          canvasContainerRef.current &&
+          (!container || !contextMenu.visible)
+        ) {
+          const rect = canvasContainerRef.current.getBoundingClientRect()
+          setContainer({ width: rect.width, height: rect.height })
         }
-        setContextMenuProps({
-          isOpen: true,
+        setContextMenu({
+          visible: true,
           x: e.clientX,
           y: e.clientY,
+          items: [
+            {
+              label: "Next Image",
+              onClick: () => goToNextImage(),
+              disabled: !hasNext,
+            },
+            {
+              label: "Previous Image",
+              onClick: () => goToPreviousImage(),
+              disabled: !hasPrevious,
+            },
+            { type: "separator" },
+            { label: "Settings", onClick: () => setShowSettingsModal(true) },
+          ],
         })
         return false
       },
-      [canvasContainerRef, setContainerRect, setContextMenuProps, containerRect, contextMenuProps.isOpen]
+      [
+        canvasContainerRef,
+        setContainer,
+        setContextMenu,
+        container,
+        contextMenu.visible,
+        goToNextImage,
+        goToPreviousImage,
+        hasNext,
+        hasPrevious,
+      ]
     )
 
     const handleCloseContextMenu = useCallback(() => {
-      setContextMenuProps({
-        isOpen: false,
+      setContextMenu({
+        visible: false,
         x: 0,
         y: 0,
+        items: [],
       })
-    }, [setContextMenuProps])
+    }, [setContextMenu])
 
     // Handle keyboard shortcuts
     useEffect(() => {
@@ -199,32 +187,20 @@ export const ImageLabeler = memo(
     }, [hasNext, hasPrevious, nextId, prevId, navigate, projectId])
 
     const goNextImage = useCallback(async () => {
-      if (!projectId || !imageId) return
       if (hasNext && nextId) {
         navigate(`/projects/${projectId}/studio/${nextId}`)
         return
       }
-      try {
-        const next = await services.getProjectService().getNextImage(projectId, imageId)
-        if (next?.id) navigate(`/projects/${projectId}/studio/${next.id}`)
-      } catch {
-        // ignore
-      }
-    }, [projectId, imageId, hasNext, nextId, navigate])
+      goToNextImage()
+    }, [hasNext, nextId, navigate, projectId, goToNextImage])
 
     const goPreviousImage = useCallback(async () => {
-      if (!projectId || !imageId) return
       if (hasPrevious && prevId) {
         navigate(`/projects/${projectId}/studio/${prevId}`)
         return
       }
-      try {
-        const prev = await services.getProjectService().getPreviousImage(projectId, imageId)
-        if (prev?.id) navigate(`/projects/${projectId}/studio/${prev.id}`)
-      } catch {
-        // ignore
-      }
-    }, [projectId, imageId, hasPrevious, prevId, navigate])
+      goToPreviousImage()
+    }, [hasPrevious, prevId, navigate, projectId, goToPreviousImage])
 
     // Memoize the header props to prevent unnecessary re-renders
     const headerProps = useMemo(
@@ -263,17 +239,26 @@ export const ImageLabeler = memo(
 
             <div className="relative flex-1 overflow-hidden">
               {image ? (
-                <MemoizedCanvas image={image} annotations={annotations} onRefreshAnnotations={refreshAnnotations} />
+                <MemoizedCanvas
+                  image={image || null}
+                  annotations={annotations}
+                  onRefreshAnnotations={async () => {
+                    await refreshAnnotations()
+                  }}
+                />
               ) : (
                 <EmptyImageState />
               )}
 
               <AnimatePresence>
-                {contextMenuProps.isOpen && (
+                {contextMenu.visible && (
                   <ContextMenu
-                    x={contextMenuProps.x}
-                    y={contextMenuProps.y}
-                    containerRect={containerRect}
+                    x={contextMenu.x}
+                    y={contextMenu.y}
+                    containerRect={
+                      canvasContainerRef.current?.getBoundingClientRect() ||
+                      null
+                    }
                     onClose={handleCloseContextMenu}
                   />
                 )}
@@ -281,15 +266,13 @@ export const ImageLabeler = memo(
             </div>
           </div>
         </div>
-        {/* <AnimatePresence>
-        {showExport && (
-          <ExportModal
-            project={project}
-            annotations={annotations}
-            onClose={() => setShowExport(false)}
-          />
+
+        {showSettingsModal && (
+          <SettingsModal onClose={() => setShowSettingsModal(false)} />
         )}
-      </AnimatePresence> */}
+        {showAIModelModal && (
+          <AIModelSelectModal onClose={() => setShowAIModelModal(false)} />
+        )}
       </div>
     )
   }
@@ -309,24 +292,22 @@ const Header = memo(
     hasPrevious: boolean
     projectId?: string
   }) => {
-    const services = useServices()
     const navigate = useNavigate()
-    const [currentProject, setCurrentProject] = useState<{ id: string; name: string; labelCount: number; imageCount: number } | null>(null)
-    
+    const [currentProject, setCurrentProject] = useState<{
+      id: string
+      name: string
+      labelCount: number
+      imageCount: number
+    } | null>(null)
+
     // Load project data
     useEffect(() => {
       const loadProject = async () => {
         if (projectId) {
           try {
-            const project = await services.getProjectService().getProject(projectId)
-            if (project) {
-              setCurrentProject({
-                id: project.id,
-                name: project.name,
-                labelCount: project.labelCount || 0,
-                imageCount: project.imageCount || 0
-              })
-            }
+            // TODO: Load project data
+            // TODO: Set project data when available
+            setCurrentProject(null)
           } catch (error) {
             console.error("Failed to load project:", error)
           }
@@ -334,7 +315,7 @@ const Header = memo(
       }
       loadProject()
     }, [projectId])
-    
+
     const projectName = useMemo(
       () => currentProject?.name || "Project Name",
       [currentProject?.name]
@@ -376,19 +357,10 @@ const Header = memo(
 
         // try using cached id list first
         // Note: imageIdListCache would need to be implemented in the service layer
-        try {
-          const imgs = await services.getImageDataService().getImagesByProjectId(projectId)
-          if (!cancelled) setLocalImageCount(imgs.length)
-        } catch {
-          if (!cancelled) setLocalImageCount(0)
-        }
-
-        try {
-          const annotations: Annotation[] = await services.getAnnotationService().getAnnotationsByProjectId(projectId)
-          const unique = new Set(annotations.map((a: Annotation) => a.imageId))
-          if (!cancelled) setLocalLabelCount(unique.size)
-        } catch {
-          if (!cancelled) setLocalLabelCount(0)
+        // TODO: Load project statistics
+        if (!cancelled) {
+          setLocalImageCount(0)
+          setLocalLabelCount(0)
         }
       })()
       return () => {

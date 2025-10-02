@@ -1,4 +1,4 @@
-import { contextBridge, dialog, ipcMain, ipcRenderer } from "electron"
+import { contextBridge, ipcRenderer } from "electron"
 
 contextBridge.exposeInMainWorld("electronAPI", {
   onUpdateAvailable: (callback: (info: any) => void) => {
@@ -20,11 +20,14 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
 })
 
-contextBridge.exposeInMainWorld("ipc", {
-  invoke: (channel: string, ...args: any[]) =>
-    ipcRenderer.invoke(channel, ...args),
-  on: (channel: string, listener: (...args: any[]) => void) =>
-    ipcRenderer.on(channel, (_event, ...args) => listener(...args)),
-  off: (channel: string, listener: (...args: any[]) => void) =>
-    ipcRenderer.removeListener(channel, listener),
+// Expose FastAPI service for direct frontend access
+contextBridge.exposeInMainWorld("fastAPI", {
+  getBaseURL: () => "http://localhost:8000",
+  isServerRunning: () => {
+    // Check if server is running by making a simple request
+    return fetch("http://localhost:8000/docs")
+      .then(() => true)
+      .catch(() => false)
+  },
+  getStatus: () => ipcRenderer.invoke("get-fastapi-status"),
 })

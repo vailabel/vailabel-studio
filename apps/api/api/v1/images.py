@@ -3,6 +3,9 @@ from sqlalchemy.orm import Session
 from db.session import get_db
 from services.image_data_service import ImageDataService, get_image_data_service
 from models.image_data import ImageData, ImageDataCreate, ImageDataUpdate
+from services.auth_service import get_current_active_user
+from api.v1.auth import require_permission
+from db.models.user import User
 
 router = APIRouter(prefix="/api/v1/images", tags=["Images"])
 
@@ -12,6 +15,7 @@ def get_images(
     project_id: str,
     db: Session = Depends(get_db),
     service: ImageDataService = Depends(get_image_data_service),
+    _: User = Depends(require_permission("images:read")),
 ):
     """
     Retrieve all images associated with a specific project.
@@ -32,6 +36,7 @@ def get_image(
     image_id: str,
     db: Session = Depends(get_db),
     service: ImageDataService = Depends(get_image_data_service),
+    _: User = Depends(require_permission("images:read")),
 ):
     """
     Retrieve a specific image by its ID.
@@ -58,6 +63,7 @@ def create_image(
     data: ImageDataCreate,
     db: Session = Depends(get_db),
     service: ImageDataService = Depends(get_image_data_service),
+    _: User = Depends(require_permission("images:write")),
 ):
     """
     Create a new image record.
@@ -79,6 +85,7 @@ def update_image(
     data: ImageDataUpdate,
     db: Session = Depends(get_db),
     service: ImageDataService = Depends(get_image_data_service),
+    _: User = Depends(require_permission("images:write")),
 ):
     """
     Update an existing image record.
@@ -106,6 +113,7 @@ def delete_image(
     image_id: str,
     db: Session = Depends(get_db),
     service: ImageDataService = Depends(get_image_data_service),
+    _: User = Depends(require_permission("images:delete")),
 ):
     """
     Delete an image by its ID.

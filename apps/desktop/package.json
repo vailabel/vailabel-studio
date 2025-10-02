@@ -6,12 +6,13 @@
   "main": "dist/main.js",
   "scripts": {
     "copy-python": "copyfiles -u -1 ./src/ai/requirements.txt ./dist/ai && copyfiles -u -1 ./src/ai/yolo.py ./dist/ai",
-    "pre-dev": "yarn copy-python",
-    "build": "yarn tsc && ELECTRON_BUILDER_CACHE=/tmp/electron-builder-cache npx electron-builder --publish never",
-    "dev": "NODE_ENV=development yarn pre-dev && tsc && electron . --trace-warnings",
+    "copy-html": "copyfiles -u -1 ./src/loading.html ./dist/",
+    "pre-dev": "yarn copy-python && yarn copy-html",
+    "build": "yarn copy-html && yarn tsc && ELECTRON_BUILDER_CACHE=/tmp/electron-builder-cache npx electron-builder --publish never",
+    "dev": "NODE_ENV=development yarn pre-dev && tsc && electron . --trace-warnings --no-sandbox",
     "test": "jest --coverage",
     "prebuild": "npx electron-icon-maker --input=./assets/icon.png --output=./assets/icon",
-    "release": "yarn tsc && yarn prebuild && ELECTRON_BUILDER_CACHE=/tmp/electron-builder-cache npx electron-builder --publish always",
+    "release": "yarn copy-html && yarn tsc && yarn prebuild && ELECTRON_BUILDER_CACHE=/tmp/electron-builder-cache npx electron-builder --publish always",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\" --ignore-path .gitignore --ignore-path .prettierignore",
     "typecheck": "tsc --noEmit"
   },
@@ -26,19 +27,15 @@
     "@types/bcrypt": "^6.0.0",
     "@types/semver": "^7.7.0",
     "@vailabel/core": "^1.0.3",
-    "electron": "36.2.1",
     "electron-builder": "^26.0.12",
     "typescript": "^5.9.2"
   },
   "dependencies": {
-    "bcrypt": "^6.0.0",
+    "axios": "^1.7.9",
+    "electron": "36.2.1",
     "electron-devtools-installer": "^4.0.0",
     "electron-updater": "^6.6.2",
-    "keytar": "^7.9.0",
-    "reflect-metadata": "^0.2.2",
-    "sequelize": "^6.37.7",
-    "sequelize-typescript": "^2.1.6",
-    "sqlite3": "^5.1.7"
+    "keytar": "^7.9.0"
   },
   "repository": {
     "type": "git",

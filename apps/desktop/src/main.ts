@@ -1,11 +1,7 @@
 import { app, BrowserWindow } from "electron"
 import { autoUpdater } from "electron-updater"
 import * as path from "path"
-import "./ipc/filesystemIpc"
-import "./ipc/updateIpc"
-import "./ipc/index"
-import { jsonSetting } from "./utils"
-import { initDatabase } from "./db/init"
+import { fastApiService } from "./services/fastapi-service"
 
 import installExtension, {
   REACT_DEVELOPER_TOOLS,
@@ -16,9 +12,9 @@ import { isVersionSkipped, setupAutoUpdate } from "./autoUpdate/autoUpdate"
 
 let mainWindow: BrowserWindow
 let loadingWindow: BrowserWindow | null = null
-const isDev = !app.isPackaged
 
 function createWindow() {
+  const isDev = !app.isPackaged
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -27,7 +23,7 @@ function createWindow() {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true,
+      sandbox: false,
     },
   })
 
@@ -50,22 +46,46 @@ function createWindow() {
 
 function createLoadingWindow(message: string) {
   loadingWindow = new BrowserWindow({
-    width: 400,
-    height: 200,
+    width: 500,
+    height: 400,
     frame: false,
     resizable: false,
     movable: true,
     alwaysOnTop: true,
+    center: true,
+    show: false, // Don't show until ready
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
     },
   })
-  const html = `<!DOCTYPE html><html lang='en'><head><meta charset='UTF-8'><title>Loading...</title><style>html,body{height:100%;margin:0;padding:0;background:#fff;font-family:sans-serif;}body{display:flex;align-items:center;justify-content:center;height:100%;}.container{text-align:center;}.icon{font-size:2em;margin-bottom:1em;}</style></head><body><div class='container'><div class='icon'>⏳</div><div id='loading-message'>${message}</div></div></body></html>`
-  loadingWindow.loadURL(
-    "data:text/html;charset=utf-8," + encodeURIComponent(html)
-  )
+
+  const isDev = !app.isPackaged
+  if (isDev) {
+    // In development, load from file system
+    loadingWindow.loadFile(path.join(__dirname, "loading.html"))
+  } else {
+    // In production, load from dist folder
+    loadingWindow.loadFile(path.join(__dirname, "loading.html"))
+  }
+
   loadingWindow.setMenu(null)
+
+  // Show window when ready
+  loadingWindow.once("ready-to-show", () => {
+    console.log("Loading window ready to show")
+    if (loadingWindow && !loadingWindow.isDestroyed()) {
+      loadingWindow.show()
+      console.log("Loading window shown")
+      // Send initial message
+      setTimeout(() => {
+        if (loadingWindow && !loadingWindow.isDestroyed()) {
+          loadingWindow.webContents.send("loading-message", message)
+          console.log("Initial loading message sent:", message)
+        }
+      }, 100)
+    }
+  })
 }
 
 function closeLoadingWindow() {
@@ -75,28 +95,62 @@ function closeLoadingWindow() {
   }
 }
 
+function updateLoadingProgress(percent: number, message?: string) {
+  console.log(`Updating loading progress: ${percent}%`, message || "")
+  if (loadingWindow && !loadingWindow.isDestroyed()) {
+    loadingWindow.webContents.send("loading-progress", percent)
+    if (message) {
+      loadingWindow.webContents.send("loading-message", message)
+    }
+  } else {
+    console.log("Loading window not available for progress update")
+  }
+}
+
 app.whenReady().then(async () => {
   console.log("App is ready, initializing...")
+
+  console.log("Creating loading window...")
+  createLoadingWindow("Initializing Vailabel Studio...")
+  updateLoadingProgress(10, "Starting application...")
+
+  // Import system modules after app is ready
+  updateLoadingProgress(20, "Loading system modules...")
+  // IPC modules removed - using direct FastAPI communication
+
+  updateLoadingProgress(40, "Starting FastAPI backend...")
   try {
-    await initDatabase()
-    console.log("Database initialized successfully")
+    // Configure FastAPI service with Electron context
+    fastApiService.config.isPackaged = app.isPackaged
+    fastApiService.config.userDataPath = app.getPath("userData")
+    await fastApiService.start()
+    console.log("FastAPI backend started successfully")
+    updateLoadingProgress(60, "Backend ready")
   } catch (err) {
-    console.error("Database initialization failed:", err)
+    console.error("FastAPI backend startup failed:", err)
+    updateLoadingProgress(100, "Backend startup failed")
+    setTimeout(() => {
+      closeLoadingWindow()
+    }, 2000)
     return
   }
 
-  createLoadingWindow("Loading Vision AI Label...")
+  updateLoadingProgress(80, "Preparing interface...")
 
+  // Small delay to show the loading screen
   setTimeout(() => {
-    if (loadingWindow) {
-      loadingWindow.close()
-      loadingWindow = null
-    }
-    console.log("Creating main window...")
-    createWindow()
-    setupAutoUpdate(mainWindow, loadingWindow, isDev)
-  }, 2000) // Show splash for 2 seconds
+    updateLoadingProgress(100, "Ready!")
 
+    setTimeout(() => {
+      closeLoadingWindow()
+      console.log("Creating main window...")
+      createWindow()
+      const isDev = !app.isPackaged
+      setupAutoUpdate(mainWindow, loadingWindow, isDev)
+    }, 500)
+  }, 1000)
+
+  const isDev = !app.isPackaged
   if (isDev) {
     // Simulate update available after 2 seconds
     setTimeout(() => {
@@ -154,8 +208,8 @@ app.whenReady().then(async () => {
             if (result.response === 0) {
               autoUpdater.downloadUpdate()
             } else {
-              const settings = jsonSetting()
-              settings.setValue("skippedVersion", info.version)
+              // Skip version logic removed - using direct FastAPI communication
+              console.log(`Skipping version ${info.version}`)
             }
           })
       }
@@ -164,6 +218,10 @@ app.whenReady().then(async () => {
       if (!loadingWindow) {
         createLoadingWindow("Downloading update...")
       }
+      updateLoadingProgress(
+        progress.percent,
+        `Downloading update... ${Math.round(progress.percent)}%`
+      )
       mainWindow.webContents.send("download-progress", progress)
     })
     autoUpdater.on("update-downloaded", () => {
@@ -187,5 +245,23 @@ app.whenReady().then(async () => {
   ipcMain.on("restart-app", () => {
     app.quit()
     // autoUpdater.quitAndInstall() will be called on before-quit
+  })
+
+  // Expose FastAPI service to renderer process
+  ipcMain.handle("get-fastapi-status", async () => {
+    return {
+      isRunning: fastApiService.isServerRunning(),
+      baseURL: "http://localhost:8000",
+    }
+  })
+
+  // Cleanup on app quit
+  app.on("before-quit", async () => {
+    console.log("Shutting down FastAPI backend...")
+    try {
+      await fastApiService.stop()
+    } catch (error) {
+      console.error("Error stopping FastAPI backend:", error)
+    }
   })
 })

@@ -7,8 +7,8 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { Label } from "@vailabel/core"
-import { useServices } from "@/services/ServiceProvider"
-import { memo, useEffect, useState, useMemo, useCallback } from "react"
+import { useLabels } from "@/hooks/useFastAPIQuery"
+import { memo, useMemo, useCallback, useState } from "react"
 
 interface LabelListPanelProps {
   onLabelSelect: (label: Label) => void
@@ -17,9 +17,7 @@ interface LabelListPanelProps {
 
 export const LabelListPanel = memo(
   ({ onLabelSelect, projectId }: LabelListPanelProps) => {
-    const services = useServices()
-    const [labels, setLabels] = useState<Label[]>([])
-    const [isLoading, setIsLoading] = useState(true)
+    const { data: labels = [], isLoading } = useLabels(projectId)
 
     // Memoize grouped labels to prevent unnecessary recalculations
     const groupedLabels = useMemo(() => {
@@ -33,37 +31,6 @@ export const LabelListPanel = memo(
         {} as Record<string, Label[]>
       )
     }, [labels])
-
-    // Memoize the label fetching function
-    const fetchLabels = useCallback(async () => {
-      try {
-        setIsLoading(true)
-        const fetchedLabels = await services.getLabelService().getLabelsByProjectId(projectId)
-        setLabels(fetchedLabels)
-      } catch (error) {
-        console.error("Failed to fetch labels:", error)
-        setLabels([]) // Reset labels on error
-      } finally {
-        setIsLoading(false)
-      }
-    }, [projectId])
-
-    // Re-fetch labels when projectId changes
-    useEffect(() => {
-      if (projectId) {
-        fetchLabels()
-      } else {
-        // Reset state when no projectId
-        setLabels([])
-        setIsLoading(false)
-      }
-    }, [projectId, fetchLabels])
-
-    // Reset labels immediately when projectId changes to show loading state
-    useEffect(() => {
-      setLabels([])
-      setIsLoading(true)
-    }, [projectId])
 
     return (
       <div
@@ -217,13 +184,13 @@ const CategorySection = memo(
             variant="ghost"
             className="w-full flex items-center justify-between px-2 py-2 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2 pl-1 gap-2 hover:bg-gray-100 dark:hover:bg-gray-700"
           >
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 flex items-center justify-center transition-transform duration-200 hover:rotate-90">
-                  ▼
-                </div>
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600"></span>
-                {category}
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 flex items-center justify-center transition-transform duration-200 hover:rotate-90">
+                ▼
               </div>
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600"></span>
+              {category}
+            </div>
             <span className="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded-full">
               {labels.length}
             </span>
@@ -281,11 +248,13 @@ LabelList.displayName = "LabelList"
 
 // Improved empty state component
 const EmptyState = memo(() => (
-  <div className={cn(
-    "mt-8 rounded-lg border border-dashed p-8 text-center transition-all duration-200",
-    "dark:border-gray-700 dark:bg-gray-800/50",
-    "border-gray-300 bg-gray-50/50"
-  )}>
+  <div
+    className={cn(
+      "mt-8 rounded-lg border border-dashed p-8 text-center transition-all duration-200",
+      "dark:border-gray-700 dark:bg-gray-800/50",
+      "border-gray-300 bg-gray-50/50"
+    )}
+  >
     <div className="mx-auto w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center mb-4">
       <span className="text-2xl">🏷️</span>
     </div>

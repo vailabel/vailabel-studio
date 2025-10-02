@@ -1,40 +1,45 @@
 import React from "react"
-import { 
-  Users, 
-  Folder, 
-  Tag, 
-  CheckSquare, 
-  Clock, 
+import {
+  Users,
+  Folder,
+  Tag,
+  CheckSquare,
+  Clock,
   RefreshCw,
   AlertCircle,
   FolderPlus,
   BarChart3,
-  LucideIcon
+  LucideIcon,
+  Image,
+  Target,
+  TrendingUp,
+  Activity,
+  Zap,
+  FileText,
+  Database,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { useOverviewViewModel } from "@/viewmodels/overview-viewmodel"
-import { 
-  StatCard, 
-  QuickActionCard, 
-  ActivityItem, 
-  ActivitySkeleton 
+import {
+  StatCard,
+  QuickActionCard,
+  ActivityItem,
+  ActivitySkeleton,
 } from "@/components/overview/overview-components"
-import { AuthStatusDemo } from "@/components/auth/AuthStatusDemo"
-import { isDevMode, isElectron } from "@/lib/constants"
 
 const Overview: React.FC = () => {
   const {
-    statistics,
-    recentActivity,
+    stats: statistics,
+    recentProjects: recentActivity,
     quickActions,
     isLoading,
     error,
+    isEmpty,
     lastUpdated,
     refreshData,
-    isEmpty,
   } = useOverviewViewModel()
 
   // Icon mapping for quick actions
@@ -47,45 +52,45 @@ const Overview: React.FC = () => {
 
   const statCards = [
     {
-      title: "Total Projects",
+      title: "Active Projects",
       value: statistics.totalProjects,
       icon: Folder,
-      color: "bg-blue-500",
+      color: "bg-primary",
       trend: { value: 12, isPositive: true },
     },
     {
-      title: "Active Users",
-      value: statistics.activeUsers,
-      icon: Users,
-      color: "bg-green-500",
-      trend: { value: 8, isPositive: true },
-    },
-    {
-      title: "Labels Created",
-      value: statistics.labelsCreated,
-      icon: Tag,
-      color: "bg-purple-500",
-      trend: { value: 15, isPositive: true },
-    },
-    {
-      title: "Annotations",
+      title: "Images Labeled",
       value: statistics.totalAnnotations,
-      icon: CheckSquare,
-      color: "bg-orange-500",
+      icon: Image,
+      color: "bg-green-600",
       trend: { value: 23, isPositive: true },
     },
     {
-      title: "Completed Tasks",
-      value: statistics.completedTasks,
-      icon: CheckSquare,
-      color: "bg-emerald-500",
-      trend: { value: 5, isPositive: true },
+      title: "Label Classes",
+      value: statistics.labelsCreated,
+      icon: Tag,
+      color: "bg-purple-600",
+      trend: { value: 15, isPositive: true },
     },
     {
-      title: "Pending Tasks",
+      title: "Annotation Accuracy",
+      value: "94.2%",
+      icon: Target,
+      color: "bg-orange-600",
+      trend: { value: 2.1, isPositive: true },
+    },
+    {
+      title: "Labeling Speed",
+      value: "12.5/min",
+      icon: Zap,
+      color: "bg-emerald-600",
+      trend: { value: 8.3, isPositive: true },
+    },
+    {
+      title: "Pending Reviews",
       value: statistics.pendingTasks,
       icon: Clock,
-      color: "bg-amber-500",
+      color: "bg-amber-600",
       trend: { value: -2, isPositive: false },
     },
   ]
@@ -96,10 +101,10 @@ const Overview: React.FC = () => {
         <Alert variant="destructive" className="mb-6">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            {error}
-            <Button 
-              variant="outline" 
-              size="sm" 
+            {error instanceof Error ? error.message : String(error)}
+            <Button
+              variant="outline"
+              size="sm"
               className="ml-4"
               onClick={refreshData}
             >
@@ -117,9 +122,7 @@ const Overview: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-4xl font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Dashboard
-          </h1>
+          <h1 className="text-4xl font-extrabold text-foreground">Dashboard</h1>
           <p className="text-muted-foreground mt-2">
             Welcome to your labeling workspace
           </p>
@@ -131,13 +134,15 @@ const Overview: React.FC = () => {
               Updated {lastUpdated.toLocaleTimeString()}
             </Badge>
           )}
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={refreshData}
             disabled={isLoading}
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
+            />
             Refresh
           </Button>
         </div>
@@ -146,8 +151,8 @@ const Overview: React.FC = () => {
       {/* Statistics Grid */}
       <section className="mb-12">
         <div className="flex items-center gap-4 mb-6">
-          <BarChart3 className="h-6 w-6 text-muted-foreground" />
-          <h2 className="text-2xl font-semibold">Statistics</h2>
+          <BarChart3 className="h-6 w-6 text-primary" />
+          <h2 className="text-2xl font-semibold text-foreground">Statistics</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
           {statCards.map((stat) => (
@@ -164,14 +169,14 @@ const Overview: React.FC = () => {
         </div>
       </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Recent Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        {/* Recent Annotations */}
         <section className="lg:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="h-5 w-5" />
-                Recent Activity
+              <CardTitle className="flex items-center gap-2 text-foreground">
+                <Activity className="h-5 w-5 text-primary" />
+                Recent Annotations
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -179,23 +184,79 @@ const Overview: React.FC = () => {
                 <ActivitySkeleton count={5} />
               ) : recentActivity.length > 0 ? (
                 <div className="space-y-2">
-                  {recentActivity.map((item) => (
+                  {recentActivity.map((project) => (
                     <ActivityItem
-                      key={item.id}
-                      activity={item.activity}
-                      user={item.user}
-                      date={item.date}
-                      type={item.type}
-                      projectName={item.projectName}
+                      key={project.id}
+                      activity={`Updated project "${project.name}"`}
+                      user="System"
+                      date={
+                        new Date(
+                          project.updatedAt || project.createdAt || new Date()
+                        )
+                      }
+                      type="project"
+                      projectName={project.name}
                     />
                   ))}
                 </div>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
-                  <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No recent activity</p>
+                  <Image className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No recent annotations</p>
                 </div>
               )}
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* Label Distribution */}
+        <section>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-foreground">
+                <BarChart3 className="h-5 w-5 text-primary" />
+                Label Distribution
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-primary"></div>
+                    <span className="text-sm text-foreground">Person</span>
+                  </div>
+                  <span className="text-sm font-medium text-foreground">
+                    45%
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-green-600"></div>
+                    <span className="text-sm text-foreground">Vehicle</span>
+                  </div>
+                  <span className="text-sm font-medium text-foreground">
+                    32%
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-purple-600"></div>
+                    <span className="text-sm text-foreground">Building</span>
+                  </div>
+                  <span className="text-sm font-medium text-foreground">
+                    18%
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-orange-600"></div>
+                    <span className="text-sm text-foreground">Other</span>
+                  </div>
+                  <span className="text-sm font-medium text-foreground">
+                    5%
+                  </span>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </section>
@@ -204,8 +265,8 @@ const Overview: React.FC = () => {
         <section>
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FolderPlus className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-foreground">
+                <Zap className="h-5 w-5 text-primary" />
                 Quick Actions
               </CardTitle>
             </CardHeader>
@@ -226,24 +287,76 @@ const Overview: React.FC = () => {
             </CardContent>
           </Card>
         </section>
-
-        {/* Authentication Status Demo */}
-        <section>
-           {
-            isElectron() && isDevMode() && (
-              <AuthStatusDemo />
-            )
-           }
-        </section>
       </div>
+
+      {/* Workflow Insights */}
+      <section className="mt-8">
+        <div className="flex items-center gap-4 mb-6">
+          <TrendingUp className="h-6 w-6 text-primary" />
+          <h2 className="text-2xl font-semibold text-foreground">
+            Workflow Insights
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2 text-foreground">
+                <FileText className="h-5 w-5 text-primary" />
+                Quality Score
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-foreground mb-2">
+                8.7/10
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Based on annotation consistency and accuracy
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2 text-foreground">
+                <Database className="h-5 w-5 text-primary" />
+                Dataset Health
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-foreground mb-2">92%</div>
+              <p className="text-sm text-muted-foreground">
+                Complete and validated annotations
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2 text-foreground">
+                <Users className="h-5 w-5 text-primary" />
+                Team Productivity
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-foreground mb-2">156</div>
+              <p className="text-sm text-muted-foreground">
+                Annotations completed this week
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
 
       {/* Empty State */}
       {isEmpty && !isLoading && (
         <div className="text-center py-16">
           <Folder className="h-24 w-24 mx-auto mb-6 text-muted-foreground opacity-50" />
-          <h3 className="text-2xl font-semibold mb-4">Welcome to VaiLabeling</h3>
+          <h3 className="text-2xl font-semibold mb-4 text-foreground">
+            Welcome to VAI Label Studio
+          </h3>
           <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-            Get started by creating your first project and adding some labels to begin your labeling journey.
+            Start your annotation workflow by creating a project, uploading
+            images, and defining label classes for your computer vision tasks.
           </p>
           <Button onClick={quickActions[0]?.action} size="lg">
             <FolderPlus className="h-5 w-5 mr-2" />

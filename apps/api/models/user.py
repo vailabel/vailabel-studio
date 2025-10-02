@@ -1,5 +1,5 @@
 from pydantic import EmailStr, Field, validator
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 from uuid import UUID
 from models.base import CamelModel
@@ -45,5 +45,7 @@ class User(UserBase):
     id: str
     created_at: datetime
     updated_at: datetime
+    permissions: Optional[List[str]] = []  # List of permission names
+    roles: Optional[List[str]] = []  # List of role names for backward compatibility
 
     model_config = {"from_attributes": True}

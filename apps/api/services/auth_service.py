@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+from argon2 import PasswordHasher
 from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.responses import RedirectResponse
@@ -43,15 +44,26 @@ oauth.register(
 )
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+argon2_hasher = PasswordHasher()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    """Verify password using Argon2 (primary) or bcrypt (fallback)"""
+    try:
+        # Try Argon2 first (new format)
+        return argon2_hasher.verify(hashed_password, plain_password)
+    except Exception:
+        try:
+            # Fallback to bcrypt (legacy format)
+            return pwd_context.verify(plain_password, hashed_password)
+        except Exception:
+            return False
 
 
 def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
+    """Hash password using Argon2"""
+    return argon2_hasher.hash(password)
 
 
 def get_user_by_email(db: Session, email: str) -> Optional[User]:
@@ -62,6 +74,8 @@ def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
     user = get_user_by_email(db, email)
     if not user:
         return None
+
+    # For all users, use bcrypt verification
     if not verify_password(password, user.password):
         return None
     return user
@@ -109,6 +123,24 @@ async def get_current_user(
 async def get_current_active_user(current_user: User = Depends(get_current_user)):
     # You can add more checks here, e.g., user.is_active
     return current_user
+
+
+def get_user_with_permissions(db: Session, user: User):
+    """Get user with permissions and roles populated"""
+    from services.permission_service import get_permission_service
+
+    permission_service = get_permission_service()
+
+    # Get user permissions and roles
+    user_permissions = permission_service.get_user_permissions(db, user)
+    user_roles = permission_service.get_user_roles(db, user)
+
+    # Add permissions and roles to user object as attributes (not relationships)
+    # This avoids SQLAlchemy relationship issues
+    user.permissions = user_permissions
+    user.roles = user_roles
+
+    return user
 
 
 # FastAPI dependency for token endpoint

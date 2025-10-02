@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vailabel Studio - Loading</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: hsl(0 0% 100%);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: hsl(222.2 84% 4.9%);
+            }
+        }
+
+        /* Subtle background pattern */
+        .particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 1;
+            opacity: 0.3;
+        }
+
+        .particle {
+            position: absolute;
+            background: hsl(210 40% 98%);
+            border-radius: 50%;
+            animation: float 8s ease-in-out infinite;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .particle {
+                background: hsl(217.2 32.6% 17.5%);
+            }
+        }
+
+        .particle:nth-child(1) {
+            width: 4px;
+            height: 4px;
+            left: 10%;
+            animation-delay: 0s;
+        }
+
+        .particle:nth-child(2) {
+            width: 6px;
+            height: 6px;
+            left: 20%;
+            animation-delay: 1s;
+        }
+
+        .particle:nth-child(3) {
+            width: 3px;
+            height: 3px;
+            left: 30%;
+            animation-delay: 2s;
+        }
+
+        .particle:nth-child(4) {
+            width: 5px;
+            height: 5px;
+            left: 40%;
+            animation-delay: 3s;
+        }
+
+        .particle:nth-child(5) {
+            width: 4px;
+            height: 4px;
+            left: 50%;
+            animation-delay: 4s;
+        }
+
+        .particle:nth-child(6) {
+            width: 6px;
+            height: 6px;
+            left: 60%;
+            animation-delay: 5s;
+        }
+
+        .particle:nth-child(7) {
+            width: 3px;
+            height: 3px;
+            left: 70%;
+            animation-delay: 0.5s;
+        }
+
+        .particle:nth-child(8) {
+            width: 5px;
+            height: 5px;
+            left: 80%;
+            animation-delay: 1.5s;
+        }
+
+        .particle:nth-child(9) {
+            width: 4px;
+            height: 4px;
+            left: 90%;
+            animation-delay: 2.5s;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 0;
+            }
+
+            10% {
+                opacity: 1;
+            }
+
+            90% {
+                opacity: 1;
+            }
+
+            50% {
+                transform: translateY(-10vh) rotate(180deg);
+            }
+        }
+
+        .container {
+            text-align: center;
+            z-index: 2;
+            position: relative;
+            background: hsl(0 0% 100%);
+            border-radius: 0.5rem;
+            padding: 2rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            border: 1px solid hsl(214.3 31.8% 91.4%);
+            min-width: 400px;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .container {
+                background: hsl(222.2 84% 4.9%);
+                border: 1px solid hsl(217.2 32.6% 17.5%);
+                box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+            }
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1.5rem;
+            background: hsl(221.2 83.2% 53.3%);
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .logo {
+                background: hsl(217.2 91.2% 59.8%);
+                box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+            }
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        .app-name {
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: hsl(222.2 84% 4.9%);
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.025em;
+        }
+
+        .app-subtitle {
+            font-size: 0.875rem;
+            color: hsl(215.4 16.3% 46.9%);
+            margin-bottom: 2rem;
+            font-weight: 400;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .app-name {
+                color: hsl(210 40% 98%);
+            }
+
+            .app-subtitle {
+                color: hsl(215.4 16.3% 56.9%);
+            }
+        }
+
+        .loading-spinner {
+            width: 3rem;
+            height: 3rem;
+            margin: 0 auto 1.5rem;
+            position: relative;
+        }
+
+        .spinner {
+            width: 100%;
+            height: 100%;
+            border: 2px solid hsl(214.3 31.8% 91.4%);
+            border-top: 2px solid hsl(221.2 83.2% 53.3%);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .spinner {
+                border: 2px solid hsl(217.2 32.6% 17.5%);
+                border-top: 2px solid hsl(217.2 91.2% 59.8%);
+            }
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-message {
+            font-size: 1rem;
+            color: hsl(222.2 84% 4.9%);
+            margin-bottom: 1.5rem;
+            min-height: 1.5rem;
+            font-weight: 500;
+            opacity: 0;
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .loading-message {
+                color: hsl(210 40% 98%);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 0.5rem;
+            background: hsl(214.3 31.8% 91.4%);
+            border-radius: 9999px;
+            overflow: hidden;
+            margin-bottom: 0.75rem;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: hsl(221.2 83.2% 53.3%);
+            border-radius: 9999px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .progress-container {
+                background: hsl(217.2 32.6% 17.5%);
+            }
+
+            .progress-bar {
+                background: hsl(217.2 91.2% 59.8%);
+            }
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: -200px 0;
+            }
+
+            100% {
+                background-position: calc(200px + 100%) 0;
+            }
+        }
+
+        .progress-text {
+            font-size: 0.75rem;
+            color: hsl(215.4 16.3% 46.9%);
+            font-weight: 400;
+        }
+
+        .version-info {
+            position: absolute;
+            bottom: 1.25rem;
+            right: 1.25rem;
+            font-size: 0.75rem;
+            color: hsl(215.4 16.3% 46.9%);
+            font-weight: 400;
+        }
+
+        @media (prefers-color-scheme: dark) {
+
+            .progress-text,
+            .version-info {
+                color: hsl(215.4 16.3% 56.9%);
+            }
+        }
+
+        /* Responsive design */
+        @media (max-width: 480px) {
+            .container {
+                min-width: 300px;
+                padding: 1.5rem 1.25rem;
+            }
+
+            .app-name {
+                font-size: 1.5rem;
+            }
+
+            .logo {
+                width: 60px;
+                height: 60px;
+                font-size: 1.75rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="particles">
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+    </div>
+
+    <div class="container">
+        <div class="logo">V</div>
+        <h1 class="app-name">Vailabel Studio</h1>
+        <p class="app-subtitle">AI-Powered Image Annotation Tool</p>
+
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+        </div>
+
+        <div class="loading-message" id="loading-message">Initializing application...</div>
+
+        <div class="progress-container">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+
+        <div class="progress-text" id="progress-text">0%</div>
+    </div>
+
+    <div class="version-info" id="version-info">v1.0.11</div>
+
+    <script>
+        // Loading message updates
+        const messages = [
+            "Initializing application...",
+            "Loading database...",
+            "Setting up AI models...",
+            "Preparing interface...",
+            "Almost ready..."
+        ];
+
+        let currentMessageIndex = 0;
+        const messageElement = document.getElementById('loading-message');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        const versionInfo = document.getElementById('version-info');
+
+        // Update loading message
+        function updateMessage(message) {
+            messageElement.style.opacity = '0';
+            setTimeout(() => {
+                messageElement.textContent = message;
+                messageElement.style.opacity = '1';
+            }, 250);
+        }
+
+        // Update progress
+        function updateProgress(percent) {
+            progressBar.style.width = percent + '%';
+            progressText.textContent = Math.round(percent) + '%';
+        }
+
+        // Simulate loading progress
+        let progress = 0;
+        const progressInterval = setInterval(() => {
+            progress += Math.random() * 15;
+            if (progress > 100) progress = 100;
+
+            updateProgress(progress);
+
+            // Update message based on progress
+            const messageIndex = Math.floor((progress / 100) * messages.length);
+            if (messageIndex < messages.length && messageIndex !== currentMessageIndex) {
+                currentMessageIndex = messageIndex;
+                updateMessage(messages[messageIndex]);
+            }
+
+            if (progress >= 100) {
+                clearInterval(progressInterval);
+                updateMessage("Ready!");
+            }
+        }, 200);
+
+        // Listen for messages from main process
+        if (window.require) {
+            const { ipcRenderer } = window.require('electron');
+            console.log('IPC Renderer loaded, setting up listeners');
+
+            ipcRenderer.on('loading-message', (event, message) => {
+                console.log('Received loading message:', message);
+                updateMessage(message);
+            });
+
+            ipcRenderer.on('loading-progress', (event, percent) => {
+                console.log('Received loading progress:', percent);
+                updateProgress(percent);
+            });
+        } else {
+            console.log('window.require not available');
+        }
+
+        // Add some random particle movement
+        const particles = document.querySelectorAll('.particle');
+        particles.forEach((particle, index) => {
+            const randomDelay = Math.random() * 2;
+            const randomDuration = 4 + Math.random() * 4;
+            particle.style.animationDelay = randomDelay + 's';
+            particle.style.animationDuration = randomDuration + 's';
+        });
+    </script>
+</body>
+
+</html>

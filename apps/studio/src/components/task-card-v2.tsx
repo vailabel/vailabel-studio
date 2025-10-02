@@ -16,7 +16,6 @@ import {
   CheckCircle,
   Play,
   MoreVertical,
-  Eye,
   Copy,
 } from "lucide-react"
 import {
@@ -65,13 +64,13 @@ export const TaskCard: React.FC<TaskCardProps> = ({
       className={cn(
         "transition-all duration-300 hover:shadow-xl border-l-4 group hover:scale-105 cursor-pointer",
         priorityColor,
-        "bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-lg"
+        "bg-card/80 backdrop-blur-sm border-0 shadow-lg"
       )}
     >
       <CardHeader className="pb-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <CardTitle className="text-lg font-semibold truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+            <CardTitle className="text-lg font-semibold truncate group-hover:text-primary transition-colors">
               {task.name}
             </CardTitle>
             <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed mt-2">
@@ -90,12 +89,12 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         <div className="space-y-3">
           {task.assignedTo && (
             <div className="flex items-center gap-3 text-sm">
-              <div className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900">
-                <User className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <div className="p-1.5 rounded-lg bg-primary/10">
+                <User className="w-4 h-4 text-primary" />
               </div>
               <div className="flex items-center gap-2 flex-1 min-w-0">
-                <Avatar className="w-6 h-6 ring-2 ring-blue-200 dark:ring-blue-800">
-                  <AvatarFallback className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300">
+                <Avatar className="w-6 h-6 ring-2 ring-primary/20">
+                  <AvatarFallback className="text-xs bg-primary/10 text-primary">
                     {task.assignedTo
                       .split(" ")
                       .map((n) => n[0])
@@ -110,7 +109,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 
           {task.dueDate && (
             <div className="flex items-center gap-3 text-sm">
-              <div className="p-1.5 rounded-lg bg-orange-100 dark:bg-orange-900">
+              <div className="p-1.5 rounded-lg bg-orange-100 dark:bg-orange-900/20">
                 <Calendar className="w-4 h-4 text-orange-600 dark:text-orange-400" />
               </div>
               <div className="flex-1 min-w-0">
@@ -129,8 +128,8 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           )}
 
           <div className="flex items-center gap-3 text-sm">
-            <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700">
-              <Clock className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+            <div className="p-1.5 rounded-lg bg-muted">
+              <Clock className="w-4 h-4 text-muted-foreground" />
             </div>
             <div className="flex-1 min-w-0">
               <span className="text-muted-foreground">Created: </span>
@@ -157,7 +156,10 @@ export const TaskCard: React.FC<TaskCardProps> = ({
               </Badge>
             ))}
             {task.labels.length > 3 && (
-              <Badge variant="outline" className="text-xs px-2 py-1 rounded-full">
+              <Badge
+                variant="outline"
+                className="text-xs px-2 py-1 rounded-full"
+              >
                 +{task.labels.length - 3} more
               </Badge>
             )}
@@ -173,7 +175,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
               variant="ghost"
               size="sm"
               onClick={() => onEdit(task)}
-              className="h-8 px-2 hover:bg-blue-100 dark:hover:bg-blue-900 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+              className="h-8 px-2 hover:bg-primary/10 hover:text-primary transition-colors"
             >
               <Edit className="w-4 h-4" />
             </Button>
@@ -181,7 +183,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
               variant="ghost"
               size="sm"
               onClick={() => onAssign(task.id)}
-              className="h-8 px-2 hover:bg-green-100 dark:hover:bg-green-900 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+              className="h-8 px-2 hover:bg-green-100 dark:hover:bg-green-900/20 hover:text-green-600 dark:hover:text-green-400 transition-colors"
             >
               <User className="w-4 h-4" />
             </Button>
@@ -190,7 +192,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 px-2 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  className="h-8 px-2 hover:bg-muted"
                 >
                   <MoreVertical className="w-4 h-4" />
                 </Button>
@@ -228,7 +230,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={() => onStatusChange(task.id, "completed")}
-                className="h-8 text-xs hover:bg-green-50 dark:hover:bg-green-900 hover:border-green-300 dark:hover:border-green-700 hover:text-green-700 dark:hover:text-green-300 transition-colors"
+                className="h-8 text-xs hover:bg-green-50 dark:hover:bg-green-900/20 hover:border-green-300 dark:hover:border-green-700 hover:text-green-700 dark:hover:text-green-300 transition-colors"
               >
                 <CheckCircle className="w-3 h-3 mr-1" />
                 Complete
@@ -239,7 +241,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={() => onStatusChange(task.id, "in-progress")}
-                className="h-8 text-xs hover:bg-blue-50 dark:hover:bg-blue-900 hover:border-blue-300 dark:hover:border-blue-700 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                className="h-8 text-xs hover:bg-primary/10 hover:border-primary/30 hover:text-primary transition-colors"
               >
                 <Play className="w-3 h-3 mr-1" />
                 Start

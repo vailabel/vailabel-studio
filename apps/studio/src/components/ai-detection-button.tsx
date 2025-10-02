@@ -10,7 +10,7 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import type { Annotation, ImageData, Label } from "@vailabel/core"
 import { getRandomColor } from "@/lib/utils"
-import { useServices } from "@/services/ServiceProvider"
+import { useSetting } from "@/hooks/useFastAPIQuery"
 
 interface AIDetectionButtonProps {
   image: ImageData | null
@@ -23,7 +23,9 @@ export const AIDetectionButton = ({
 }: AIDetectionButtonProps) => {
   const { toast } = useToast()
   const [isDetecting, setIsDetecting] = useState(false)
-  const services = useServices()
+  const { data: modelPathSetting } = useSetting("modelPath")
+  const { data: pythonPathSetting } = useSetting("pythonPath")
+
   const handleDetection = async () => {
     if (!image) {
       toast({
@@ -35,8 +37,6 @@ export const AIDetectionButton = ({
     }
     setIsDetecting(true)
     try {
-      const modelPathSetting = await services.getSettingsService().getSetting("modelPath")
-      const pythonPathSetting = await services.getSettingsService().getSetting("pythonPath")
       const detections = await window.ipc.invoke("command:runYolo", {
         modelPath: modelPathSetting?.value,
         imagePath: image.data,
@@ -51,12 +51,14 @@ export const AIDetectionButton = ({
           const y1 = box.y1
           const x2 = box.x2
           const y2 = box.y2
-          
+
           try {
             // Get or create label
-            const existingLabels = await services.getLabelService().getLabelsByProjectId(image.projectId)
+            const existingLabels = await services
+              .getLabelService()
+              .getLabelsByProjectId(image.projectId)
             let label = existingLabels.find((l: Label) => l.name === className)
-            
+
             if (!label) {
               // Create new label
               const newLabel = {
@@ -65,12 +67,12 @@ export const AIDetectionButton = ({
                 color: getRandomColor(),
                 projectId: image.projectId,
                 createdAt: new Date(),
-                updatedAt: new Date()
+                updatedAt: new Date(),
               }
               await services.getLabelService().createLabel(newLabel)
               label = newLabel
             }
-            
+
             const annotation: Annotation = {
               id: crypto.randomUUID(),
               name: className,

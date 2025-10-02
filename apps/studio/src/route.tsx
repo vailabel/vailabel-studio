@@ -3,7 +3,9 @@ import Setting from "./pages/setting"
 import Overview from "./pages/overview"
 import NotFound from "./pages/not-found"
 import UserPage from "./pages/user"
+import PermissionsPage from "./pages/permissions"
 import LoginPage from "./pages/login"
+import LabelsPage from "./pages/labels"
 
 import { HashRouter, Routes, Route } from "react-router-dom"
 import MainLayout from "./components/main-layout"
@@ -22,83 +24,31 @@ const AppRoutes = () => {
       <Routes>
         {/* Public routes */}
         <Route path="/login" element={<LoginPage />} />
-        
+
         {/* Protected routes */}
-        <Route element={<MainLayout />}>
-          <Route 
-            path="/" 
-            element={
-              <AuthRoute>
-                <Overview />
-              </AuthRoute>
-            } 
-          />
-          <Route 
-            path="/projects" 
-            element={
-              <AuthRoute>
-                <ProjectList />
-              </AuthRoute>
-            } 
-          />
-          <Route 
-            path="/projects/create" 
-            element={
-              <AuthRoute requiredPermission="projects:write">
-                <ProjectCreate />
-              </AuthRoute>
-            } 
-          />
+        <Route
+          element={
+            <AuthRoute>
+              <MainLayout />
+            </AuthRoute>
+          }
+        >
+          <Route path="/" element={<Overview />} />
+          <Route path="/projects" element={<ProjectList />} />
+          <Route path="/projects/create" element={<ProjectCreate />} />
           <Route
             path="/projects/detail/:projectId"
-            element={
-              <AuthRoute>
-                <ProjectDetails />
-              </AuthRoute>
-            }
+            element={<ProjectDetails />}
           />
-          <Route 
-            path="/ai-models" 
-            element={
-              <AuthRoute requiredPermission="ai_models:read">
-                <AIModelListPage />
-              </AuthRoute>
-            } 
-          />
-          <Route 
-            path="/tasks" 
-            element={
-              <AuthRoute>
-                <TaskPage />
-              </AuthRoute>
-            } 
-          />
-          <Route 
-            path="/users" 
-            element={
-              <AuthRoute requiredRoles={["admin", "manager"]}>
-                <UserPage />
-              </AuthRoute>
-            } 
-          />
-          <Route 
-            path="/cloud-storage" 
-            element={
-              <AuthRoute requiredPermission="settings:write">
-                <CloudStorageConfigPage />
-              </AuthRoute>
-            } 
-          />
-          <Route 
-            path="/settings" 
-            element={
-              <AuthRoute>
-                <Setting />
-              </AuthRoute>
-            } 
-          />
+          <Route path="/ai-models" element={<AIModelListPage />} />
+          <Route path="/tasks" element={<TaskPage />} />
+          <Route path="/labels" element={<LabelsPage />} />
+          <Route path="/users" element={<UserPage />} />
+          <Route path="/permissions" element={<PermissionsPage />} />
+          <Route path="/cloud-storage" element={<CloudStorageConfigPage />} />
+          <Route path="/settings" element={<Setting />} />
         </Route>
-        
+
         {/* Studio route - requires authentication */}
         <Route
           path="/projects/:projectId/studio/:imageId"
@@ -108,7 +58,7 @@ const AppRoutes = () => {
             </AuthRoute>
           }
         />
-        
+
         {/* Catch all */}
         <Route path="*" element={<NotFound />} />
       </Routes>

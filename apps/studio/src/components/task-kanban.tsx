@@ -39,8 +39,8 @@ const columns = [
   {
     id: "in-progress",
     title: "In Progress",
-    color: "border-blue-200 dark:border-blue-800",
-    bgColor: "bg-blue-50/50 dark:bg-blue-950/20",
+    color: "border-primary/20",
+    bgColor: "bg-primary/5",
   },
   {
     id: "completed",
@@ -51,8 +51,8 @@ const columns = [
   {
     id: "blocked",
     title: "Blocked",
-    color: "border-red-200 dark:border-red-800",
-    bgColor: "bg-red-50/50 dark:bg-red-950/20",
+    color: "border-destructive/20",
+    bgColor: "bg-destructive/5",
   },
 ]
 

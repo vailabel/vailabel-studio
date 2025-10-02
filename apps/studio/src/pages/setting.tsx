@@ -1,40 +1,29 @@
 import { useRef } from "react"
-import { 
-  Tabs, 
-  TabsList, 
-  TabsTrigger, 
-  TabsContent 
-} from "@/components/ui/tabs"
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card"
-import { 
-  Input 
-} from "@/components/ui/input"
-import { 
-  Button 
-} from "@/components/ui/button"
-import { 
-  Badge 
-} from "@/components/ui/badge"
-import { 
-  Search, 
-  Settings, 
-  Palette, 
-  Code, 
-  Brain, 
-  Keyboard, 
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import {
+  Search,
+  Settings,
+  Palette,
+  Code,
+  Brain,
+  Keyboard,
   Cog,
   Save,
   RotateCcw,
   Download,
   Upload,
   AlertCircle,
-  Clock
+  Clock,
 } from "lucide-react"
 import { useSettingsViewModel } from "@/viewmodels/settings-viewmodel"
 import GeneralSettings from "@/components/settings/general-settings"
@@ -71,7 +60,9 @@ export default function Setting() {
   } = useSettingsViewModel()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const handleImportSettings = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportSettings = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0]
     if (file) {
       await importSettings(file)
@@ -95,7 +86,7 @@ export default function Setting() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto p-6 max-w-7xl">
         {/* Header */}
         <div className="mb-8 transition-all duration-500 opacity-100">
@@ -108,16 +99,19 @@ export default function Setting() {
                 Customize your application preferences and configuration
               </p>
             </div>
-            
+
             {/* Status Indicators */}
             <div className="flex items-center gap-4">
               {hasUnsavedChanges && (
-                <Badge variant="outline" className="text-amber-600 border-amber-600">
+                <Badge
+                  variant="outline"
+                  className="text-amber-600 border-amber-600"
+                >
                   <AlertCircle className="w-3 h-3 mr-1" />
                   Unsaved Changes
                 </Badge>
               )}
-              
+
               {lastSaved && (
                 <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
                   <Clock className="w-3 h-3" />
@@ -164,7 +158,7 @@ export default function Setting() {
             <Save className="w-4 h-4 mr-2" />
             {isSaving ? "Saving..." : "Save Changes"}
           </Button>
-          
+
           <Button
             onClick={handleReset}
             variant="outline"
@@ -173,7 +167,7 @@ export default function Setting() {
             <RotateCcw className="w-4 h-4 mr-2" />
             Reset to Defaults
           </Button>
-          
+
           <Button
             onClick={handleExport}
             variant="outline"
@@ -182,7 +176,7 @@ export default function Setting() {
             <Download className="w-4 h-4 mr-2" />
             Export Settings
           </Button>
-          
+
           <Button
             onClick={handleImport}
             variant="outline"
@@ -191,7 +185,7 @@ export default function Setting() {
             <Upload className="w-4 h-4 mr-2" />
             Import Settings
           </Button>
-          
+
           <input
             ref={fileInputRef}
             type="file"
@@ -203,10 +197,15 @@ export default function Setting() {
 
         {/* Settings Tabs */}
         <div className="transition-all duration-500 opacity-100">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="w-full"
+          >
             <TabsList className="grid w-full grid-cols-6 mb-8 bg-white dark:bg-gray-800 shadow-sm">
               {categories.map((category) => {
-                const IconComponent = categoryIcons[category.id as keyof typeof categoryIcons]
+                const IconComponent =
+                  categoryIcons[category.id as keyof typeof categoryIcons]
                 return (
                   <TabsTrigger
                     key={category.id}
@@ -267,7 +266,8 @@ export default function Setting() {
                       Python Setup
                     </CardTitle>
                     <CardDescription>
-                      Configure your Python environment for advanced features and scripting
+                      Configure your Python environment for advanced features
+                      and scripting
                     </CardDescription>
                   </CardHeader>
                   <CardContent>

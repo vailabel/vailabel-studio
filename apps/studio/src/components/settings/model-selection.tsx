@@ -10,38 +10,28 @@ import {
   TableCell,
 } from "@/components/ui/table"
 import { useToast } from "@/hooks/use-toast"
-import { AIModel } from "@vailabel/core"
-import { useServices } from "@/services/ServiceProvider"
+import {
+  useAIModels,
+  useSetting,
+  useUpdateSettings,
+} from "@/hooks/useFastAPIQuery"
 import { Button } from "@/components/ui/button"
 
 export function ModelSelection() {
   const { toast } = useToast()
-  const services = useServices()
-  const [availableModels, setAvailableModels] = useState<AIModel[]>([])
+  const { data: availableModels = [] } = useAIModels("") // Get all models
+  const { data: selectedModelSetting } = useSetting("selectedModelId")
+  const updateSettingsMutation = useUpdateSettings()
   const [selectedModelId, setSelectedModelId] = useState<string>("")
 
+  // Set selected model when settings are loaded
   useEffect(() => {
-    // Load models on mount
-    const fetchModels = async () => {
-      try {
-        const models = await services.getAIModelService().getAIModelsByProjectId("") // Get all models
-        setAvailableModels(models)
-        
-        // Try to get selected model from settings
-        const selectedModelSetting = await services.getSettingsService().getSetting("selectedModelId")
-        if (selectedModelSetting && selectedModelSetting.value) {
-          setSelectedModelId(selectedModelSetting.value)
-        }
-      } catch {
-        toast({
-          title: "Error",
-          description: "Failed to load models.",
-          variant: "destructive",
-        })
-      }
+    if (selectedModelSetting?.value) {
+      setSelectedModelId(selectedModelSetting.value)
+    } else if (availableModels.length > 0 && !selectedModelId) {
+      setSelectedModelId(availableModels[0].id)
     }
-    fetchModels()
-  }, [toast])
+  }, [selectedModelSetting, availableModels, selectedModelId])
 
   const handleRadioChange = (modelId: string) => {
     setSelectedModelId(modelId)
@@ -52,13 +42,19 @@ export function ModelSelection() {
     const selectedModel = availableModels.find((m) => m.id === selectedModelId)
     if (selectedModel) {
       try {
-        await services.getSettingsService().saveOrUpdateSetting("modelPath", selectedModel.modelPath || "")
-        await services.getSettingsService().saveOrUpdateSetting("selectedModelId", selectedModelId)
+        await updateSettingsMutation.mutateAsync({
+          key: "modelPath",
+          value: selectedModel.modelPath || "",
+        })
+        await updateSettingsMutation.mutateAsync({
+          key: "selectedModelId",
+          value: selectedModelId,
+        })
         toast({
           title: "Model Saved",
           description: `Model path saved to settings: ${selectedModel.modelPath}`,
         })
-      } catch (error) {
+      } catch {
         toast({
           title: "Error",
           description: "Failed to save model settings.",
@@ -78,7 +74,7 @@ export function ModelSelection() {
     <div>
       <div className="flex flex-col md:flex-row gap-8 flex-1">
         <div className="flex-1 min-w-[300px]">
-          <p className="text-base text-gray-600 dark:text-gray-400 mb-4">
+          <p className="text-base text-muted-foreground mb-4">
             Select a pre-trained model from the list below.
           </p>
 
@@ -86,7 +82,7 @@ export function ModelSelection() {
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-gray-100 dark:bg-gray-800">
+                  <TableRow className="bg-muted">
                     <TableHead className="p-2 font-semibold text-left">
                       Select
                     </TableHead>
@@ -103,9 +99,7 @@ export function ModelSelection() {
                     <TableRow
                       key={model.id}
                       className={
-                        selectedModelId === model.id
-                          ? "bg-blue-50 dark:bg-blue-900"
-                          : ""
+                        selectedModelId === model.id ? "bg-primary/10" : ""
                       }
                     >
                       <TableCell className="p-2 align-middle">
@@ -137,13 +131,10 @@ export function ModelSelection() {
           </RadioGroup>
 
           <div className="mt-8">
-            <Label
-              htmlFor="model-save"
-              className="dark:text-gray-300 flex items-center"
-            >
+            <Label htmlFor="model-save" className="flex items-center">
               Save custom model path
             </Label>
-            <div className="text-gray-400 text-xs mt-2">
+            <div className="text-muted-foreground text-xs mt-2">
               Custom model upload is not available in this build.
             </div>
           </div>

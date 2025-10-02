@@ -3,6 +3,9 @@ from sqlalchemy.orm import Session
 from db.session import get_db
 from services.annotation_service import AnnotationService, get_annotation_service
 from models.annotation import Annotation, AnnotationCreate, AnnotationUpdate
+from services.auth_service import get_current_active_user
+from api.v1.auth import require_permission
+from db.models.user import User
 
 router = APIRouter(prefix="/api/v1/annotations", tags=["Annotations"])
 
@@ -12,6 +15,7 @@ def get_by_project(
     project_id: str,
     db: Session = Depends(get_db),
     service: AnnotationService = Depends(get_annotation_service),
+    _: User = Depends(require_permission("annotations:read")),
 ):
     """
     Retrieve all annotations associated with a specific project.
@@ -32,6 +36,7 @@ def get_by_image(
     image_id: str,
     db: Session = Depends(get_db),
     service: AnnotationService = Depends(get_annotation_service),
+    _: User = Depends(require_permission("annotations:read")),
 ):
     """
     Retrieve all annotations associated with a specific image.
@@ -52,6 +57,7 @@ def create(
     data: AnnotationCreate,
     db: Session = Depends(get_db),
     service: AnnotationService = Depends(get_annotation_service),
+    _: User = Depends(require_permission("annotations:write")),
 ):
     """
     Create a new annotation.
@@ -73,6 +79,7 @@ def update(
     data: AnnotationUpdate,
     db: Session = Depends(get_db),
     service: AnnotationService = Depends(get_annotation_service),
+    _: User = Depends(require_permission("annotations:write")),
 ):
     """
     Update an existing annotation.
@@ -100,6 +107,7 @@ def delete(
     annotation_id: str,
     db: Session = Depends(get_db),
     service: AnnotationService = Depends(get_annotation_service),
+    _: User = Depends(require_permission("annotations:delete")),
 ):
     """
     Delete an annotation by its ID.

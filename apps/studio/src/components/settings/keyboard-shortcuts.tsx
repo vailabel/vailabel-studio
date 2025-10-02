@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Undo2, Pencil } from "lucide-react"
 import { Combobox } from "@/components/ui/combobox"
-import { useServices } from "@/services/ServiceProvider"
+import { useSetting, useUpdateSettings } from "@/hooks/useFastAPIQuery"
 
 interface KeyboardShortcut {
   category: string
@@ -31,41 +31,42 @@ const CATEGORIES = [
 ]
 
 export function KeyboardShortcuts() {
-  const services = useServices()
-  const [shortcuts, setShortcuts] = useState<KeyboardShortcut[]>(DEFAULT_SHORTCUTS)
+  const { data: shortcutsSetting } = useSetting("keyboardShortcuts")
+  const updateSettingsMutation = useUpdateSettings()
+  const [shortcuts, setShortcuts] =
+    useState<KeyboardShortcut[]>(DEFAULT_SHORTCUTS)
   const [editingIdx, setEditingIdx] = useState<number | null>(null)
   const [editValue, setEditValue] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("All")
 
-  // Load shortcuts from settings on mount
+  // Load shortcuts from settings when data is available
   useEffect(() => {
-    const loadShortcuts = async () => {
+    if (shortcutsSetting && typeof shortcutsSetting.value === "string") {
       try {
-        const setting = await services.getSettingsService().getSetting("keyboardShortcuts")
-        if (setting && typeof setting.value === "string") {
-          const parsed = JSON.parse(setting.value)
-          if (Array.isArray(parsed)) {
-            setShortcuts(parsed as KeyboardShortcut[])
-          }
+        const parsed = JSON.parse(shortcutsSetting.value)
+        if (Array.isArray(parsed)) {
+          setShortcuts(parsed as KeyboardShortcut[])
         }
       } catch {
         // ignore parse error, fallback to default
       }
     }
-    loadShortcuts()
-  }, [])
+  }, [shortcutsSetting])
 
   // Save to settings whenever shortcuts change
   useEffect(() => {
     const saveShortcuts = async () => {
       try {
-        await services.getSettingsService().saveOrUpdateSetting("keyboardShortcuts", JSON.stringify(shortcuts))
+        await updateSettingsMutation.mutateAsync({
+          key: "keyboardShortcuts",
+          value: JSON.stringify(shortcuts),
+        })
       } catch (error) {
         console.error("Failed to save keyboard shortcuts:", error)
       }
     }
     saveShortcuts()
-  }, [shortcuts])
+  }, [shortcuts, updateSettingsMutation])
 
   const handleEdit = (idx: number) => {
     setEditingIdx(idx)
@@ -123,7 +124,7 @@ export function KeyboardShortcuts() {
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm border rounded">
           <thead>
-            <tr className="bg-gray-100 dark:bg-gray-800">
+            <tr className="bg-muted">
               <th className="p-2 text-left font-semibold">Category</th>
               <th className="p-2 text-left font-semibold">Action</th>
               <th className="p-2 text-left font-semibold">Shortcut</th>
@@ -150,7 +151,7 @@ export function KeyboardShortcuts() {
                       className="w-32"
                     />
                   ) : (
-                    <span className="inline-block px-2 py-0.5 rounded bg-gray-50 dark:bg-gray-900 border text-xs">
+                    <span className="inline-block px-2 py-0.5 rounded bg-muted border text-xs">
                       {s.key}
                     </span>
                   )}

@@ -183,28 +183,26 @@ export function TaskDetailDialog({
     const statusConfig = {
       todo: {
         label: "New",
-        className:
-          "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900 dark:text-blue-200 dark:border-blue-700",
+        className: "bg-primary/10 text-primary border-primary/20",
       },
       "in-progress": {
         label: "Active",
         className:
-          "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900 dark:text-orange-200 dark:border-orange-700",
+          "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/20 dark:text-orange-200 dark:border-orange-700",
       },
       done: {
         label: "Closed",
         className:
-          "bg-green-100 text-green-800 border-green-200 dark:bg-green-900 dark:text-green-200 dark:border-green-700",
+          "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-200 dark:border-green-700",
       },
       pending: {
         label: "New",
-        className:
-          "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900 dark:text-blue-200 dark:border-blue-700",
+        className: "bg-primary/10 text-primary border-primary/20",
       },
       completed: {
         label: "Closed",
         className:
-          "bg-green-100 text-green-800 border-green-200 dark:bg-green-900 dark:text-green-200 dark:border-green-700",
+          "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-200 dark:border-green-700",
       },
     }
 
@@ -250,7 +248,7 @@ export function TaskDetailDialog({
               </div>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2">
             {mode === "edit" ? (
               <div className="flex items-center gap-2">
@@ -279,7 +277,9 @@ export function TaskDetailDialog({
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    navigator.clipboard.writeText(`Task: ${task.name}\nDescription: ${task.description}`)
+                    navigator.clipboard.writeText(
+                      `Task: ${task.name}\nDescription: ${task.description}`
+                    )
                   }}
                   className="gap-2 hover:bg-muted"
                 >
@@ -348,11 +348,11 @@ export function TaskDetailDialog({
                 {mode === "view" ? (
                   <>
                     {/* Task Overview Card */}
-                    <Card className="border-0 shadow-lg bg-gradient-to-r from-white to-slate-50 dark:from-slate-800 dark:to-slate-900">
+                    <Card className="border-0 shadow-lg bg-card">
                       <CardHeader className="pb-4">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <CardTitle className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-3">
+                            <CardTitle className="text-2xl font-bold text-foreground mb-3">
                               {task.name}
                             </CardTitle>
                             <div className="flex items-center gap-3 flex-wrap">
@@ -362,10 +362,10 @@ export function TaskDetailDialog({
                                   key={label.id || index}
                                   variant="outline"
                                   className="text-xs px-2 py-1 rounded-full border-2"
-                                  style={{ 
-                                    borderColor: label.color + "40", 
+                                  style={{
+                                    borderColor: label.color + "40",
                                     backgroundColor: label.color + "10",
-                                    color: label.color 
+                                    color: label.color,
                                   }}
                                 >
                                   <Tag className="w-3 h-3 mr-1" />
@@ -382,13 +382,13 @@ export function TaskDetailDialog({
                     <Card className="border-0 shadow-lg">
                       <CardHeader>
                         <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                          <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                          <FileText className="w-5 h-5 text-primary" />
                           Description
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
                         <div className="prose prose-sm max-w-none">
-                          <p className="text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
+                          <p className="text-foreground leading-relaxed whitespace-pre-wrap">
                             {task.description || "No description provided."}
                           </p>
                         </div>
@@ -406,10 +406,10 @@ export function TaskDetailDialog({
                       <CardContent>
                         <div className="space-y-4">
                           <div>
-                            <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            <h4 className="text-sm font-medium text-foreground mb-2">
                               Requirements
                             </h4>
-                            <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
+                            <ul className="space-y-2 text-sm text-muted-foreground">
                               <li className="flex items-start gap-2">
                                 <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
                                 Task should meet all specified requirements
@@ -435,13 +435,13 @@ export function TaskDetailDialog({
                       <Card className="border-0 shadow-lg">
                         <CardHeader>
                           <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                            <Edit className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                            <Edit className="w-5 h-5 text-primary" />
                             Task Details
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                           <div>
-                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300 block mb-2">
+                            <label className="text-sm font-medium text-foreground block mb-2">
                               Title *
                             </label>
                             <Input
@@ -456,7 +456,7 @@ export function TaskDetailDialog({
 
                           <div className="grid grid-cols-2 gap-4">
                             <div>
-                              <label className="text-sm font-medium text-slate-700 dark:text-slate-300 block mb-2">
+                              <label className="text-sm font-medium text-foreground block mb-2">
                                 Status
                               </label>
                               <Select
@@ -469,16 +469,24 @@ export function TaskDetailDialog({
                                   <SelectValue placeholder="Select status" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="pending">Pending</SelectItem>
-                                  <SelectItem value="in-progress">In Progress</SelectItem>
-                                  <SelectItem value="completed">Completed</SelectItem>
-                                  <SelectItem value="blocked">Blocked</SelectItem>
+                                  <SelectItem value="pending">
+                                    Pending
+                                  </SelectItem>
+                                  <SelectItem value="in-progress">
+                                    In Progress
+                                  </SelectItem>
+                                  <SelectItem value="completed">
+                                    Completed
+                                  </SelectItem>
+                                  <SelectItem value="blocked">
+                                    Blocked
+                                  </SelectItem>
                                 </SelectContent>
                               </Select>
                             </div>
 
                             <div>
-                              <label className="text-sm font-medium text-slate-700 dark:text-slate-300 block mb-2">
+                              <label className="text-sm font-medium text-foreground block mb-2">
                                 Assigned To
                               </label>
                               <Input
@@ -495,7 +503,7 @@ export function TaskDetailDialog({
                           </div>
 
                           <div>
-                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300 block mb-2">
+                            <label className="text-sm font-medium text-foreground block mb-2">
                               Due Date
                             </label>
                             <Input
@@ -517,7 +525,7 @@ export function TaskDetailDialog({
                           </div>
 
                           <div>
-                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300 block mb-2">
+                            <label className="text-sm font-medium text-foreground block mb-2">
                               Labels
                             </label>
                             <Input
@@ -550,7 +558,7 @@ export function TaskDetailDialog({
                       <Card className="border-0 shadow-lg">
                         <CardHeader>
                           <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                            <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                            <FileText className="w-5 h-5 text-primary" />
                             Description
                           </CardTitle>
                         </CardHeader>
@@ -558,7 +566,10 @@ export function TaskDetailDialog({
                           <Textarea
                             value={editedTask?.description || ""}
                             onChange={(e) =>
-                              handleTaskFieldChange("description", e.target.value)
+                              handleTaskFieldChange(
+                                "description",
+                                e.target.value
+                              )
                             }
                             placeholder="Enter task description..."
                             rows={8}
@@ -572,12 +583,12 @@ export function TaskDetailDialog({
               </div>
 
               {/* Enhanced Right Panel - Metadata */}
-              <div className="w-80 border-l bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 overflow-auto">
+              <div className="w-80 border-l bg-muted/30 overflow-auto">
                 <div className="p-6 space-y-6">
                   {/* Task Information Card */}
                   <Card className="border-0 shadow-lg">
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide flex items-center gap-2">
+                      <CardTitle className="text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-2">
                         <FileText className="w-4 h-4" />
                         Task Information
                       </CardTitle>
@@ -585,7 +596,7 @@ export function TaskDetailDialog({
                     <CardContent className="space-y-4">
                       <div className="space-y-3">
                         <div className="flex justify-between items-center">
-                          <span className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                          <span className="text-xs text-muted-foreground uppercase tracking-wide">
                             Status
                           </span>
                           <div className="text-right">
@@ -594,14 +605,14 @@ export function TaskDetailDialog({
                         </div>
 
                         <div className="flex justify-between items-center">
-                          <span className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                          <span className="text-xs text-muted-foreground uppercase tracking-wide">
                             Assigned To
                           </span>
                           <div className="text-right">
                             {task.assignedTo ? (
                               <div className="flex items-center gap-2">
                                 <Avatar className="w-6 h-6">
-                                  <AvatarFallback className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                                  <AvatarFallback className="text-xs bg-primary/10 text-primary">
                                     {task.assignedTo
                                       .split(" ")
                                       .map((n) => n[0])
@@ -609,12 +620,12 @@ export function TaskDetailDialog({
                                       .toUpperCase()}
                                   </AvatarFallback>
                                 </Avatar>
-                                <span className="text-xs text-slate-700 dark:text-slate-300 font-medium">
+                                <span className="text-xs text-foreground font-medium">
                                   {task.assignedTo}
                                 </span>
                               </div>
                             ) : (
-                              <span className="text-xs text-slate-500 dark:text-slate-400">
+                              <span className="text-xs text-muted-foreground">
                                 Unassigned
                               </span>
                             )}
@@ -622,10 +633,10 @@ export function TaskDetailDialog({
                         </div>
 
                         <div className="flex justify-between items-center">
-                          <span className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                          <span className="text-xs text-muted-foreground uppercase tracking-wide">
                             Created
                           </span>
-                          <span className="text-xs text-slate-700 dark:text-slate-300">
+                          <span className="text-xs text-foreground">
                             {task.createdAt
                               ? format(task.createdAt, "MMM dd, yyyy")
                               : "Unknown"}
@@ -634,13 +645,13 @@ export function TaskDetailDialog({
 
                         {task.dueDate && (
                           <div className="flex justify-between items-center">
-                            <span className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                            <span className="text-xs text-muted-foreground uppercase tracking-wide">
                               Due Date
                             </span>
                             <div className="text-right">
                               <div className="flex items-center gap-1">
-                                <Calendar className="w-3 h-3 text-slate-500" />
-                                <span className="text-xs text-slate-700 dark:text-slate-300">
+                                <Calendar className="w-3 h-3 text-muted-foreground" />
+                                <span className="text-xs text-foreground">
                                   {format(task.dueDate, "MMM dd, yyyy")}
                                 </span>
                               </div>
@@ -649,10 +660,10 @@ export function TaskDetailDialog({
                         )}
 
                         <div className="flex justify-between items-center">
-                          <span className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                          <span className="text-xs text-muted-foreground uppercase tracking-wide">
                             Priority
                           </span>
-                          <span className="text-xs text-slate-700 dark:text-slate-300">
+                          <span className="text-xs text-foreground">
                             {task.dueDate ? "High" : "Medium"}
                           </span>
                         </div>
@@ -664,7 +675,7 @@ export function TaskDetailDialog({
                   {mode === "view" && (
                     <Card className="border-0 shadow-lg">
                       <CardHeader className="pb-3">
-                        <CardTitle className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide flex items-center gap-2">
+                        <CardTitle className="text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-2">
                           <Play className="w-4 h-4" />
                           Quick Actions
                         </CardTitle>
@@ -675,8 +686,10 @@ export function TaskDetailDialog({
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => onStatusChange(task.id, "completed")}
-                              className="w-full justify-start gap-2 h-9 text-sm text-green-700 border-green-200 hover:bg-green-50 dark:text-green-400 dark:border-green-800 dark:hover:bg-green-950"
+                              onClick={() =>
+                                onStatusChange(task.id, "completed")
+                              }
+                              className="w-full justify-start gap-2 h-9 text-sm text-green-700 border-green-200 hover:bg-green-50 dark:text-green-400 dark:border-green-800 dark:hover:bg-green-900/20"
                             >
                               <CheckCircle className="w-4 h-4" />
                               Mark Complete
@@ -689,7 +702,7 @@ export function TaskDetailDialog({
                               onClick={() =>
                                 onStatusChange(task.id, "in-progress")
                               }
-                              className="w-full justify-start gap-2 h-9 text-sm text-blue-700 border-blue-200 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-800 dark:hover:bg-blue-950"
+                              className="w-full justify-start gap-2 h-9 text-sm text-primary border-primary/20 hover:bg-primary/10"
                             >
                               <Play className="w-4 h-4" />
                               Start Work
@@ -699,10 +712,8 @@ export function TaskDetailDialog({
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() =>
-                                onStatusChange(task.id, "blocked")
-                              }
-                              className="w-full justify-start gap-2 h-9 text-sm text-red-700 border-red-200 hover:bg-red-50 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-950"
+                              onClick={() => onStatusChange(task.id, "blocked")}
+                              className="w-full justify-start gap-2 h-9 text-sm text-destructive border-destructive/20 hover:bg-destructive/10"
                             >
                               <AlertCircle className="w-4 h-4" />
                               Mark Blocked
@@ -723,7 +734,7 @@ export function TaskDetailDialog({
                 <Card className="border-0 shadow-lg">
                   <CardHeader>
                     <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                      <MessageSquare className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                      <MessageSquare className="w-5 h-5 text-primary" />
                       Activity Timeline
                     </CardTitle>
                   </CardHeader>
@@ -733,7 +744,7 @@ export function TaskDetailDialog({
                         <div key={comment.id} className="flex gap-4">
                           <div className="flex flex-col items-center">
                             <Avatar className="w-10 h-10 flex-shrink-0 shadow-lg">
-                              <AvatarFallback className="text-sm bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900 dark:to-purple-900 dark:text-blue-300">
+                              <AvatarFallback className="text-sm bg-primary/10 text-primary">
                                 {comment.author
                                   .split(" ")
                                   .map((n) => n[0])
@@ -742,15 +753,15 @@ export function TaskDetailDialog({
                               </AvatarFallback>
                             </Avatar>
                             {index < comments.length - 1 && (
-                              <div className="w-0.5 h-8 bg-slate-200 dark:bg-slate-700 mt-2"></div>
+                              <div className="w-0.5 h-8 bg-border mt-2"></div>
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-3 mb-3">
-                              <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                              <span className="text-sm font-semibold text-foreground">
                                 {comment.author}
                               </span>
-                              <span className="text-sm text-slate-500 dark:text-slate-400">
+                              <span className="text-sm text-muted-foreground">
                                 {format(
                                   comment.timestamp,
                                   "MMM dd, yyyy 'at' HH:mm"
@@ -769,17 +780,19 @@ export function TaskDetailDialog({
                               className={cn(
                                 "shadow-sm",
                                 comment.type === "system"
-                                  ? "bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800"
-                                  : "bg-white border-slate-200 dark:bg-slate-800 dark:border-slate-700"
+                                  ? "bg-primary/10 border-primary/20"
+                                  : "bg-card border-border"
                               )}
                             >
                               <CardContent className="p-4">
-                                <p className={cn(
-                                  "text-sm leading-relaxed",
-                                  comment.type === "system"
-                                    ? "text-blue-800 dark:text-blue-200"
-                                    : "text-slate-700 dark:text-slate-300"
-                                )}>
+                                <p
+                                  className={cn(
+                                    "text-sm leading-relaxed",
+                                    comment.type === "system"
+                                      ? "text-primary"
+                                      : "text-foreground"
+                                  )}
+                                >
                                   {comment.content}
                                 </p>
                               </CardContent>
@@ -795,14 +808,14 @@ export function TaskDetailDialog({
                 <Card className="border-0 shadow-lg">
                   <CardHeader>
                     <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                      <MessageSquare className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                      <MessageSquare className="w-5 h-5 text-primary" />
                       Add Comment
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="flex gap-4">
                       <Avatar className="w-10 h-10 flex-shrink-0 shadow-lg">
-                        <AvatarFallback className="text-sm bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 dark:from-blue-900 dark:to-purple-900 dark:text-blue-300">
+                        <AvatarFallback className="text-sm bg-primary/10 text-primary">
                           CU
                         </AvatarFallback>
                       </Avatar>
@@ -818,7 +831,7 @@ export function TaskDetailDialog({
                             size="sm"
                             onClick={handleAddComment}
                             disabled={!newComment.trim()}
-                            className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg"
+                            className="px-6 py-2  shadow-lg"
                           >
                             Add Comment
                           </Button>

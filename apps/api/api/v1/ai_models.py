@@ -3,6 +3,9 @@ from sqlalchemy.orm import Session
 from db.session import get_db
 from services.ai_model_service import AIModelService, get_ai_model_service
 from models.ai_model import AIModel, AIModelCreate, AIModelUpdate
+from services.auth_service import get_current_active_user
+from api.v1.auth import require_permission
+from db.models.user import User
 
 router = APIRouter(prefix="/api/v1/ai-models", tags=["AI Models"])
 
@@ -12,6 +15,7 @@ def get_ai_model(
     model_id: str,
     db: Session = Depends(get_db),
     service: AIModelService = Depends(get_ai_model_service),
+    _: User = Depends(require_permission("ai_models:read")),
 ):
     """
     Retrieve a specific AI model by its ID.
@@ -38,6 +42,7 @@ def get_models_by_project(
     project_id: str,
     db: Session = Depends(get_db),
     service: AIModelService = Depends(get_ai_model_service),
+    _: User = Depends(require_permission("ai_models:read")),
 ):
     """
     Retrieve all AI models associated with a specific project.
@@ -58,6 +63,7 @@ def create_model(
     data: AIModelCreate,
     db: Session = Depends(get_db),
     service: AIModelService = Depends(get_ai_model_service),
+    _: User = Depends(require_permission("ai_models:write")),
 ):
     """
     Create a new AI model.
@@ -79,6 +85,7 @@ def update_model(
     data: AIModelUpdate,
     db: Session = Depends(get_db),
     service: AIModelService = Depends(get_ai_model_service),
+    _: User = Depends(require_permission("ai_models:write")),
 ):
     """
     Update an existing AI model.
@@ -106,6 +113,7 @@ def delete_model(
     model_id: str,
     db: Session = Depends(get_db),
     service: AIModelService = Depends(get_ai_model_service),
+    _: User = Depends(require_permission("ai_models:delete")),
 ):
     """
     Delete an AI model by its ID.
