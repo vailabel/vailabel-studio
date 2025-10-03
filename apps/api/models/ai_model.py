@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, validator
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Dict, Any
 from models.base import CamelModel
 
 
@@ -22,6 +22,27 @@ class AIModelBase(CamelModel):
     is_custom: bool
     project_id: str = Field(
         ..., min_length=1, description="Project ID must not be empty."
+    )
+
+    # New fields for frontend compatibility
+    type: Optional[str] = Field(
+        default="custom",
+        description="Model type (e.g., object_detection, classification)",
+    )
+    status: Optional[str] = Field(
+        default="active", description="Model status (e.g., active, training, deployed)"
+    )
+    category: Optional[str] = Field(
+        default=None, description="Model category (e.g., detection, classification)"
+    )
+    is_active: Optional[bool] = Field(
+        default=False, description="Whether this is the currently active model"
+    )
+    last_used: Optional[datetime] = Field(
+        default=None, description="When the model was last used"
+    )
+    model_metadata: Optional[Dict[str, Any]] = Field(
+        default=None, description="Additional model metadata"
     )
 
 
@@ -59,6 +80,26 @@ class AIModelUpdate(CamelModel):
         None, gt=0, description="Model size must be a positive integer if provided."
     )
     is_custom: Optional[bool] = None
+
+    # New fields for frontend compatibility
+    type: Optional[str] = Field(
+        default=None, description="Model type (e.g., object_detection, classification)"
+    )
+    status: Optional[str] = Field(
+        default=None, description="Model status (e.g., active, training, deployed)"
+    )
+    category: Optional[str] = Field(
+        default=None, description="Model category (e.g., detection, classification)"
+    )
+    is_active: Optional[bool] = Field(
+        default=None, description="Whether this is the currently active model"
+    )
+    last_used: Optional[datetime] = Field(
+        default=None, description="When the model was last used"
+    )
+    model_metadata: Optional[Dict[str, Any]] = Field(
+        default=None, description="Additional model metadata"
+    )
 
 
 class AIModel(AIModelBase):

@@ -11,7 +11,12 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { TaskCard } from "@/components/task-card-v2"
 import { TaskDialog } from "@/components/task-dialog"
 import { TaskDetailDialog } from "@/components/task-detail-dialog"
@@ -23,14 +28,14 @@ import { cn } from "@/lib/utils"
 export default function TaskPage() {
   const viewModel = useTaskPageViewModel()
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+    <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto py-8 px-4">
         {/* Enhanced Header */}
-        <Card className="mb-8 border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+        <Card className="mb-8 border-0 shadow-lg bg-card">
           <CardHeader className="pb-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="space-y-1">
-                <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                <CardTitle className="text-3xl font-bold text-foreground">
                   Task Management
                 </CardTitle>
                 <p className="text-muted-foreground">
@@ -48,7 +53,12 @@ export default function TaskPage() {
                         disabled={viewModel.isLoadingData}
                         className="gap-2"
                       >
-                        <RefreshCw className={cn("w-4 h-4", viewModel.isLoadingData && "animate-spin")} />
+                        <RefreshCw
+                          className={cn(
+                            "w-4 h-4",
+                            viewModel.isLoadingData && "animate-spin"
+                          )}
+                        />
                         Refresh
                       </Button>
                     </TooltipTrigger>
@@ -57,9 +67,9 @@ export default function TaskPage() {
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-                <Button 
+                <Button
                   onClick={viewModel.openCreateDialog}
-                  className="gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg"
+                  className="gap-2 shadow-lg"
                 >
                   <Plus className="w-4 h-4" />
                   New Task
@@ -75,16 +85,16 @@ export default function TaskPage() {
         </div>
 
         {/* Enhanced Filters */}
-        <Card className="mb-6 border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+        <Card className="mb-6 border-0 shadow-lg bg-card">
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                <Filter className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                <Filter className="w-5 h-5 text-primary" />
                 Filters & Search
               </CardTitle>
               <div className="flex items-center gap-2">
-                {(viewModel.filters.searchQuery || 
-                  viewModel.filters.statusFilter !== "all" || 
+                {(viewModel.filters.searchQuery ||
+                  viewModel.filters.statusFilter !== "all" ||
                   viewModel.filters.projectFilter !== "all") && (
                   <Button
                     variant="ghost"
@@ -105,7 +115,9 @@ export default function TaskPage() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground">Search Tasks</label>
+                <label className="text-sm font-medium text-muted-foreground">
+                  Search Tasks
+                </label>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                   <Input
@@ -118,8 +130,13 @@ export default function TaskPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground">Status</label>
-                <Select value={viewModel.filters.statusFilter} onValueChange={viewModel.setStatusFilter}>
+                <label className="text-sm font-medium text-muted-foreground">
+                  Status
+                </label>
+                <Select
+                  value={viewModel.filters.statusFilter}
+                  onValueChange={viewModel.setStatusFilter}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Filter by status" />
                   </SelectTrigger>
@@ -134,8 +151,13 @@ export default function TaskPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground">Project</label>
-                <Select value={viewModel.filters.projectFilter} onValueChange={viewModel.setProjectFilter}>
+                <label className="text-sm font-medium text-muted-foreground">
+                  Project
+                </label>
+                <Select
+                  value={viewModel.filters.projectFilter}
+                  onValueChange={viewModel.setProjectFilter}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Filter by project" />
                   </SelectTrigger>
@@ -154,19 +176,22 @@ export default function TaskPage() {
         </Card>
 
         {/* Enhanced View Controls */}
-        <Card className="mb-6 border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+        <Card className="mb-6 border-0 shadow-lg bg-card">
           <CardContent className="pt-6">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
               <div className="space-y-1">
                 <h2 className="text-xl font-semibold">Tasks</h2>
                 <p className="text-sm text-muted-foreground">
-                  {viewModel.filteredTasks.length} of {viewModel.tasks.length} tasks
+                  {viewModel.filteredTasks.length} of {viewModel.tasks.length}{" "}
+                  tasks
                 </p>
               </div>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
                   <Button
-                    variant={viewModel.viewMode === "list" ? "default" : "ghost"}
+                    variant={
+                      viewModel.viewMode === "list" ? "default" : "ghost"
+                    }
                     size="sm"
                     onClick={() => viewModel.setViewMode("list")}
                     className={cn(
@@ -178,7 +203,9 @@ export default function TaskPage() {
                     List
                   </Button>
                   <Button
-                    variant={viewModel.viewMode === "kanban" ? "default" : "ghost"}
+                    variant={
+                      viewModel.viewMode === "kanban" ? "default" : "ghost"
+                    }
                     size="sm"
                     onClick={() => viewModel.setViewMode("kanban")}
                     className={cn(
@@ -196,9 +223,12 @@ export default function TaskPage() {
         </Card>
 
         {/* Enhanced Task Tabs */}
-        <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+        <Card className="border-0 shadow-lg bg-card">
           <CardContent className="p-0">
-            <Tabs value={viewModel.filters.activeTab} onValueChange={viewModel.setActiveTab}>
+            <Tabs
+              value={viewModel.filters.activeTab}
+              onValueChange={viewModel.setActiveTab}
+            >
               <div className="px-6 pt-6">
                 <TabsList className="grid w-full grid-cols-5 bg-muted/50">
                   <TabsTrigger value="all" className="flex items-center gap-2">
@@ -207,25 +237,37 @@ export default function TaskPage() {
                       {viewModel.taskStats.total}
                     </Badge>
                   </TabsTrigger>
-                  <TabsTrigger value="pending" className="flex items-center gap-2">
+                  <TabsTrigger
+                    value="pending"
+                    className="flex items-center gap-2"
+                  >
                     Pending
                     <Badge variant="secondary" className="ml-1 text-xs">
                       {viewModel.taskStats.pending}
                     </Badge>
                   </TabsTrigger>
-                  <TabsTrigger value="in-progress" className="flex items-center gap-2">
+                  <TabsTrigger
+                    value="in-progress"
+                    className="flex items-center gap-2"
+                  >
                     In Progress
                     <Badge variant="secondary" className="ml-1 text-xs">
                       {viewModel.taskStats.inProgress}
                     </Badge>
                   </TabsTrigger>
-                  <TabsTrigger value="completed" className="flex items-center gap-2">
+                  <TabsTrigger
+                    value="completed"
+                    className="flex items-center gap-2"
+                  >
                     Completed
                     <Badge variant="secondary" className="ml-1 text-xs">
                       {viewModel.taskStats.completed}
                     </Badge>
                   </TabsTrigger>
-                  <TabsTrigger value="blocked" className="flex items-center gap-2">
+                  <TabsTrigger
+                    value="blocked"
+                    className="flex items-center gap-2"
+                  >
                     Blocked
                     <Badge variant="secondary" className="ml-1 text-xs">
                       {viewModel.taskStats.blocked}
@@ -234,7 +276,10 @@ export default function TaskPage() {
                 </TabsList>
               </div>
 
-              <TabsContent value={viewModel.filters.activeTab} className="px-6 pb-6">
+              <TabsContent
+                value={viewModel.filters.activeTab}
+                className="px-6 pb-6"
+              >
                 {viewModel.viewMode === "kanban" ? (
                   <TaskKanban
                     tasks={viewModel.filteredTasks}
@@ -260,12 +305,14 @@ export default function TaskPage() {
                     ))}
                   </div>
                 ) : (
-                  <Card className="p-12 text-center border-0 shadow-lg bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900">
+                  <Card className="p-12 text-center border-0 shadow-lg bg-card">
                     <CardContent className="pt-6">
                       <div className="text-center space-y-6">
                         <div className="text-6xl">📋</div>
                         <div className="space-y-2">
-                          <h3 className="text-xl font-semibold">No tasks found</h3>
+                          <h3 className="text-xl font-semibold">
+                            No tasks found
+                          </h3>
                           <p className="text-muted-foreground max-w-md mx-auto">
                             {viewModel.filters.searchQuery ||
                             viewModel.filters.statusFilter !== "all" ||
@@ -277,9 +324,9 @@ export default function TaskPage() {
                         {!viewModel.filters.searchQuery &&
                           viewModel.filters.statusFilter === "all" &&
                           viewModel.filters.projectFilter === "all" && (
-                            <Button 
+                            <Button
                               onClick={viewModel.openCreateDialog}
-                              className="gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg"
+                              className="gap-2 shadow-lg"
                             >
                               <Plus className="w-4 h-4" />
                               Create First Task
@@ -301,10 +348,12 @@ export default function TaskPage() {
           task={viewModel.editingTask}
           onSave={viewModel.handleSaveTask}
           projects={viewModel.projects.map((p) => ({ id: p.id, name: p.name }))}
-          users={viewModel.availableUsers.map(user => ({ 
-            id: user.id, 
-            name: user.name, 
-            email: user.email || `${user.name.toLowerCase().replace(' ', '.')}@example.com` 
+          users={viewModel.availableUsers.map((user) => ({
+            id: user.id,
+            name: user.name,
+            email:
+              user.email ||
+              `${user.name.toLowerCase().replace(" ", ".")}@example.com`,
           }))}
         />
 

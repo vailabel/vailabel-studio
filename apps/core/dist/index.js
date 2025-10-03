@@ -18,5 +18,9 @@ export class AIModel {
 }
 export class Settings {
 }
+export class Permission {
+}
+export class Role {
+}
 export class User {
 }

@@ -41,10 +41,21 @@
 - [🤝 Contributing](#-contributing)
 - [📄 License](#-license)
 - [Acknowledgements](#acknowledgements)
+## 📦 Installation
+
+### Desktop App
+
+Download the latest release from the [Releases](https://github.com/vailabel/vailabel-studio/releases) page.
+  - If you see a warning about an unsigned app, see our [desktop installation guide](/apps/web/docs/install-on-desktop.md) for troubleshooting steps.
+  - Username: `admin@vailabel.com`
+  - Password: `admin123`
+- Web App
+  - Visit [https://studio.vailabel.com](https://studio.vailabel.com) to use the web-based labeling tool.
+
 
 ## ✨ Features
 
-- 🚀 **Project Management**: Create, Save, Load, and Export labeling projects offline using Dexie.js.
+- 🚀 **Project Management**: Create, Save, Load, and Export labeling projects offline using SQLite.
 - 🖌️ **Manual Annotation**: Draw bounding boxes, polygons, and freehand shapes on images.
 - 📈 **Custom Canvas Tools**: Zoom, Pan, Resizable Divider, Ruler Guides, Dynamic Cursor Coordinates.
 - ⚡ **AI Auto-Labeling**: Integrate YOLOv8 models to automatically detect and label objects.
@@ -78,15 +89,20 @@
 ### Prerequisites
 
 - 🛠️ Node.js >= 20
-- 📦 yarn
+- 📦 yarn (latest version)
 
 ### Installation
 
-#### Install pnpm globally if you haven't already:
+#### Enable Corepack (recommended) or install yarn globally:
 
 ```bash
-npm install -g pnpm
+# Option 1: Enable Corepack (recommended)
+corepack enable
+
+# Option 2: Install yarn globally
+npm install -g yarn
 ```
+
 #### Clone the repository and install dependencies:
 
 ```bash
@@ -97,27 +113,25 @@ git clone https://github.com/vailabel/vailabel-studio.git
 cd vailabel-studio
 
 # Install dependencies
-pnpm install
-
+yarn install
 
 # Run the development server
-pnpm dev
+yarn dev
 ```
 
 
-### NPM Scripts
+### Available Scripts
 | Command                | Description                                      |
 | ---------------------- | ------------------------------------------------ |
-| `pnpm dev`             | Start the development server both desktop and web                 |
-| `pnpm build`           | Build the project for production                  |
-| `pnpm lint`            | Run ESLint to check for code quality              |
-| `pnpm format`          | Format the code using Prettier                    |
-| `pnpm test`            | Run tests using Vitest                            |
-| `pnpm desktop`        | Start the desktop application development server with studio app                 |
-| `pnpm studio`          | Start the web-based labeling tool                 |
-| `pnpm api`             | Start the FastAPI server for YOLOv8 inference    |
-| `pnpm web`             | Start the documentation site                      |
-
+| `yarn dev`             | Start the development server both desktop and web                 |
+| `yarn build`           | Build the project for production                  |
+| `yarn lint`            | Run ESLint to check for code quality              |
+| `yarn format`          | Format the code using Prettier                    |
+| `yarn test`            | Run tests using Jest/Vitest                            |
+| `yarn desktop`        | Start the desktop application development server with studio app                 |
+| `yarn studio`          | Start the web-based labeling tool                 |
+| `yarn api`             | Start the FastAPI server for YOLOv8 inference    |
+| `yarn web`             | Start the documentation site                      |
 
 ---
 
@@ -146,13 +160,16 @@ pnpm dev
 - [x] 🖼️ Multi-Image Labeling Projects
 - [x] 🖥️ Desktop App (Electron)
 - [ ] 🤖 AI YOLOv8 Auto-Detection (In Progress)
-- [x] 📤 Export Multiple Formats
+- [ ] 🛠️ Custom Model Training Pipeline
+- [x] 📤 Export Multiple Formats (In Progress) YOLO, Pascal VOC, COCO
 - [x] 🏷️ Multi-Class Annotation (Class Picker)
 - [ ] 🎥 Video Frame-by-Frame Annotation
 - [ ] 🖼️ Image Segmentation (Polygon)
 - [ ] 🖼️ Text Annotation (OCR)
 - [ ] 👥 Collaborative Labeling (Team mode) - Cloud Self-host
+- [ ] 📝 Task Assignment & Review System
 - [ ] ☁️ Cloud Storage Integration (S3, GCS, Azure)
+- [ ] 🔒 OAuth2 User Authentication (Google, GitHub, etc.)
 
 ---
 
@@ -175,7 +192,6 @@ This project is licensed under the **GNU GENERAL PUBLIC LICENSE** — see the [L
 - [Ultralytics YOLOv8](https://github.com/ultralytics/ultralytics)
 - [TailwindCSS](https://tailwindcss.com/)
 - [Framer Motion](https://www.framer.com/motion/)
-- [Dexie.js](https://dexie.org/)
 - Inspiration: Roboflow, Label Studio, CVAT
 
 ---

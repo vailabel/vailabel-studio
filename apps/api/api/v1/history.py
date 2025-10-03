@@ -3,6 +3,9 @@ from sqlalchemy.orm import Session
 from db.session import get_db
 from services.history_service import HistoryService, get_history_service
 from models.history import History, HistoryCreate, HistoryUpdate
+from services.auth_service import get_current_active_user
+from api.v1.auth import require_permission
+from db.models.user import User
 
 router = APIRouter(prefix="/api/v1/history", tags=["History"])
 
@@ -12,7 +15,19 @@ def get_project_history(
     project_id: str,
     db: Session = Depends(get_db),
     service: HistoryService = Depends(get_history_service),
+    _: User = Depends(require_permission("history:read")),
 ):
+    """
+    Retrieve all history records associated with a specific project.
+    
+    Args:
+        project_id: The unique identifier of the project
+        db: Database session dependency
+        service: History service dependency
+    
+    Returns:
+        List of history records belonging to the project
+    """
     return service.get_history_by_project(db, project_id)
 
 
@@ -21,7 +36,19 @@ def create_history(
     data: HistoryCreate,
     db: Session = Depends(get_db),
     service: HistoryService = Depends(get_history_service),
+    _: User = Depends(require_permission("history:write")),
 ):
+    """
+    Create a new history record.
+    
+    Args:
+        data: The data for creating a new history record
+        db: Database session dependency
+        service: History service dependency
+    
+    Returns:
+        The newly created history record object
+    """
     return service.create_history(db, data)
 
 
@@ -31,7 +58,23 @@ def update_history(
     data: HistoryUpdate,
     db: Session = Depends(get_db),
     service: HistoryService = Depends(get_history_service),
+    _: User = Depends(require_permission("history:write")),
 ):
+    """
+    Update an existing history record.
+    
+    Args:
+        history_id: The unique identifier of the history record to update
+        data: The data for updating the history record
+        db: Database session dependency
+        service: History service dependency
+    
+    Returns:
+        The updated history record object
+    
+    Raises:
+        HTTPException: 404 error if the history record is not found
+    """
     updated = service.update_history(db, history_id, data)
     if not updated:
         raise HTTPException(404, "History not found")
@@ -43,7 +86,22 @@ def delete_history(
     history_id: str,
     db: Session = Depends(get_db),
     service: HistoryService = Depends(get_history_service),
+    _: User = Depends(require_permission("history:delete")),
 ):
+    """
+    Delete a history record by its ID.
+    
+    Args:
+        history_id: The unique identifier of the history record to delete
+        db: Database session dependency
+        service: History service dependency
+    
+    Returns:
+        Success message confirming deletion
+    
+    Raises:
+        HTTPException: 404 error if the history record is not found
+    """
     deleted = service.delete_history(db, history_id)
     if not deleted:
         raise HTTPException(404, "History not found")

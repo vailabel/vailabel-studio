@@ -19,6 +19,9 @@ git clone https://github.com/vailabel/vailabel-studio.git
 
 # Navigate to the project directory
 cd vailabel-studio
+
+# Install dependencies
+yarn install
 ```
 
 ### 3. Create a Branch

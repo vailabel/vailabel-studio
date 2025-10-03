@@ -5,6 +5,11 @@ export declare class Point {
 export declare class Project {
     id: string;
     name: string;
+    description?: string;
+    type: string;
+    status: string;
+    settings?: Record<string, any>;
+    metadata?: Record<string, any>;
     labels?: Label[];
     images?: ImageData[];
     tasks?: Task[];
@@ -14,9 +19,11 @@ export declare class Project {
 export declare class Label {
     id: string;
     name: string;
+    description?: string;
     category?: string;
     isAIGenerated?: boolean;
     projectId?: string;
+    project_id?: string;
     project?: Project;
     annotations?: Annotation[];
     color: string;
@@ -31,6 +38,7 @@ export declare class ImageData {
     height: number;
     url?: string;
     projectId?: string;
+    project_id?: string;
     project?: Project;
     annotations?: Annotation[];
     createdAt?: Date;
@@ -39,6 +47,7 @@ export declare class ImageData {
 export declare class Annotation {
     id: string;
     labelId?: string;
+    label_id?: string;
     label?: Label;
     name: string;
     type: string;
@@ -47,6 +56,7 @@ export declare class Annotation {
         y: number;
     }[];
     imageId?: string;
+    image_id?: string;
     image?: ImageData;
     color?: string;
     isAIGenerated?: boolean;
@@ -59,6 +69,9 @@ export declare class History {
     historyIndex: number;
     canUndo: boolean;
     canRedo: boolean;
+    projectId?: string;
+    project_id?: string;
+    project?: Project;
     createdAt?: Date;
     updatedAt?: Date;
 }
@@ -67,10 +80,13 @@ export declare class Task {
     name: string;
     description: string;
     projectId?: string;
+    project_id?: string;
     project?: Project;
     assignedTo?: string;
+    assigned_to?: string;
     status: string;
     dueDate?: Date;
+    due_date?: Date;
     labels?: Label[];
     annotations?: Annotation[];
     createdAt?: Date;
@@ -91,6 +107,12 @@ export declare class AIModel {
     configPath: string;
     modelSize: number;
     isCustom: boolean;
+    type?: string;
+    status?: string;
+    category?: string;
+    isActive?: boolean;
+    lastUsed?: Date;
+    modelMetadata?: Record<string, any>;
     createdAt?: Date;
     updatedAt?: Date;
 }
@@ -101,12 +123,35 @@ export declare class Settings {
     createdAt?: Date;
     updatedAt?: Date;
 }
+export declare class Permission {
+    id: string;
+    name: string;
+    description?: string;
+    resource: string;
+    action: string;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+export declare class Role {
+    id: string;
+    name: string;
+    description?: string;
+    permissions?: Permission[];
+    createdAt?: Date;
+    updatedAt?: Date;
+}
 export declare class User {
     id: string;
     email: string;
     name: string;
     password: string;
     role: string;
+    roleId?: string;
+    roleObj?: Role;
+    roles?: string[];
+    permissions?: string[];
+    userPermissions?: Permission[];
+    token?: string;
     createdAt?: Date;
     updatedAt?: Date;
 }

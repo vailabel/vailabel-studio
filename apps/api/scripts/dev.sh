@@ -15,6 +15,14 @@ source .venv/bin/activate
 echo "📦 Installing dependencies..."
 pip install -r requirements.txt
 
-# Start the development server (adjust to your stack)
+# Run database migrations
+echo "🗄️  Running database migrations..."
+alembic upgrade head
+
+# Seed the database
+echo "🌱 Seeding database..."
+python scripts/seed_all.py
+
+# Start the development server
 echo "🚀 Starting development server..."
 uvicorn main:app --reload

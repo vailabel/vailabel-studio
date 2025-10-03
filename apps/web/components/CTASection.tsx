@@ -24,7 +24,7 @@ const CTASection = () => {
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <motion.a
-              href="#"
+              href="#download"
               className="px-8 py-3 rounded-lg bg-white text-blue-600 font-medium hover:bg-blue-50 transition-colors flex items-center justify-center gap-2"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -32,8 +32,9 @@ const CTASection = () => {
               Download Now <ArrowRight size={18} />
             </motion.a>
             <motion.a
-              href="#"
-              className="px-8 py-3 rounded-lg bg-blue-700 text-white font-medium hover:bg-blue-800 transition-colors flex items-center justify-center gap-2"
+              href="https://github.com/vailabel/vailabel-studio"
+              target="_blank"
+              className="px-8 py-3 rounded-lg bg-blue-700 text-white font-medium hover:bg-blue-800 transition-colors flex items-center justify-center gap-2 border border-white"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >

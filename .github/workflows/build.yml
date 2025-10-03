@@ -1,12 +1,16 @@
-name: Build and Release
+name: Auto Release
 
 on:
   push:
-    tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+*'
+    branches:
+      - main
+    paths:
+      - 'apps/**'
+      - 'package.json'
+      - 'apps/*/package.json'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   release:
@@ -20,33 +24,46 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
-      - uses: pnpm/action-setup@v3
-        with:
-          version: 9
+      - name: Enable Corepack
+        run: corepack enable
 
       - name: Install dependencies
-        run: pnpm install
+        run: yarn install --immutable
 
-      - name: Debug GH_TOKEN
+      - name: Check for changes
+        id: changes
+        run: |
+          # Check if this is a version bump commit (skip auto-release)
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          if echo "$COMMIT_MSG" | grep -q "chore: auto-increment version"; then
+            echo "This is a version bump commit, skipping auto-release"
+            echo "should_release=false" >> $GITHUB_OUTPUT
+          else
+            echo "Changes detected, will release"
+            echo "should_release=true" >> $GITHUB_OUTPUT
+          fi
         shell: bash
-        run: |
-          echo "GH_TOKEN length: ${{ secrets.GH_TOKEN }}" | awk '{print length($0)}'
-
       - name: Build & Publish Electron app
+        if: steps.changes.outputs.should_release == 'true'
         run: |
-          echo "Running build with GH_TOKEN..."
-          cd apps/studio && pnpm build
+          echo "Building studio app..."
+          cd apps/studio && yarn build
       
       - name: Publish Electron release
+        if: steps.changes.outputs.should_release == 'true'
         run: |
-          echo "Publishing release..."
-          cd apps/desktop && pnpm release
+          echo "Publishing Electron release..."
+          cd apps/desktop && yarn tsc && yarn prebuild && npx electron-builder --publish always
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          ELECTRON_BUILDER_CACHE: /tmp/electron-builder-cache
 

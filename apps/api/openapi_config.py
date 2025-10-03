@@ -12,15 +12,16 @@ openapi_config = {
         "url": "https://opensource.org/licenses/MIT",
     },
     "openapi_tags": [
+        {"name": "Auth", "description": "Authentication and authorization endpoints"},
+        {"name": "SocialAuth", "description": "Social login with GitHub and Google"},
         {"name": "Projects", "description": "Operations on annotation projects"},
+        {"name": "Images", "description": "Operations on image data"},
+        {"name": "Annotations", "description": "Operations on annotations"},
+        {"name": "Labels", "description": "Operations on labels"},
+        {"name": "Tasks", "description": "Operations on annotation tasks"},
+        {"name": "AI Models", "description": "Operations on AI models"},
+        {"name": "History", "description": "Operations on project history"},
         {"name": "Settings", "description": "Operations on application settings"},
-        {
-            "name": "AI Models",
-            "description": "Operations on AI models used for annotations",
-        },
-        {
-            "name": "Annotations",
-            "description": "Operations on annotations and related data",
-        },
+        {"name": "Users", "description": "Operations on users"},
     ],
 }

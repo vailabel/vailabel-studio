@@ -44,7 +44,7 @@ export const StatCard: React.FC<StatCardProps> = ({
       whileTap={{ scale: 0.98 }}
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
     >
-      <Card className="p-6 hover:shadow-lg transition-shadow duration-200">
+      <Card className="p-6 hover:shadow-lg transition-shadow duration-200 bg-card">
         <div className="flex items-center gap-4">
           <div className={`p-3 rounded-lg ${color} text-white`}>
             <Icon className="w-6 h-6" />
@@ -54,14 +54,15 @@ export const StatCard: React.FC<StatCardProps> = ({
               {title}
             </h3>
             <div className="flex items-baseline gap-2">
-              <p className="text-2xl font-bold">{value}</p>
+              <p className="text-2xl font-bold text-foreground">{value}</p>
               {trend && (
                 <span
                   className={`text-sm font-medium ${
-                    trend.isPositive ? "text-green-600" : "text-red-600"
+                    trend.isPositive ? "text-green-600" : "text-destructive"
                   }`}
                 >
-                  {trend.isPositive ? "+" : ""}{trend.value}%
+                  {trend.isPositive ? "+" : ""}
+                  {trend.value}%
                 </span>
               )}
             </div>
@@ -142,8 +143,10 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
 
   const formatDate = (date: Date) => {
     const now = new Date()
-    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60))
-    
+    const diffInMinutes = Math.floor(
+      (now.getTime() - date.getTime()) / (1000 * 60)
+    )
+
     if (diffInMinutes < 60) {
       return `${diffInMinutes}m ago`
     } else if (diffInMinutes < 1440) {
@@ -161,7 +164,9 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
     >
       <div className="text-2xl">{getTypeIcon(type)}</div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{activity}</p>
+        <p className="text-sm font-medium truncate text-foreground">
+          {activity}
+        </p>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span>{user}</span>
           {projectName && (
@@ -183,7 +188,9 @@ interface LoadingSkeletonProps {
   count?: number
 }
 
-export const ActivitySkeleton: React.FC<LoadingSkeletonProps> = ({ count = 3 }) => {
+export const ActivitySkeleton: React.FC<LoadingSkeletonProps> = ({
+  count = 3,
+}) => {
   return (
     <div className="space-y-4">
       {Array.from({ length: count }).map((_, index) => (
