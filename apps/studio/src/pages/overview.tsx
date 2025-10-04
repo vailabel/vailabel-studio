@@ -1,13 +1,12 @@
 import React from "react"
-import {
-  Users,
-  Folder,
-  Tag,
-  CheckSquare,
-  Clock,
+import { 
+  Users, 
+  Folder, 
+  Tag, 
+  CheckSquare, 
+  Clock, 
   RefreshCw,
   AlertCircle,
-  FolderPlus,
   BarChart3,
   LucideIcon,
   Image,
@@ -42,7 +41,6 @@ const Overview: React.FC = () => {
     refreshData,
   } = useOverviewViewModel()
 
-  // Icon mapping for quick actions
   const iconMap: Record<string, LucideIcon> = {
     FolderPlus,
     Tag,
@@ -55,7 +53,7 @@ const Overview: React.FC = () => {
       title: "Active Projects",
       value: statistics.totalProjects,
       icon: Folder,
-      color: "bg-primary",
+      color: "bg-blue-500",
       trend: { value: 12, isPositive: true },
     },
     {
@@ -287,6 +285,15 @@ const Overview: React.FC = () => {
             </CardContent>
           </Card>
         </section>
+
+        {/* Authentication Status Demo */}
+        <section>
+           {
+            isElectron() && isDevMode() && (
+              <AuthStatusDemo />
+            )
+           }
+        </section>
       </div>
 
       {/* Workflow Insights */}
@@ -347,13 +354,11 @@ const Overview: React.FC = () => {
         </div>
       </section>
 
-      {/* Empty State */}
+      {/* Empty State with updated image and animation */}
       {isEmpty && !isLoading && (
         <div className="text-center py-16">
           <Folder className="h-24 w-24 mx-auto mb-6 text-muted-foreground opacity-50" />
-          <h3 className="text-2xl font-semibold mb-4 text-foreground">
-            Welcome to VAI Label Studio
-          </h3>
+          <h3 className="text-2xl font-semibold mb-4">Welcome to VaiLabeling</h3>
           <p className="text-muted-foreground mb-8 max-w-md mx-auto">
             Start your annotation workflow by creating a project, uploading
             images, and defining label classes for your computer vision tasks.
