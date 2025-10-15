@@ -60,7 +60,7 @@
     "ts-jest": "^29.4.1",
     "turbo": "^2.5.6"
   },
-  "packageManager": "yarn@1.22.22",
+  "packageManager": "yarn@4.10.3",
   "dependencies": {
     "electron": "36.2.1"
   }

@@ -47,6 +47,16 @@ export default function Header() {
           {/* Desktop nav */}
           <div className="hidden md:flex items-center space-x-4">
             <Link
+              href="/"
+              className={`${
+                isActive("/")
+                  ? "text-gray-900 dark:text-white font-semibold"
+                  : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+              }`}
+            >
+              Home
+            </Link>
+            <Link
               href="/docs/getting-started"
               className={`${
                 isActive("/docs")
@@ -113,8 +123,19 @@ export default function Header() {
         {menuOpen && (
           <div className="md:hidden flex flex-col space-y-2 pb-4 animate-fade-in">
             <Link
+              href="/"
+              className={`${
+                isActive("/")
+                  ? "text-gray-900 dark:text-white font-semibold"
+                  : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+              }`}
+              onClick={() => setMenuOpen(false)}
+            >
+              Home
+            </Link>
+            <Link
               href="/docs/getting-started"
-              className={`$${
+              className={`${
                 isActive("/docs")
                   ? "text-gray-900 dark:text-white font-semibold"
                   : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
