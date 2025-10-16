@@ -15,6 +15,8 @@ export default function Footer() {
             <div className="flex items-center gap-4">
               <a
                 href={data.repoUrl}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
               >
                 <Github size={20} />
@@ -78,6 +80,8 @@ export default function Footer() {
               <li>
                 <a
                   href={data.repoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
                 >
                   GitHub

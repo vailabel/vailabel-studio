@@ -3,6 +3,7 @@
 import { motion } from "framer-motion"
 import { ArrowRight, Github } from "lucide-react"
 import React from "react"
+import { data } from "@/app/data"
 
 const CTASection = () => {
   return (
@@ -32,8 +33,9 @@ const CTASection = () => {
               Download Now <ArrowRight size={18} />
             </motion.a>
             <motion.a
-              href="https://github.com/vailabel/vailabel-studio"
+              href={data.repoUrl}
               target="_blank"
+              rel="noopener noreferrer"
               className="px-8 py-3 rounded-lg bg-blue-700 text-white font-medium hover:bg-blue-800 transition-colors flex items-center justify-center gap-2 border border-white"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
