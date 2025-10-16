@@ -355,7 +355,7 @@ const HeroSection = () => {
       }
 
       // Move to next tool after animation completes
-      setActiveToolIndex((prev) => (prev + 1) % labelingTools.length)
+  setActiveToolIndex((prev: number) => (prev + 1) % labelingTools.length)
     }
 
     // Start the animation sequence
@@ -400,6 +400,8 @@ const HeroSection = () => {
             <DownloadButton />
             <motion.a
               href={data.repoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
               className="px-8 py-3 rounded-lg bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-medium hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
