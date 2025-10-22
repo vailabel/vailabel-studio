@@ -30,6 +30,17 @@
 
 ---
 
+## 📑 Table of Contents
+- [✨ Features](#-features)
+- [📂 Sub-Projects](#-sub-projects)
+- [📸 Demo Screenshots](#-demo-screenshots)
+- [🚀 Getting Started](#-getting-started)
+- [📦 Export Formats](#-export-formats)
+- [🤖 AI Auto-Labeling (YOLOv8 Integration)](#-ai-auto-labeling-yolov8-integration)
+- [📝 Roadmap](#-roadmap)
+- [🤝 Contributing](#-contributing)
+- [📄 License](#-license)
+- [Acknowledgements](#acknowledgements)
 ## 📦 Installation
 
 ### Desktop App
@@ -176,7 +187,7 @@ This project is licensed under the **GNU GENERAL PUBLIC LICENSE** — see the [L
 
 ---
 
-## ❤️ Acknowledgements
+## Acknowledgements
 
 - [Ultralytics YOLOv8](https://github.com/ultralytics/ultralytics)
 - [TailwindCSS](https://tailwindcss.com/)
