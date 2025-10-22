@@ -31,7 +31,7 @@ export default async function BlogsPage({
   )
 
   const blogsPerPage = 5
-  const currentPage = parseInt(searchParams.page || "1", 10)
+  const currentPage = parseInt(searchParams.page ?? "1", 10)
   const totalPages = Math.ceil(blogs.length / blogsPerPage)
 
   const paginatedBlogs = blogs.slice(
@@ -52,54 +52,55 @@ export default async function BlogsPage({
                 key={blog.slug}
                 className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-0 hover:shadow-2xl transition-shadow flex flex-col md:flex-row overflow-hidden border border-gray-100 dark:border-gray-700 group"
               >
-                {blog.image && (
-                  <div className="md:w-64 w-full h-48 md:h-auto flex-shrink-0 overflow-hidden relative">
-                    <img
-                      src={blog.image}
-                      alt={blog.title}
-                      className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
-                      loading="lazy"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                  </div>
-                )}
-                <div className="flex flex-col flex-1 p-6 md:p-8">
-                  <h2 className="text-2xl font-bold mb-2 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                    {blog.title}
-                  </h2>
-                  <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-3 text-base">
-                    {blog.description}
-                  </p>
-                  <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400 mb-6">
-                    <span className="inline-block px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full font-medium">
-                      {blog.date}
-                    </span>
-                    <span>•</span>
-                    <span className="font-medium">{blog.author}</span>
-                  </div>
-                  <div className="mt-auto">
-                    <Link
-                      href={`/blogs/${blog.slug}`}
-                      className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-blue-600 text-white dark:bg-blue-500 dark:text-white font-semibold shadow hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
-                    >
-                      Read More
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        strokeWidth={2}
-                        stroke="currentColor"
-                        className="w-4 h-4"
+                <Link href={`/blogs/${blog.slug}`} className="flex flex-col md:flex-row flex-1 cursor-pointer">
+                  {blog.image && (
+                    <div className="md:w-64 w-full h-48 md:h-auto flex-shrink-0 overflow-hidden relative">
+                      <img
+                        src={blog.image}
+                        alt={blog.title}
+                        className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                    </div>
+                  )}
+                  <div className="flex flex-col flex-1 p-6 md:p-8">
+                    <h2 className="text-2xl font-bold mb-2 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                      {blog.title}
+                    </h2>
+                    <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-3 text-base">
+                      {blog.description}
+                    </p>
+                    <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400 mb-6">
+                      <span className="inline-block px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full font-medium">
+                        {blog.date}
+                      </span>
+                      <span>•</span>
+                      <span className="font-medium">{blog.author}</span>
+                    </div>
+                    <div className="mt-auto">
+                      <div
+                        className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-blue-600 text-white dark:bg-blue-500 dark:text-white font-semibold shadow hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M17.25 6.75L21 10.5m0 0l-3.75 3.75M21 10.5H3"
-                        />
-                      </svg>
-                    </Link>
+                        Read More
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth={2}
+                          stroke="currentColor"
+                          className="w-4 h-4"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M17.25 6.75L21 10.5m0 0l-3.75 3.75M21 10.5H3"
+                          />
+                        </svg>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                </Link>
               </li>
             ))}
           </ul>
