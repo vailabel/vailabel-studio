@@ -16,12 +16,15 @@ interface SidebarProps {
 
 export function DocumentationSidebarClient({ docs }: SidebarProps) {
   // Group docs by category
-  const docsByCategory = docs.reduce((acc, doc) => {
-    const category = doc.category || "General"
-    if (!acc[category]) acc[category] = []
-    acc[category].push(doc)
-    return acc
-  }, {} as Record<string, Doc[]>)
+  const docsByCategory = docs.reduce(
+    (acc, doc) => {
+      const category = doc.category || "General"
+      if (!acc[category]) acc[category] = []
+      acc[category].push(doc)
+      return acc
+    },
+    {} as Record<string, Doc[]>
+  )
   const sortedCategories = Object.keys(docsByCategory).sort((a, b) => {
     if (a === "General") return -1
     if (b === "General") return 1
