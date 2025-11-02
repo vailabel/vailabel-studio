@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-labelledby="demo-nature-title demo-nature-desc">
+  <title id="demo-nature-title">Nature Scene - Complex Segmentation Demo</title>
+  <desc id="demo-nature-desc">A peaceful park scene featuring trees, flowers, butterflies, a cat, and a bench, perfect for demonstrating brush tool and pixel-perfect segmentation masks</desc>
   <!-- Background - Nature/Park Scene -->
   <defs>
     <linearGradient id="grassGrad" x1="0%" y1="0%" x2="0%" y2="100%">

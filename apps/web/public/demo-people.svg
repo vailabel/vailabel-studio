@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-labelledby="demo-people-title demo-people-desc">
+  <title id="demo-people-title">Urban Scene - People Detection Demo</title>
+  <desc id="demo-people-desc">An urban street scene with people walking, a dog, and a bicycle, ideal for demonstrating polygon annotation on irregular shapes and multiple objects</desc>
   <!-- Background - Urban Scene with People -->
   <defs>
     <linearGradient id="sidewalkGrad" x1="0%" y1="0%" x2="0%" y2="100%">

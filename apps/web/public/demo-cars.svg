@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-labelledby="demo-cars-title demo-cars-desc">
+  <title id="demo-cars-title">Highway Traffic Scene Demo</title>
+  <desc id="demo-cars-desc">A demonstration image showing a highway scene with multiple vehicles including cars, a taxi, and a van, perfect for practicing object detection and bounding box annotation</desc>
   <!-- Background - Highway Scene -->
   <defs>
     <linearGradient id="roadGradient" x1="0%" y1="0%" x2="0%" y2="100%">

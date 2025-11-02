@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-labelledby="demo-layers-title demo-layers-desc">
+  <title id="demo-layers-title">Complex Scene - Layer Management Demo</title>
+  <desc id="demo-layers-desc">A complex mixed scene with buildings, vehicles, people, cyclists, and other objects, demonstrating the layer manager interface for organizing multiple annotation layers in complex projects</desc>
   <!-- Background - Mixed Scene for Layer Management -->
   <defs>
     <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">

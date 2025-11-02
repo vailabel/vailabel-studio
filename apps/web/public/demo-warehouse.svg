@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-labelledby="demo-warehouse-title demo-warehouse-desc">
+  <title id="demo-warehouse-title">Warehouse Scene - AI-Assisted Detection Demo</title>
+  <desc id="demo-warehouse-desc">An industrial warehouse scene with shelves, boxes, a forklift, and a worker, showcasing AI-assisted automatic object detection and labeling</desc>
   <!-- Background - Warehouse/Industrial Scene -->
   <defs>
     <linearGradient id="floorGrad" x1="0%" y1="0%" x2="0%" y2="100%">
