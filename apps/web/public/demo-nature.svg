@@ -1,0 +1,149 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
+  <!-- Background - Nature/Park Scene -->
+  <defs>
+    <linearGradient id="grassGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#86efac;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#22c55e;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="skyGrad2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#7dd3fc;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#bae6fd;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="pathGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#d6d3d1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#a8a29e;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Sky with clouds -->
+  <rect width="1280" height="380" fill="url(#skyGrad2)"/>
+  
+  <!-- Clouds -->
+  <g opacity="0.7">
+    <ellipse cx="200" cy="100" rx="60" ry="30" fill="#ffffff"/>
+    <ellipse cx="240" cy="110" rx="50" ry="25" fill="#ffffff"/>
+    <ellipse cx="180" cy="115" rx="45" ry="25" fill="#ffffff"/>
+    
+    <ellipse cx="600" cy="80" rx="70" ry="35" fill="#ffffff"/>
+    <ellipse cx="650" cy="95" rx="55" ry="30" fill="#ffffff"/>
+    
+    <ellipse cx="1000" cy="120" rx="65" ry="32" fill="#ffffff"/>
+    <ellipse cx="1050" cy="130" rx="50" ry="28" fill="#ffffff"/>
+  </g>
+  
+  <!-- Grass/Ground -->
+  <rect y="380" width="1280" height="340" fill="url(#grassGrad)"/>
+  
+  <!-- Path -->
+  <path d="M 0 500 Q 320 480 640 500 T 1280 500" fill="url(#pathGrad)" opacity="0.8"/>
+  <ellipse cx="640" cy="500" rx="640" ry="100" fill="url(#pathGrad)"/>
+  
+  <!-- Trees -->
+  <g id="tree1">
+    <rect x="100" y="300" width="25" height="100" fill="#78350f"/>
+    <circle cx="112" cy="270" r="60" fill="#16a34a"/>
+    <circle cx="140" cy="250" r="50" fill="#15803d"/>
+    <circle cx="80" cy="260" r="55" fill="#15803d"/>
+    <circle cx="112" cy="230" r="45" fill="#16a34a"/>
+  </g>
+  
+  <g id="tree2">
+    <rect x="950" y="320" width="30" height="90" fill="#78350f"/>
+    <circle cx="965" cy="290" r="70" fill="#16a34a"/>
+    <circle cx="1000" cy="270" r="60" fill="#15803d"/>
+    <circle cx="925" cy="280" r="58" fill="#15803d"/>
+    <circle cx="965" cy="250" r="50" fill="#16a34a"/>
+  </g>
+  
+  <!-- Flowers/Plants in foreground -->
+  <g id="flowers">
+    <!-- Flower 1 -->
+    <circle cx="300" cy="650" r="8" fill="#f43f5e"/>
+    <circle cx="290" cy="645" r="6" fill="#fb7185"/>
+    <circle cx="310" cy="645" r="6" fill="#fb7185"/>
+    <circle cx="295" cy="657" r="6" fill="#fb7185"/>
+    <circle cx="305" cy="657" r="6" fill="#fb7185"/>
+    <rect x="298" y="650" width="4" height="35" fill="#16a34a"/>
+    
+    <!-- Flower 2 -->
+    <circle cx="450" cy="640" r="10" fill="#fbbf24"/>
+    <circle cx="438" cy="635" r="7" fill="#fde047"/>
+    <circle cx="462" cy="635" r="7" fill="#fde047"/>
+    <circle cx="442" cy="648" r="7" fill="#fde047"/>
+    <circle cx="458" cy="648" r="7" fill="#fde047"/>
+    <rect x="447" y="640" width="6" height="40" fill="#16a34a"/>
+    
+    <!-- Flower 3 -->
+    <circle cx="800" cy="655" r="9" fill="#a855f7"/>
+    <circle cx="790" cy="650" r="7" fill="#c084fc"/>
+    <circle cx="810" cy="650" r="7" fill="#c084fc"/>
+    <circle cx="794" cy="663" r="7" fill="#c084fc"/>
+    <circle cx="806" cy="663" r="7" fill="#c084fc"/>
+    <rect x="797" y="655" width="5" height="38" fill="#16a34a"/>
+    
+    <!-- Flower 4 -->
+    <circle cx="1050" cy="645" r="8" fill="#f43f5e"/>
+    <circle cx="1040" cy="640" r="6" fill="#fb7185"/>
+    <circle cx="1060" cy="640" r="6" fill="#fb7185"/>
+    <circle cx="1045" cy="652" r="6" fill="#fb7185"/>
+    <circle cx="1055" cy="652" r="6" fill="#fb7185"/>
+    <rect x="1048" y="645" width="4" height="35" fill="#16a34a"/>
+  </g>
+  
+  <!-- Butterflies -->
+  <g id="butterfly1">
+    <ellipse cx="550" cy="400" rx="15" ry="10" fill="#f97316" transform="rotate(-20 550 400)"/>
+    <ellipse cx="570" cy="400" rx="15" ry="10" fill="#f97316" transform="rotate(20 570 400)"/>
+    <ellipse cx="560" cy="395" rx="3" ry="8" fill="#ea580c"/>
+    <circle cx="560" cy="387" r="3" fill="#9a3412"/>
+  </g>
+  
+  <g id="butterfly2">
+    <ellipse cx="720" cy="350" rx="12" ry="8" fill="#ec4899" transform="rotate(-25 720 350)"/>
+    <ellipse cx="735" cy="350" rx="12" ry="8" fill="#ec4899" transform="rotate(25 735 350)"/>
+    <ellipse cx="727" cy="346" rx="2" ry="6" fill="#db2777"/>
+    <circle cx="727" cy="340" r="2" fill="#831843"/>
+  </g>
+  
+  <!-- Bushes -->
+  <ellipse cx="500" cy="430" rx="80" ry="40" fill="#15803d"/>
+  <ellipse cx="540" cy="420" rx="60" ry="35" fill="#16a34a"/>
+  <ellipse cx="470" cy="425" rx="55" ry="30" fill="#16a34a"/>
+  
+  <ellipse cx="1150" cy="450" rx="70" ry="38" fill="#15803d"/>
+  <ellipse cx="1185" cy="442" rx="55" ry="32" fill="#16a34a"/>
+  <ellipse cx="1120" cy="445" rx="50" ry="28" fill="#16a34a"/>
+  
+  <!-- Cat silhouette -->
+  <g id="cat">
+    <ellipse cx="640" cy="580" rx="35" ry="22" fill="#1f2937"/>
+    <circle cx="615" cy="570" r="15" fill="#1f2937"/>
+    <!-- Ears -->
+    <path d="M 605 560 L 600 545 L 610 558" fill="#1f2937"/>
+    <path d="M 625 560 L 630 545 L 620 558" fill="#1f2937"/>
+    <!-- Legs -->
+    <rect x="618" y="595" width="6" height="20" rx="2" fill="#1f2937"/>
+    <rect x="633" y="595" width="6" height="20" rx="2" fill="#1f2937"/>
+    <rect x="648" y="595" width="6" height="20" rx="2" fill="#1f2937"/>
+    <rect x="663" y="595" width="6" height="20" rx="2" fill="#1f2937"/>
+    <!-- Tail -->
+    <path d="M 675 575 Q 700 560 710 580" stroke="#1f2937" stroke-width="5" fill="none" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Bench -->
+  <g id="bench">
+    <rect x="850" y="520" width="120" height="8" rx="2" fill="#78350f"/>
+    <rect x="860" y="528" width="6" height="40" fill="#78350f"/>
+    <rect x="954" y="528" width="6" height="40" fill="#78350f"/>
+    <rect x="855" y="500" width="115" height="6" rx="2" fill="#78350f"/>
+    <rect x="860" y="506" width="6" height="22" fill="#78350f"/>
+    <rect x="954" y="506" width="6" height="22" fill="#78350f"/>
+  </g>
+  
+  <!-- Sun -->
+  <circle cx="1150" cy="100" r="45" fill="#fbbf24" opacity="0.8"/>
+  
+  <!-- Annotation instruction text -->
+  <text x="640" y="40" font-family="Arial" font-size="24" font-weight="bold" fill="#1f2937" text-anchor="middle">Nature Scene - Complex Segmentation</text>
+  <text x="640" y="700" font-family="Arial" font-size="16" fill="#374151" text-anchor="middle">Perfect for brush tool and segmentation masks | Trees, Flowers, Animals</text>
+</svg>

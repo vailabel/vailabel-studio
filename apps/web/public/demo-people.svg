@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
+  <!-- Background - Urban Scene with People -->
+  <defs>
+    <linearGradient id="sidewalkGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#d1d5db;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#9ca3af;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#60a5fa;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#bfdbfe;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Sky -->
+  <rect width="1280" height="400" fill="url(#skyGrad)"/>
+  
+  <!-- Ground/Sidewalk -->
+  <rect y="400" width="1280" height="320" fill="url(#sidewalkGrad)"/>
+  
+  <!-- Buildings -->
+  <rect x="50" y="150" width="200" height="250" fill="#4b5563"/>
+  <rect x="280" y="100" width="180" height="300" fill="#6b7280"/>
+  <rect x="900" y="120" width="220" height="280" fill="#4b5563"/>
+  
+  <!-- Windows on buildings -->
+  <g opacity="0.3">
+    <rect x="70" y="180" width="30" height="40" fill="#fbbf24"/>
+    <rect x="120" y="180" width="30" height="40" fill="#fbbf24"/>
+    <rect x="170" y="180" width="30" height="40" fill="#fbbf24"/>
+    <rect x="70" y="250" width="30" height="40" fill="#fbbf24"/>
+    <rect x="120" y="250" width="30" height="40" fill="#fbbf24"/>
+    <rect x="170" y="250" width="30" height="40" fill="#fbbf24"/>
+    <rect x="300" y="140" width="30" height="40" fill="#fbbf24"/>
+    <rect x="350" y="140" width="30" height="40" fill="#fbbf24"/>
+    <rect x="300" y="210" width="30" height="40" fill="#fbbf24"/>
+    <rect x="350" y="210" width="30" height="40" fill="#fbbf24"/>
+  </g>
+  
+  <!-- Person 1 - Walking -->
+  <g id="person1">
+    <!-- Head -->
+    <circle cx="250" cy="470" r="25" fill="#f59e0b"/>
+    <!-- Body -->
+    <rect x="235" y="500" width="30" height="60" rx="5" fill="#3b82f6"/>
+    <!-- Legs -->
+    <rect x="237" y="560" width="12" height="50" rx="3" fill="#1e40af"/>
+    <rect x="261" y="560" width="12" height="50" rx="3" fill="#1e40af"/>
+    <!-- Arms -->
+    <rect x="220" y="510" width="10" height="40" rx="3" fill="#f59e0b"/>
+    <rect x="280" y="510" width="10" height="40" rx="3" fill="#f59e0b"/>
+  </g>
+  
+  <!-- Person 2 - Standing -->
+  <g id="person2">
+    <circle cx="550" cy="480" r="28" fill="#fbbf24"/>
+    <rect x="533" y="512" width="34" height="65" rx="5" fill="#ef4444"/>
+    <rect x="535" y="577" width="14" height="55" rx="3" fill="#991b1b"/>
+    <rect x="569" y="577" width="14" height="55" rx="3" fill="#991b1b"/>
+    <rect x="515" y="525" width="12" height="45" rx="3" fill="#fbbf24"/>
+    <rect x="591" y="525" width="12" height="45" rx="3" fill="#fbbf24"/>
+  </g>
+  
+  <!-- Person 3 - Walking opposite direction -->
+  <g id="person3">
+    <circle cx="820" cy="465" r="23" fill="#f59e0b"/>
+    <rect x="806" y="493" width="28" height="58" rx="5" fill="#8b5cf6"/>
+    <rect x="808" y="551" width="11" height="48" rx="3" fill="#5b21b6"/>
+    <rect x="847" y="551" width="11" height="48" rx="3" fill="#5b21b6"/>
+    <rect x="792" y="503" width="9" height="38" rx="3" fill="#f59e0b"/>
+    <rect x="867" y="503" width="9" height="38" rx="3" fill="#f59e0b"/>
+  </g>
+  
+  <!-- Person 4 - Small (in background) -->
+  <g id="person4" opacity="0.7">
+    <circle cx="1100" cy="490" r="20" fill="#fbbf24"/>
+    <rect x="1087" y="514" width="26" height="50" rx="4" fill="#10b981"/>
+    <rect x="1089" y="564" width="10" height="42" rx="3" fill="#065f46"/>
+    <rect x="1113" y="564" width="10" height="42" rx="3" fill="#065f46"/>
+    <rect x="1075" y="522" width="8" height="35" rx="3" fill="#fbbf24"/>
+    <rect x="1129" y="522" width="8" height="35" rx="3" fill="#fbbf24"/>
+  </g>
+  
+  <!-- Dog -->
+  <g id="dog1">
+    <!-- Body -->
+    <ellipse cx="420" cy="600" rx="40" ry="25" fill="#78350f"/>
+    <!-- Head -->
+    <circle cx="385" cy="590" r="18" fill="#78350f"/>
+    <!-- Ears -->
+    <ellipse cx="378" cy="580" rx="6" ry="12" fill="#451a03"/>
+    <ellipse cx="392" cy="580" rx="6" ry="12" fill="#451a03"/>
+    <!-- Legs -->
+    <rect x="395" y="615" width="8" height="25" rx="2" fill="#78350f"/>
+    <rect x="410" y="615" width="8" height="25" rx="2" fill="#78350f"/>
+    <rect x="425" y="615" width="8" height="25" rx="2" fill="#78350f"/>
+    <rect x="440" y="615" width="8" height="25" rx="2" fill="#78350f"/>
+    <!-- Tail -->
+    <path d="M 460 595 Q 480 585 490 600" stroke="#78350f" stroke-width="6" fill="none" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Bicycle -->
+  <g id="bicycle">
+    <!-- Frame -->
+    <path d="M 700 550 L 740 550 L 770 520 L 740 550 L 760 580" stroke="#1f2937" stroke-width="4" fill="none"/>
+    <!-- Wheels -->
+    <circle cx="700" cy="580" r="25" fill="none" stroke="#1f2937" stroke-width="4"/>
+    <circle cx="760" cy="580" r="25" fill="none" stroke="#1f2937" stroke-width="4"/>
+    <!-- Seat -->
+    <ellipse cx="720" cy="530" rx="15" ry="5" fill="#374151"/>
+    <!-- Handlebars -->
+    <path d="M 760 520 L 780 510" stroke="#1f2937" stroke-width="4" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Street lamp -->
+  <g id="lamp">
+    <rect x="148" y="300" width="4" height="150" fill="#374151"/>
+    <ellipse cx="150" cy="290" rx="20" ry="15" fill="#fbbf24" opacity="0.6"/>
+  </g>
+  
+  <!-- Tree -->
+  <g id="tree">
+    <rect x="998" y="350" width="15" height="70" fill="#78350f"/>
+    <circle cx="1005" cy="330" r="35" fill="#10b981"/>
+    <circle cx="1025" cy="320" r="30" fill="#059669"/>
+    <circle cx="985" cy="325" r="28" fill="#059669"/>
+  </g>
+  
+  <!-- Annotation instruction text -->
+  <text x="640" y="40" font-family="Arial" font-size="24" font-weight="bold" fill="#1f2937" text-anchor="middle">Urban Scene - People Detection</text>
+  <text x="640" y="690" font-family="Arial" font-size="16" fill="#4b5563" text-anchor="middle">Multiple objects for polygon annotation | People, Dog, Bicycle</text>
+</svg>

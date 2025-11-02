@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
+  <!-- Background - Highway Scene -->
+  <defs>
+    <linearGradient id="roadGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#4a5568;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2d3748;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="skyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#90cdf4;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Sky -->
+  <rect width="1280" height="350" fill="url(#skyGradient)"/>
+  
+  <!-- Road -->
+  <rect y="350" width="1280" height="370" fill="url(#roadGradient)"/>
+  
+  <!-- Road markings -->
+  <g opacity="0.7">
+    <rect x="100" y="500" width="80" height="10" fill="#ffffff"/>
+    <rect x="250" y="500" width="80" height="10" fill="#ffffff"/>
+    <rect x="400" y="500" width="80" height="10" fill="#ffffff"/>
+    <rect x="550" y="500" width="80" height="10" fill="#ffffff"/>
+    <rect x="700" y="500" width="80" height="10" fill="#ffffff"/>
+    <rect x="850" y="500" width="80" height="10" fill="#ffffff"/>
+    <rect x="1000" y="500" width="80" height="10" fill="#ffffff"/>
+    <rect x="1150" y="500" width="80" height="10" fill="#ffffff"/>
+  </g>
+  
+  <!-- Cars -->
+  <!-- Red Car (front) -->
+  <g id="car1">
+    <rect x="200" y="420" width="120" height="70" rx="8" fill="#ef4444"/>
+    <rect x="210" y="435" width="30" height="35" rx="3" fill="#1e3a8a" opacity="0.5"/>
+    <rect x="270" y="435" width="30" height="35" rx="3" fill="#1e3a8a" opacity="0.5"/>
+    <circle cx="225" cy="495" r="12" fill="#1f2937"/>
+    <circle cx="295" cy="495" r="12" fill="#1f2937"/>
+  </g>
+  
+  <!-- Blue Car (middle) -->
+  <g id="car2">
+    <rect x="500" y="440" width="110" height="65" rx="8" fill="#3b82f6"/>
+    <rect x="510" y="453" width="28" height="30" rx="3" fill="#1e3a8a" opacity="0.5"/>
+    <rect x="565" y="453" width="28" height="30" rx="3" fill="#1e3a8a" opacity="0.5"/>
+    <circle cx="522" cy="510" r="11" fill="#1f2937"/>
+    <circle cx="588" cy="510" r="11" fill="#1f2937"/>
+  </g>
+  
+  <!-- Green Car (back) -->
+  <g id="car3">
+    <rect x="850" y="480" width="100" height="55" rx="7" fill="#10b981"/>
+    <rect x="858" y="491" width="25" height="27" rx="3" fill="#1e3a8a" opacity="0.5"/>
+    <rect x="905" y="491" width="25" height="27" rx="3" fill="#1e3a8a" opacity="0.5"/>
+    <circle cx="870" cy="540" r="10" fill="#1f2937"/>
+    <circle cx="930" cy="540" r="10" fill="#1f2937"/>
+  </g>
+  
+  <!-- Yellow Taxi -->
+  <g id="car4">
+    <rect x="1050" y="455" width="105" height="60" rx="7" fill="#fbbf24"/>
+    <rect x="1058" y="468" width="26" height="28" rx="3" fill="#1e3a8a" opacity="0.5"/>
+    <rect x="1110" y="468" width="26" height="28" rx="3" fill="#1e3a8a" opacity="0.5"/>
+    <circle cx="1072" cy="520" r="10" fill="#1f2937"/>
+    <circle cx="1133" cy="520" r="10" fill="#1f2937"/>
+    <!-- Taxi sign -->
+    <rect x="1085" y="445" width="30" height="8" rx="2" fill="#000000"/>
+    <text x="1100" y="453" font-family="Arial" font-size="9" fill="#fbbf24" text-anchor="middle">TAXI</text>
+  </g>
+  
+  <!-- Van -->
+  <g id="car5">
+    <rect x="380" y="560" width="130" height="80" rx="8" fill="#8b5cf6"/>
+    <rect x="392" y="575" width="32" height="38" rx="3" fill="#1e3a8a" opacity="0.5"/>
+    <rect x="460" y="575" width="32" height="38" rx="3" fill="#1e3a8a" opacity="0.5"/>
+    <rect x="390" y="555" width="120" height="15" rx="5" fill="#7c3aed"/>
+    <circle cx="410" cy="645" r="12" fill="#1f2937"/>
+    <circle cx="480" cy="645" r="12" fill="#1f2937"/>
+  </g>
+  
+  <!-- Buildings in background -->
+  <g opacity="0.4">
+    <rect x="50" y="250" width="100" height="100" fill="#2d3748"/>
+    <rect x="180" y="200" width="120" height="150" fill="#4a5568"/>
+    <rect x="330" y="230" width="90" height="120" fill="#2d3748"/>
+    <rect x="950" y="220" width="110" height="130" fill="#4a5568"/>
+    <rect x="1100" y="260" width="95" height="90" fill="#2d3748"/>
+  </g>
+  
+  <!-- Annotation instruction text -->
+  <text x="640" y="40" font-family="Arial" font-size="24" font-weight="bold" fill="#ffffff" text-anchor="middle">Highway Traffic Scene - Perfect for Object Detection</text>
+  <text x="640" y="680" font-family="Arial" font-size="16" fill="#e5e7eb" text-anchor="middle">Multiple vehicles for annotation practice | Cars, Taxi, Van</text>
+</svg>
