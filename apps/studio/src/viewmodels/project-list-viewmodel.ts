@@ -6,12 +6,16 @@
 
 import { useState, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
-import { useProjects } from "@/hooks/useFastAPIQuery"
+import { useProjects, useDeleteProject } from "@/hooks/api/project-hooks"
 import { Project } from "@vailabel/core"
+import { useToast } from "@/hooks/use-toast"
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog"
 
 export const useProjectListViewModel = () => {
   const navigate = useNavigate()
-  
+  const { toast } = useToast()
+  const confirm = useConfirmDialog()
+
   // State
   const [searchQuery, setSearchQuery] = useState("")
   const [sortBy, setSortBy] = useState<"name" | "createdAt" | "updatedAt">(
@@ -23,6 +27,9 @@ export const useProjectListViewModel = () => {
 
   // Queries
   const { data: projects = [], isLoading, error, refetch } = useProjects()
+
+  // Mutations
+  const deleteProjectMutation = useDeleteProject()
 
   // Computed values
   const filteredAndSortedProjects = useMemo(() => {
@@ -129,13 +136,35 @@ export const useProjectListViewModel = () => {
   }
 
   const deleteProject = async (projectId: string) => {
+    // Find project name for confirmation message
+    const project = projects.find((p) => p.id === projectId)
+    const projectName = project?.name || "this project"
+
+    // Confirm before deleting
+    const confirmed = await confirm({
+      title: "Delete Project?",
+      description: `Are you sure you want to delete "${projectName}"? This action cannot be undone.`,
+      confirmText: "Delete",
+      cancelText: "Cancel",
+    })
+
+    if (!confirmed) return
+
     try {
-      // This would typically call the delete API
-      console.log("Delete project:", projectId)
+      await deleteProjectMutation.mutateAsync(projectId)
       // Remove from selection if it was selected
       setSelectedProjects((prev) => prev.filter((id) => id !== projectId))
+      toast({
+        title: "Project deleted",
+        description: `"${projectName}" has been successfully deleted.`,
+      })
     } catch (error) {
       console.error("Failed to delete project:", error)
+      toast({
+        title: "Error",
+        description: "Failed to delete project. Please try again.",
+        variant: "destructive",
+      })
       throw error
     }
   }

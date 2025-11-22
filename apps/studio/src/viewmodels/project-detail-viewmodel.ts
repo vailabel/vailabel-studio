@@ -10,11 +10,11 @@ import {
   useProject,
   useUpdateProject,
   useDeleteProject,
-  useImages,
-  useAnnotations,
-  useLabels,
-  useTasks,
-} from "@/hooks/useFastAPIQuery"
+} from "@/hooks/api/project-hooks"
+import { useImages } from "@/hooks/api/image-hooks"
+import { useAnnotations } from "@/hooks/api/annotation-hooks"
+import { useLabels } from "@/hooks/api/label-hooks"
+import { useTasks } from "@/hooks/api/task-hooks"
 import { Project, Annotation, Task } from "@vailabel/core"
 import { z } from "zod"
 import { v4 as uuidv4 } from "uuid"
@@ -394,8 +394,8 @@ export const useProjectDetailViewModel = (projectId: string) => {
     annotationsLoading ||
     labelsLoading ||
     tasksLoading
-  const error =
-    projectError || imagesError || annotationsError || labelsError || tasksError
+  // Only treat project loading errors as fatal - 404s for images/labels/annotations are expected for new projects
+  const error = projectError
 
   // Computed properties for the UI
   const projectName = project?.name || "Loading..."

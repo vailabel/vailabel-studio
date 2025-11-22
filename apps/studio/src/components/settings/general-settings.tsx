@@ -13,14 +13,13 @@ import { ElectronFileInput } from "@/components/electron-file"
 import { useSettingsViewModel } from "@/viewmodels/settings-viewmodel"
 
 export default function GeneralSettings() {
-  const { getSettingValue, updateSetting, resetToDefaults } =
-    useSettingsViewModel()
+  const { settings, updateSetting } = useSettingsViewModel()
 
   // Get general settings
-  const dataDirectory = (getSettingValue("dataDirectory") as string) || ""
-  const autoSave = (getSettingValue("autoSave") as boolean) || true
-  const showLabels = (getSettingValue("showLabels") as boolean) || true
-  const snapToGrid = (getSettingValue("snapToGrid") as boolean) || false
+  const dataDirectory = (settings.dataDirectory as string) || ""
+  const autoSave = (settings.autoSave as boolean) ?? true
+  const showLabels = (settings.showLabels as boolean) ?? true
+  const snapToGrid = (settings.snapToGrid as boolean) ?? false
 
   const handleDataDirectoryChange = (event: {
     target: { files: string[] }
@@ -44,7 +43,10 @@ export default function GeneralSettings() {
   }
 
   const handleReset = async () => {
-    await resetToDefaults()
+    // Reset individual settings to defaults
+    await updateSetting("autoSave", true)
+    await updateSetting("showLabels", true)
+    await updateSetting("snapToGrid", false)
   }
 
   return (

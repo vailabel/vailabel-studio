@@ -11,7 +11,7 @@ import {
   useCreateLabel,
   useUpdateLabel,
   useDeleteLabel,
-} from "@/hooks/useFastAPIQuery"
+} from "@/hooks/api/label-hooks"
 import { Label } from "@vailabel/core"
 
 export const useLabelsViewModel = (projectId?: string) => {

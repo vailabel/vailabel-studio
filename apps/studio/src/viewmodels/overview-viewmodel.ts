@@ -5,7 +5,8 @@
  */
 
 import { useMemo } from "react"
-import { useProjects, useCurrentUser } from "@/hooks/useFastAPIQuery"
+import { useProjects } from "@/hooks/api/project-hooks"
+import { useCurrentUser } from "@/hooks/api/auth-hooks"
 
 export const useOverviewViewModel = () => {
   // Queries

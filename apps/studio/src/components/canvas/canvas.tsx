@@ -6,7 +6,7 @@ import { useCanvasHandlers } from "@/hooks/use-canvas-handlers-context"
 import { type Annotation, type ImageData, type Label } from "@vailabel/core"
 import { Crosshair } from "@/components/canvas/crosshair-context"
 import { CreateAnnotation } from "@/components/canvas/create-annotation"
-import { useLabels } from "@/hooks/useFastAPIQuery"
+import { useLabels } from "@/hooks/api/label-hooks"
 import {
   useCanvasPan,
   useCanvasZoom,

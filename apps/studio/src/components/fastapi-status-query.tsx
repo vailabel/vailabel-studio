@@ -4,7 +4,7 @@
  */
 
 import React from "react"
-import { useServerStatus } from "../hooks/useFastAPIQuery"
+import { useServerStatus } from "../hooks/api/utility-hooks"
 import {
   Card,
   CardContent,

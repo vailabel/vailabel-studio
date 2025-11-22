@@ -1,0 +1,150 @@
+# Vailabel Studio - Cursor Rules
+
+## Animation & Motion
+
+### ❌ DO NOT USE Framer Motion
+
+- **NEVER** import or use `framer-motion` or any of its components (`motion.*`, `AnimatePresence`, etc.)
+- **NEVER** add `framer-motion` as a dependency
+- Remove all existing framer-motion usage when refactoring code
+
+### ✅ USE Native CSS/Tailwind Animations Instead
+
+- Use Tailwind CSS animation utilities: `animate-spin`, `animate-pulse`, `animate-bounce`, `animate-fade-in`, etc.
+- Use CSS transitions with Tailwind: `transition-all`, `transition-colors`, `duration-300`, `ease-in-out`
+- Use Tailwind's `tailwindcss-animate` plugin for common animations
+- For complex animations, use CSS keyframes in `tailwind.config.ts` and reference them via `animate-*` classes
+- For enter/exit animations, use CSS classes with conditional rendering or React state
+
+### Animation Examples
+
+```tsx
+// ❌ BAD - Using framer-motion
+import { motion } from "framer-motion"
+<motion.div
+  initial={{ opacity: 0 }}
+  animate={{ opacity: 1 }}
+  transition={{ duration: 0.3 }}
+>
+  Content
+</motion.div>
+
+// ✅ GOOD - Using Tailwind CSS
+<div className="opacity-0 animate-fade-in duration-300">
+  Content
+</div>
+
+// ✅ GOOD - Using CSS transitions
+<div className="transition-all duration-300 ease-in-out hover:scale-105">
+  Content
+</div>
+```
+
+## Shadcn UI Components
+
+### ✅ USE Native Shadcn Components
+
+- Always use shadcn/ui components from `@/components/ui/*` without heavy customization
+- Prefer standard shadcn component variants and props over custom implementations
+- Use shadcn components as-is from the official shadcn/ui library
+
+### ❌ AVOID Excessive Customization
+
+- **DO NOT** create heavily customized versions of shadcn components
+- **DO NOT** wrap shadcn components with unnecessary animation libraries
+- **DO NOT** modify core shadcn component logic unless absolutely necessary
+- If you need custom behavior, extend shadcn components minimally using:
+  - Additional className props
+  - Composition patterns (wrapping, not modifying)
+  - Standard React patterns (children, render props)
+
+### ✅ Acceptable Customization
+
+- Adding custom className props for styling
+- Composing shadcn components together
+- Creating wrapper components that use shadcn components internally
+- Adding simple CSS transitions/animations via Tailwind classes
+
+### Component Usage Examples
+
+```tsx
+// ✅ GOOD - Using native shadcn Button
+import { Button } from "@/components/ui/button"
+<Button variant="default" size="lg">Click me</Button>
+
+// ✅ GOOD - Minimal customization with className
+<Button className="custom-spacing" variant="outline">Click me</Button>
+
+// ❌ BAD - Heavy customization with framer-motion
+import { motion } from "framer-motion"
+import { Button } from "@/components/ui/button"
+<motion.div whileHover={{ scale: 1.05 }}>
+  <Button>Click me</Button>
+</motion.div>
+
+// ✅ GOOD - Using Tailwind for hover effects
+<Button className="transition-transform duration-200 hover:scale-105">
+  Click me
+</Button>
+```
+
+## Available Shadcn Components
+
+The project has these shadcn components available in `apps/studio/src/components/ui/`:
+
+- accordion, alert, alert-dialog, avatar, badge, breadcrumb, button, calendar, card
+- carousel, chart, checkbox, collapsible, combobox, command, context-menu, dialog
+- drawer, dropdown-menu, form, hover-card, input, label, menubar, navigation-menu
+- pagination, popover, progress, radio-group, resizable, scroll-area, select
+- separator, sheet, sidebar, skeleton, slider, sonner, switch, table, tabs
+- textarea, toast, toggle, toggle-group, tooltip
+
+**Always check if a shadcn component exists before creating a custom one.**
+
+## Code Style
+
+### TypeScript
+
+- Use TypeScript for all new code
+- Prefer type inference where possible
+- Use proper typing for props and state
+
+### React Patterns
+
+- Use functional components with hooks
+- Prefer composition over inheritance
+- Use React.memo for performance optimization when needed
+- Keep components small and focused
+
+### Styling
+
+- Use Tailwind CSS utility classes
+- Use `cn()` utility from `@/lib/utils` for conditional classes
+- Follow the existing design system (colors, spacing, typography)
+- Use CSS variables defined in the theme for colors
+
+## File Organization
+
+- Components: `apps/studio/src/components/`
+- UI Components: `apps/studio/src/components/ui/` (shadcn components)
+- Pages: `apps/studio/src/pages/`
+- Hooks: `apps/studio/src/hooks/`
+- Utils: `apps/studio/src/lib/`
+- Contexts: `apps/studio/src/contexts/`
+
+## Refactoring Guidelines
+
+When refactoring existing code that uses framer-motion:
+
+1. Replace `motion.*` components with standard HTML elements or shadcn components
+2. Replace framer-motion animations with Tailwind CSS classes or CSS transitions
+3. Use conditional rendering with CSS classes for enter/exit animations
+4. Remove framer-motion imports
+5. Test that animations still work (or remove if not critical)
+
+## Performance
+
+- Avoid unnecessary re-renders
+- Use React.memo for expensive components
+- Prefer CSS animations over JavaScript animations when possible
+- Keep bundle size small by avoiding heavy animation libraries

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Undo2, Pencil } from "lucide-react"
 import { Combobox } from "@/components/ui/combobox"
-import { useSetting, useUpdateSettings } from "@/hooks/useFastAPIQuery"
+import { useSetting, useUpdateSettings } from "@/hooks/api/settings-hooks"
 
 interface KeyboardShortcut {
   category: string

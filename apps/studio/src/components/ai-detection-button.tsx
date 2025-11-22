@@ -10,7 +10,7 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import type { Annotation, ImageData, Label } from "@vailabel/core"
 import { getRandomColor } from "@/lib/utils"
-import { useSetting } from "@/hooks/useFastAPIQuery"
+import { useSetting } from "@/hooks/api/settings-hooks"
 
 interface AIDetectionButtonProps {
   image: ImageData | null

@@ -6,11 +6,8 @@
 
 import { useState, useMemo } from "react"
 import { useMutation, useQueryClient } from "react-query"
-import {
-  useAIModels,
-  useSetting,
-  useUpdateSettings,
-} from "@/hooks/useFastAPIQuery"
+import { useAIModels } from "@/hooks/api/ai-model-hooks"
+import { useSetting, useUpdateSettings } from "@/hooks/api/settings-hooks"
 import { AIModel } from "@vailabel/core"
 
 export const useAIModelViewModel = () => {

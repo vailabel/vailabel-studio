@@ -11,8 +11,8 @@ import {
   useCreateUser,
   useUpdateUser,
   useDeleteUser,
-  useRoles,
-} from "@/hooks/useFastAPIQuery"
+} from "@/hooks/api/user-hooks"
+import { useRoles } from "@/hooks/api/role-hooks"
 import { User } from "@vailabel/core"
 
 export const useUserViewModel = () => {

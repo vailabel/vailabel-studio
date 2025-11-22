@@ -10,11 +10,8 @@ import {
   TableCell,
 } from "@/components/ui/table"
 import { useToast } from "@/hooks/use-toast"
-import {
-  useAIModels,
-  useSetting,
-  useUpdateSettings,
-} from "@/hooks/useFastAPIQuery"
+import { useAIModels } from "@/hooks/api/ai-model-hooks"
+import { useSetting, useUpdateSettings } from "@/hooks/api/settings-hooks"
 import { Button } from "@/components/ui/button"
 
 export function ModelSelection() {

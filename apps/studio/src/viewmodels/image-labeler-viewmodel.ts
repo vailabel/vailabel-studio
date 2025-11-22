@@ -6,13 +6,13 @@
 
 import { useState, useMemo } from "react"
 import { useMutation, useQueryClient } from "react-query"
+import { useImage } from "@/hooks/api/image-hooks"
 import {
-  useImage,
   useAnnotationsByImage,
   useCreateAnnotation,
   useUpdateAnnotation,
   useDeleteAnnotation,
-} from "@/hooks/useFastAPIQuery"
+} from "@/hooks/api/annotation-hooks"
 import { ImageData, Annotation } from "@vailabel/core"
 
 export const useImageLabelerViewModel = (

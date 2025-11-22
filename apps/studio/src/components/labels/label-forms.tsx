@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { SketchPicker } from "react-color"
-import { useProjects } from "@/hooks/useFastAPIQuery"
+import { useProjects } from "@/hooks/api/project-hooks"
 import { Label as LabelType } from "@vailabel/core"
 
 const colorPalette = [

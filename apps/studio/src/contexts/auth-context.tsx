@@ -4,7 +4,7 @@
  */
 
 import React, { createContext, useContext, ReactNode } from "react"
-import { useCurrentUser, useLogin, useLogout } from "../hooks/useFastAPIQuery"
+import { useCurrentUser, useLogin, useLogout } from "../hooks/api/auth-hooks"
 import { User } from "@vailabel/core"
 
 interface AuthContextType {

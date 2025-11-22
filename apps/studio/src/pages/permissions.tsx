@@ -30,10 +30,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog"
-import {
-  usePermissions as usePermissionsQuery,
-  useRoles,
-} from "@/hooks/useFastAPIQuery"
+import { usePermissions as usePermissionsQuery } from "@/hooks/api/permission-hooks"
+import { useRoles } from "@/hooks/api/role-hooks"
 import {
   usePermissionManagement,
   useRoleManagement,

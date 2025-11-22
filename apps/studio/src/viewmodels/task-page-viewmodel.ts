@@ -11,7 +11,7 @@ import {
   useCreateTask,
   useUpdateTask,
   useDeleteTask,
-} from "@/hooks/useFastAPIQuery"
+} from "@/hooks/api/task-hooks"
 import { Task } from "@vailabel/core"
 
 export const useTaskPageViewModel = (projectId?: string) => {

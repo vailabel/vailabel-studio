@@ -9,7 +9,7 @@
     "copy-html": "copyfiles -u -1 ./src/loading.html ./dist/",
     "pre-dev": "yarn copy-python && yarn copy-html",
     "build": "yarn copy-html && yarn tsc && ELECTRON_BUILDER_CACHE=/tmp/electron-builder-cache npx electron-builder --publish never",
-    "dev": "NODE_ENV=development yarn pre-dev && tsc && electron . --trace-warnings --no-sandbox",
+    "dev": "yarn pre-dev && tsc && electron . --trace-warnings --no-sandbox",
     "test": "jest --coverage",
     "prebuild": "npx electron-icon-maker --input=./assets/icon.png --output=./assets/icon",
     "release": "yarn copy-html && yarn tsc && yarn prebuild && ELECTRON_BUILDER_CACHE=/tmp/electron-builder-cache npx electron-builder --publish always",

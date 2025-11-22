@@ -5,7 +5,7 @@
  */
 
 import { useState } from "react"
-import { useCreateProject } from "@/hooks/useFastAPIQuery"
+import { useCreateProject } from "@/hooks/api/project-hooks"
 import { v4 as uuidv4 } from "uuid"
 import { z } from "zod"
 import { useNavigate } from "react-router-dom"

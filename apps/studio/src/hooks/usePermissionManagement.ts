@@ -7,16 +7,20 @@ import { useCallback } from "react"
 import { useToast } from "@/hooks/use-toast"
 import {
   usePermissions as usePermissionsQuery,
-  useRoles,
   useCreatePermission,
   useUpdatePermission,
   useDeletePermission,
+} from "./api/permission-hooks"
+import {
+  useRoles,
   useCreateRole,
   useUpdateRole,
   useDeleteRole,
+} from "./api/role-hooks"
+import {
   useAssignUserPermissions,
   useAssignUserRole,
-} from "./useFastAPIQuery"
+} from "./api/user-permission-hooks"
 import { usePermissions } from "@/contexts/permission-context"
 
 // Permission management hook

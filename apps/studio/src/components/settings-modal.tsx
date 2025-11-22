@@ -16,7 +16,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import { useTheme } from "./theme-provider"
-import { useSettings, useUpdateSettings } from "@/hooks/useFastAPIQuery"
+import { useSettings, useUpdateSettings } from "@/hooks/api/settings-hooks"
 
 interface SettingsModalProps {
   onClose: () => void

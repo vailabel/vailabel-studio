@@ -25,16 +25,22 @@ import { useParams } from "react-router-dom"
 import { cn } from "@/lib/utils"
 
 const ProjectDetails = memo(() => {
-  const { id } = useParams<{ id: string }>()
-  const viewModel = useProjectDetailViewModel(id || "")
+  const { projectId } = useParams<{ projectId: string }>()
+  const viewModel = useProjectDetailViewModel(projectId || "")
 
-  const formatDate = (date: Date | undefined) => {
+  const formatDate = (date: Date | string | undefined) => {
     if (!date) return "Unknown"
-    return new Intl.DateTimeFormat("en-US", {
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-    }).format(date)
+    try {
+      const dateObj = typeof date === "string" ? new Date(date) : date
+      if (isNaN(dateObj.getTime())) return "Unknown"
+      return new Intl.DateTimeFormat("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      }).format(dateObj)
+    } catch {
+      return "Unknown"
+    }
   }
 
   return (

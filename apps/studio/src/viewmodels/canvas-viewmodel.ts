@@ -6,13 +6,12 @@
 
 import { useState, useMemo, useCallback } from "react"
 import { useMutation, useQueryClient } from "react-query"
+import { useLabels, useCreateLabel } from "@/hooks/api/label-hooks"
 import {
-  useLabels,
-  useCreateLabel,
   useCreateAnnotation,
   useUpdateAnnotation,
   useDeleteAnnotation,
-} from "@/hooks/useFastAPIQuery"
+} from "@/hooks/api/annotation-hooks"
 import { ImageData, Annotation, Label } from "@vailabel/core"
 
 export const useCanvasViewModel = (image: ImageData | null) => {
