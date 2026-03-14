@@ -7,8 +7,8 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { Label } from "@vailabel/core"
-import { useLabels } from "@/hooks/api/label-hooks"
-import { memo, useMemo, useCallback, useState } from "react"
+import { memo, useMemo, useCallback, useEffect, useState } from "react"
+import { services } from "@/services"
 
 interface LabelListPanelProps {
   onLabelSelect: (label: Label) => void
@@ -17,7 +17,21 @@ interface LabelListPanelProps {
 
 export const LabelListPanel = memo(
   ({ onLabelSelect, projectId }: LabelListPanelProps) => {
-    const { data: labels = [], isLoading } = useLabels(projectId)
+    const [labels, setLabels] = useState<Label[]>([])
+    const [isLoading, setIsLoading] = useState(true)
+
+    useEffect(() => {
+      const loadLabels = async () => {
+        setIsLoading(true)
+        try {
+          setLabels(await services.getLabelService().getLabelsByProjectId(projectId))
+        } finally {
+          setIsLoading(false)
+        }
+      }
+
+      void loadLabels()
+    }, [projectId])
 
     // Memoize grouped labels to prevent unnecessary recalculations
     const groupedLabels = useMemo(() => {

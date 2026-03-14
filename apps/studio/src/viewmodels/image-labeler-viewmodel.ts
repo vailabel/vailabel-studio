@@ -1,118 +1,80 @@
-/**
- * Image Labeler ViewModel
- * Manages image labeling state and operations using React Query
- * Follows MVVM pattern with React Query as the binding layer
- */
-
-import { useState, useMemo } from "react"
-import { useMutation, useQueryClient } from "react-query"
-import { useImage } from "@/hooks/api/image-hooks"
-import {
-  useAnnotationsByImage,
-  useCreateAnnotation,
-  useUpdateAnnotation,
-  useDeleteAnnotation,
-} from "@/hooks/api/annotation-hooks"
-import { ImageData, Annotation } from "@vailabel/core"
+import { useEffect, useMemo, useState } from "react"
+import { Annotation, ImageData } from "@vailabel/core"
+import { services } from "@/services"
 
 export const useImageLabelerViewModel = (
   projectId?: string,
   imageId?: string
 ) => {
-  const queryClient = useQueryClient()
+  const [image, setImage] = useState<ImageData | null>(null)
+  const [annotations, setAnnotations] = useState<Annotation[]>([])
+  const [projectImages, setProjectImages] = useState<ImageData[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<unknown>(null)
 
-  // State
-  const [nextId, setNextId] = useState<string | null>(null)
-  const [prevId, setPrevId] = useState<string | null>(null)
-  const [hasNext, setHasNext] = useState(false)
-  const [hasPrevious, setHasPrevious] = useState(false)
+  const refreshAnnotations = async () => {
+    if (!imageId) return
+    setAnnotations(
+      await services.getAnnotationService().getAnnotationsByImageId(imageId)
+    )
+  }
 
-  // Queries
-  const {
-    data: image,
-    isLoading: imageLoading,
-    error: imageError,
-  } = useImage(imageId || "")
-  const {
-    data: annotations = [],
-    isLoading: annotationsLoading,
-    error: annotationsError,
-    refetch: refreshAnnotations,
-  } = useAnnotationsByImage(imageId || "")
-
-  // Mutations
-  const createAnnotationMutation = useCreateAnnotation()
-  const updateAnnotationMutation = useUpdateAnnotation()
-  const deleteAnnotationMutation = useDeleteAnnotation()
-
-  // Computed values
-  const isLoading = imageLoading || annotationsLoading
-  const error = imageError || annotationsError
-
-  // Actions
-  const createAnnotation = async (annotation: Omit<Annotation, "id">) => {
-    try {
-      const result = await createAnnotationMutation.mutateAsync(annotation)
-      return result
-    } catch (error) {
-      console.error("Failed to create annotation:", error)
-      throw error
+  useEffect(() => {
+    const load = async () => {
+      if (!imageId) return
+      setIsLoading(true)
+      setError(null)
+      try {
+        const nextImage = await services.getImageService().getImage(imageId)
+        setImage(nextImage)
+        const effectiveProjectId =
+          projectId || nextImage.projectId || nextImage.project_id || ""
+        const [nextAnnotations, nextProjectImages] = await Promise.all([
+          services.getAnnotationService().getAnnotationsByImageId(imageId),
+          effectiveProjectId
+            ? services.getImageService().getImagesByProjectId(effectiveProjectId)
+            : Promise.resolve([]),
+        ])
+        setAnnotations(nextAnnotations)
+        setProjectImages(nextProjectImages)
+      } catch (nextError) {
+        setError(nextError)
+      } finally {
+        setIsLoading(false)
+      }
     }
-  }
 
-  const updateAnnotation = async (
-    annotationId: string,
-    updates: Partial<Annotation>
-  ) => {
-    try {
-      await updateAnnotationMutation.mutateAsync({ id: annotationId, updates })
-    } catch (error) {
-      console.error("Failed to update annotation:", error)
-      throw error
-    }
-  }
+    void load()
+  }, [imageId, projectId])
 
-  const deleteAnnotation = async (annotationId: string) => {
-    try {
-      await deleteAnnotationMutation.mutateAsync(annotationId)
-    } catch (error) {
-      console.error("Failed to delete annotation:", error)
-      throw error
-    }
-  }
+  const currentImageIndex = useMemo(
+    () => projectImages.findIndex((entry) => entry.id === imageId),
+    [projectImages, imageId]
+  )
 
-  const goToNextImage = () => {
-    // TODO: Implement next image navigation
-    console.log("Navigate to next image")
-  }
-
-  const goToPreviousImage = () => {
-    // TODO: Implement previous image navigation
-    console.log("Navigate to previous image")
-  }
+  const prevImage = currentImageIndex > 0 ? projectImages[currentImageIndex - 1] : null
+  const nextImage =
+    currentImageIndex >= 0 && currentImageIndex < projectImages.length - 1
+      ? projectImages[currentImageIndex + 1]
+      : null
 
   return {
-    // State
-    image: image || null,
+    image,
     annotations,
-    nextId,
-    prevId,
-    hasNext,
-    hasPrevious,
+    nextId: nextImage?.id ?? null,
+    prevId: prevImage?.id ?? null,
+    hasNext: Boolean(nextImage),
+    hasPrevious: Boolean(prevImage),
     isLoading,
     error,
-
-    // Actions
-    createAnnotation,
-    updateAnnotation,
-    deleteAnnotation,
+    createAnnotation: (annotation: Omit<Annotation, "id">) =>
+      services.getAnnotationService().createAnnotation(annotation),
+    updateAnnotation: (annotationId: string, updates: Partial<Annotation>) =>
+      services.getAnnotationService().updateAnnotation(annotationId, updates),
+    deleteAnnotation: (annotationId: string) =>
+      services.getAnnotationService().deleteAnnotation(annotationId),
     refreshAnnotations,
-    goToNextImage,
-    goToPreviousImage,
-
-    // Mutation state
-    createAnnotationMutation,
-    updateAnnotationMutation,
-    deleteAnnotationMutation,
+    goToNextImage: () => nextImage?.id ?? null,
+    goToPreviousImage: () => prevImage?.id ?? null,
   }
 }

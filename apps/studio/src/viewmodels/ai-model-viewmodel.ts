@@ -1,82 +1,55 @@
-/**
- * AI Model ViewModel
- * Manages AI model state and operations using React Query
- * Follows MVVM pattern with React Query as the binding layer
- */
-
-import { useState, useMemo } from "react"
-import { useMutation, useQueryClient } from "react-query"
-import { useAIModels } from "@/hooks/api/ai-model-hooks"
-import { useSetting, useUpdateSettings } from "@/hooks/api/settings-hooks"
+import { useEffect, useMemo, useState } from "react"
 import { AIModel } from "@vailabel/core"
+import { services } from "@/services"
 
 export const useAIModelViewModel = () => {
-  const queryClient = useQueryClient()
+  const [availableModels, setAvailableModels] = useState<AIModel[]>([])
+  const [selectedModelId, setSelectedModelId] = useState("")
+  const [modelPath, setModelPath] = useState("")
+  const [isLoading, setIsLoading] = useState(true)
 
-  // State
-  const [selectedModelId, setSelectedModelId] = useState<string>("")
-
-  // Queries
-  const { data: availableModels = [], isLoading: modelsLoading } =
-    useAIModels("") // Get all models
-  const { data: selectedModelSetting } = useSetting("modalSelected")
-  const { data: modelPathSetting } = useSetting("modelPath")
-
-  // Mutations
-  const updateSettingsMutation = useUpdateSettings()
-
-  // Computed values
-  const selectedModel = useMemo(() => {
-    return availableModels.find((model) => model.id === selectedModelId) || null
-  }, [availableModels, selectedModelId])
-
-  // Actions
-  const selectModel = (modelId: string) => {
-    setSelectedModelId(modelId)
-  }
-
-  const saveModelSelection = async () => {
-    if (!selectedModelId) return
-
+  const loadData = async () => {
+    setIsLoading(true)
     try {
-      await updateSettingsMutation.mutateAsync({
-        key: "modalSelected",
-        value: selectedModelId,
-      })
-      return true
-    } catch (error) {
-      console.error("Failed to save model selection:", error)
-      throw error
+      const [models, selectedModelSetting, modelPathSetting] = await Promise.all([
+        services.getAIModelService().list(),
+        services.getSettingsService().getByKey("selectedModelId"),
+        services.getSettingsService().getByKey("modelPath"),
+      ])
+      setAvailableModels(models)
+      setSelectedModelId(selectedModelSetting.value || "")
+      setModelPath(modelPathSetting.value || "")
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  const saveModelPath = async (modelPath: string) => {
-    try {
-      await updateSettingsMutation.mutateAsync({
-        key: "modelPath",
-        value: modelPath,
-      })
-      return true
-    } catch (error) {
-      console.error("Failed to save model path:", error)
-      throw error
-    }
-  }
+  useEffect(() => {
+    void loadData()
+  }, [])
+
+  const selectedModel = useMemo(
+    () =>
+      availableModels.find((model) => model.id === selectedModelId) || null,
+    [availableModels, selectedModelId]
+  )
 
   return {
-    // State
     availableModels,
     selectedModel,
     selectedModelId,
-    modelPath: modelPathSetting?.value || "",
-    isLoading: modelsLoading,
-
-    // Actions
-    selectModel,
-    saveModelSelection,
-    saveModelPath,
-
-    // Mutation state
-    updateSettingsMutation,
+    modelPath,
+    isLoading,
+    selectModel: setSelectedModelId,
+    saveModelSelection: async () => {
+      await services
+        .getSettingsService()
+        .update("selectedModelId", selectedModelId || "")
+    },
+    saveModelPath: async (nextModelPath: string) => {
+      setModelPath(nextModelPath)
+      await services.getSettingsService().update("modelPath", nextModelPath)
+    },
+    refreshModels: loadData,
   }
 }

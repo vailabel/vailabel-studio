@@ -132,38 +132,3 @@ export class Settings {
   createdAt?: Date
   updatedAt?: Date
 }
-
-export class Permission {
-  id!: string
-  name!: string
-  description?: string
-  resource!: string
-  action!: string
-  createdAt?: Date
-  updatedAt?: Date
-}
-
-export class Role {
-  id!: string
-  name!: string
-  description?: string
-  permissions?: Permission[]
-  createdAt?: Date
-  updatedAt?: Date
-}
-
-export class User {
-  id!: string
-  email!: string
-  name!: string
-  password!: string
-  role!: string
-  roleId?: string
-  roleObj?: Role
-  roles?: string[]
-  permissions?: string[]
-  userPermissions?: Permission[]
-  token?: string
-  createdAt?: Date
-  updatedAt?: Date
-}

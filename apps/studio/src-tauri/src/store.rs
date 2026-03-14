@@ -42,11 +42,6 @@ impl DesktopStore {
       CREATE INDEX IF NOT EXISTS idx_entities_kind_key ON entities(kind, key_value);
       CREATE INDEX IF NOT EXISTS idx_entities_kind_email ON entities(kind, email);
 
-      CREATE TABLE IF NOT EXISTS auth_tokens (
-        token TEXT PRIMARY KEY,
-        user_id TEXT NOT NULL
-      );
-
       CREATE TABLE IF NOT EXISTS secret_keys (
         namespace TEXT NOT NULL,
         key TEXT NOT NULL,
@@ -83,83 +78,6 @@ impl DesktopStore {
   }
 
   fn seed_defaults(&self) -> Result<(), StoreError> {
-    let has_users = self
-      .connection
-      .query_row(
-        "SELECT COUNT(*) FROM entities WHERE kind = 'users'",
-        [],
-        |row| row.get::<_, i64>(0),
-      )?
-      > 0;
-
-    if has_users {
-      return Ok(());
-    }
-
-    let read_permission_id = Uuid::new_v4().to_string();
-    let write_permission_id = Uuid::new_v4().to_string();
-    let admin_role_id = Uuid::new_v4().to_string();
-    let admin_user_id = Uuid::new_v4().to_string();
-
-    self.upsert_entity(
-      "permissions",
-      json!({
-        "id": read_permission_id,
-        "name": "projects:read",
-        "description": "Read projects",
-        "resource": "projects",
-        "action": "read"
-      }),
-    )?;
-    self.upsert_entity(
-      "permissions",
-      json!({
-        "id": write_permission_id,
-        "name": "projects:write",
-        "description": "Modify projects",
-        "resource": "projects",
-        "action": "write"
-      }),
-    )?;
-
-    self.upsert_entity(
-      "roles",
-      json!({
-        "id": admin_role_id,
-        "name": "admin",
-        "description": "Default administrator role",
-        "permissions": [read_permission_id.clone(), write_permission_id.clone()]
-      }),
-    )?;
-
-    self.upsert_entity(
-      "users",
-      json!({
-        "id": admin_user_id,
-        "email": "admin@vailabel.local",
-        "name": "Admin User",
-        "password": "admin123",
-        "role": "admin",
-        "roleId": admin_role_id,
-        "roles": ["admin"],
-        "permissions": ["projects:read", "projects:write"],
-        "userPermissions": [
-          {
-            "id": read_permission_id,
-            "name": "projects:read",
-            "resource": "projects",
-            "action": "read"
-          },
-          {
-            "id": write_permission_id,
-            "name": "projects:write",
-            "resource": "projects",
-            "action": "write"
-          }
-        ]
-      }),
-    )?;
-
     for (key, value) in [
       ("showRulers", "true"),
       ("showCrosshairs", "true"),
@@ -294,45 +212,6 @@ impl DesktopStore {
 
     self.upsert_entity("settings", setting.clone())?;
     Ok(setting)
-  }
-
-  pub fn find_user_by_credentials(
-    &self,
-    email: &str,
-    password: &str,
-  ) -> Result<Option<Value>, StoreError> {
-    let users = self.list_by_field("users", "email", email)?;
-    Ok(users.into_iter().find(|user| {
-      user.get("password").and_then(Value::as_str).unwrap_or_default() == password
-    }))
-  }
-
-  pub fn issue_token(&self, user_id: &str) -> Result<String, StoreError> {
-    let token = Uuid::new_v4().to_string();
-    self.connection.execute(
-      "INSERT INTO auth_tokens (token, user_id) VALUES (?1, ?2)",
-      params![token, user_id],
-    )?;
-    Ok(token)
-  }
-
-  pub fn resolve_token(&self, token: &str) -> Result<Option<String>, StoreError> {
-    self
-      .connection
-      .query_row(
-        "SELECT user_id FROM auth_tokens WHERE token = ?1",
-        params![token],
-        |row| row.get::<_, String>(0),
-      )
-      .optional()
-      .map_err(StoreError::from)
-  }
-
-  pub fn revoke_token(&self, token: &str) -> Result<(), StoreError> {
-    self
-      .connection
-      .execute("DELETE FROM auth_tokens WHERE token = ?1", params![token])?;
-    Ok(())
   }
 
   pub fn list_secret_keys(&self, namespace: &str) -> Result<Vec<String>, StoreError> {

@@ -1,16 +1,9 @@
-/**
- * Project Create ViewModel
- * Manages project creation state and operations using React Query
- * Follows MVVM pattern with React Query as the binding layer
- */
-
 import { useState } from "react"
-import { useCreateProject } from "@/hooks/api/project-hooks"
 import { v4 as uuidv4 } from "uuid"
 import { z } from "zod"
 import { useNavigate } from "react-router-dom"
+import { services } from "@/services"
 
-// Project types enum
 export const PROJECT_TYPES = {
   IMAGE_ANNOTATION: "image_annotation",
   VIDEO_ANNOTATION: "video_annotation",
@@ -24,17 +17,10 @@ export const PROJECT_TYPES = {
 
 export type ProjectType = (typeof PROJECT_TYPES)[keyof typeof PROJECT_TYPES]
 
-// Schema for project creation
 export const ProjectDetailSchema = z.object({
-  name: z
-    .string()
-    .min(1, "Project name is required")
-    .max(100, "Project name must be less than 100 characters"),
-  description: z
-    .string()
-    .max(500, "Description must be less than 500 characters")
-    .optional(),
-  type: z.string().min(1, "Project type is required"),
+  name: z.string().min(1).max(100),
+  description: z.string().max(500).optional(),
+  type: z.string().min(1),
   labels: z
     .array(
       z.object({
@@ -42,7 +28,7 @@ export const ProjectDetailSchema = z.object({
         color: z.string(),
       })
     )
-    .min(1, "At least one label is required"),
+    .min(1),
 })
 
 export type ProjectDetailForm = z.infer<typeof ProjectDetailSchema>
@@ -61,45 +47,23 @@ type Step = "details" | "dataset"
 
 export const useProjectCreateViewModel = () => {
   const navigate = useNavigate()
-  const createProjectMutation = useCreateProject()
-
   const [step, setStep] = useState<Step>("details")
   const [images, setImages] = useState<ImageFile[]>([])
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
+  const [isCreating, setIsCreating] = useState(false)
+  const [error, setError] = useState<unknown>(null)
 
-  // Navigation
-  const goToNextStep = () => {
-    setStep("dataset")
-  }
-
-  const goToPreviousStep = () => {
-    setStep("details")
-  }
-
-  // Image handling
   const handleFiles = async (files: File[]) => {
     setIsUploading(true)
     setUploadProgress(0)
-
     try {
-      const totalFiles = files.length
-      const newImages: ImageFile[] = []
-
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i]
-
-        // Simulate progress for each file
-        const fileProgress = ((i + 1) / totalFiles) * 100
-        setUploadProgress(fileProgress)
-
-        // Add a small delay to simulate processing time
-        await new Promise((resolve) => setTimeout(resolve, 200))
-
+      const nextImages: ImageFile[] = []
+      for (let index = 0; index < files.length; index += 1) {
+        const file = files[index]
         const data = await readFileAsDataURL(file)
         const dimensions = await getImageDimensions(data)
-
-        newImages.push({
+        nextImages.push({
           id: uuidv4(),
           name: file.name,
           data,
@@ -108,65 +72,19 @@ export const useProjectCreateViewModel = () => {
           file,
           size: file.size,
         })
+        setUploadProgress(Math.round(((index + 1) / files.length) * 100))
       }
-
-      setImages((prev) => [...prev, ...newImages])
-      setUploadProgress(100)
-
-      // Reset progress after a short delay
-      setTimeout(() => {
-        setUploadProgress(0)
-      }, 1000)
-    } catch (error) {
-      console.error("Error processing files:", error)
-      setUploadProgress(0)
+      setImages((current) => [...current, ...nextImages])
     } finally {
       setIsUploading(false)
     }
   }
 
-  const handleRemoveImage = (index: number) => {
-    setImages((prev) => prev.filter((_, i) => i !== index))
-  }
-
-  // Form validation
-  const validateForm = (formData: ProjectDetailForm) => {
-    const errors: Record<string, string> = {}
-
-    if (!formData.name || formData.name.trim().length === 0) {
-      errors.name = "Project name is required"
-    } else if (formData.name.length < 3) {
-      errors.name = "Project name must be at least 3 characters"
-    } else if (formData.name.length > 100) {
-      errors.name = "Project name must be less than 100 characters"
-    }
-
-    if (formData.description && formData.description.length > 500) {
-      errors.description = "Description must be less than 500 characters"
-    }
-
-    if (!formData.type) {
-      errors.type = "Project type is required"
-    }
-
-    if (!formData.labels || formData.labels.length === 0) {
-      errors.labels = "At least one label is required"
-    }
-
-    return errors
-  }
-
-  // Project creation
   const createProject = async (formData: ProjectDetailForm) => {
-    const validationErrors = validateForm(formData)
-
-    if (Object.keys(validationErrors).length > 0) {
-      throw new Error("Form validation failed")
-    }
-
+    setIsCreating(true)
+    setError(null)
     try {
-      // Create project
-      const projectData = {
+      const project = await services.getProjectService().create({
         id: uuidv4(),
         name: formData.name.trim(),
         description: formData.description?.trim() || "",
@@ -178,51 +96,69 @@ export const useProjectCreateViewModel = () => {
           showGrid: false,
           gridSize: 20,
         },
-        projectMetadata: {
+        metadata: {
           labelCount: formData.labels.length,
           imageCount: images.length,
         },
-      }
+      })
 
-      const project = await createProjectMutation.mutateAsync(projectData)
+      await Promise.all(
+        formData.labels.map((label) =>
+          services.getLabelService().createLabel({
+            id: uuidv4(),
+            name: label.name,
+            color: label.color,
+            projectId: project.id,
+            project_id: project.id,
+          })
+        )
+      )
 
-      // Note: In a real application, you would also upload images and create labels here
-      // For now, we'll just navigate to the project detail page
+      await Promise.all(
+        images.map((image) =>
+          services.getImageService().createImage({
+            ...image,
+            projectId: project.id,
+            project_id: project.id,
+          })
+        )
+      )
 
       navigate(`/projects/detail/${project.id}`)
-    } catch (error) {
-      console.error("Failed to create project:", error)
-      throw error
+    } catch (nextError) {
+      setError(nextError)
+      throw nextError
+    } finally {
+      setIsCreating(false)
     }
   }
 
   return {
-    // State
     step,
     images,
     isUploading,
     uploadProgress,
-    isCreating: createProjectMutation.isLoading,
-    error: createProjectMutation.error,
-
-    // Navigation
-    goToNextStep,
-    goToPreviousStep,
-
-    // Image handling
+    isCreating,
+    error,
+    goToNextStep: () => setStep("dataset"),
+    goToPreviousStep: () => setStep("details"),
     handleFiles,
-    handleRemoveImage,
-
-    // Form actions
-    validateForm,
+    handleRemoveImage: (index: number) =>
+      setImages((current) => current.filter((_, itemIndex) => itemIndex !== index)),
+    validateForm: (formData: ProjectDetailForm) => {
+      const result = ProjectDetailSchema.safeParse(formData)
+      if (result.success) return {}
+      return Object.fromEntries(
+        result.error.issues.map((issue) => [
+          issue.path.join(".") || "form",
+          issue.message,
+        ])
+      )
+    },
     createProject,
-
-    // Mutation state
-    createProjectMutation,
   }
 }
 
-// Helper functions
 function readFileAsDataURL(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -236,12 +172,10 @@ function getImageDimensions(
   dataUrl: string
 ): Promise<{ width: number; height: number }> {
   return new Promise((resolve, reject) => {
-    const img = new Image()
-    img.onload = () => {
-      resolve({ width: img.width, height: img.height })
-    }
-    img.onerror = reject
-    img.src = dataUrl
+    const image = new Image()
+    image.onload = () => resolve({ width: image.width, height: image.height })
+    image.onerror = reject
+    image.src = dataUrl
   })
 }
 
@@ -253,7 +187,6 @@ function getAnnotationTypesForProjectType(type: string): string[] {
       return ["polygon", "mask"]
     case PROJECT_TYPES.CLASSIFICATION:
       return ["classification"]
-    case PROJECT_TYPES.IMAGE_ANNOTATION:
     default:
       return ["bbox", "polygon", "point"]
   }

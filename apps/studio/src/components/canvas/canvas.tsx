@@ -6,7 +6,6 @@ import { useCanvasHandlers } from "@/hooks/use-canvas-handlers-context"
 import { type Annotation, type ImageData, type Label } from "@vailabel/core"
 import { Crosshair } from "@/components/canvas/crosshair-context"
 import { CreateAnnotation } from "@/components/canvas/create-annotation"
-import { useLabels } from "@/hooks/api/label-hooks"
 import {
   useCanvasPan,
   useCanvasZoom,
@@ -15,6 +14,7 @@ import {
 } from "@/contexts/canvas-context"
 import { TempAnnotation } from "./temp-annotation"
 import { ToolStatus } from "./tool-status"
+import { services } from "@/services"
 
 interface CanvasProps {
   image: ImageData
@@ -63,8 +63,20 @@ export const Canvas = memo(
     const { panOffset } = useCanvasPan()
     const { selectedTool, setToolState } = useCanvasTool()
     const { setSelectedAnnotation } = useCanvasSelection()
+    const [labels, setLabels] = useState<Label[]>([])
 
-    const { data: labels = [] } = useLabels(image.projectId || "")
+    useEffect(() => {
+      const loadLabels = async () => {
+        const nextProjectId = image.projectId || image.project_id
+        if (!nextProjectId) {
+          setLabels([])
+          return
+        }
+        setLabels(await services.getLabelService().getLabelsByProjectId(nextProjectId))
+      }
+
+      void loadLabels()
+    }, [image.projectId, image.project_id])
 
     const canvasRef = useRef<HTMLDivElement | null>(null)
 

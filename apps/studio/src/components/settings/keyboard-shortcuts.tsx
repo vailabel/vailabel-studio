@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Undo2, Pencil } from "lucide-react"
 import { Combobox } from "@/components/ui/combobox"
-import { useSetting, useUpdateSettings } from "@/hooks/api/settings-hooks"
+import { services } from "@/services"
 
 interface KeyboardShortcut {
   category: string
@@ -31,8 +31,6 @@ const CATEGORIES = [
 ]
 
 export function KeyboardShortcuts() {
-  const { data: shortcutsSetting } = useSetting("keyboardShortcuts")
-  const updateSettingsMutation = useUpdateSettings()
   const [shortcuts, setShortcuts] =
     useState<KeyboardShortcut[]>(DEFAULT_SHORTCUTS)
   const [editingIdx, setEditingIdx] = useState<number | null>(null)
@@ -41,32 +39,35 @@ export function KeyboardShortcuts() {
 
   // Load shortcuts from settings when data is available
   useEffect(() => {
-    if (shortcutsSetting && typeof shortcutsSetting.value === "string") {
+    const loadShortcuts = async () => {
       try {
-        const parsed = JSON.parse(shortcutsSetting.value)
+        const shortcutsSetting = await services
+          .getSettingsService()
+          .getByKey("keyboardShortcuts")
+        const parsed = JSON.parse(shortcutsSetting.value || "[]")
         if (Array.isArray(parsed)) {
           setShortcuts(parsed as KeyboardShortcut[])
         }
       } catch {
-        // ignore parse error, fallback to default
+        setShortcuts(DEFAULT_SHORTCUTS)
       }
     }
-  }, [shortcutsSetting])
+    void loadShortcuts()
+  }, [])
 
   // Save to settings whenever shortcuts change
   useEffect(() => {
     const saveShortcuts = async () => {
       try {
-        await updateSettingsMutation.mutateAsync({
-          key: "keyboardShortcuts",
-          value: JSON.stringify(shortcuts),
-        })
+        await services
+          .getSettingsService()
+          .update("keyboardShortcuts", JSON.stringify(shortcuts))
       } catch (error) {
         console.error("Failed to save keyboard shortcuts:", error)
       }
     }
     saveShortcuts()
-  }, [shortcuts, updateSettingsMutation])
+  }, [shortcuts])
 
   const handleEdit = (idx: number) => {
     setEditingIdx(idx)

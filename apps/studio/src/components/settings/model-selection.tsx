@@ -10,25 +10,29 @@ import {
   TableCell,
 } from "@/components/ui/table"
 import { useToast } from "@/hooks/use-toast"
-import { useAIModels } from "@/hooks/api/ai-model-hooks"
-import { useSetting, useUpdateSettings } from "@/hooks/api/settings-hooks"
 import { Button } from "@/components/ui/button"
+import { services } from "@/services"
 
 export function ModelSelection() {
   const { toast } = useToast()
-  const { data: availableModels = [] } = useAIModels("") // Get all models
-  const { data: selectedModelSetting } = useSetting("selectedModelId")
-  const updateSettingsMutation = useUpdateSettings()
+  const [availableModels, setAvailableModels] = useState<any[]>([])
   const [selectedModelId, setSelectedModelId] = useState<string>("")
 
-  // Set selected model when settings are loaded
   useEffect(() => {
-    if (selectedModelSetting?.value) {
-      setSelectedModelId(selectedModelSetting.value)
-    } else if (availableModels.length > 0 && !selectedModelId) {
-      setSelectedModelId(availableModels[0].id)
+    const loadData = async () => {
+      const [models, selectedModelSetting] = await Promise.all([
+        services.getAIModelService().list(),
+        services.getSettingsService().getByKey("selectedModelId"),
+      ])
+      setAvailableModels(models)
+      if (selectedModelSetting.value) {
+        setSelectedModelId(selectedModelSetting.value)
+      } else if (models.length > 0) {
+        setSelectedModelId(models[0].id)
+      }
     }
-  }, [selectedModelSetting, availableModels, selectedModelId])
+    void loadData()
+  }, [])
 
   const handleRadioChange = (modelId: string) => {
     setSelectedModelId(modelId)
@@ -39,14 +43,12 @@ export function ModelSelection() {
     const selectedModel = availableModels.find((m) => m.id === selectedModelId)
     if (selectedModel) {
       try {
-        await updateSettingsMutation.mutateAsync({
-          key: "modelPath",
-          value: selectedModel.modelPath || "",
-        })
-        await updateSettingsMutation.mutateAsync({
-          key: "selectedModelId",
-          value: selectedModelId,
-        })
+        await services
+          .getSettingsService()
+          .update("modelPath", selectedModel.modelPath || "")
+        await services
+          .getSettingsService()
+          .update("selectedModelId", selectedModelId)
         toast({
           title: "Model Saved",
           description: `Model path saved to settings: ${selectedModel.modelPath}`,

@@ -1,11 +1,11 @@
-import { useMemo } from "react"
-import { useSettings, useUpdateSettings } from "@/hooks/api/settings-hooks"
+import { useEffect, useMemo, useState } from "react"
 import {
   deleteSecret,
   getSecret,
   listSecrets,
   setSecret,
 } from "@/lib/desktop"
+import { services } from "@/services"
 
 export interface CloudStorageConfig {
   id: string
@@ -28,29 +28,44 @@ const secretFieldsByProvider: Record<string, string[]> = {
 }
 
 export const useCloudStorageViewModel = () => {
-  const { data: settings = [], isLoading } = useSettings()
-  const updateSettingsMutation = useUpdateSettings()
+  const [configs, setConfigs] = useState<CloudStorageConfig[]>([])
+  const [activeConfigId, setActiveConfigId] = useState("")
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
 
-  const configSetting = settings.find((setting) => setting.key === CONFIGS_KEY)
-  const activeSetting = settings.find((setting) => setting.key === ACTIVE_KEY)
-
-  const configs = useMemo(() => {
-    if (!configSetting?.value) return [] as CloudStorageConfig[]
+  const loadConfigs = async () => {
+    setIsLoading(true)
+    setError(null)
     try {
-      return JSON.parse(configSetting.value) as CloudStorageConfig[]
-    } catch {
-      return [] as CloudStorageConfig[]
+      const [configSetting, activeSetting] = await Promise.all([
+        services.getSettingsService().getByKey(CONFIGS_KEY),
+        services.getSettingsService().getByKey(ACTIVE_KEY),
+      ])
+      setConfigs(
+        configSetting.value ? (JSON.parse(configSetting.value) as CloudStorageConfig[]) : []
+      )
+      setActiveConfigId(activeSetting.value || "")
+    } catch (nextError) {
+      setError(nextError as Error)
+    } finally {
+      setIsLoading(false)
     }
-  }, [configSetting?.value])
+  }
 
-  const activeConfig =
-    configs.find((config) => config.id === activeSetting?.value) || null
+  useEffect(() => {
+    void loadConfigs()
+  }, [])
+
+  const activeConfig = useMemo(
+    () => configs.find((config) => config.id === activeConfigId) || null,
+    [configs, activeConfigId]
+  )
 
   const persistConfigs = async (nextConfigs: CloudStorageConfig[]) => {
-    await updateSettingsMutation.mutateAsync({
-      key: CONFIGS_KEY,
-      value: JSON.stringify(nextConfigs),
-    })
+    setConfigs(nextConfigs)
+    await services
+      .getSettingsService()
+      .update(CONFIGS_KEY, JSON.stringify(nextConfigs))
   }
 
   const saveSecrets = async (config: CloudStorageConfig) => {
@@ -66,80 +81,49 @@ export const useCloudStorageViewModel = () => {
     }
   }
 
-  const stripSecrets = async (config: CloudStorageConfig) => {
-    const secretFields = secretFieldsByProvider[config.provider] || []
-    const sanitizedConfig = { ...config.config }
-    for (const field of secretFields) {
-      const secretKey = `${config.id}:${field}`
-      const secretValue = await getSecret(SECRET_NAMESPACE, secretKey)
-      if (secretValue) {
-        sanitizedConfig[field] = "Stored securely"
-      }
-    }
-    return {
-      ...config,
-      config: sanitizedConfig,
-    }
-  }
-
-  const saveConfig = async (config: CloudStorageConfig) => {
-    await saveSecrets(config)
-    const nextConfigs = [
-      ...configs.filter((existing) => existing.id !== config.id),
-      {
-        ...config,
-        isActive: activeSetting?.value === config.id,
-        updatedAt: new Date().toISOString(),
-      },
-    ]
-    await persistConfigs(nextConfigs)
-  }
-
-  const deleteConfig = async (configId: string) => {
-    const config = configs.find((entry) => entry.id === configId)
-    if (config) {
-      const secretFields = secretFieldsByProvider[config.provider] || []
-      for (const field of secretFields) {
-        await deleteSecret(SECRET_NAMESPACE, `${config.id}:${field}`)
-      }
-    }
-
-    const nextConfigs = configs.filter((config) => config.id !== configId)
-    await persistConfigs(nextConfigs)
-    if (activeSetting?.value === configId) {
-      await updateSettingsMutation.mutateAsync({
-        key: ACTIVE_KEY,
-        value: "",
-      })
-    }
-  }
-
-  const setActiveConfig = async (configId: string) => {
-    const nextConfigs = configs.map((config) => ({
-      ...config,
-      isActive: config.id === configId,
-    }))
-    await persistConfigs(nextConfigs)
-    await updateSettingsMutation.mutateAsync({
-      key: ACTIVE_KEY,
-      value: configId,
-    })
-  }
-
-  const testConnection = async (config: CloudStorageConfig) => {
-    await stripSecrets(config)
-    return true
-  }
-
   return {
     configs,
     isLoading,
-    error: updateSettingsMutation.error as Error | null,
-    saveConfig,
-    deleteConfig,
-    setActiveConfig,
-    testConnection,
+    error,
     activeConfig,
+    saveConfig: async (config: CloudStorageConfig) => {
+      await saveSecrets(config)
+      const nextConfigs = [
+        ...configs.filter((entry) => entry.id !== config.id),
+        {
+          ...config,
+          isActive: config.id === activeConfigId,
+          updatedAt: new Date().toISOString(),
+        },
+      ]
+      await persistConfigs(nextConfigs)
+    },
+    deleteConfig: async (configId: string) => {
+      const config = configs.find((entry) => entry.id === configId)
+      if (config) {
+        for (const field of secretFieldsByProvider[config.provider] || []) {
+          await deleteSecret(SECRET_NAMESPACE, `${config.id}:${field}`)
+        }
+      }
+      await persistConfigs(configs.filter((entry) => entry.id !== configId))
+      if (activeConfigId === configId) {
+        setActiveConfigId("")
+        await services.getSettingsService().update(ACTIVE_KEY, "")
+      }
+    },
+    setActiveConfig: async (configId: string) => {
+      setActiveConfigId(configId)
+      await services.getSettingsService().update(ACTIVE_KEY, configId)
+      await persistConfigs(
+        configs.map((config) => ({ ...config, isActive: config.id === configId }))
+      )
+    },
+    testConnection: async (config: CloudStorageConfig) => {
+      for (const field of secretFieldsByProvider[config.provider] || []) {
+        await getSecret(SECRET_NAMESPACE, `${config.id}:${field}`)
+      }
+      return true
+    },
     listSecretKeys: () => listSecrets(SECRET_NAMESPACE),
   }
 }

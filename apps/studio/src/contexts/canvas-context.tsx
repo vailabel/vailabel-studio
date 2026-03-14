@@ -1,7 +1,7 @@
 /**
  * Canvas Context Provider
  * Provides canvas-related functionality for the application
- * Uses React Query for state management following MVVM pattern
+ * Stores canvas-only interaction state for the studio workspace
  */
 
 import React, {
@@ -11,12 +11,11 @@ import React, {
   useState,
   useCallback,
 } from "react"
-import { useQuery, useMutation, useQueryClient } from "react-query"
 
 // Canvas state interfaces
 interface CanvasState {
   zoom: number
-  pan: { x: number; y: number }
+  panOffset: { x: number; y: number }
   cursor: { x: number; y: number }
   isDrawing: boolean
   selectedTool: string | null
@@ -26,13 +25,21 @@ interface CanvasState {
 }
 
 interface CanvasContextType extends CanvasState {
-  // State setters
   setZoom: (zoom: number) => void
-  setPan: (pan: { x: number; y: number }) => void
+  setPanOffset: (pan: { x: number; y: number }) => void
   setCursor: (cursor: { x: number; y: number }) => void
   setIsDrawing: (drawing: boolean) => void
+  setToolState: (state: Partial<Pick<CanvasContextType, "selectedTool">> & {
+    tempAnnotation?: any
+    showLabelInput?: boolean
+    resizingAnnotationId?: string | null
+    movingAnnotationId?: string | null
+    previewCoordinates?: any
+    polygonPoints?: any[]
+  }) => void
   setSelectedTool: (tool: string | null) => void
   setSelection: (selection: any) => void
+  setSelectedAnnotation: (selection: any) => void
   setContextMenu: (menu: {
     visible: boolean
     x: number
@@ -55,11 +62,8 @@ interface CanvasProviderProps {
 }
 
 export const CanvasProvider: React.FC<CanvasProviderProps> = ({ children }) => {
-  const queryClient = useQueryClient()
-
-  // Canvas state
   const [zoom, setZoom] = useState(1)
-  const [pan, setPan] = useState({ x: 0, y: 0 })
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 })
   const [cursor, setCursor] = useState({ x: 0, y: 0 })
   const [isDrawing, setIsDrawing] = useState(false)
   const [selectedTool, setSelectedTool] = useState<string | null>(null)
@@ -75,7 +79,7 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({ children }) => {
   // Canvas actions
   const resetCanvas = useCallback(() => {
     setZoom(1)
-    setPan({ x: 0, y: 0 })
+    setPanOffset({ x: 0, y: 0 })
     setCursor({ x: 0, y: 0 })
     setIsDrawing(false)
     setSelectedTool(null)
@@ -92,13 +96,21 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({ children }) => {
   }, [])
 
   const panTo = useCallback((x: number, y: number) => {
-    setPan({ x, y })
+    setPanOffset({ x, y })
   }, [])
 
+  const setToolState = useCallback(
+    (state: Partial<Pick<CanvasContextType, "selectedTool">>) => {
+      if (state.selectedTool !== undefined) {
+        setSelectedTool(state.selectedTool)
+      }
+    },
+    []
+  )
+
   const value: CanvasContextType = {
-    // State
     zoom,
-    pan,
+    panOffset,
     cursor,
     isDrawing,
     selectedTool,
@@ -106,17 +118,17 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({ children }) => {
     contextMenu,
     container,
 
-    // Setters
     setZoom,
-    setPan,
+    setPanOffset,
     setCursor,
     setIsDrawing,
+    setToolState,
     setSelectedTool,
     setSelection,
+    setSelectedAnnotation: setSelection,
     setContextMenu,
     setContainer,
 
-    // Actions
     resetCanvas,
     zoomIn,
     zoomOut,
@@ -140,7 +152,7 @@ export const useCanvas = (): CanvasContextType => {
 export const useCanvasState = () => {
   const {
     zoom,
-    pan,
+    panOffset,
     cursor,
     isDrawing,
     selectedTool,
@@ -150,7 +162,7 @@ export const useCanvasState = () => {
   } = useCanvas()
   return {
     zoom,
-    pan,
+    panOffset,
     cursor,
     isDrawing,
     selectedTool,
@@ -171,8 +183,8 @@ export const useCanvasZoom = () => {
 }
 
 export const useCanvasPan = () => {
-  const { pan, setPan, panTo } = useCanvas()
-  return { pan, setPan, panTo }
+  const { panOffset, setPanOffset, panTo } = useCanvas()
+  return { panOffset, setPanOffset, panTo }
 }
 
 export const useCanvasCursor = () => {
@@ -196,6 +208,6 @@ export const useCanvasContainer = () => {
 }
 
 export const useCanvasPanning = () => {
-  const { pan, setPan, panTo } = useCanvas()
-  return { pan, setPan, panTo }
+  const { panOffset, setPanOffset, panTo } = useCanvas()
+  return { panOffset, setPanOffset, panTo }
 }

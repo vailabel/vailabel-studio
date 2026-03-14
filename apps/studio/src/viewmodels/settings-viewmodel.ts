@@ -1,288 +1,160 @@
-/**
- * Settings ViewModel
- * Manages settings state and operations using React Query
- * Follows MVVM pattern with React Query as the binding layer
- */
+import { useEffect, useMemo, useState } from "react"
+import { Settings } from "@vailabel/core"
+import { services } from "@/services"
 
-import { useState, useMemo, useEffect } from "react"
-import { useQueryClient } from "react-query"
-import {
-  useSettings,
-  useSetting,
-  useUpdateSettings,
-} from "@/hooks/api/settings-hooks"
+type SettingValue = string | number | boolean
 
-interface Settings {
-  [key: string]: string | number | boolean
+const DEFAULT_SETTINGS: Record<string, SettingValue> = {
+  showRulers: true,
+  showCrosshairs: true,
+  showCoordinates: true,
+  brightness: 100,
+  contrast: 100,
+  keyboardShortcuts: "[]",
 }
 
 export const useSettingsViewModel = () => {
-  const queryClient = useQueryClient()
-
-  // State
-  const [showRulers, setShowRulers] = useState(true)
-  const [showCrosshairs, setShowCrosshairs] = useState(true)
-  const [showCoordinates, setShowCoordinates] = useState(true)
-  const [brightness, setBrightness] = useState(100)
-  const [contrast, setContrast] = useState(100)
+  const [settingsArray, setSettingsArray] = useState<Settings[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
   const [activeTab, setActiveTab] = useState("general")
   const [searchQuery, setSearchQuery] = useState("")
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  // Queries
-  const { data: settingsArray = [], isLoading: settingsLoading } = useSettings()
-  const { data: keyboardShortcutsSetting } = useSetting("keyboardShortcuts")
+  const loadSettings = async () => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      setSettingsArray(await services.getSettingsService().list())
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : String(nextError))
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
-  // Mutations
-  const updateSettingsMutation = useUpdateSettings()
+  useEffect(() => {
+    void loadSettings()
+  }, [])
 
-  // Categories
-  const categories = [
-    { id: "general", name: "General" },
-    { id: "appearance", name: "Appearance" },
-    { id: "model", name: "Model" },
-    { id: "shortcuts", name: "Shortcuts" },
-    { id: "advanced", name: "Advanced" },
-  ]
-
-  // Computed values
   const settings = useMemo(() => {
-    return settingsArray.reduce((acc, { key, value }) => {
-      acc[key] = value
-      return acc
-    }, {} as Settings)
+    const base = { ...DEFAULT_SETTINGS } as Record<string, SettingValue>
+    for (const setting of settingsArray) {
+      base[setting.key] = parseSettingValue(setting.value)
+    }
+    return base
   }, [settingsArray])
 
-  // Load settings when data is available
-  useEffect(() => {
-    if (settingsArray.length > 0) {
-      setShowRulers(Boolean(settings.showRulers ?? true))
-      setShowCrosshairs(Boolean(settings.showCrosshairs ?? true))
-      setShowCoordinates(Boolean(settings.showCoordinates ?? true))
-      setBrightness(Number(settings.brightness ?? 100))
-      setContrast(Number(settings.contrast ?? 100))
-    }
-  }, [settingsArray, settings])
-
-  // Actions
-  const updateSetting = async (
-    key: string,
-    value: string | number | boolean
-  ) => {
+  const updateSetting = async (key: string, value: SettingValue) => {
+    setIsSaving(true)
+    setError(null)
     try {
-      await updateSettingsMutation.mutateAsync({
-        key,
-        value: String(value),
-      })
-      return true
-    } catch (error) {
-      console.error("Failed to update setting:", error)
-      throw error
-    }
-  }
-
-  const updateRulers = async (value: boolean) => {
-    setShowRulers(value)
-    return updateSetting("showRulers", value)
-  }
-
-  const updateCrosshairs = async (value: boolean) => {
-    setShowCrosshairs(value)
-    return updateSetting("showCrosshairs", value)
-  }
-
-  const updateCoordinates = async (value: boolean) => {
-    setShowCoordinates(value)
-    return updateSetting("showCoordinates", value)
-  }
-
-  const updateBrightness = async (value: number) => {
-    setBrightness(value)
-    return updateSetting("brightness", value)
-  }
-
-  const updateContrast = async (value: number) => {
-    setContrast(value)
-    return updateSetting("contrast", value)
-  }
-
-  const updateKeyboardShortcuts = async (
-    shortcuts: Array<Record<string, unknown>>
-  ) => {
-    try {
-      await updateSettingsMutation.mutateAsync({
-        key: "keyboardShortcuts",
-        value: JSON.stringify(shortcuts),
-      })
+      const savedSetting = await services
+        .getSettingsService()
+        .update(key, serializeSettingValue(value))
+      setSettingsArray((current) => upsertSetting(current, savedSetting))
       setHasUnsavedChanges(true)
       return true
-    } catch (error) {
-      console.error("Failed to update keyboard shortcuts:", error)
-      throw error
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : String(nextError))
+      throw nextError
+    } finally {
+      setIsSaving(false)
     }
   }
-
-  const saveSettings = async () => {
-    try {
-      setError(null)
-      // Save all pending changes
-      await queryClient.invalidateQueries(["settings"])
-      setHasUnsavedChanges(false)
-      setLastSaved(new Date())
-      return true
-    } catch (error: unknown) {
-      setError((error as Error).message || "Failed to save settings")
-      throw error
-    }
-  }
-
-  const resetToDefaults = async () => {
-    try {
-      setError(null)
-      // Reset to default values
-      setShowRulers(true)
-      setShowCrosshairs(true)
-      setShowCoordinates(true)
-      setBrightness(100)
-      setContrast(100)
-      setHasUnsavedChanges(true)
-      return true
-    } catch (error: unknown) {
-      setError((error as Error).message || "Failed to reset settings")
-      throw error
-    }
-  }
-
-  const exportSettings = async () => {
-    try {
-      const settingsToExport = {
-        showRulers,
-        showCrosshairs,
-        showCoordinates,
-        brightness,
-        contrast,
-        keyboardShortcuts: keyboardShortcutsSetting?.value || "[]",
-        ...settings,
-      }
-      const blob = new Blob([JSON.stringify(settingsToExport, null, 2)], {
-        type: "application/json",
-      })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = `vailabel-settings-${new Date().toISOString().split("T")[0]}.json`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-      return true
-    } catch (error: unknown) {
-      setError((error as Error).message || "Failed to export settings")
-      throw error
-    }
-  }
-
-  const importSettings = async (file: File) => {
-    try {
-      setError(null)
-      const text = await file.text()
-      const importedSettings = JSON.parse(text)
-
-      // Apply imported settings
-      if (importedSettings.showRulers !== undefined) {
-        setShowRulers(importedSettings.showRulers)
-        await updateSetting("showRulers", importedSettings.showRulers)
-      }
-      if (importedSettings.showCrosshairs !== undefined) {
-        setShowCrosshairs(importedSettings.showCrosshairs)
-        await updateSetting("showCrosshairs", importedSettings.showCrosshairs)
-      }
-      if (importedSettings.showCoordinates !== undefined) {
-        setShowCoordinates(importedSettings.showCoordinates)
-        await updateSetting("showCoordinates", importedSettings.showCoordinates)
-      }
-      if (importedSettings.brightness !== undefined) {
-        setBrightness(importedSettings.brightness)
-        await updateSetting("brightness", importedSettings.brightness)
-      }
-      if (importedSettings.contrast !== undefined) {
-        setContrast(importedSettings.contrast)
-        await updateSetting("contrast", importedSettings.contrast)
-      }
-      if (importedSettings.keyboardShortcuts !== undefined) {
-        await updateSettingsMutation.mutateAsync({
-          key: "keyboardShortcuts",
-          value: importedSettings.keyboardShortcuts,
-        })
-      }
-
-      // Import other settings
-      for (const [key, value] of Object.entries(importedSettings)) {
-        if (
-          ![
-            "showRulers",
-            "showCrosshairs",
-            "showCoordinates",
-            "brightness",
-            "contrast",
-            "keyboardShortcuts",
-          ].includes(key)
-        ) {
-          await updateSetting(key, value as string | number | boolean)
-        }
-      }
-
-      setHasUnsavedChanges(false)
-      setLastSaved(new Date())
-      await queryClient.invalidateQueries(["settings"])
-      return true
-    } catch (error: unknown) {
-      setError((error as Error).message || "Failed to import settings")
-      throw error
-    }
-  }
-
-  // Update hasUnsavedChanges when settings change
-  useEffect(() => {
-    // This will be set by individual update functions
-  }, [showRulers, showCrosshairs, showCoordinates, brightness, contrast])
 
   return {
-    // State
     settings,
-    showRulers,
-    showCrosshairs,
-    showCoordinates,
-    brightness,
-    contrast,
-    keyboardShortcuts: keyboardShortcutsSetting?.value || "[]",
-    isLoading: settingsLoading,
-    categories,
+    settingsArray,
+    showRulers: Boolean(settings.showRulers),
+    showCrosshairs: Boolean(settings.showCrosshairs),
+    showCoordinates: Boolean(settings.showCoordinates),
+    brightness: Number(settings.brightness ?? 100),
+    contrast: Number(settings.contrast ?? 100),
+    keyboardShortcuts: String(settings.keyboardShortcuts ?? "[]"),
+    isLoading,
+    isSaving,
+    categories: [
+      { id: "general", name: "General" },
+      { id: "appearance", name: "Appearance" },
+      { id: "model", name: "Model" },
+      { id: "shortcuts", name: "Shortcuts" },
+      { id: "advanced", name: "Advanced" },
+    ],
     activeTab,
     searchQuery,
-    isSaving: updateSettingsMutation.isLoading,
     hasUnsavedChanges,
     lastSaved,
     error,
-
-    // Actions
+    getSettingValue: (key: string) => settings[key],
     updateSetting,
-    updateRulers,
-    updateCrosshairs,
-    updateCoordinates,
-    updateBrightness,
-    updateContrast,
-    updateKeyboardShortcuts,
+    updateRulers: (value: boolean) => updateSetting("showRulers", value),
+    updateCrosshairs: (value: boolean) =>
+      updateSetting("showCrosshairs", value),
+    updateCoordinates: (value: boolean) =>
+      updateSetting("showCoordinates", value),
+    updateBrightness: (value: number) => updateSetting("brightness", value),
+    updateContrast: (value: number) => updateSetting("contrast", value),
+    updateKeyboardShortcuts: (shortcuts: Array<Record<string, unknown>>) =>
+      updateSetting("keyboardShortcuts", JSON.stringify(shortcuts)),
     setActiveTab,
     setSearchQuery,
-    saveSettings,
-    resetToDefaults,
-    exportSettings,
-    importSettings,
-
-    // Mutation state
-    updateSettingsMutation,
+    saveSettings: async () => {
+      setHasUnsavedChanges(false)
+      setLastSaved(new Date())
+      return true
+    },
+    resetToDefaults: async () => {
+      for (const [key, value] of Object.entries(DEFAULT_SETTINGS)) {
+        await updateSetting(key, value)
+      }
+      setHasUnsavedChanges(false)
+      setLastSaved(new Date())
+      return true
+    },
+    exportSettings: async () => {
+      const blob = new Blob([JSON.stringify(settings, null, 2)], {
+        type: "application/json",
+      })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.href = url
+      link.download = `vailabel-settings-${new Date().toISOString().split("T")[0]}.json`
+      link.click()
+      URL.revokeObjectURL(url)
+      return true
+    },
+    importSettings: async (file: File) => {
+      const importedSettings = JSON.parse(
+        await file.text()
+      ) as Record<string, SettingValue>
+      for (const [key, value] of Object.entries(importedSettings)) {
+        await updateSetting(key, value)
+      }
+      setHasUnsavedChanges(false)
+      setLastSaved(new Date())
+      return true
+    },
+    refreshSettings: loadSettings,
   }
+}
+
+function parseSettingValue(value: string): SettingValue {
+  if (value === "true") return true
+  if (value === "false") return false
+  const numericValue = Number(value)
+  if (!Number.isNaN(numericValue) && value.trim() !== "") return numericValue
+  return value
+}
+
+function serializeSettingValue(value: SettingValue) {
+  return typeof value === "string" ? value : String(value)
+}
+
+function upsertSetting(current: Settings[], next: Settings) {
+  const existing = current.find((setting) => setting.key === next.key)
+  if (!existing) return [...current, next]
+  return current.map((setting) => (setting.key === next.key ? next : setting))
 }

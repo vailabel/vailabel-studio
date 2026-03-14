@@ -16,7 +16,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import { useTheme } from "./theme-provider"
-import { useSettings, useUpdateSettings } from "@/hooks/api/settings-hooks"
+import { useSettingsViewModel } from "@/viewmodels/settings-viewmodel"
 
 interface SettingsModalProps {
   onClose: () => void
@@ -30,8 +30,7 @@ export const SettingsModal = ({ onClose }: SettingsModalProps) => {
   const { toast } = useToast()
   const [isClearing, setIsClearing] = useState(false)
   const { theme, setTheme } = useTheme()
-  const { data: settingsArray = [], isLoading: settingsLoading } = useSettings()
-  const updateSettingsMutation = useUpdateSettings()
+  const { settings, updateSetting } = useSettingsViewModel()
 
   const [showRulers, setShowRulers] = useState(true)
   const [showCrosshairs, setShowCrosshairs] = useState(true)
@@ -39,23 +38,13 @@ export const SettingsModal = ({ onClose }: SettingsModalProps) => {
   const [brightness, setBrightness] = useState(100)
   const [contrast, setContrast] = useState(100)
 
-  // Load settings when data is available
   useEffect(() => {
-    if (settingsArray.length > 0) {
-      const loadedSettings: Settings = settingsArray.reduce(
-        (acc, { key, value }) => {
-          acc[key] = value
-          return acc
-        },
-        {} as Settings
-      )
-      setShowRulers(Boolean(loadedSettings.showRulers ?? true))
-      setShowCrosshairs(Boolean(loadedSettings.showCrosshairs ?? true))
-      setShowCoordinates(Boolean(loadedSettings.showCoordinates ?? true))
-      setBrightness(Number(loadedSettings.brightness ?? 100))
-      setContrast(Number(loadedSettings.contrast ?? 100))
-    }
-  }, [settingsArray])
+    setShowRulers(Boolean(settings.showRulers ?? true))
+    setShowCrosshairs(Boolean(settings.showCrosshairs ?? true))
+    setShowCoordinates(Boolean(settings.showCoordinates ?? true))
+    setBrightness(Number(settings.brightness ?? 100))
+    setContrast(Number(settings.contrast ?? 100))
+  }, [settings])
 
   // Unified handler for toggles and sliders
   const handleChangeSetting = async (
@@ -63,11 +52,7 @@ export const SettingsModal = ({ onClose }: SettingsModalProps) => {
     value: string | number | boolean
   ) => {
     try {
-      // Convert value to string for updateSetting
-      await updateSettingsMutation.mutateAsync({
-        key,
-        value: String(value),
-      })
+      await updateSetting(key, value)
       toast({
         title: "Setting updated",
         description: `${key} has been updated to ${value}`,

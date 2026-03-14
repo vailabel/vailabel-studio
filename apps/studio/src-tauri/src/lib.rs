@@ -48,7 +48,6 @@ struct DesktopRequest {
   method: String,
   path: String,
   body: Option<Value>,
-  auth_token: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -254,25 +253,6 @@ fn normalize_entity(kind: &str, mut value: Value) -> Result<Value, AppError> {
       object.entry("isCustom").or_insert(Value::Bool(true));
       object.entry("isActive").or_insert(Value::Bool(false));
     }
-    "permissions" => {
-      ensure_string_field(object, "name", "permission");
-      ensure_string_field(object, "resource", "app");
-      ensure_string_field(object, "action", "read");
-    }
-    "roles" => {
-      ensure_string_field(object, "name", "role");
-      object.entry("permissions").or_insert_with(|| json!([]));
-    }
-    "users" => {
-      ensure_string_field(object, "email", "");
-      ensure_string_field(object, "name", "User");
-      ensure_string_field(object, "password", "admin123");
-      ensure_string_field(object, "role", "user");
-      mirror_alias(object, "roleId", "role_id");
-      object.entry("roles").or_insert_with(|| json!(["user"]));
-      object.entry("permissions").or_insert_with(|| json!([]));
-      object.entry("userPermissions").or_insert_with(|| json!([]));
-    }
     _ => {}
   }
 
@@ -287,20 +267,6 @@ fn patch_entity(store: &DesktopStore, kind: &str, id: &str, patch: Value) -> Res
   let normalized = normalize_entity(kind, existing)?;
   store.upsert_entity(kind, normalized.clone())?;
   Ok(normalized)
-}
-
-fn find_by_id(items: &[Value], id: &str) -> Option<Value> {
-  items.iter().find(|item| item.get("id").and_then(Value::as_str) == Some(id)).cloned()
-}
-
-fn with_auth_user(store: &DesktopStore, auth_token: Option<&str>) -> Result<Value, AppError> {
-  let token = auth_token.ok_or_else(|| AppError::Message("Authentication required".into()))?;
-  let user_id = store
-    .resolve_token(token)?
-    .ok_or_else(|| AppError::Message("Unauthorized".into()))?;
-  store
-    .get_entity("users", &user_id)?
-    .ok_or_else(|| AppError::Message("Unauthorized".into()))
 }
 
 fn query_value(path: &str, key: &str) -> Option<String> {
@@ -398,93 +364,6 @@ fn desktop_request_inner(store: &DesktopStore, request: DesktopRequest) -> Resul
         .unwrap_or_else(|| json!({ "id": Uuid::new_v4().to_string(), "key": key, "value": "" })),
     ),
     ("POST", ["settings"]) => Ok(store.upsert_setting(normalize_entity("settings", body)?)?),
-
-    ("POST", ["auth", "login"]) => {
-      let email = body.get("email").and_then(Value::as_str).unwrap_or_default();
-      let password = body.get("password").and_then(Value::as_str).unwrap_or_default();
-      let user = store
-        .find_user_by_credentials(email, password)?
-        .ok_or_else(|| AppError::Message("Invalid credentials".into()))?;
-      let user_id = user.get("id").and_then(Value::as_str).unwrap_or_default();
-      let token = store.issue_token(user_id)?;
-      Ok(json!({
-        "access_token": token,
-        "token_type": "bearer",
-        "user": user
-      }))
-    }
-    ("POST", ["auth", "logout"]) => {
-      if let Some(token) = request.auth_token.as_deref() {
-        store.revoke_token(token)?;
-      }
-      Ok(json!({ "success": true }))
-    }
-    ("GET", ["auth", "me"]) => with_auth_user(store, request.auth_token.as_deref()),
-
-    ("GET", ["users"]) => Ok(json!(store.list_entities("users")?)),
-    ("GET", ["users", user_id]) => store
-      .get_entity("users", user_id)?
-      .ok_or_else(|| AppError::Message("User not found".into())),
-    ("POST", ["users"]) => Ok(store.upsert_entity("users", normalize_entity("users", body)?)?),
-    ("PUT", ["users", user_id]) => patch_entity(store, "users", user_id, body),
-    ("DELETE", ["users", user_id]) => {
-      store.delete_entity("users", user_id)?;
-      Ok(json!({ "success": true }))
-    }
-    ("GET", ["users", user_id, "permissions"]) => {
-      let user = store
-        .get_entity("users", user_id)?
-        .ok_or_else(|| AppError::Message("User not found".into()))?;
-      Ok(user.get("permissions").cloned().unwrap_or_else(|| json!([])))
-    }
-    ("POST", ["users", user_id, "permissions"]) => {
-      let permission_ids = body.get("permission_ids").cloned().unwrap_or_else(|| json!([]));
-      let mut user = store
-        .get_entity("users", user_id)?
-        .ok_or_else(|| AppError::Message("User not found".into()))?;
-      as_object_mut(&mut user)?.insert("permissions".into(), permission_ids);
-      let normalized = normalize_entity("users", user)?;
-      Ok(store.upsert_entity("users", normalized)?)
-    }
-    ("POST", ["users", user_id, "role"]) => {
-      let role_id = body
-        .get("role_id")
-        .and_then(Value::as_str)
-        .ok_or_else(|| AppError::Message("role_id is required".into()))?;
-      let roles = store.list_entities("roles")?;
-      let role = find_by_id(&roles, role_id).ok_or_else(|| AppError::Message("Role not found".into()))?;
-      let role_name = role.get("name").and_then(Value::as_str).unwrap_or("user").to_string();
-      let mut user = store
-        .get_entity("users", user_id)?
-        .ok_or_else(|| AppError::Message("User not found".into()))?;
-      let object = as_object_mut(&mut user)?;
-      object.insert("role".into(), Value::String(role_name.clone()));
-      object.insert("roleId".into(), Value::String(role_id.to_string()));
-      object.insert("roles".into(), json!([role_name]));
-      let normalized = normalize_entity("users", user)?;
-      Ok(store.upsert_entity("users", normalized)?)
-    }
-
-    ("GET", ["permissions", "roles"]) => Ok(json!(store.list_entities("roles")?)),
-    ("GET", ["permissions", "roles", role_id]) => store
-      .get_entity("roles", role_id)?
-      .ok_or_else(|| AppError::Message("Role not found".into())),
-    ("POST", ["permissions", "roles"]) => Ok(store.upsert_entity("roles", normalize_entity("roles", body)?)?),
-    ("PUT", ["permissions", "roles", role_id]) => patch_entity(store, "roles", role_id, body),
-    ("DELETE", ["permissions", "roles", role_id]) => {
-      store.delete_entity("roles", role_id)?;
-      Ok(json!({ "success": true }))
-    }
-    ("GET", ["permissions"]) => Ok(json!(store.list_entities("permissions")?)),
-    ("GET", ["permissions", permission_id]) => store
-      .get_entity("permissions", permission_id)?
-      .ok_or_else(|| AppError::Message("Permission not found".into())),
-    ("POST", ["permissions"]) => Ok(store.upsert_entity("permissions", normalize_entity("permissions", body)?)?),
-    ("PUT", ["permissions", permission_id]) => patch_entity(store, "permissions", permission_id, body),
-    ("DELETE", ["permissions", permission_id]) => {
-      store.delete_entity("permissions", permission_id)?;
-      Ok(json!({ "success": true }))
-    }
 
     ("GET", ["ai-models"]) => Ok(json!(store.list_entities("ai_models")?)),
     ("GET", ["projects", project_id, "ai-models"]) => Ok(json!(store.list_by_field("ai_models", "project_id", project_id)?)),
