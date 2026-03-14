@@ -5,12 +5,7 @@ import { Metadata } from "next"
 import BlogSidebar from "../BlogSidebar"
 import { MarkdownRenderer } from "@/components/markdown-renderer"
 
-export async function generateMetadata({
-  params,
-}: {
-  params: { slug: string }
-}): Promise<Metadata> {
-  const { slug } = params
+export async function generateMetadata({ params: { slug } }: { params: { slug: string } }): Promise<Metadata> {
   const blogsDir = path.join(process.cwd(), "blogs")
   const filePath = path.join(blogsDir, `${slug}.md`)
 
@@ -41,12 +36,7 @@ export async function generateMetadata({
   }
 }
 
-export default async function BlogDetailPage({
-  params,
-}: {
-  params: { slug: string }
-}) {
-  const { slug } = params
+export default async function BlogDetailPage({ params: { slug } }: { params: { slug: string } }) {
   const blogsDir = path.join(process.cwd(), "blogs")
   const filePath = path.join(blogsDir, `${slug}.md`)
 
