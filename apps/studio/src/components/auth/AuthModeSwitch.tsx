@@ -2,8 +2,8 @@ import React from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/contexts/auth-context"
-import { isElectron } from "@/lib/constants"
-import { Database, Cloud, Monitor } from "lucide-react"
+import { isDesktopApp } from "@/lib/desktop"
+import { Database, Cloud } from "lucide-react"
 
 interface AuthModeSwitchProps {
   className?: string
@@ -28,8 +28,7 @@ export function AuthModeSwitch({ className }: AuthModeSwitchProps) {
     }
   }
 
-  // Only show in Electron
-  if (!isElectron()) {
+  if (!isDesktopApp()) {
     return null
   }
 

@@ -1,7 +1,10 @@
 /**
- * HTTP API Client for FastAPI Backend
- * Provides a unified interface for making HTTP requests with authentication, caching, and error handling
+ * Shared API client for desktop commands and web HTTP requests.
+ * Provides a unified interface for authentication, caching, and error handling.
  */
+
+import { DesktopRouteClient } from "@/lib/desktop-route-client"
+import { isDesktopApp } from "@/lib/desktop"
 
 export interface ApiClientConfig {
   baseUrl: string
@@ -27,6 +30,7 @@ interface CacheEntry {
 export class ApiClient {
   private config: ApiClientConfig
   private cache: Map<string, CacheEntry> = new Map()
+  private desktopClient = new DesktopRouteClient()
 
   constructor(config: ApiClientConfig) {
     this.config = config
@@ -87,9 +91,10 @@ export class ApiClient {
     url: string,
     options: RequestOptions = {}
   ): Promise<T> {
-    const fullUrl = `${this.config.baseUrl}${url}`
     const method = options.method || "GET"
     const headers = await this.buildHeaders(options)
+    const authHeader = headers.Authorization
+    const authToken = authHeader?.replace(/^Bearer\s+/i, "") || null
 
     // Check cache for GET requests
     if (method === "GET" && options.cache !== false) {
@@ -100,6 +105,23 @@ export class ApiClient {
       }
     }
 
+    if (isDesktopApp()) {
+      const data = await this.desktopClient.request<T>(
+        method,
+        url,
+        options.body,
+        authToken
+      )
+
+      if (method === "GET" && options.cache !== false) {
+        const cacheKey = this.getCacheKey(url, options)
+        this.setCache(cacheKey, data)
+      }
+
+      return data
+    }
+
+    const fullUrl = `${this.config.baseUrl}${url}`
     const requestOptions: RequestInit = {
       method,
       headers,

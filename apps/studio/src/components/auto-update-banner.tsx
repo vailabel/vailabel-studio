@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { RotateCcw, Download, CheckCircle2, ExternalLink } from "lucide-react"
-import { cn } from "@/lib/utils"
 
 export const AutoUpdateBanner = () => {
   const { updateAvailable, progress, updateDownloaded } = useAutoUpdate()
@@ -12,8 +11,7 @@ export const AutoUpdateBanner = () => {
   if (!progress && !updateDownloaded) return null
 
   const handleRestart = () => {
-    // @ts-expect-error electronAPI is injected by preload
-    window.electronAPI?.restartApp?.()
+    window.location.reload()
   }
 
   return (

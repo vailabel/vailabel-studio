@@ -7,7 +7,7 @@ import { ApiClient } from "@/lib/ApiClient"
 
 // Create a singleton API client instance
 export const apiClient = new ApiClient({
-  baseUrl: "http://localhost:8000/api/v1", // FastAPI backend
+  baseUrl: import.meta.env.VITE_API_BASE_URL || "/api/v1",
   headers: {
     "Content-Type": "application/json",
   },

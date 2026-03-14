@@ -1,3 +1,0 @@
-ultralytics
-opencv-python
-Pillow

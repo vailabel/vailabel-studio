@@ -11,8 +11,9 @@ export function useAIModels(projectId: string) {
   return useQuery({
     queryKey: queryKeys.aiModels(projectId),
     queryFn: () =>
-      apiClient.get<AIModel[]>(`/projects/${projectId}/ai-models/`),
-    enabled: !!projectId,
+      projectId
+        ? apiClient.get<AIModel[]>(`/projects/${projectId}/ai-models/`)
+        : apiClient.get<AIModel[]>("/ai-models/"),
     staleTime: 5 * 60 * 1000, // 5 minutes
   })
 }

@@ -14,7 +14,6 @@ import {
   Search,
   Settings,
   Palette,
-  Code,
   Brain,
   Keyboard,
   Cog,
@@ -30,13 +29,11 @@ import GeneralSettings from "@/components/settings/general-settings"
 import AppearanceSettings from "@/components/settings/appearance-settings"
 import { KeyboardShortcuts } from "@/components/settings/keyboard-shortcuts"
 import { ModelSelection } from "@/components/settings/model-selection"
-import InstallPythonPackage from "@/components/settings/install-python-pakage"
 import AdvancedSettings from "@/components/settings/advanced-settings"
 
 const categoryIcons = {
   general: Settings,
   appearance: Palette,
-  python: Code,
   model: Brain,
   shortcuts: Keyboard,
   advanced: Cog,
@@ -202,7 +199,7 @@ export default function Setting() {
             onValueChange={setActiveTab}
             className="w-full"
           >
-            <TabsList className="grid w-full grid-cols-6 mb-8 bg-white dark:bg-gray-800 shadow-sm">
+            <TabsList className="grid w-full grid-cols-5 mb-8 bg-white dark:bg-gray-800 shadow-sm">
               {categories.map((category) => {
                 const IconComponent =
                   categoryIcons[category.id as keyof typeof categoryIcons]
@@ -252,26 +249,6 @@ export default function Setting() {
                   </CardHeader>
                   <CardContent>
                     <AppearanceSettings />
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="python" className="mt-0">
-              <div className="transition-all duration-300 opacity-100">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Code className="w-5 h-5" />
-                      Python Setup
-                    </CardTitle>
-                    <CardDescription>
-                      Configure your Python environment for advanced features
-                      and scripting
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <InstallPythonPackage />
                   </CardContent>
                 </Card>
               </div>

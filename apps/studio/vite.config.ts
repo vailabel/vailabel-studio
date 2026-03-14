@@ -17,12 +17,15 @@ export default defineConfig({
     include: ["@vailabel/core"],
   },
   server: {
-    host: "localhost",
+    host: "0.0.0.0",
     port: 5173,
+    strictPort: true,
   },
   build: {
     outDir: "dist",
     assetsDir: "assets",
     sourcemap: true,
+    target: process.env.TAURI_ENV_PLATFORM ? "chrome105" : "es2020",
+    minify: process.env.TAURI_ENV_PLATFORM ? false : "esbuild",
   },
 })

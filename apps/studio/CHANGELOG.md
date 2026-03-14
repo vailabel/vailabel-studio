@@ -11,7 +11,7 @@
 ### Minor Changes
 
 - adding test to desktop ipc & test in repo on studio
-- 1b0a4c6: add intergration with electron and fast api ( still have some fuctionally not working)
+- 1b0a4c6: legacy desktop integration before the Tauri migration
 
 ### Patch Changes
 

@@ -1,5 +1,5 @@
 /**
- * React Query hooks for FastAPI integration
+ * React Query hooks for local desktop data integration
  *
  * @deprecated This file is kept for backward compatibility.
  * Please import from @/hooks/api instead.

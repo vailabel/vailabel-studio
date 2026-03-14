@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { ElectronFileInput } from "@/components/electron-file"
+import { DesktopFileInput } from "@/components/desktop-file"
 import { useSettingsViewModel } from "@/viewmodels/settings-viewmodel"
 
 export default function GeneralSettings() {
@@ -64,12 +64,13 @@ export default function GeneralSettings() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-3 items-start">
-            <ElectronFileInput
+            <DesktopFileInput
               onChange={handleDataDirectoryChange}
               accept=""
               multiple={false}
               className="flex-1"
               placeholder="Select a folder..."
+              options={{ properties: ["openDirectory"] }}
             />
           </div>
           <p className="text-sm text-muted-foreground">

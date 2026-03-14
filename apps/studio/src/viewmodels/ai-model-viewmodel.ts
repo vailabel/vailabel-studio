@@ -21,7 +21,6 @@ export const useAIModelViewModel = () => {
     useAIModels("") // Get all models
   const { data: selectedModelSetting } = useSetting("modalSelected")
   const { data: modelPathSetting } = useSetting("modelPath")
-  const { data: pythonPathSetting } = useSetting("pythonPath")
 
   // Mutations
   const updateSettingsMutation = useUpdateSettings()
@@ -64,33 +63,18 @@ export const useAIModelViewModel = () => {
     }
   }
 
-  const savePythonPath = async (pythonPath: string) => {
-    try {
-      await updateSettingsMutation.mutateAsync({
-        key: "pythonPath",
-        value: pythonPath,
-      })
-      return true
-    } catch (error) {
-      console.error("Failed to save python path:", error)
-      throw error
-    }
-  }
-
   return {
     // State
     availableModels,
     selectedModel,
     selectedModelId,
     modelPath: modelPathSetting?.value || "",
-    pythonPath: pythonPathSetting?.value || "",
     isLoading: modelsLoading,
 
     // Actions
     selectModel,
     saveModelSelection,
     saveModelPath,
-    savePythonPath,
 
     // Mutation state
     updateSettingsMutation,

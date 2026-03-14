@@ -149,28 +149,13 @@ export function AuthStatusDemo() {
 
         {/* Actions */}
         <div className="pt-4 border-t space-y-2">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={logout}
             className="w-full flex items-center gap-2"
           >
             <LogOut className="h-4 w-4" />
             Logout
-          </Button>
-          
-          <Button 
-            variant="secondary" 
-            onClick={async () => {
-              try {
-                const result = await window.ipc.invoke("test:auth")
-                alert(`IPC Test Result: ${result}`)
-              } catch (error) {
-                alert(`IPC Test Failed: ${error}`)
-              }
-            }}
-            className="w-full"
-          >
-            Test IPC Connection
           </Button>
         </div>
       </CardContent>

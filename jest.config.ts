@@ -5,7 +5,6 @@ const config: Config = {
   projects: [
     "<rootDir>/apps/core/jest.config.ts",
     "<rootDir>/apps/studio/jest.config.ts",
-    "<rootDir>/apps/desktop/jest.config.ts",
   ],
   coveragePathIgnorePatterns: [
     "/node_modules/",

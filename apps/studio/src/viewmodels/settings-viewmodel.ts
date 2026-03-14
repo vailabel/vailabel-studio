@@ -42,7 +42,6 @@ export const useSettingsViewModel = () => {
   const categories = [
     { id: "general", name: "General" },
     { id: "appearance", name: "Appearance" },
-    { id: "python", name: "Python" },
     { id: "model", name: "Model" },
     { id: "shortcuts", name: "Shortcuts" },
     { id: "advanced", name: "Advanced" },

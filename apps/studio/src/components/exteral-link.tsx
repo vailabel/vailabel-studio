@@ -1,6 +1,6 @@
-import { isElectron } from "@/lib/constants"
-import { ExternalLink as LucideExternalLink } from "lucide-react"
 import React from "react"
+import { ExternalLink as LucideExternalLink } from "lucide-react"
+import { isDesktopApp, openExternalUrl } from "@/lib/desktop"
 
 interface ExternalLinkProps
   extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
@@ -16,13 +16,14 @@ export const ExternalLink: React.FC<ExternalLinkProps> = ({
   ...props
 }) => {
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    if (isElectron()) {
+    if (isDesktopApp()) {
       e.preventDefault()
-      window.ipc?.invoke?.("command:openExternalLink", href).catch((error) => {
+      openExternalUrl(href).catch((error) => {
         console.error("Failed to open external link:", error)
       })
     }
   }
+
   return (
     <a
       href={href}

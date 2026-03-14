@@ -1,4 +1,12 @@
 import { IStorageAdapter } from "../../interfaces/IStorageAdapter"
+import {
+  deleteImageFile,
+  ensureDirectory,
+  getBaseName,
+  listImageFiles,
+  loadImageFile,
+  saveImageFile,
+} from "@/lib/desktop"
 
 export class FileSystemStorageAdapter implements IStorageAdapter {
   constructor(private readonly directory: string) {
@@ -10,7 +18,7 @@ export class FileSystemStorageAdapter implements IStorageAdapter {
     this.ensureDirectory()
   }
   private ensureDirectory = async () => {
-    await window.ipc.invoke("fs-ensure-directory", { path: this.directory })
+    await ensureDirectory(this.directory)
   }
 
   private getPath(id: string) {
@@ -19,26 +27,23 @@ export class FileSystemStorageAdapter implements IStorageAdapter {
 
   saveImage = async (id: string, data: Buffer): Promise<void> => {
     await this.ensureDirectory()
-    await window.ipc.invoke("fs-save-image", { path: this.getPath(id), data })
+    await saveImageFile(this.getPath(id), Buffer.from(data).toString("base64"))
   }
 
   loadImage = async (id: string): Promise<Buffer> => {
     await this.ensureDirectory()
-    return (await window.ipc.invoke("fs-load-image", {
-      path: this.getPath(id),
-    })) as Buffer
+    const encoded = await loadImageFile(this.getPath(id))
+    return Buffer.from(encoded, "base64")
   }
 
   deleteImage = async (id: string): Promise<void> => {
     await this.ensureDirectory()
-    await window.ipc.invoke("fs-delete-image", { path: this.getPath(id) })
+    await deleteImageFile(this.getPath(id))
   }
 
   listImages = async (): Promise<string[]> => {
     await this.ensureDirectory()
-    const files = (await window.ipc.invoke("fs-list-images", {
-      directory: this.directory,
-    })) as string[]
+    const files = await listImageFiles(this.directory)
     // Only return image files (png, jpg, jpeg, gif, bmp, webp, tiff, svg)
     const imageExtensions = [
       ".png",
@@ -54,12 +59,7 @@ export class FileSystemStorageAdapter implements IStorageAdapter {
       imageExtensions.some((ext) => f.toLowerCase().endsWith(ext))
     )
     const baseNames = await Promise.all(
-      imageFiles.map(
-        (f: string) =>
-          window.ipc.invoke("fs-get-base-name", {
-            file: f,
-          }) as Promise<string>
-      )
+      imageFiles.map((file: string) => getBaseName(file))
     )
     return baseNames
   }
