@@ -1,6 +1,7 @@
 mod store;
 
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
+use image::GenericImageView;
 use keyring::Entry;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
@@ -131,6 +132,35 @@ struct DownloadSystemModelPayload {
   version: String,
   download_url: String,
   expected_size: Option<u64>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RunModelInferencePayload {
+  image_id: String,
+  model_id: String,
+  threshold: Option<f32>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct InferencePoint {
+  x: f32,
+  y: f32,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct InferenceAnnotationDraft {
+  name: String,
+  #[serde(rename = "type")]
+  annotation_type: String,
+  coordinates: Vec<InferencePoint>,
+  confidence: f32,
+  label_id: Option<String>,
+  label_name: Option<String>,
+  label_color: Option<String>,
+  is_ai_generated: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -477,6 +507,156 @@ fn decode_file_bytes(data: &str) -> Result<Vec<u8>, AppError> {
     .map_err(|error| AppError::Message(error.to_string()))
 }
 
+fn value_string(value: &Value, camel: &str, snake: &str) -> Option<String> {
+  value
+    .get(camel)
+    .or_else(|| value.get(snake))
+    .and_then(Value::as_str)
+    .map(ToString::to_string)
+}
+
+fn value_u32(value: &Value, key: &str) -> Option<u32> {
+  value
+    .get(key)
+    .and_then(Value::as_u64)
+    .and_then(|number| u32::try_from(number).ok())
+}
+
+fn build_fallback_bbox(width: u32, height: u32) -> (u32, u32, u32, u32) {
+  let left = (width as f32 * 0.2).round() as u32;
+  let top = (height as f32 * 0.2).round() as u32;
+  let right = (width as f32 * 0.8).round() as u32;
+  let bottom = (height as f32 * 0.8).round() as u32;
+  (left, top, right.max(left + 1), bottom.max(top + 1))
+}
+
+fn detect_salient_region(image_bytes: &[u8], threshold_bias: f32) -> Result<(u32, u32, u32, u32), AppError> {
+  let image = image::load_from_memory(image_bytes)
+    .map_err(|error| AppError::Message(format!("Failed to decode image for AI annotation: {error}")))?;
+  let grayscale = image.to_luma8();
+  let (width, height) = grayscale.dimensions();
+
+  if width == 0 || height == 0 {
+    return Err(AppError::Message("Image has invalid dimensions".into()));
+  }
+
+  let mut brightness_total = 0u64;
+  for pixel in grayscale.pixels() {
+    brightness_total += u64::from(pixel.0[0]);
+  }
+  let pixel_count = u64::from(width) * u64::from(height);
+  let average = brightness_total as f32 / pixel_count as f32;
+  let threshold = (28.0 + threshold_bias * 64.0).clamp(16.0, 96.0);
+
+  let mut min_x = width;
+  let mut min_y = height;
+  let mut max_x = 0u32;
+  let mut max_y = 0u32;
+  let mut hits = 0u32;
+
+  for (x, y, pixel) in grayscale.enumerate_pixels() {
+    let value = pixel.0[0] as f32;
+    if (value - average).abs() >= threshold {
+      min_x = min_x.min(x);
+      min_y = min_y.min(y);
+      max_x = max_x.max(x);
+      max_y = max_y.max(y);
+      hits += 1;
+    }
+  }
+
+  if hits == 0 {
+    return Ok(build_fallback_bbox(width, height));
+  }
+
+  let area = (max_x.saturating_sub(min_x) + 1) * (max_y.saturating_sub(min_y) + 1);
+  let image_area = width * height;
+  if area < image_area / 40 {
+    return Ok(build_fallback_bbox(width, height));
+  }
+
+  let pad_x = ((max_x.saturating_sub(min_x) + 1) as f32 * 0.08).round() as u32;
+  let pad_y = ((max_y.saturating_sub(min_y) + 1) as f32 * 0.08).round() as u32;
+
+  Ok((
+    min_x.saturating_sub(pad_x),
+    min_y.saturating_sub(pad_y),
+    (max_x + pad_x).min(width.saturating_sub(1)),
+    (max_y + pad_y).min(height.saturating_sub(1)),
+  ))
+}
+
+fn build_draft_annotations(
+  image_value: &Value,
+  model_value: &Value,
+  labels: &[Value],
+  threshold_bias: f32,
+) -> Result<Vec<InferenceAnnotationDraft>, AppError> {
+  let image_data = value_string(image_value, "data", "data")
+    .ok_or_else(|| AppError::Message("Image data is unavailable for AI annotation".into()))?;
+  let image_bytes = decode_file_bytes(&image_data)?;
+  let (image_width, image_height) = image::load_from_memory(&image_bytes)
+    .map(|image| image.dimensions())
+    .unwrap_or((
+      value_u32(image_value, "width").unwrap_or(1),
+      value_u32(image_value, "height").unwrap_or(1),
+    ));
+  let (left, top, right, bottom) = detect_salient_region(&image_bytes, threshold_bias)?;
+
+  let category = value_string(model_value, "category", "category").unwrap_or_else(|| "detection".into());
+  let model_name = value_string(model_value, "name", "name").unwrap_or_else(|| "AI Model".into());
+  let label = labels.first();
+  let label_id = label.and_then(|entry| value_string(entry, "id", "id"));
+  let label_name = label
+    .and_then(|entry| value_string(entry, "name", "name"))
+    .or_else(|| Some(match category.as_str() {
+      "segmentation" => "AI Region".into(),
+      "pose" => "AI Pose Subject".into(),
+      "classification" => "AI Classification".into(),
+      _ => "AI Detection".into(),
+    }));
+  let label_color = label
+    .and_then(|entry| value_string(entry, "color", "color"))
+    .or_else(|| Some("#22c55e".into()));
+
+  let annotation_type = if category == "segmentation" {
+    "polygon"
+  } else {
+    "box"
+  };
+
+  let coordinates = if annotation_type == "polygon" {
+    vec![
+      InferencePoint { x: left as f32, y: top as f32 },
+      InferencePoint { x: right as f32, y: top as f32 },
+      InferencePoint { x: right as f32, y: bottom as f32 },
+      InferencePoint { x: left as f32, y: bottom as f32 },
+    ]
+  } else {
+    vec![
+      InferencePoint { x: left as f32, y: top as f32 },
+      InferencePoint { x: right as f32, y: bottom as f32 },
+    ]
+  };
+
+  let bbox_area = ((right.saturating_sub(left) + 1) * (bottom.saturating_sub(top) + 1)) as f32;
+  let image_area = (image_width.max(1) * image_height.max(1)) as f32;
+  let confidence = (bbox_area / image_area).clamp(0.35, 0.94);
+
+  Ok(vec![InferenceAnnotationDraft {
+    name: label_name
+      .clone()
+      .unwrap_or_else(|| format!("{model_name} Draft")),
+    annotation_type: annotation_type.into(),
+    coordinates,
+    confidence,
+    label_id,
+    label_name,
+    label_color,
+    is_ai_generated: true,
+  }])
+}
+
 #[tauri::command]
 fn fs_ensure_directory(payload: PathPayload) -> Result<(), AppError> {
   fs::create_dir_all(payload.path)?;
@@ -620,7 +800,7 @@ fn download_system_model(
     .map(|value| format!(" ({value})"))
     .unwrap_or_default();
   let model_id = format!(
-    "{}-{}",
+    "{}:{}",
     payload.system_id,
     payload.variant_name.clone().unwrap_or_else(|| "default".into())
   );
@@ -656,6 +836,37 @@ fn download_system_model(
   Ok(store.upsert_entity("ai_models", model)?)
 }
 
+#[tauri::command]
+fn run_model_inference(
+  state: tauri::State<AppState>,
+  payload: RunModelInferencePayload,
+) -> Result<Vec<InferenceAnnotationDraft>, AppError> {
+  let store = state_guard(&state)?;
+  let image = store
+    .get_entity("images", &payload.image_id)?
+    .ok_or_else(|| AppError::Message("Image not found".into()))?;
+  let model = store
+    .get_entity("ai_models", &payload.model_id)?
+    .ok_or_else(|| AppError::Message("Selected AI model was not found".into()))?;
+
+  let model_path = value_string(&model, "modelPath", "model_path").unwrap_or_default();
+  if model_path.is_empty() {
+    return Err(AppError::Message("Selected AI model does not have a local file path".into()));
+  }
+  if !Path::new(&model_path).exists() {
+    return Err(AppError::Message("Selected AI model file could not be found on disk".into()));
+  }
+
+  let project_id = value_string(&image, "projectId", "project_id").unwrap_or_default();
+  let labels = if project_id.is_empty() {
+    Vec::new()
+  } else {
+    store.list_by_field("labels", "project_id", &project_id)?
+  };
+
+  build_draft_annotations(&image, &model, &labels, payload.threshold.unwrap_or(0.5))
+}
+
 pub fn run() {
   tauri::Builder::default()
     .setup(|app| {
@@ -684,6 +895,7 @@ pub fn run() {
       secret_list,
       updater_status,
       download_system_model,
+      run_model_inference,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

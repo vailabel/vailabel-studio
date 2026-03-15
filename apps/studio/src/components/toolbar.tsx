@@ -27,11 +27,13 @@ import { AIDetectionButton } from "@/components/ai-detection-button"
 import type { ImageData } from "@vailabel/core"
 import { useCanvasTool, useCanvasZoom, useCanvasPan, useCanvasState } from "@/contexts/canvas-context"
 import { memo, useCallback } from "react"
+import { useAIModelViewModel } from "@/viewmodels/ai-model-viewmodel"
 
 interface ToolbarProps {
   currentImage: ImageData | null
   onOpenSettings: () => void
   onOpenAISettings: () => void
+  onRefreshAnnotations: () => Promise<void>
 }
 
 interface Tool {
@@ -53,10 +55,11 @@ interface AdditionalTool {
 }
 
 export const Toolbar = memo(
-  ({ currentImage, onOpenAISettings }: ToolbarProps) => {
+  ({ currentImage, onOpenAISettings, onRefreshAnnotations }: ToolbarProps) => {
   const { selectedTool, setSelectedTool } = useCanvasTool()
   const { zoom, setZoom } = useCanvasZoom()
   const { resetView } = useCanvasPan()
+  const { selectedModel } = useAIModelViewModel()
   const { showCrosshair, showCoordinates } = useCanvasState(state => ({
     showCrosshair: state.showCrosshair,
     showCoordinates: state.showCoordinates
@@ -261,7 +264,16 @@ export const Toolbar = memo(
             orientation="vertical"
             className="mx-2 h-6"
           />
-          <AIDetectionButton image={currentImage} />
+          {selectedModel && (
+            <div className="hidden text-xs text-muted-foreground md:block">
+              Model: <span className="font-medium text-foreground">{selectedModel.name}</span>
+            </div>
+          )}
+          <AIDetectionButton
+            image={currentImage}
+            onOpenModelSettings={onOpenAISettings}
+            onRefreshAnnotations={onRefreshAnnotations}
+          />
 
           <TooltipProvider>
             <Tooltip>

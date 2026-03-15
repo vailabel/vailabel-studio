@@ -15,6 +15,7 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 base64 = "0.22"
 chrono = { version = "0.4", features = ["serde"] }
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "gif"] }
 keyring = { version = "3", default-features = false, features = ["apple-native", "linux-native", "windows-native"] }
 open = "5"
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls"] }

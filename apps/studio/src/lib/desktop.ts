@@ -42,6 +42,26 @@ export interface DownloadSystemModelPayload {
   expectedSize?: number
 }
 
+export interface RunModelInferencePayload {
+  imageId: string
+  modelId: string
+  threshold?: number
+}
+
+export interface InferenceAnnotationDraft {
+  name: string
+  type: string
+  coordinates: Array<{
+    x: number
+    y: number
+  }>
+  confidence: number
+  labelId?: string
+  labelName?: string
+  labelColor?: string
+  isAIGenerated?: boolean
+}
+
 export const isDesktopApp = () => {
   if (typeof window === "undefined") return false
   return "__TAURI_INTERNALS__" in window
@@ -110,3 +130,6 @@ export const getUpdaterStatus = async () =>
 export const downloadSystemModel = async (
   payload: DownloadSystemModelPayload
 ) => invoke("download_system_model", { payload })
+
+export const runModelInference = async (payload: RunModelInferencePayload) =>
+  invoke<InferenceAnnotationDraft[]>("run_model_inference", { payload })

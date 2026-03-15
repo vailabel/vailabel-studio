@@ -39,6 +39,24 @@ export const useAIModelViewModel = () => {
     [availableModels, selectedModelId]
   )
 
+  const selectModel = (modelId: string) => {
+    const nextModel =
+      availableModels.find((model) => model.id === modelId) || null
+    setSelectedModelId(modelId)
+    setModelPath(nextModel?.modelPath || "")
+  }
+
+  const saveModelSelection = async (modelId = selectedModelId) => {
+    const nextModel =
+      availableModels.find((model) => model.id === modelId) || null
+    setSelectedModelId(modelId)
+    setModelPath(nextModel?.modelPath || "")
+    await services.getSettingsService().update("selectedModelId", modelId || "")
+    await services
+      .getSettingsService()
+      .update("modelPath", nextModel?.modelPath || "")
+  }
+
   return {
     availableModels,
     systemModels: SYSTEM_MODELS,
@@ -47,12 +65,8 @@ export const useAIModelViewModel = () => {
     modelPath,
     isLoading,
     downloadingModelId,
-    selectModel: setSelectedModelId,
-    saveModelSelection: async () => {
-      await services
-        .getSettingsService()
-        .update("selectedModelId", selectedModelId || "")
-    },
+    selectModel,
+    saveModelSelection,
     saveModelPath: async (nextModelPath: string) => {
       setModelPath(nextModelPath)
       await services.getSettingsService().update("modelPath", nextModelPath)
@@ -93,10 +107,7 @@ export const useAIModelViewModel = () => {
       )
       setSelectedModelId(modelId)
       setModelPath(nextModel.modelPath || "")
-      await services.getSettingsService().update("selectedModelId", modelId)
-      await services
-        .getSettingsService()
-        .update("modelPath", nextModel.modelPath || "")
+      await saveModelSelection(modelId)
     },
     downloadSystemModel: async (
       systemModel: SystemModel,

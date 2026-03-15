@@ -44,17 +44,6 @@ interface ImageLabelerProps {
   imageId?: string
 }
 
-// Memoized Toolbar wrapper to prevent unnecessary re-renders
-const MemoizedToolbar = memo(({ image }: { image: ImageData | null }) => (
-  <Toolbar
-    currentImage={image}
-    onOpenSettings={() => {}}
-    onOpenAISettings={() => {}}
-  />
-))
-
-MemoizedToolbar.displayName = "MemoizedToolbar"
-
 // Memoized Canvas wrapper
 const MemoizedCanvas = memo(
   ({
@@ -235,7 +224,12 @@ export const ImageLabeler = memo(
             onContextMenu={handleContextMenu}
             onClick={handleCloseContextMenu}
           >
-            <MemoizedToolbar image={image} />
+            <Toolbar
+              currentImage={image}
+              onOpenSettings={() => setShowSettingsModal(true)}
+              onOpenAISettings={() => setShowAIModelModal(true)}
+              onRefreshAnnotations={refreshAnnotations}
+            />
 
             <div className="relative flex-1 overflow-hidden">
               {image ? (

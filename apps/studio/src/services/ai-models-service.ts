@@ -2,7 +2,10 @@ import { AIModel } from "@vailabel/core"
 import { request } from "./request"
 import {
   downloadSystemModel as invokeDownloadSystemModel,
+  runModelInference as invokeRunModelInference,
   type DownloadSystemModelPayload,
+  type InferenceAnnotationDraft,
+  type RunModelInferencePayload,
 } from "@/lib/desktop"
 
 export const aiModelsService = {
@@ -17,4 +20,6 @@ export const aiModelsService = {
     request<{ success: boolean }>("DELETE", `/ai-models/${modelId}`),
   downloadSystemModel: (payload: DownloadSystemModelPayload) =>
     invokeDownloadSystemModel(payload) as Promise<AIModel>,
+  runModelInference: (payload: RunModelInferencePayload) =>
+    invokeRunModelInference(payload) as Promise<InferenceAnnotationDraft[]>,
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useMemo } from "react"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import {
@@ -11,44 +11,21 @@ import {
 } from "@/components/ui/table"
 import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
-import { services } from "@/services"
+import { useAIModelViewModel } from "@/viewmodels/ai-model-viewmodel"
 
 export function ModelSelection() {
   const { toast } = useToast()
-  const [availableModels, setAvailableModels] = useState<any[]>([])
-  const [selectedModelId, setSelectedModelId] = useState<string>("")
-
-  useEffect(() => {
-    const loadData = async () => {
-      const [models, selectedModelSetting] = await Promise.all([
-        services.getAIModelService().list(),
-        services.getSettingsService().getByKey("selectedModelId"),
-      ])
-      setAvailableModels(models)
-      if (selectedModelSetting.value) {
-        setSelectedModelId(selectedModelSetting.value)
-      } else if (models.length > 0) {
-        setSelectedModelId(models[0].id)
-      }
-    }
-    void loadData()
-  }, [])
-
-  const handleRadioChange = (modelId: string) => {
-    setSelectedModelId(modelId)
-    // Optionally, persist the selected model if your store supports it
-  }
+  const { availableModels, selectedModelId, selectModel, saveModelSelection } =
+    useAIModelViewModel()
+  const selectedModel = useMemo(
+    () => availableModels.find((model) => model.id === selectedModelId),
+    [availableModels, selectedModelId]
+  )
 
   const handleSave = async () => {
-    const selectedModel = availableModels.find((m) => m.id === selectedModelId)
     if (selectedModel) {
       try {
-        await services
-          .getSettingsService()
-          .update("modelPath", selectedModel.modelPath || "")
-        await services
-          .getSettingsService()
-          .update("selectedModelId", selectedModelId)
+        await saveModelSelection(selectedModelId)
         toast({
           title: "Model Saved",
           description: `Model path saved to settings: ${selectedModel.modelPath}`,
@@ -77,7 +54,7 @@ export function ModelSelection() {
             Select a pre-trained model from the list below.
           </p>
 
-          <RadioGroup value={selectedModelId} onValueChange={handleRadioChange}>
+          <RadioGroup value={selectedModelId} onValueChange={selectModel}>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
