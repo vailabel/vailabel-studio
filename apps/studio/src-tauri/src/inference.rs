@@ -1,8 +1,9 @@
-use std::path::Path;
-
 use serde::Serialize;
 
 use crate::{AppError, InferenceAnnotationDraft};
+
+#[cfg(feature = "yolo-inference")]
+use std::path::Path;
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]

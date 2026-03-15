@@ -67,7 +67,8 @@ export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
         <DialogHeader>
           <DialogTitle>Pre-annotation Models</DialogTitle>
           <DialogDescription>
-            Pick an installed local model for ML-assisted labeling, or open the model manager to import the recommended YOLO26 family.
+            Pick an installed local model for ML-assisted labeling, or open the
+            model manager to install a recommended YOLO26-family checkpoint.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-6 md:grid-cols-[1.3fr_1fr]">
@@ -161,7 +162,8 @@ export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
               <div>
                 <h3 className="text-sm font-semibold">Reference Catalog</h3>
                 <p className="text-sm text-muted-foreground">
-                  Local-only import suggestions modeled after Label Studio style ML-assisted labeling workflows.
+                  Curated install suggestions modeled after Label Studio style
+                  ML-assisted labeling workflows.
                 </p>
               </div>
               <Button
@@ -208,8 +210,8 @@ export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
                       </p>
                     ) : null}
                     <p className="text-xs text-muted-foreground">
-                      Import a compatible local checkpoint from the AI Models
-                      page to use this family offline.
+                      Install from the AI Models page, or import a compatible
+                      local checkpoint if you already have one.
                     </p>
                   </div>
                 ))}

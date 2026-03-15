@@ -32,12 +32,19 @@ function isRecommendedInstalledModel(model: AIModel) {
   )
 }
 
+function isRecommendedFamilyModel(model: AIModel) {
+  return (
+    normalizeValue(model.family) === "yolo26" &&
+    normalizeValue(model.category) === "detection"
+  )
+}
+
 function getDefaultRank(model: AIModel) {
   return typeof model.defaultRank === "number" ? model.defaultRank : Number.MAX_SAFE_INTEGER
 }
 
 function getRecommendedInstalledModel(models: AIModel[]) {
-  const preferred = [...models].sort((left, right) => {
+  const preferred = models.filter(isRecommendedFamilyModel).sort((left, right) => {
     if (isRecommendedInstalledModel(left) && !isRecommendedInstalledModel(right)) {
       return -1
     }
@@ -61,12 +68,24 @@ function getRecommendedSystemModel(models: SystemModel[]) {
   )
 }
 
+function getCatalogVersion(downloadUrl: string) {
+  const match = downloadUrl.match(/\/download\/v?(\d+\.\d+(?:\.\d+)?)/i)
+  return match?.[1] || "1.0.0"
+}
+
+function buildCatalogVariantKey(model: SystemModel, variant: SystemModelVariant) {
+  return `${model.id}:${variant.slug || variant.modelVersion || variant.name}`
+}
+
+export type SystemModelVariant = NonNullable<SystemModel["variants"]>[number]
+
 export const useAIModelViewModel = () => {
   const [availableModels, setAvailableModels] = useState<AIModel[]>([])
   const [selectedModelId, setSelectedModelId] = useState("")
   const [modelPath, setModelPath] = useState("")
   const [isLoading, setIsLoading] = useState(true)
   const [isImportingModel, setIsImportingModel] = useState(false)
+  const [installingCatalogVariantKey, setInstallingCatalogVariantKey] = useState("")
 
   const loadData = useCallback(async () => {
     setIsLoading(true)
@@ -79,7 +98,8 @@ export const useAIModelViewModel = () => {
       const savedModelId = selectedModelSetting.value || ""
       const recommendedInstalledModel = getRecommendedInstalledModel(models)
       const savedModel = models.find((model) => model.id === savedModelId) || null
-      const resolvedModel = savedModel || recommendedInstalledModel
+      const activeModel = models.find((model) => model.isActive) || null
+      const resolvedModel = savedModel || recommendedInstalledModel || activeModel
       const resolvedModelId = resolvedModel?.id || ""
 
       setAvailableModels(models)
@@ -159,6 +179,7 @@ export const useAIModelViewModel = () => {
     modelPath,
     isLoading,
     isImportingModel,
+    installingCatalogVariantKey,
     selectModel,
     saveModelSelection,
     saveModelPath: async (nextModelPath: string) => {
@@ -205,6 +226,35 @@ export const useAIModelViewModel = () => {
         return importedModel
       } finally {
         setIsImportingModel(false)
+      }
+    },
+    installSystemModel: async (
+      model: SystemModel,
+      variant: SystemModelVariant
+    ) => {
+      const variantKey = buildCatalogVariantKey(model, variant)
+      setInstallingCatalogVariantKey(variantKey)
+
+      try {
+        const taskType = model.taskType || getModelType(model.category)
+        const installedModel = await services.getAIModelService().installModel({
+          name: `${model.name} (${variant.name})`,
+          description: model.description,
+          version: getCatalogVersion(variant.downloadUrl),
+          category: model.category,
+          type: taskType,
+          taskType,
+          downloadUrl: variant.downloadUrl,
+        })
+
+        setAvailableModels((current) => {
+          const next = current.filter((entry) => entry.id !== installedModel.id)
+          return [installedModel, ...next]
+        })
+
+        return installedModel
+      } finally {
+        setInstallingCatalogVariantKey("")
       }
     },
     refreshModels: loadData,

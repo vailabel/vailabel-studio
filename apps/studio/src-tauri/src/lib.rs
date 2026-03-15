@@ -5,9 +5,11 @@ mod store;
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use image::GenericImageView;
 use keyring::Entry;
+use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 use std::fs;
+use std::io::copy;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard};
 use store::{DesktopStore, StoreError};
@@ -40,6 +42,8 @@ pub enum AppError {
   Store(#[from] StoreError),
   #[error(transparent)]
   Io(#[from] std::io::Error),
+  #[error(transparent)]
+  Reqwest(#[from] reqwest::Error),
   #[error(transparent)]
   Json(#[from] serde_json::Error),
   #[error(transparent)]
@@ -135,6 +139,21 @@ struct ModelImportPayload {
   model_type: String,
   model_file_path: String,
   config_file_path: Option<String>,
+  project_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ModelInstallPayload {
+  name: String,
+  description: String,
+  version: String,
+  category: String,
+  #[serde(rename = "type")]
+  model_type: String,
+  task_type: Option<String>,
+  download_url: String,
+  file_name: Option<String>,
   project_id: Option<String>,
 }
 
@@ -769,6 +788,23 @@ fn infer_default_rank(family: &str, category: &str, variant: &str) -> i64 {
   }
 }
 
+fn infer_model_runtime(model_path: &Path) -> (&'static str, &'static str) {
+  let extension = model_path
+    .extension()
+    .and_then(|value| value.to_str())
+    .unwrap_or_default()
+    .to_ascii_lowercase();
+
+  match extension.as_str() {
+    "onnx" => ("onnx", "ort"),
+    "pt" | "pth" => ("pytorch", "cpu"),
+    "tflite" => ("tflite", "cpu"),
+    "h5" => ("keras", "cpu"),
+    "pb" => ("tensorflow", "cpu"),
+    _ => ("unknown", "cpu"),
+  }
+}
+
 fn task_type_for_category(category: &str) -> &'static str {
   match category {
     "segmentation" => "segmentation",
@@ -779,14 +815,166 @@ fn task_type_for_category(category: &str) -> &'static str {
   }
 }
 
-fn build_model_version(name: &str, version: &str, family: &str, variant: &str) -> String {
+fn build_model_version(name: &str, version: &str, family: &str, variant: &str, category: &str) -> String {
   if !family.is_empty() && !variant.is_empty() {
-    if family == "yoloe-26" {
-      return format!("YOLOE-26{variant}");
-    }
-    return format!("YOLO26{variant}");
+    let base = if family == "yoloe-26" {
+      format!("YOLOE-26{variant}")
+    } else {
+      format!("YOLO26{variant}")
+    };
+
+    return match category {
+      "segmentation" => format!("{base}-seg"),
+      "pose" => format!("{base}-pose"),
+      _ => base,
+    };
   }
   format!("{name} {version}")
+}
+
+fn file_name_from_path(path: &Path, invalid_message: &str) -> Result<String, AppError> {
+  path
+    .file_name()
+    .and_then(|value| value.to_str())
+    .map(ToString::to_string)
+    .ok_or_else(|| AppError::Message(invalid_message.into()))
+}
+
+fn file_name_from_url(url: &str) -> Option<String> {
+  reqwest::Url::parse(url)
+    .ok()?
+    .path_segments()?
+    .next_back()
+    .filter(|value| !value.is_empty())
+    .map(ToString::to_string)
+}
+
+fn find_existing_model_installation(
+  store: &DesktopStore,
+  category: &str,
+  family: &str,
+  variant: &str,
+) -> Result<Option<Value>, AppError> {
+  if family.is_empty() || variant.is_empty() {
+    return Ok(None);
+  }
+
+  let normalized_category = category.trim().to_ascii_lowercase();
+  let normalized_family = family.trim().to_ascii_lowercase();
+  let normalized_variant = variant.trim().to_ascii_lowercase();
+
+  for model in store.list_entities("ai_models")? {
+    let installed_category = value_string(&model, "category", "category")
+      .unwrap_or_default()
+      .trim()
+      .to_ascii_lowercase();
+    let installed_family = value_string(&model, "family", "family")
+      .unwrap_or_default()
+      .trim()
+      .to_ascii_lowercase();
+    let installed_variant = value_string(&model, "variant", "variant")
+      .unwrap_or_default()
+      .trim()
+      .to_ascii_lowercase();
+    let model_path = value_string(&model, "modelPath", "model_path").unwrap_or_default();
+
+    if installed_category == normalized_category
+      && installed_family == normalized_family
+      && installed_variant == normalized_variant
+      && !model_path.is_empty()
+      && Path::new(&model_path).exists()
+    {
+      return Ok(Some(model));
+    }
+  }
+
+  Ok(None)
+}
+
+struct AiModelEntityInput<'a> {
+  model_id: &'a str,
+  name: &'a str,
+  description: &'a str,
+  version: &'a str,
+  category: &'a str,
+  model_type: &'a str,
+  task_type: Option<&'a str>,
+  model_path: &'a Path,
+  config_path: &'a str,
+  project_id: Option<&'a String>,
+  source: &'a str,
+  download_url: Option<&'a str>,
+}
+
+fn build_ai_model_entity(input: AiModelEntityInput<'_>) -> Result<Value, AppError> {
+  let model_size = fs::metadata(input.model_path)?.len();
+  let (family, variant) = infer_model_family_and_variant(input.name, input.model_path);
+  let task_type = input.task_type.unwrap_or_else(|| task_type_for_category(input.category));
+  let model_version =
+    build_model_version(input.name, input.version, &family, &variant, input.category);
+  let default_rank = infer_default_rank(&family, input.category, &variant);
+  let supports_label_studio_format =
+    input.category == "detection" || input.category == "segmentation" || input.category == "pose";
+  let (framework, backend) = infer_model_runtime(input.model_path);
+  let project_id = input.project_id.cloned();
+
+  let mut model = json!({
+    "id": input.model_id,
+    "name": input.name,
+    "description": input.description,
+    "version": input.version,
+    "modelPath": input.model_path.to_string_lossy().to_string(),
+    "configPath": input.config_path,
+    "modelSize": model_size,
+    "isCustom": true,
+    "isActive": false,
+    "status": "ready",
+    "category": input.category,
+    "type": input.model_type,
+    "family": family,
+    "variant": variant,
+    "framework": framework,
+    "backend": backend,
+    "labelsPath": "",
+    "stride": 0,
+    "defaultRank": default_rank,
+    "supportsLabelStudioFormat": supports_label_studio_format,
+    "taskType": task_type,
+    "modelVersion": model_version,
+    "projectId": project_id.clone(),
+    "project_id": project_id,
+    "source": input.source,
+  });
+
+  if let Some(download_url) = input.download_url {
+    if let Some(object) = model.as_object_mut() {
+      object.insert("downloadUrl".into(), Value::String(download_url.to_string()));
+    }
+  }
+
+  normalize_entity("ai_models", model)
+}
+
+fn download_model_asset(download_url: &str, target_model_path: &Path) -> Result<(), AppError> {
+  let client = Client::builder()
+    .user_agent(format!("{APP_NAME}/{}", env!("CARGO_PKG_VERSION")))
+    .build()?;
+  let temp_download_path = target_model_path.with_extension("download");
+
+  let download_result = (|| -> Result<(), AppError> {
+    let mut response = client.get(download_url).send()?.error_for_status()?;
+    let mut temp_file = fs::File::create(&temp_download_path)?;
+    copy(&mut response, &mut temp_file)?;
+    Ok(())
+  })();
+
+  if let Err(error) = download_result {
+    let _ = fs::remove_file(&temp_download_path);
+    return Err(error);
+  }
+
+  fs::rename(&temp_download_path, target_model_path)?;
+  Ok(())
 }
 
 fn build_fallback_bbox(width: u32, height: u32) -> (u32, u32, u32, u32) {
@@ -1112,10 +1300,8 @@ fn ai_models_import(
   let models_dir = app_dir.join("models").join("custom").join(&model_id);
   fs::create_dir_all(&models_dir)?;
 
-  let model_file_name = source_model_path
-    .file_name()
-    .and_then(|value| value.to_str())
-    .ok_or_else(|| AppError::Message("Selected model file path is invalid".into()))?;
+  let model_file_name =
+    file_name_from_path(&source_model_path, "Selected model file path is invalid")?;
   let target_model_path = models_dir.join(model_file_name);
   fs::copy(&source_model_path, &target_model_path)?;
 
@@ -1125,10 +1311,8 @@ fn ai_models_import(
       return Err(AppError::Message("Selected config file could not be found".into()));
     }
 
-    let config_file_name = source_config_path
-      .file_name()
-      .and_then(|value| value.to_str())
-      .ok_or_else(|| AppError::Message("Selected config file path is invalid".into()))?;
+    let config_file_name =
+      file_name_from_path(&source_config_path, "Selected config file path is invalid")?;
     let target_config_path = models_dir.join(config_file_name);
     fs::copy(&source_config_path, &target_config_path)?;
     target_config_path.to_string_lossy().to_string()
@@ -1136,48 +1320,87 @@ fn ai_models_import(
     String::new()
   };
 
-  let model_size = fs::metadata(&target_model_path)?.len();
-  let project_id = payload.project_id.clone();
-  let (family, variant) = infer_model_family_and_variant(&payload.name, &target_model_path);
-  let task_type = task_type_for_category(&payload.category);
-  let model_version = build_model_version(&payload.name, &payload.version, &family, &variant);
-  let default_rank = infer_default_rank(&family, &payload.category, &variant);
-  let supports_label_studio_format = payload.category == "detection" || payload.category == "segmentation" || payload.category == "pose";
-  let model = normalize_entity(
-    "ai_models",
-    json!({
-      "id": model_id,
-      "name": payload.name,
-      "description": payload.description,
-      "version": payload.version,
-      "modelPath": target_model_path.to_string_lossy().to_string(),
-      "configPath": target_config_path,
-      "modelSize": model_size,
-      "isCustom": true,
-      "isActive": false,
-      "status": "ready",
-      "category": payload.category,
-      "type": payload.model_type,
-      "family": family,
-      "variant": variant,
-      "framework": "onnx",
-      "backend": "ort",
-      "labelsPath": "",
-      "stride": 0,
-      "defaultRank": default_rank,
-      "supportsLabelStudioFormat": supports_label_studio_format,
-      "taskType": task_type,
-      "modelVersion": model_version,
-      "projectId": project_id.clone(),
-      "project_id": project_id,
-      "source": "local",
-    }),
-  )?;
+  let model = build_ai_model_entity(AiModelEntityInput {
+    model_id: &model_id,
+    name: &payload.name,
+    description: &payload.description,
+    version: &payload.version,
+    category: &payload.category,
+    model_type: &payload.model_type,
+    task_type: None,
+    model_path: &target_model_path,
+    config_path: &target_config_path,
+    project_id: payload.project_id.as_ref(),
+    source: "local",
+    download_url: None,
+  })?;
 
   let store = state_guard(&state)?;
   let model = store.upsert_entity("ai_models", model)?;
   emit_domain_event(&app, "ai_models", "created", &model)?;
   Ok(model)
+}
+
+#[tauri::command]
+fn ai_models_install(
+  app: tauri::AppHandle,
+  state: tauri::State<AppState>,
+  payload: ModelInstallPayload,
+) -> Result<Value, AppError> {
+  let model_file_name = payload
+    .file_name
+    .clone()
+    .filter(|value| !value.trim().is_empty())
+    .or_else(|| file_name_from_url(&payload.download_url))
+    .ok_or_else(|| AppError::Message("Download URL did not include a valid model file name".into()))?;
+  let inferred_path = PathBuf::from(&model_file_name);
+  let (family, variant) = infer_model_family_and_variant(&payload.name, &inferred_path);
+
+  {
+    let store = state_guard(&state)?;
+    if let Some(existing) =
+      find_existing_model_installation(&store, &payload.category, &family, &variant)?
+    {
+      return Ok(existing);
+    }
+  }
+
+  let model_id = Uuid::new_v4().to_string();
+  let app_dir = app.path().app_data_dir()?;
+  let models_dir = app_dir.join("models").join("catalog").join(&model_id);
+  fs::create_dir_all(&models_dir)?;
+
+  let target_model_path = models_dir.join(&model_file_name);
+  let install_result = (|| -> Result<Value, AppError> {
+    download_model_asset(&payload.download_url, &target_model_path)?;
+
+    let model = build_ai_model_entity(AiModelEntityInput {
+      model_id: &model_id,
+      name: &payload.name,
+      description: &payload.description,
+      version: &payload.version,
+      category: &payload.category,
+      model_type: &payload.model_type,
+      task_type: payload.task_type.as_deref(),
+      model_path: &target_model_path,
+      config_path: "",
+      project_id: payload.project_id.as_ref(),
+      source: "catalog",
+      download_url: Some(&payload.download_url),
+    })?;
+
+    let store = state_guard(&state)?;
+    let model = store.upsert_entity("ai_models", model)?;
+    emit_domain_event(&app, "ai_models", "created", &model)?;
+    Ok(model)
+  })();
+
+  if install_result.is_err() {
+    let _ = fs::remove_file(&target_model_path);
+    let _ = fs::remove_dir_all(&models_dir);
+  }
+
+  install_result
 }
 
 #[tauri::command]
@@ -1422,6 +1645,7 @@ pub fn run() {
       ai_models_delete,
       ai_models_set_active,
       ai_models_import,
+      ai_models_install,
       predictions_list_by_image,
       predictions_generate,
       predictions_accept,

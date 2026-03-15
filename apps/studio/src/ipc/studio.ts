@@ -5,6 +5,7 @@ import type {
   History,
   ImageData,
   Label,
+  ModelInstallPayload,
   ModelImportPayload,
   Prediction,
   Project,
@@ -99,6 +100,8 @@ export const studioCommands = {
     call<AIModel>("ai_models_set_active", { payload: { modelId } }),
   aiModelsImport: (payload: ModelImportPayload) =>
     call<AIModel>("ai_models_import", { payload }),
+  aiModelsInstall: (payload: ModelInstallPayload) =>
+    call<AIModel>("ai_models_install", { payload }),
 
   predictionsListByImage: (imageId: string) =>
     call<Prediction[]>("predictions_list_by_image", { payload: { imageId } }),

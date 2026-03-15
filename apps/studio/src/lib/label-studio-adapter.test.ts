@@ -110,4 +110,56 @@ describe("label studio adapter", () => {
       { x: 600, y: 250 },
     ])
   })
+
+  it("exports polygon predictions with unique fallback ids", () => {
+    const image = {
+      id: "image-2",
+      name: "sample-2.png",
+      data: "data:image/png;base64,def",
+      width: 200,
+      height: 100,
+    } as ImageData
+
+    const predictions = [
+      {
+        name: "Road",
+        type: "polygon",
+        coordinates: [
+          { x: 20, y: 10 },
+          { x: 100, y: 10 },
+          { x: 120, y: 40 },
+        ],
+        confidence: 0.92,
+        result_type: "polygonlabels",
+      },
+      {
+        name: "Lane",
+        type: "box",
+        coordinates: [
+          { x: 10, y: 20 },
+          { x: 50, y: 60 },
+        ],
+        confidence: 0.81,
+      },
+    ] as Prediction[]
+
+    const task = createLabelStudioTask({ image, predictions })
+
+    expect(task.predictions[0].result[0]).toMatchObject({
+      id: "ls-region-1",
+      type: "polygonlabels",
+      value: {
+        polygonlabels: ["Road"],
+        points: [
+          [10, 10],
+          [50, 10],
+          [60, 40],
+        ],
+      },
+    })
+    expect(task.predictions[0].result[1]).toMatchObject({
+      id: "ls-region-2",
+      type: "rectanglelabels",
+    })
+  })
 })

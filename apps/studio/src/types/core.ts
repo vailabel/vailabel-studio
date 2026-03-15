@@ -226,3 +226,16 @@ export class ModelImportPayload {
   projectId?: string
   project_id?: string
 }
+
+export class ModelInstallPayload {
+  name!: string
+  description!: string
+  version!: string
+  category!: string
+  type!: string
+  taskType?: string
+  downloadUrl!: string
+  fileName?: string
+  projectId?: string
+  project_id?: string
+}

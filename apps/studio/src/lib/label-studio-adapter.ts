@@ -20,9 +20,13 @@ type RegionLike = Pick<
   | "coordinates"
   | "confidence"
   | "modelVersion"
+  | "model_version"
   | "fromName"
+  | "from_name"
   | "toName"
+  | "to_name"
   | "resultType"
+  | "result_type"
 >
 
 function clampPercentage(value: number) {
@@ -55,6 +59,7 @@ function createFallbackId(index: number) {
 
 function getResultType(region: RegionLike) {
   if (region.resultType) return region.resultType
+  if (region.result_type) return region.result_type
   return region.type === "polygon" || region.type === "freeDraw"
     ? "polygonlabels"
     : "rectanglelabels"
@@ -62,11 +67,12 @@ function getResultType(region: RegionLike) {
 
 export function toLabelStudioResult(
   region: RegionLike,
-  image: ImageData
+  image: ImageData,
+  index = 0
 ): LabelStudioResult {
-  const id = region.id || createFallbackId(0)
-  const from_name = region.fromName || LABEL_STUDIO_FROM_NAME
-  const to_name = region.toName || LABEL_STUDIO_TO_NAME
+  const id = region.id || createFallbackId(index)
+  const from_name = region.fromName || region.from_name || LABEL_STUDIO_FROM_NAME
+  const to_name = region.toName || region.to_name || LABEL_STUDIO_TO_NAME
   const resultType = getResultType(region)
 
   if (resultType === "polygonlabels") {
@@ -118,12 +124,14 @@ export function createLabelStudioTask(args: {
   const { image, predictions, model } = args
   const modelVersion =
     model?.modelVersion ||
+    model?.model_version ||
     predictions[0]?.modelVersion ||
+    predictions[0]?.model_version ||
     model?.version ||
     "local-model"
 
-  const result = predictions.map((prediction) =>
-    toLabelStudioResult(prediction, image)
+  const result = predictions.map((prediction, index) =>
+    toLabelStudioResult(prediction, image, index)
   )
   const averageScore =
     predictions.length > 0
@@ -225,10 +233,10 @@ export function fromLabelStudioTask(args: {
             model_id: modelId,
             modelVersion: prediction.model_version,
             model_version: prediction.model_version,
-            fromName: result.from_name,
-            from_name: result.from_name,
-            toName: result.to_name,
-            to_name: result.to_name,
+            fromName: result.from_name || LABEL_STUDIO_FROM_NAME,
+            from_name: result.from_name || LABEL_STUDIO_FROM_NAME,
+            toName: result.to_name || LABEL_STUDIO_TO_NAME,
+            to_name: result.to_name || LABEL_STUDIO_TO_NAME,
             resultType: result.type,
             result_type: result.type,
             isAIGenerated: true,
@@ -264,10 +272,10 @@ export function fromLabelStudioTask(args: {
             model_id: modelId,
             modelVersion: prediction.model_version,
             model_version: prediction.model_version,
-            fromName: result.from_name,
-            from_name: result.from_name,
-            toName: result.to_name,
-            to_name: result.to_name,
+            fromName: result.from_name || LABEL_STUDIO_FROM_NAME,
+            from_name: result.from_name || LABEL_STUDIO_FROM_NAME,
+            toName: result.to_name || LABEL_STUDIO_TO_NAME,
+            to_name: result.to_name || LABEL_STUDIO_TO_NAME,
             resultType: result.type,
             result_type: result.type,
             isAIGenerated: true,

@@ -38,8 +38,8 @@ export default function AIModelForm({ control, errors }: AIModelFormProps) {
         <Alert>
           <Info className="h-4 w-4" />
           <AlertDescription>
-            The desktop app no longer downloads models. Select local model files
-            that already exist on your machine.
+            Use this form when you already have a model file on disk. Curated
+            checkpoints can also be installed directly from the catalog.
           </AlertDescription>
         </Alert>
 

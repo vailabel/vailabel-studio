@@ -7,6 +7,7 @@ import {
   Cpu,
   HardDrive,
   Import,
+  Loader2,
   Settings,
   Trash2,
 } from "lucide-react"
@@ -37,9 +38,14 @@ import {
 } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import AIModelForm from "@/components/forms/AIModelForm"
-import { useAIModelViewModel } from "@/viewmodels/ai-model-viewmodel"
+import {
+  useAIModelViewModel,
+  type SystemModel,
+  type SystemModelVariant,
+} from "@/viewmodels/ai-model-viewmodel"
 import { aiModelFormSchema, type AIModelFormData } from "@/lib/schemas/ai-model"
 import { useToast } from "@/hooks/use-toast"
+import type { AIModel } from "@/types/core"
 
 function formatFileSize(bytes: number): string {
   if (bytes === 0) return "0 Bytes"
@@ -49,18 +55,57 @@ function formatFileSize(bytes: number): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
 }
 
+function normalizeValue(value?: string | null) {
+  return value?.trim().toLowerCase() || ""
+}
+
+function buildCatalogVariantKey(model: SystemModel, variant: SystemModelVariant) {
+  return `${model.id}:${variant.slug || variant.modelVersion || variant.name}`
+}
+
+function getInstalledCatalogVariant(
+  models: AIModel[],
+  model: SystemModel,
+  variant: SystemModelVariant
+) {
+  const expectedVersion = normalizeValue(variant.modelVersion)
+  const expectedCategory = normalizeValue(model.category)
+  const expectedFamily = normalizeValue(model.family)
+  const expectedVariant = normalizeValue(variant.variant)
+
+  return (
+    models.find((entry) => {
+      const installedVersion = normalizeValue(
+        entry.modelVersion || entry.model_version
+      )
+
+      if (expectedVersion && installedVersion === expectedVersion) {
+        return true
+      }
+
+      return (
+        normalizeValue(entry.category) === expectedCategory &&
+        normalizeValue(entry.family) === expectedFamily &&
+        normalizeValue(entry.variant) === expectedVariant
+      )
+    }) || null
+  )
+}
+
 export default function AIModelListPage() {
   const {
     availableModels = [],
     systemModels = [],
     isLoading,
     isImportingModel,
+    installingCatalogVariantKey,
     recommendedInstalledModel,
     recommendedSystemModel,
     selectedModel,
     deleteModel,
     activateModel,
     importModel,
+    installSystemModel,
     refreshModels,
   } = useAIModelViewModel()
   const { toast } = useToast()
@@ -150,6 +195,31 @@ export default function AIModelListPage() {
     }
   }
 
+  const handleInstallVariant = async (
+    model: SystemModel,
+    variant: SystemModelVariant
+  ) => {
+    try {
+      const installedModel = await installSystemModel(model, variant)
+      await activateModel(installedModel.id)
+      await refreshModels()
+      toast({
+        title: "Model installed",
+        description: `${installedModel.name} was installed and activated for offline prediction generation.`,
+      })
+    } catch (error) {
+      console.error("Failed to install model:", error)
+      toast({
+        title: "Install failed",
+        description:
+          error instanceof Error
+            ? error.message
+            : "The model could not be installed from the catalog.",
+        variant: "destructive",
+      })
+    }
+  }
+
   const totalModelSize = availableModels.reduce(
     (sum, model) => sum + (model.modelSize || 0),
     0
@@ -232,8 +302,9 @@ export default function AIModelListPage() {
       <Alert className="border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/30">
         <Cpu className="h-4 w-4 text-blue-600 dark:text-blue-300" />
         <AlertDescription>
-          The desktop app no longer downloads remote model assets. Import local
-          files instead to keep prediction generation fully offline.
+          Install a curated checkpoint from the catalog or import an existing
+          local file. Once a model is added, prediction generation stays local
+          and offline.
         </AlertDescription>
       </Alert>
 
@@ -345,7 +416,8 @@ export default function AIModelListPage() {
             <CardHeader>
               <CardTitle>Reference Catalog</CardTitle>
               <CardDescription>
-                Informational model families you can prepare locally and import.
+                Curated model families you can install directly or mirror with
+                your own local checkpoints.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -368,7 +440,7 @@ export default function AIModelListPage() {
                       </CardTitle>
                       <CardDescription>{model.description}</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-2 text-sm text-muted-foreground">
+                    <CardContent className="space-y-4 text-sm text-muted-foreground">
                       <div className="flex items-center justify-between">
                         <span>Category</span>
                         <Badge variant="outline">{model.category}</Badge>
@@ -389,9 +461,98 @@ export default function AIModelListPage() {
                           <span>{model.requirements.minMemory} MB</span>
                         </div>
                       )}
+                      {model.variants?.length ? (
+                        <div className="space-y-3">
+                          {model.variants.map((variant) => {
+                            const installedVariant = getInstalledCatalogVariant(
+                              availableModels,
+                              model,
+                              variant
+                            )
+                            const variantKey = buildCatalogVariantKey(
+                              model,
+                              variant
+                            )
+                            const isInstalling =
+                              installingCatalogVariantKey === variantKey
+
+                            return (
+                              <div
+                                key={variantKey}
+                                className="rounded-lg border bg-background/70 p-3"
+                              >
+                                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                  <div className="space-y-2">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <span className="font-medium text-foreground">
+                                        {variant.modelVersion || variant.name}
+                                      </span>
+                                      {variant.recommended && <Badge>Recommended</Badge>}
+                                      {installedVariant && (
+                                        <Badge variant="secondary">Installed</Badge>
+                                      )}
+                                      {installedVariant?.isActive && (
+                                        <Badge className="bg-emerald-600 hover:bg-emerald-600">
+                                          Active
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    <div className="flex flex-wrap gap-3 text-xs">
+                                      {typeof variant.size === "number" && (
+                                        <span>{formatFileSize(variant.size)}</span>
+                                      )}
+                                      {typeof variant.accuracy === "number" && (
+                                        <span>{variant.accuracy}% mAP</span>
+                                      )}
+                                      {variant.speed && <span>{variant.speed}</span>}
+                                    </div>
+                                  </div>
+
+                                  {installedVariant ? (
+                                    installedVariant.isActive ? (
+                                      <Button size="sm" variant="outline" disabled>
+                                        Active
+                                      </Button>
+                                    ) : (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() =>
+                                          handleSetActiveModel(installedVariant.id)
+                                        }
+                                      >
+                                        Activate
+                                      </Button>
+                                    )
+                                  ) : (
+                                    <Button
+                                      size="sm"
+                                      onClick={() =>
+                                        handleInstallVariant(model, variant)
+                                      }
+                                      disabled={isInstalling}
+                                    >
+                                      {isInstalling ? (
+                                        <>
+                                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                          Installing...
+                                        </>
+                                      ) : (
+                                        "Install"
+                                      )}
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      ) : (
+                        <p>No installable variants are defined for this family.</p>
+                      )}
                       <p>
-                        Import a compatible local checkpoint if you want to use
-                        this family in the desktop app.
+                        Installed catalog models are copied into the app data
+                        directory so they can be reused locally after download.
                       </p>
                     </CardContent>
                   </Card>
