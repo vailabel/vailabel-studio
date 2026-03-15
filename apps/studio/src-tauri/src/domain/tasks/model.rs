@@ -1,3 +1,4 @@
+use crate::domain::common::service::HasId;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -14,6 +15,12 @@ pub struct Task {
     pub created_at: String,
     #[serde(default = "crate::now_iso")]
     pub updated_at: String,
+}
+
+impl HasId for Task {
+    fn id(&self) -> &str {
+        &self.id
+    }
 }
 
 #[derive(Debug, Deserialize)]

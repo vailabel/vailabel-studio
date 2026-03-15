@@ -32,26 +32,6 @@ pub trait InferenceEngine: Send + Sync {
     ) -> Result<(Vec<InferenceAnnotationDraft>, InferenceMetrics), AppError>;
 }
 
-pub struct HeuristicEngine;
-
-impl InferenceEngine for HeuristicEngine {
-    fn predict(
-        &mut self,
-        image: &serde_json::Value,
-        model: &serde_json::Value,
-        labels: &[serde_json::Value],
-        threshold: f32,
-    ) -> Result<(Vec<InferenceAnnotationDraft>, InferenceMetrics), AppError> {
-        let drafts = crate::build_draft_annotations(image, model, labels, threshold)?;
-        let metrics = InferenceMetrics {
-            backend: "heuristic".into(),
-            init_ms: 0,
-            infer_ms: 0,
-        };
-        Ok((drafts, metrics))
-    }
-}
-
 #[cfg(feature = "yolo-inference")]
 #[derive(Clone, Copy, Debug)]
 enum InputLayout {

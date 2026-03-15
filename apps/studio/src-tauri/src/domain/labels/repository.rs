@@ -1,64 +1,49 @@
+use crate::domain::common::repository::{CrudRepository, JsonCrudRepository};
 use crate::domain::labels::model::Label;
-use crate::store::{Store, StoreError};
-use serde_json;
+use crate::store::{EntityStore, StoreError};
 use std::sync::Arc;
 
-pub trait LabelRepository {
-    fn list_by_project(&self, project_id: &str) -> Result<Vec<Label>, StoreError>;
-    fn get(&self, id: &str) -> Result<Option<Label>, StoreError>;
-    fn create(&self, label: &Label) -> Result<Label, StoreError>;
-    fn update(&self, label: &Label) -> Result<Label, StoreError>;
-    fn delete(&self, id: &str) -> Result<(), StoreError>;
+pub trait LabelRepository: CrudRepository<Label> {
+    fn list_by_project(&self, project_id: &str) -> Result<Vec<Label>, StoreError> {
+        self.list_by_field("project_id", project_id)
+    }
 }
+impl<T> LabelRepository for T where T: CrudRepository<Label> {}
 
 pub struct SqliteLabelRepository {
-    store: Arc<dyn Store>,
+    inner: JsonCrudRepository<Label>,
 }
 
 impl SqliteLabelRepository {
-    pub fn new(store: Arc<dyn Store>) -> Self {
-        Self { store }
+    pub fn new(store: Arc<dyn EntityStore>) -> Self {
+        Self {
+            inner: JsonCrudRepository::new(store, "labels"),
+        }
     }
 }
 
-impl LabelRepository for SqliteLabelRepository {
-    fn list_by_project(&self, project_id: &str) -> Result<Vec<Label>, StoreError> {
-        let values = self
-            .store
-            .list_by_field("labels", "project_id", project_id)?;
-        let labels = values
-            .into_iter()
-            .map(|v| serde_json::from_value(v).map_err(StoreError::Json))
-            .collect::<Result<Vec<Label>, StoreError>>()?;
-        Ok(labels)
+impl CrudRepository<Label> for SqliteLabelRepository {
+    fn list(&self) -> Result<Vec<Label>, StoreError> {
+        self.inner.list()
+    }
+
+    fn list_by_field(&self, field: &str, value: &str) -> Result<Vec<Label>, StoreError> {
+        self.inner.list_by_field(field, value)
     }
 
     fn get(&self, id: &str) -> Result<Option<Label>, StoreError> {
-        let value = self.store.get_entity("labels", id)?;
-        match value {
-            Some(v) => {
-                let label = serde_json::from_value(v).map_err(StoreError::Json)?;
-                Ok(Some(label))
-            }
-            None => Ok(None),
-        }
+        self.inner.get(id)
     }
 
     fn create(&self, label: &Label) -> Result<Label, StoreError> {
-        let value = serde_json::to_value(label).map_err(StoreError::Json)?;
-        let saved_value = self.store.upsert_entity("labels", value)?;
-        let saved_label = serde_json::from_value(saved_value).map_err(StoreError::Json)?;
-        Ok(saved_label)
+        self.inner.create(label)
     }
 
     fn update(&self, label: &Label) -> Result<Label, StoreError> {
-        let value = serde_json::to_value(label).map_err(StoreError::Json)?;
-        let saved_value = self.store.upsert_entity("labels", value)?;
-        let saved_label = serde_json::from_value(saved_value).map_err(StoreError::Json)?;
-        Ok(saved_label)
+        self.inner.update(label)
     }
 
     fn delete(&self, id: &str) -> Result<(), StoreError> {
-        self.store.delete_entity("labels", id)
+        self.inner.delete(id)
     }
 }

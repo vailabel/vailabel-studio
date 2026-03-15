@@ -10,11 +10,16 @@ export async function listenToStudioEvents(
     return async () => {}
   }
 
-  return listen<StudioDomainEvent>("studio://domain-event", ({ payload }) => {
-    if (entities?.length && !entities.includes(payload.entity)) {
-      return
-    }
-    handler(payload)
-  })
+  try {
+    return await listen<StudioDomainEvent>("studio://domain-event", ({ payload }) => {
+      if (entities?.length && !entities.includes(payload.entity)) {
+        return
+      }
+      handler(payload)
+    })
+  } catch (error) {
+    console.warn("Failed to register studio event listener:", error)
+    return async () => {}
+  }
 }
 

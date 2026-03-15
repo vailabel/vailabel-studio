@@ -14,9 +14,16 @@ const mockListen = jest.mocked(listen)
 const mockIsDesktopApp = jest.mocked(isDesktopApp)
 
 describe("listenToStudioEvents", () => {
+  const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {})
+
   beforeEach(() => {
     mockListen.mockReset()
     mockIsDesktopApp.mockReset()
+    warnSpy.mockClear()
+  })
+
+  afterAll(() => {
+    warnSpy.mockRestore()
   })
 
   it("returns a noop listener outside desktop mode", async () => {
@@ -75,5 +82,19 @@ describe("listenToStudioEvents", () => {
         id: "annotation-1",
       })
     )
+  })
+
+  it("returns a noop listener when Tauri denies event subscriptions", async () => {
+    mockIsDesktopApp.mockReturnValue(true)
+    const error = new Error("event.listen not allowed")
+    mockListen.mockRejectedValue(error)
+
+    const unlisten = await listenToStudioEvents(jest.fn(), ["annotations"])
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      "Failed to register studio event listener:",
+      error
+    )
+    await expect(unlisten()).resolves.toBeUndefined()
   })
 })

@@ -1,64 +1,49 @@
+use crate::domain::common::repository::{CrudRepository, JsonCrudRepository};
 use crate::domain::images::model::Image;
-use crate::store::{Store, StoreError};
-use serde_json;
+use crate::store::{EntityStore, StoreError};
 use std::sync::Arc;
 
-pub trait ImageRepository {
-    fn list_by_project(&self, project_id: &str) -> Result<Vec<Image>, StoreError>;
-    fn get(&self, id: &str) -> Result<Option<Image>, StoreError>;
-    fn create(&self, image: &Image) -> Result<Image, StoreError>;
-    fn update(&self, image: &Image) -> Result<Image, StoreError>;
-    fn delete(&self, id: &str) -> Result<(), StoreError>;
+pub trait ImageRepository: CrudRepository<Image> {
+    fn list_by_project(&self, project_id: &str) -> Result<Vec<Image>, StoreError> {
+        self.list_by_field("project_id", project_id)
+    }
 }
+impl<T> ImageRepository for T where T: CrudRepository<Image> {}
 
 pub struct SqliteImageRepository {
-    store: Arc<dyn Store>,
+    inner: JsonCrudRepository<Image>,
 }
 
 impl SqliteImageRepository {
-    pub fn new(store: Arc<dyn Store>) -> Self {
-        Self { store }
+    pub fn new(store: Arc<dyn EntityStore>) -> Self {
+        Self {
+            inner: JsonCrudRepository::new(store, "images"),
+        }
     }
 }
 
-impl ImageRepository for SqliteImageRepository {
-    fn list_by_project(&self, project_id: &str) -> Result<Vec<Image>, StoreError> {
-        let values = self
-            .store
-            .list_by_field("images", "project_id", project_id)?;
-        let images = values
-            .into_iter()
-            .map(|v| serde_json::from_value(v).map_err(StoreError::Json))
-            .collect::<Result<Vec<Image>, StoreError>>()?;
-        Ok(images)
+impl CrudRepository<Image> for SqliteImageRepository {
+    fn list(&self) -> Result<Vec<Image>, StoreError> {
+        self.inner.list()
+    }
+
+    fn list_by_field(&self, field: &str, value: &str) -> Result<Vec<Image>, StoreError> {
+        self.inner.list_by_field(field, value)
     }
 
     fn get(&self, id: &str) -> Result<Option<Image>, StoreError> {
-        let value = self.store.get_entity("images", id)?;
-        match value {
-            Some(v) => {
-                let image = serde_json::from_value(v).map_err(StoreError::Json)?;
-                Ok(Some(image))
-            }
-            None => Ok(None),
-        }
+        self.inner.get(id)
     }
 
     fn create(&self, image: &Image) -> Result<Image, StoreError> {
-        let value = serde_json::to_value(image).map_err(StoreError::Json)?;
-        let saved_value = self.store.upsert_entity("images", value)?;
-        let saved_image = serde_json::from_value(saved_value).map_err(StoreError::Json)?;
-        Ok(saved_image)
+        self.inner.create(image)
     }
 
     fn update(&self, image: &Image) -> Result<Image, StoreError> {
-        let value = serde_json::to_value(image).map_err(StoreError::Json)?;
-        let saved_value = self.store.upsert_entity("images", value)?;
-        let saved_image = serde_json::from_value(saved_value).map_err(StoreError::Json)?;
-        Ok(saved_image)
+        self.inner.update(image)
     }
 
     fn delete(&self, id: &str) -> Result<(), StoreError> {
-        self.store.delete_entity("images", id)
+        self.inner.delete(id)
     }
 }

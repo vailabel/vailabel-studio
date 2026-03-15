@@ -1,7 +1,9 @@
+use crate::domain::common::service::{
+    delete_entity, get_entity, list_entities, list_entities_by_field, save_entity,
+};
 use crate::domain::projects::model::EntityIdPayload;
 use crate::domain::tasks::model::{ProjectIdPayload, Task};
 use crate::domain::tasks::repository::TaskRepository;
-use crate::emit_domain_event;
 use crate::AppError;
 use serde_json::Value;
 use std::sync::Arc;
@@ -16,29 +18,19 @@ impl TaskService {
     }
 
     pub fn list_tasks(&self) -> Result<Vec<Task>, AppError> {
-        Ok(self.repo.list()?)
+        list_entities(self.repo.as_ref())
     }
 
     pub fn list_tasks_by_project(&self, payload: ProjectIdPayload) -> Result<Vec<Task>, AppError> {
-        Ok(self.repo.list_by_project(&payload.project_id)?)
+        list_entities_by_field(self.repo.as_ref(), "project_id", &payload.project_id)
     }
 
     pub fn get_task(&self, payload: EntityIdPayload) -> Result<Task, AppError> {
-        self.repo
-            .get(&payload.id)?
-            .ok_or_else(|| AppError::Message("Task not found".to_string()))
+        get_entity(self.repo.as_ref(), &payload.id, "Task not found")
     }
 
     pub fn save_task(&self, app: &tauri::AppHandle, payload: Value) -> Result<Task, AppError> {
-        let task: Task = serde_json::from_value(payload)?;
-        let (task, action) = if self.repo.get(&task.id)?.is_some() {
-            (self.repo.update(&task)?, "updated")
-        } else {
-            (self.repo.create(&task)?, "created")
-        };
-        let task_value = serde_json::to_value(&task)?;
-        emit_domain_event(app, "tasks", action, &task_value)?;
-        Ok(task)
+        save_entity(self.repo.as_ref(), app, "tasks", payload)
     }
 
     pub fn delete_task(
@@ -46,10 +38,12 @@ impl TaskService {
         app: &tauri::AppHandle,
         payload: EntityIdPayload,
     ) -> Result<Value, AppError> {
-        let task = self.get_task(payload)?;
-        self.repo.delete(&task.id)?;
-        let task_value = serde_json::to_value(&task)?;
-        emit_domain_event(app, "tasks", "deleted", &task_value)?;
-        Ok(serde_json::json!({ "success": true }))
+        delete_entity::<Task, _>(
+            self.repo.as_ref(),
+            app,
+            "tasks",
+            &payload.id,
+            "Task not found",
+        )
     }
 }

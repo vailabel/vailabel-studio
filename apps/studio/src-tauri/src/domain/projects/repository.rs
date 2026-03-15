@@ -1,62 +1,45 @@
+use crate::domain::common::repository::{CrudRepository, JsonCrudRepository};
 use crate::domain::projects::model::Project;
-use crate::store::{Store, StoreError};
-use serde_json;
+use crate::store::{EntityStore, StoreError};
 use std::sync::Arc;
 
-pub trait ProjectRepository {
-    fn list(&self) -> Result<Vec<Project>, StoreError>;
-    fn get(&self, id: &str) -> Result<Option<Project>, StoreError>;
-    fn create(&self, project: &Project) -> Result<Project, StoreError>;
-    fn update(&self, project: &Project) -> Result<Project, StoreError>;
-    fn delete(&self, id: &str) -> Result<(), StoreError>;
-}
+pub trait ProjectRepository: CrudRepository<Project> {}
+impl<T> ProjectRepository for T where T: CrudRepository<Project> {}
 
 pub struct SqliteProjectRepository {
-    store: Arc<dyn Store>,
+    inner: JsonCrudRepository<Project>,
 }
 
 impl SqliteProjectRepository {
-    pub fn new(store: Arc<dyn Store>) -> Self {
-        Self { store }
+    pub fn new(store: Arc<dyn EntityStore>) -> Self {
+        Self {
+            inner: JsonCrudRepository::new(store, "projects"),
+        }
     }
 }
 
-impl ProjectRepository for SqliteProjectRepository {
+impl CrudRepository<Project> for SqliteProjectRepository {
     fn list(&self) -> Result<Vec<Project>, StoreError> {
-        let values = self.store.list_entities("projects")?;
-        let projects = values
-            .into_iter()
-            .map(|v| serde_json::from_value(v).map_err(StoreError::Json))
-            .collect::<Result<Vec<Project>, StoreError>>()?;
-        Ok(projects)
+        self.inner.list()
+    }
+
+    fn list_by_field(&self, field: &str, value: &str) -> Result<Vec<Project>, StoreError> {
+        self.inner.list_by_field(field, value)
     }
 
     fn get(&self, id: &str) -> Result<Option<Project>, StoreError> {
-        let value = self.store.get_entity("projects", id)?;
-        match value {
-            Some(v) => {
-                let project = serde_json::from_value(v).map_err(StoreError::Json)?;
-                Ok(Some(project))
-            }
-            None => Ok(None),
-        }
+        self.inner.get(id)
     }
 
     fn create(&self, project: &Project) -> Result<Project, StoreError> {
-        let value = serde_json::to_value(project).map_err(StoreError::Json)?;
-        let saved_value = self.store.upsert_entity("projects", value)?;
-        let saved_project = serde_json::from_value(saved_value).map_err(StoreError::Json)?;
-        Ok(saved_project)
+        self.inner.create(project)
     }
 
     fn update(&self, project: &Project) -> Result<Project, StoreError> {
-        let value = serde_json::to_value(project).map_err(StoreError::Json)?;
-        let saved_value = self.store.upsert_entity("projects", value)?;
-        let saved_project = serde_json::from_value(saved_value).map_err(StoreError::Json)?;
-        Ok(saved_project)
+        self.inner.update(project)
     }
 
     fn delete(&self, id: &str) -> Result<(), StoreError> {
-        self.store.delete_entity("projects", id)
+        self.inner.delete(id)
     }
 }

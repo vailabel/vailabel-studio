@@ -8,8 +8,15 @@ jest.mock("@tauri-apps/api/core", () => ({
 const mockInvoke = jest.mocked(invoke)
 
 describe("studioCommands", () => {
+  const logSpy = jest.spyOn(console, "log").mockImplementation(() => {})
+
   beforeEach(() => {
     mockInvoke.mockReset()
+    logSpy.mockClear()
+  })
+
+  afterAll(() => {
+    logSpy.mockRestore()
   })
 
   it("calls predictions_generate with the typed payload", async () => {

@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core"
+import { invokeWithLogging } from "@/ipc/invoke"
 import type {
   AIModel,
   Annotation,
@@ -30,7 +30,7 @@ interface PredictionGenerateRequest {
 }
 
 const call = <T>(command: string, args?: Record<string, unknown>) =>
-  invoke<T>(command, args)
+  invokeWithLogging<T>(command, args)
 
 export const studioCommands = {
   health: () => call<boolean>("health"),
