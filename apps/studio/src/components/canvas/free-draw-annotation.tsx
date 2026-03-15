@@ -9,10 +9,11 @@ import { Annotation, Point } from "@vailabel/core"
 
 interface FreeDrawAnnotationProps {
   annotation: Annotation
+  readOnly?: boolean
 }
 
 export const FreeDrawAnnotation = memo(
-  ({ annotation }: FreeDrawAnnotationProps) => {
+  ({ annotation, readOnly = false }: FreeDrawAnnotationProps) => {
     const { zoom } = useCanvasZoom()
     const { selectedTool } = useCanvasTool()
     const { selection } = useCanvasSelection()
@@ -84,7 +85,7 @@ export const FreeDrawAnnotation = memo(
 
     // Memoize edit points to prevent recreation
     const editPoints = useMemo(() => {
-      if (!isMoveTool) return null
+      if (!isMoveTool || readOnly) return null
 
       const pointRadius = isSelected ? 6 / zoom : 4 / zoom
       const pointOpacity = isSelected ? 1 : 0.6
@@ -103,7 +104,7 @@ export const FreeDrawAnnotation = memo(
 
     // Memoize bounding box for easier grabbing
     const boundingBoxElement = useMemo(() => {
-      if (!isMoveTool || !boundingBox) return null
+      if (!isMoveTool || !boundingBox || readOnly) return null
 
       return (
         <rect
@@ -166,7 +167,7 @@ export const FreeDrawAnnotation = memo(
 
     // Memoize center point for easy dragging
     const centerPointElement = useMemo(() => {
-      if (!isMoveTool || !centerPoint) return null
+      if (!isMoveTool || !centerPoint || readOnly) return null
 
       const centerRadius = isSelected ? 8 / zoom : 6 / zoom
       const centerOpacity = isSelected ? 1 : 0.7
@@ -246,12 +247,14 @@ export const FreeDrawAnnotation = memo(
                 : styles.strokeWidth.default,
             strokeDasharray: isSelected
               ? styles.strokeDashArray.selected
-              : styles.strokeDashArray.default,
+              : readOnly
+                ? "6 4"
+                : styles.strokeDashArray.default,
             strokeLinecap: "round",
             strokeLinejoin: "round",
           }}
           className={
-            isMoveTool
+            isMoveTool && !readOnly
               ? "pointer-events-auto cursor-move"
               : "pointer-events-none"
           }

@@ -1,15 +1,15 @@
 import { Annotation } from "@vailabel/core"
-import { request } from "./request"
+import { studioCommands } from "@/ipc/studio"
 
 export const annotationsService = {
   getAnnotationsByProjectId: (projectId: string) =>
-    request<Annotation[]>("GET", `/projects/${projectId}/annotations`),
+    studioCommands.annotationsListByProject(projectId),
   getAnnotationsByImageId: (imageId: string) =>
-    request<Annotation[]>("GET", `/images/${imageId}/annotations`),
+    studioCommands.annotationsListByImage(imageId),
   createAnnotation: (annotation: Partial<Annotation>) =>
-    request<Annotation>("POST", "/annotations", annotation),
+    studioCommands.annotationsSave(annotation),
   updateAnnotation: (annotationId: string, updates: Partial<Annotation>) =>
-    request<Annotation>("PUT", `/annotations/${annotationId}`, updates),
+    studioCommands.annotationsSave({ id: annotationId, ...updates }),
   deleteAnnotation: (annotationId: string) =>
-    request<{ success: boolean }>("DELETE", `/annotations/${annotationId}`),
+    studioCommands.annotationsDelete(annotationId),
 }

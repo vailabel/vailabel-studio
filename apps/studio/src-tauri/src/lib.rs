@@ -6,15 +6,15 @@ use keyring::Entry;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 use std::fs;
-use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard};
 use store::{DesktopStore, StoreError};
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 use uuid::Uuid;
 
 const APP_NAME: &str = "Vailabel Studio";
 const SERVICE_NAME: &str = "com.vailabel.studio";
+const DOMAIN_EVENT_NAME: &str = "studio://domain-event";
 
 #[derive(Clone)]
 struct AppState {
@@ -44,14 +44,6 @@ impl Serialize for AppError {
   {
     serializer.serialize_str(&self.to_string())
   }
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct DesktopRequest {
-  method: String,
-  path: String,
-  body: Option<Value>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -123,23 +115,62 @@ struct UrlPayload {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct DownloadSystemModelPayload {
-  system_id: String,
+struct ModelImportPayload {
   name: String,
   description: String,
-  category: String,
-  variant_name: Option<String>,
   version: String,
-  download_url: String,
-  expected_size: Option<u64>,
+  category: String,
+  #[serde(rename = "type")]
+  model_type: String,
+  model_file_path: String,
+  config_file_path: Option<String>,
+  project_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct RunModelInferencePayload {
+struct EntityIdPayload {
+  id: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ProjectIdPayload {
+  project_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ImageIdPayload {
+  image_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ImageRangePayload {
+  project_id: String,
+  offset: Option<usize>,
+  limit: Option<usize>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PredictionGeneratePayload {
   image_id: String,
   model_id: String,
   threshold: Option<f32>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PredictionActionPayload {
+  prediction_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ModelActivationPayload {
+  model_id: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -170,6 +201,17 @@ struct SystemInfo {
   app_version: String,
   is_desktop: bool,
   platform: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct StudioDomainEvent {
+  entity: String,
+  action: String,
+  id: String,
+  project_id: Option<String>,
+  image_id: Option<String>,
+  occurred_at: String,
 }
 
 fn now_iso() -> String {
@@ -299,145 +341,402 @@ fn normalize_entity(kind: &str, mut value: Value) -> Result<Value, AppError> {
       object.entry("isCustom").or_insert(Value::Bool(true));
       object.entry("isActive").or_insert(Value::Bool(false));
     }
+    "predictions" => {
+      ensure_string_field(object, "name", "Prediction");
+      ensure_string_field(object, "type", "box");
+      mirror_alias(object, "labelId", "label_id");
+      mirror_alias(object, "labelName", "label_name");
+      mirror_alias(object, "labelColor", "label_color");
+      mirror_alias(object, "modelId", "model_id");
+      mirror_alias(object, "imageId", "image_id");
+      mirror_alias(object, "projectId", "project_id");
+      object.entry("coordinates").or_insert_with(|| json!([]));
+      object.entry("confidence").or_insert_with(|| json!(0.0));
+      object.entry("isAIGenerated").or_insert(Value::Bool(true));
+    }
     _ => {}
   }
 
   Ok(value)
 }
 
-fn patch_entity(store: &DesktopStore, kind: &str, id: &str, patch: Value) -> Result<Value, AppError> {
-  let mut existing = store
+fn get_entity_or_error(store: &DesktopStore, kind: &str, id: &str, message: &str) -> Result<Value, AppError> {
+  store
     .get_entity(kind, id)?
-    .ok_or_else(|| AppError::Message(format!("{kind} not found")))?;
-  merge_patch(&mut existing, &patch);
-  let normalized = normalize_entity(kind, existing)?;
+    .ok_or_else(|| AppError::Message(message.to_string()))
+}
+
+fn save_entity(store: &DesktopStore, kind: &str, payload: Value) -> Result<(Value, &'static str), AppError> {
+  if let Some(id) = value_string(&payload, "id", "id") {
+    if let Some(mut existing) = store.get_entity(kind, &id)? {
+      merge_patch(&mut existing, &payload);
+      let normalized = normalize_entity(kind, existing)?;
+      store.upsert_entity(kind, normalized.clone())?;
+      return Ok((normalized, "updated"));
+    }
+  }
+
+  let normalized = normalize_entity(kind, payload)?;
   store.upsert_entity(kind, normalized.clone())?;
-  Ok(normalized)
+  Ok((normalized, "created"))
 }
 
-fn query_value(path: &str, key: &str) -> Option<String> {
-  let (_, query) = path.split_once('?')?;
-  query
-    .split('&')
-    .filter_map(|pair| pair.split_once('='))
-    .find_map(|(candidate, value)| (candidate == key).then(|| value.to_string()))
+fn delete_entity(store: &DesktopStore, kind: &str, id: &str, message: &str) -> Result<Value, AppError> {
+  let existing = get_entity_or_error(store, kind, id, message)?;
+  store.delete_entity(kind, id)?;
+  Ok(existing)
 }
 
-fn strip_query(path: &str) -> &str {
-  path.split_once('?').map(|(prefix, _)| prefix).unwrap_or(path)
-}
-
-fn desktop_request_inner(store: &DesktopStore, request: DesktopRequest) -> Result<Value, AppError> {
-  let normalized_path = strip_query(request.path.trim_end_matches('/'));
-  let segments: Vec<&str> = normalized_path
-    .trim_start_matches('/')
-    .split('/')
-    .filter(|segment| !segment.is_empty())
-    .collect();
-  let method = request.method.to_uppercase();
-  let body = request.body.unwrap_or(Value::Null);
-
-  match (method.as_str(), segments.as_slice()) {
-    ("GET", ["health"]) => Ok(json!(true)),
-    ("GET", ["projects"]) => Ok(json!(store.list_entities("projects")?)),
-    ("GET", ["projects", project_id]) => store
-      .get_entity("projects", project_id)?
-      .ok_or_else(|| AppError::Message("Project not found".into())),
-    ("POST", ["projects"]) => Ok(store.upsert_entity("projects", normalize_entity("projects", body)?)?),
-    ("PUT", ["projects", project_id]) => patch_entity(store, "projects", project_id, body),
-    ("DELETE", ["projects", project_id]) => {
-      store.delete_entity("projects", project_id)?;
-      Ok(json!({ "success": true }))
-    }
-
-    ("GET", ["tasks"]) => Ok(json!(store.list_entities("tasks")?)),
-    ("GET", ["tasks", "project", project_id]) => Ok(json!(store.list_by_field("tasks", "project_id", project_id)?)),
-    ("GET", ["tasks", task_id]) => store
-      .get_entity("tasks", task_id)?
-      .ok_or_else(|| AppError::Message("Task not found".into())),
-    ("POST", ["tasks"]) => Ok(store.upsert_entity("tasks", normalize_entity("tasks", body)?)?),
-    ("PUT", ["tasks", task_id]) => patch_entity(store, "tasks", task_id, body),
-    ("DELETE", ["tasks", task_id]) => {
-      store.delete_entity("tasks", task_id)?;
-      Ok(json!({ "success": true }))
-    }
-
-    ("GET", ["projects", project_id, "labels"]) => Ok(json!(store.list_by_field("labels", "project_id", project_id)?)),
-    ("POST", ["labels"]) => Ok(store.upsert_entity("labels", normalize_entity("labels", body)?)?),
-    ("PUT", ["labels", label_id]) => patch_entity(store, "labels", label_id, body),
-    ("DELETE", ["labels", label_id]) => {
-      store.delete_entity("labels", label_id)?;
-      Ok(json!({ "success": true }))
-    }
-
-    ("GET", ["projects", project_id, "images"]) => Ok(json!(store.list_by_field("images", "project_id", project_id)?)),
-    ("GET", ["projects", project_id, "images", "range"]) => {
-      let images = store.list_by_field("images", "project_id", project_id)?;
-      let offset = query_value(&request.path, "offset")
-        .and_then(|value| value.parse::<usize>().ok())
-        .unwrap_or(0);
-      let limit = query_value(&request.path, "limit")
-        .and_then(|value| value.parse::<usize>().ok())
-        .unwrap_or(images.len());
-      Ok(json!(images.into_iter().skip(offset).take(limit).collect::<Vec<_>>()))
-    }
-    ("GET", ["images", image_id]) => store
-      .get_entity("images", image_id)?
-      .ok_or_else(|| AppError::Message("Image not found".into())),
-    ("POST", ["images"]) => Ok(store.upsert_entity("images", normalize_entity("images", body)?)?),
-    ("PUT", ["images", image_id]) => patch_entity(store, "images", image_id, body),
-    ("DELETE", ["images", image_id]) => {
-      store.delete_entity("images", image_id)?;
-      Ok(json!({ "success": true }))
-    }
-
-    ("GET", ["projects", project_id, "annotations"]) => Ok(json!(store.list_by_field("annotations", "project_id", project_id)?)),
-    ("GET", ["images", image_id, "annotations"]) => Ok(json!(store.list_by_field("annotations", "image_id", image_id)?)),
-    ("POST", ["annotations"]) => Ok(store.upsert_entity("annotations", normalize_entity("annotations", body)?)?),
-    ("PUT", ["annotations", annotation_id]) => patch_entity(store, "annotations", annotation_id, body),
-    ("DELETE", ["annotations", annotation_id]) => {
-      store.delete_entity("annotations", annotation_id)?;
-      Ok(json!({ "success": true }))
-    }
-
-    ("GET", ["projects", project_id, "history"]) => Ok(json!(store.list_by_field("history", "project_id", project_id)?)),
-    ("POST", ["history"]) => Ok(store.upsert_entity("history", normalize_entity("history", body)?)?),
-
-    ("GET", ["settings"]) => Ok(json!(store.list_entities("settings")?)),
-    ("GET", ["settings", key]) => Ok(
-      store
-        .get_setting(key)?
-        .unwrap_or_else(|| json!({ "id": Uuid::new_v4().to_string(), "key": key, "value": "" })),
-    ),
-    ("POST", ["settings"]) => Ok(store.upsert_setting(normalize_entity("settings", body)?)?),
-
-    ("GET", ["ai-models"]) => Ok(json!(store.list_entities("ai_models")?)),
-    ("GET", ["projects", project_id, "ai-models"]) => Ok(json!(store.list_by_field("ai_models", "project_id", project_id)?)),
-    ("POST", ["ai-models"]) => Ok(store.upsert_entity("ai_models", normalize_entity("ai_models", body)?)?),
-    ("PUT", ["ai-models", model_id]) => patch_entity(store, "ai_models", model_id, body),
-    ("DELETE", ["ai-models", model_id]) => {
-      store.delete_entity("ai_models", model_id)?;
-      Ok(json!({ "success": true }))
-    }
-
-    ("GET", ["sync", "status"]) => Ok(json!({
-      "status": "local-only",
-      "pendingChanges": 0,
-      "lastSyncedAt": Value::Null
-    })),
-    ("POST", ["sync", "data"]) | ("POST", ["sync", "project", _]) => Ok(json!({
-      "status": "skipped",
-      "message": "Desktop sync is not configured in the Rust-only local build."
-    })),
-
-    _ => Err(AppError::Message(format!("Unsupported request: {} {}", request.method, request.path))),
+fn domain_event_from_value(entity: &str, action: &str, value: &Value) -> StudioDomainEvent {
+  StudioDomainEvent {
+    entity: entity.to_string(),
+    action: action.to_string(),
+    id: value_string(value, "id", "id").unwrap_or_default(),
+    project_id: value_string(value, "projectId", "project_id"),
+    image_id: value_string(value, "imageId", "image_id"),
+    occurred_at: now_iso(),
   }
 }
 
+fn emit_domain_event(app: &tauri::AppHandle, entity: &str, action: &str, value: &Value) -> Result<(), AppError> {
+  app.emit(DOMAIN_EVENT_NAME, domain_event_from_value(entity, action, value))?;
+  Ok(())
+}
+
+fn emit_domain_event_for_ids(
+  app: &tauri::AppHandle,
+  entity: &str,
+  action: &str,
+  id: String,
+  project_id: Option<String>,
+  image_id: Option<String>,
+) -> Result<(), AppError> {
+  app.emit(
+    DOMAIN_EVENT_NAME,
+    StudioDomainEvent {
+      entity: entity.to_string(),
+      action: action.to_string(),
+      id,
+      project_id,
+      image_id,
+      occurred_at: now_iso(),
+    },
+  )?;
+  Ok(())
+}
+
+fn list_entities_for(state: &tauri::State<AppState>, kind: &str) -> Result<Vec<Value>, AppError> {
+  Ok(state_guard(state)?.list_entities(kind)?)
+}
+
+fn list_by_project_for(
+  state: &tauri::State<AppState>,
+  kind: &str,
+  project_id: &str,
+) -> Result<Vec<Value>, AppError> {
+  Ok(state_guard(state)?.list_by_field(kind, "project_id", project_id)?)
+}
+
+fn list_by_image_for(
+  state: &tauri::State<AppState>,
+  kind: &str,
+  image_id: &str,
+) -> Result<Vec<Value>, AppError> {
+  Ok(state_guard(state)?.list_by_field(kind, "image_id", image_id)?)
+}
+
+fn get_entity_for(
+  state: &tauri::State<AppState>,
+  kind: &str,
+  id: &str,
+  message: &str,
+) -> Result<Value, AppError> {
+  let store = state_guard(state)?;
+  get_entity_or_error(&store, kind, id, message)
+}
+
+fn save_entity_for(
+  app: &tauri::AppHandle,
+  state: &tauri::State<AppState>,
+  kind: &str,
+  event_entity: &str,
+  payload: Value,
+) -> Result<Value, AppError> {
+  let store = state_guard(state)?;
+  let (value, action) = save_entity(&store, kind, payload)?;
+  emit_domain_event(app, event_entity, action, &value)?;
+  Ok(value)
+}
+
+fn delete_entity_for(
+  app: &tauri::AppHandle,
+  state: &tauri::State<AppState>,
+  kind: &str,
+  event_entity: &str,
+  id: &str,
+  message: &str,
+) -> Result<Value, AppError> {
+  let store = state_guard(state)?;
+  let existing = delete_entity(&store, kind, id, message)?;
+  emit_domain_event(app, event_entity, "deleted", &existing)?;
+  Ok(json!({ "success": true }))
+}
+
 #[tauri::command]
-fn desktop_request(state: tauri::State<AppState>, request: DesktopRequest) -> Result<Value, AppError> {
+fn health() -> bool {
+  true
+}
+
+#[tauri::command]
+fn projects_list(state: tauri::State<AppState>) -> Result<Vec<Value>, AppError> {
+  list_entities_for(&state, "projects")
+}
+
+#[tauri::command]
+fn projects_get(state: tauri::State<AppState>, payload: EntityIdPayload) -> Result<Value, AppError> {
+  get_entity_for(&state, "projects", &payload.id, "Project not found")
+}
+
+#[tauri::command]
+fn projects_save(
+  app: tauri::AppHandle,
+  state: tauri::State<AppState>,
+  payload: Value,
+) -> Result<Value, AppError> {
+  save_entity_for(&app, &state, "projects", "projects", payload)
+}
+
+#[tauri::command]
+fn projects_delete(
+  app: tauri::AppHandle,
+  state: tauri::State<AppState>,
+  payload: EntityIdPayload,
+) -> Result<Value, AppError> {
+  delete_entity_for(&app, &state, "projects", "projects", &payload.id, "Project not found")
+}
+
+#[tauri::command]
+fn tasks_list(state: tauri::State<AppState>) -> Result<Vec<Value>, AppError> {
+  list_entities_for(&state, "tasks")
+}
+
+#[tauri::command]
+fn tasks_list_by_project(
+  state: tauri::State<AppState>,
+  payload: ProjectIdPayload,
+) -> Result<Vec<Value>, AppError> {
+  list_by_project_for(&state, "tasks", &payload.project_id)
+}
+
+#[tauri::command]
+fn tasks_get(state: tauri::State<AppState>, payload: EntityIdPayload) -> Result<Value, AppError> {
+  get_entity_for(&state, "tasks", &payload.id, "Task not found")
+}
+
+#[tauri::command]
+fn tasks_save(
+  app: tauri::AppHandle,
+  state: tauri::State<AppState>,
+  payload: Value,
+) -> Result<Value, AppError> {
+  save_entity_for(&app, &state, "tasks", "tasks", payload)
+}
+
+#[tauri::command]
+fn tasks_delete(
+  app: tauri::AppHandle,
+  state: tauri::State<AppState>,
+  payload: EntityIdPayload,
+) -> Result<Value, AppError> {
+  delete_entity_for(&app, &state, "tasks", "tasks", &payload.id, "Task not found")
+}
+
+#[tauri::command]
+fn labels_list_by_project(
+  state: tauri::State<AppState>,
+  payload: ProjectIdPayload,
+) -> Result<Vec<Value>, AppError> {
+  list_by_project_for(&state, "labels", &payload.project_id)
+}
+
+#[tauri::command]
+fn labels_save(
+  app: tauri::AppHandle,
+  state: tauri::State<AppState>,
+  payload: Value,
+) -> Result<Value, AppError> {
+  save_entity_for(&app, &state, "labels", "labels", payload)
+}
+
+#[tauri::command]
+fn labels_delete(
+  app: tauri::AppHandle,
+  state: tauri::State<AppState>,
+  payload: EntityIdPayload,
+) -> Result<Value, AppError> {
+  delete_entity_for(&app, &state, "labels", "labels", &payload.id, "Label not found")
+}
+
+#[tauri::command]
+fn images_list_by_project(
+  state: tauri::State<AppState>,
+  payload: ProjectIdPayload,
+) -> Result<Vec<Value>, AppError> {
+  list_by_project_for(&state, "images", &payload.project_id)
+}
+
+#[tauri::command]
+fn images_list_range(
+  state: tauri::State<AppState>,
+  payload: ImageRangePayload,
+) -> Result<Vec<Value>, AppError> {
+  let images = list_by_project_for(&state, "images", &payload.project_id)?;
+  let offset = payload.offset.unwrap_or(0);
+  let limit = payload.limit.unwrap_or(images.len());
+  Ok(images.into_iter().skip(offset).take(limit).collect())
+}
+
+#[tauri::command]
+fn images_get(state: tauri::State<AppState>, payload: EntityIdPayload) -> Result<Value, AppError> {
+  get_entity_for(&state, "images", &payload.id, "Image not found")
+}
+
+#[tauri::command]
+fn images_save(
+  app: tauri::AppHandle,
+  state: tauri::State<AppState>,
+  payload: Value,
+) -> Result<Value, AppError> {
+  save_entity_for(&app, &state, "images", "images", payload)
+}
+
+#[tauri::command]
+fn images_delete(
+  app: tauri::AppHandle,
+  state: tauri::State<AppState>,
+  payload: EntityIdPayload,
+) -> Result<Value, AppError> {
+  delete_entity_for(&app, &state, "images", "images", &payload.id, "Image not found")
+}
+
+#[tauri::command]
+fn annotations_list_by_project(
+  state: tauri::State<AppState>,
+  payload: ProjectIdPayload,
+) -> Result<Vec<Value>, AppError> {
+  list_by_project_for(&state, "annotations", &payload.project_id)
+}
+
+#[tauri::command]
+fn annotations_list_by_image(
+  state: tauri::State<AppState>,
+  payload: ImageIdPayload,
+) -> Result<Vec<Value>, AppError> {
+  list_by_image_for(&state, "annotations", &payload.image_id)
+}
+
+#[tauri::command]
+fn annotations_save(
+  app: tauri::AppHandle,
+  state: tauri::State<AppState>,
+  payload: Value,
+) -> Result<Value, AppError> {
+  save_entity_for(&app, &state, "annotations", "annotations", payload)
+}
+
+#[tauri::command]
+fn annotations_delete(
+  app: tauri::AppHandle,
+  state: tauri::State<AppState>,
+  payload: EntityIdPayload,
+) -> Result<Value, AppError> {
+  delete_entity_for(
+    &app,
+    &state,
+    "annotations",
+    "annotations",
+    &payload.id,
+    "Annotation not found",
+  )
+}
+
+#[tauri::command]
+fn history_list_by_project(
+  state: tauri::State<AppState>,
+  payload: ProjectIdPayload,
+) -> Result<Vec<Value>, AppError> {
+  list_by_project_for(&state, "history", &payload.project_id)
+}
+
+#[tauri::command]
+fn history_save(
+  app: tauri::AppHandle,
+  state: tauri::State<AppState>,
+  payload: Value,
+) -> Result<Value, AppError> {
+  save_entity_for(&app, &state, "history", "history", payload)
+}
+
+#[tauri::command]
+fn settings_list(state: tauri::State<AppState>) -> Result<Vec<Value>, AppError> {
+  list_entities_for(&state, "settings")
+}
+
+#[tauri::command]
+fn settings_get(state: tauri::State<AppState>, payload: EntityIdPayload) -> Result<Value, AppError> {
   let store = state_guard(&state)?;
-  desktop_request_inner(&store, request)
+  Ok(store
+    .get_setting(&payload.id)?
+    .unwrap_or_else(|| json!({ "id": Uuid::new_v4().to_string(), "key": payload.id, "value": "" })))
+}
+
+#[tauri::command]
+fn settings_set(
+  app: tauri::AppHandle,
+  state: tauri::State<AppState>,
+  payload: Value,
+) -> Result<Value, AppError> {
+  let key = value_string(&payload, "key", "key").unwrap_or_default();
+  let store = state_guard(&state)?;
+  let action = if !key.is_empty() && store.get_setting(&key)?.is_some() {
+    "updated"
+  } else {
+    "created"
+  };
+  let value = store.upsert_setting(normalize_entity("settings", payload)?)?;
+  emit_domain_event(&app, "settings", action, &value)?;
+  Ok(value)
+}
+
+#[tauri::command]
+fn ai_models_list(state: tauri::State<AppState>) -> Result<Vec<Value>, AppError> {
+  list_entities_for(&state, "ai_models")
+}
+
+#[tauri::command]
+fn ai_models_list_by_project(
+  state: tauri::State<AppState>,
+  payload: ProjectIdPayload,
+) -> Result<Vec<Value>, AppError> {
+  list_by_project_for(&state, "ai_models", &payload.project_id)
+}
+
+#[tauri::command]
+fn ai_models_save(
+  app: tauri::AppHandle,
+  state: tauri::State<AppState>,
+  payload: Value,
+) -> Result<Value, AppError> {
+  save_entity_for(&app, &state, "ai_models", "ai_models", payload)
+}
+
+#[tauri::command]
+fn ai_models_delete(
+  app: tauri::AppHandle,
+  state: tauri::State<AppState>,
+  payload: EntityIdPayload,
+) -> Result<Value, AppError> {
+  delete_entity_for(&app, &state, "ai_models", "ai_models", &payload.id, "AI model not found")
 }
 
 #[tauri::command]
@@ -759,95 +1058,164 @@ fn updater_status() -> Value {
   })
 }
 
-#[tauri::command]
-fn download_system_model(
-  app: tauri::AppHandle,
-  state: tauri::State<AppState>,
-  payload: DownloadSystemModelPayload,
-) -> Result<Value, AppError> {
-  let response = reqwest::blocking::get(&payload.download_url)
-    .map_err(|error| AppError::Message(error.to_string()))?;
-
-  if !response.status().is_success() {
-    return Err(AppError::Message(format!(
-      "Failed to download model asset: HTTP {}",
-      response.status()
-    )));
+fn ensure_prediction_label(
+  store: &DesktopStore,
+  prediction: &Value,
+) -> Result<(Option<Value>, Option<Value>), AppError> {
+  if let Some(label_id) = value_string(prediction, "labelId", "label_id") {
+    if let Some(label) = store.get_entity("labels", &label_id)? {
+      return Ok((Some(label), None));
+    }
   }
 
-  let bytes = response
-    .bytes()
-    .map_err(|error| AppError::Message(error.to_string()))?;
+  let project_id = value_string(prediction, "projectId", "project_id");
+  let desired_name = value_string(prediction, "labelName", "label_name")
+    .or_else(|| value_string(prediction, "name", "name"));
 
+  if let (Some(project_id), Some(label_name)) = (project_id, desired_name) {
+    for label in store.list_by_field("labels", "project_id", &project_id)? {
+      if value_string(&label, "name", "name")
+        .map(|candidate| candidate.eq_ignore_ascii_case(&label_name))
+        .unwrap_or(false)
+      {
+        return Ok((Some(label), None));
+      }
+    }
+
+    let created_label = normalize_entity(
+      "labels",
+      json!({
+        "name": label_name,
+        "color": value_string(prediction, "labelColor", "label_color").unwrap_or_else(|| "#22c55e".into()),
+        "projectId": project_id,
+        "project_id": project_id,
+        "isAIGenerated": true,
+      }),
+    )?;
+    let created_label = store.upsert_entity("labels", created_label)?;
+    return Ok((Some(created_label.clone()), Some(created_label)));
+  }
+
+  Ok((None, None))
+}
+
+#[tauri::command]
+fn ai_models_set_active(
+  app: tauri::AppHandle,
+  state: tauri::State<AppState>,
+  payload: ModelActivationPayload,
+) -> Result<Value, AppError> {
+  let store = state_guard(&state)?;
+  let _ = get_entity_or_error(&store, "ai_models", &payload.model_id, "AI model not found")?;
+  let models = store.list_entities("ai_models")?;
+
+  for mut model in models {
+    let model_id = value_string(&model, "id", "id").unwrap_or_default();
+    {
+      let object = as_object_mut(&mut model)?;
+      let is_active = model_id == payload.model_id;
+      object.insert("isActive".into(), Value::Bool(is_active));
+      if is_active {
+        object.insert("lastUsed".into(), Value::String(now_iso()));
+      }
+    }
+    let normalized = normalize_entity("ai_models", model)?;
+    store.upsert_entity("ai_models", normalized)?;
+  }
+
+  let active_model = get_entity_or_error(&store, "ai_models", &payload.model_id, "AI model not found")?;
+  emit_domain_event(&app, "ai_models", "activated", &active_model)?;
+  Ok(active_model)
+}
+
+#[tauri::command]
+fn ai_models_import(
+  app: tauri::AppHandle,
+  state: tauri::State<AppState>,
+  payload: ModelImportPayload,
+) -> Result<Value, AppError> {
+  let source_model_path = PathBuf::from(&payload.model_file_path);
+  if !source_model_path.exists() {
+    return Err(AppError::Message("Selected model file could not be found".into()));
+  }
+
+  let model_id = Uuid::new_v4().to_string();
   let app_dir = app.path().app_data_dir()?;
-  let models_dir = app_dir.join("models").join("system").join(&payload.system_id);
+  let models_dir = app_dir.join("models").join("custom").join(&model_id);
   fs::create_dir_all(&models_dir)?;
 
-  let source_file_name = payload
-    .download_url
-    .rsplit('/')
-    .next()
-    .filter(|value| !value.is_empty())
-    .unwrap_or("model.pt");
+  let model_file_name = source_model_path
+    .file_name()
+    .and_then(|value| value.to_str())
+    .ok_or_else(|| AppError::Message("Selected model file path is invalid".into()))?;
+  let target_model_path = models_dir.join(model_file_name);
+  fs::copy(&source_model_path, &target_model_path)?;
 
-  let file_path = models_dir.join(source_file_name);
-  let mut file = fs::File::create(&file_path)?;
-  file.write_all(&bytes)?;
+  let target_config_path = if let Some(config_file_path) = payload.config_file_path.as_ref() {
+    let source_config_path = PathBuf::from(config_file_path);
+    if !source_config_path.exists() {
+      return Err(AppError::Message("Selected config file could not be found".into()));
+    }
 
-  let variant_suffix = payload
-    .variant_name
-    .clone()
-    .map(|value| format!(" ({value})"))
-    .unwrap_or_default();
-  let model_id = format!(
-    "{}:{}",
-    payload.system_id,
-    payload.variant_name.clone().unwrap_or_else(|| "default".into())
-  );
-
-  let type_value = match payload.category.as_str() {
-    "segmentation" => "segmentation",
-    "classification" => "classification",
-    "pose" => "pose_estimation",
-    "tracking" => "tracking",
-    _ => "object_detection",
+    let config_file_name = source_config_path
+      .file_name()
+      .and_then(|value| value.to_str())
+      .ok_or_else(|| AppError::Message("Selected config file path is invalid".into()))?;
+    let target_config_path = models_dir.join(config_file_name);
+    fs::copy(&source_config_path, &target_config_path)?;
+    target_config_path.to_string_lossy().to_string()
+  } else {
+    String::new()
   };
 
+  let model_size = fs::metadata(&target_model_path)?.len();
+  let project_id = payload.project_id.clone();
   let model = normalize_entity(
     "ai_models",
     json!({
       "id": model_id,
-      "name": format!("{}{}", payload.name, variant_suffix),
+      "name": payload.name,
       "description": payload.description,
       "version": payload.version,
-      "modelPath": file_path.to_string_lossy().to_string(),
-      "configPath": "",
-      "modelSize": payload.expected_size.unwrap_or(bytes.len() as u64),
-      "isCustom": false,
+      "modelPath": target_model_path.to_string_lossy().to_string(),
+      "configPath": target_config_path,
+      "modelSize": model_size,
+      "isCustom": true,
       "isActive": false,
       "status": "ready",
       "category": payload.category,
-      "type": type_value,
-      "source": "system",
+      "type": payload.model_type,
+      "projectId": project_id.clone(),
+      "project_id": project_id,
+      "source": "local",
     }),
   )?;
 
   let store = state_guard(&state)?;
-  Ok(store.upsert_entity("ai_models", model)?)
+  let model = store.upsert_entity("ai_models", model)?;
+  emit_domain_event(&app, "ai_models", "created", &model)?;
+  Ok(model)
 }
 
 #[tauri::command]
-fn run_model_inference(
+fn predictions_list_by_image(
   state: tauri::State<AppState>,
-  payload: RunModelInferencePayload,
-) -> Result<Vec<InferenceAnnotationDraft>, AppError> {
+  payload: ImageIdPayload,
+) -> Result<Vec<Value>, AppError> {
+  list_by_image_for(&state, "predictions", &payload.image_id)
+}
+
+#[tauri::command]
+fn predictions_generate(
+  app: tauri::AppHandle,
+  state: tauri::State<AppState>,
+  payload: PredictionGeneratePayload,
+) -> Result<Vec<Value>, AppError> {
+  let image_id = payload.image_id.clone();
+  let model_id = payload.model_id.clone();
   let store = state_guard(&state)?;
-  let image = store
-    .get_entity("images", &payload.image_id)?
-    .ok_or_else(|| AppError::Message("Image not found".into()))?;
-  let model = store
-    .get_entity("ai_models", &payload.model_id)?
-    .ok_or_else(|| AppError::Message("Selected AI model was not found".into()))?;
+  let image = get_entity_or_error(&store, "images", &image_id, "Image not found")?;
+  let model = get_entity_or_error(&store, "ai_models", &model_id, "Selected AI model was not found")?;
 
   let model_path = value_string(&model, "modelPath", "model_path").unwrap_or_default();
   if model_path.is_empty() {
@@ -864,7 +1232,116 @@ fn run_model_inference(
     store.list_by_field("labels", "project_id", &project_id)?
   };
 
-  build_draft_annotations(&image, &model, &labels, payload.threshold.unwrap_or(0.5))
+  let existing_predictions = store.list_by_field("predictions", "image_id", &image_id)?;
+  for prediction in existing_predictions {
+    let prediction_model_id = value_string(&prediction, "modelId", "model_id").unwrap_or_default();
+    if prediction_model_id == model_id.as_str() {
+      if let Some(prediction_id) = value_string(&prediction, "id", "id") {
+        store.delete_entity("predictions", &prediction_id)?;
+      }
+    }
+  }
+
+  let drafts = build_draft_annotations(&image, &model, &labels, payload.threshold.unwrap_or(0.5))?;
+  let mut predictions = Vec::new();
+
+  for draft in drafts {
+    let prediction = normalize_entity(
+      "predictions",
+      json!({
+        "name": draft.name,
+        "type": draft.annotation_type,
+        "coordinates": draft.coordinates,
+        "confidence": draft.confidence,
+        "labelId": draft.label_id,
+        "label_id": draft.label_id,
+        "labelName": draft.label_name,
+        "label_name": draft.label_name,
+        "labelColor": draft.label_color,
+        "label_color": draft.label_color,
+        "color": draft.label_color,
+        "modelId": model_id.clone(),
+        "model_id": model_id.clone(),
+        "imageId": image_id.clone(),
+        "image_id": image_id.clone(),
+        "projectId": if project_id.is_empty() { Value::Null } else { Value::String(project_id.clone()) },
+        "project_id": if project_id.is_empty() { Value::Null } else { Value::String(project_id.clone()) },
+        "isAIGenerated": true,
+      }),
+    )?;
+    let prediction = store.upsert_entity("predictions", prediction)?;
+    predictions.push(prediction);
+  }
+
+  emit_domain_event_for_ids(
+    &app,
+    "predictions",
+    "generated",
+    image_id.clone(),
+    if project_id.is_empty() { None } else { Some(project_id) },
+    Some(image_id),
+  )?;
+
+  Ok(predictions)
+}
+
+#[tauri::command]
+fn predictions_accept(
+  app: tauri::AppHandle,
+  state: tauri::State<AppState>,
+  payload: PredictionActionPayload,
+) -> Result<Value, AppError> {
+  let store = state_guard(&state)?;
+  let prediction = get_entity_or_error(&store, "predictions", &payload.prediction_id, "Prediction not found")?;
+  let (label, created_label) = ensure_prediction_label(&store, &prediction)?;
+
+  let label_id = label
+    .as_ref()
+    .and_then(|value| value_string(value, "id", "id"));
+  let label_color = label
+    .as_ref()
+    .and_then(|value| value_string(value, "color", "color"))
+    .or_else(|| value_string(&prediction, "labelColor", "label_color"))
+    .unwrap_or_else(|| "#22c55e".into());
+
+  let annotation = normalize_entity(
+    "annotations",
+    json!({
+      "name": value_string(&prediction, "name", "name").unwrap_or_else(|| "Prediction".into()),
+      "type": value_string(&prediction, "type", "type").unwrap_or_else(|| "box".into()),
+      "coordinates": prediction.get("coordinates").cloned().unwrap_or_else(|| json!([])),
+      "imageId": value_string(&prediction, "imageId", "image_id"),
+      "image_id": value_string(&prediction, "imageId", "image_id"),
+      "projectId": value_string(&prediction, "projectId", "project_id"),
+      "project_id": value_string(&prediction, "projectId", "project_id"),
+      "labelId": label_id.clone(),
+      "label_id": label_id,
+      "color": label_color,
+      "isAIGenerated": true,
+    }),
+  )?;
+  let annotation = store.upsert_entity("annotations", annotation)?;
+  store.delete_entity("predictions", &payload.prediction_id)?;
+
+  if let Some(created_label) = created_label {
+    emit_domain_event(&app, "labels", "created", &created_label)?;
+  }
+  emit_domain_event(&app, "annotations", "created", &annotation)?;
+  emit_domain_event(&app, "predictions", "accepted", &prediction)?;
+
+  Ok(annotation)
+}
+
+#[tauri::command]
+fn predictions_reject(
+  app: tauri::AppHandle,
+  state: tauri::State<AppState>,
+  payload: PredictionActionPayload,
+) -> Result<Value, AppError> {
+  let store = state_guard(&state)?;
+  let prediction = delete_entity(&store, "predictions", &payload.prediction_id, "Prediction not found")?;
+  emit_domain_event(&app, "predictions", "rejected", &prediction)?;
+  Ok(json!({ "success": true }))
 }
 
 pub fn run() {
@@ -879,7 +1356,43 @@ pub fn run() {
       Ok(())
     })
     .invoke_handler(tauri::generate_handler![
-      desktop_request,
+      health,
+      projects_list,
+      projects_get,
+      projects_save,
+      projects_delete,
+      tasks_list,
+      tasks_list_by_project,
+      tasks_get,
+      tasks_save,
+      tasks_delete,
+      labels_list_by_project,
+      labels_save,
+      labels_delete,
+      images_list_by_project,
+      images_list_range,
+      images_get,
+      images_save,
+      images_delete,
+      annotations_list_by_project,
+      annotations_list_by_image,
+      annotations_save,
+      annotations_delete,
+      history_list_by_project,
+      history_save,
+      settings_list,
+      settings_get,
+      settings_set,
+      ai_models_list,
+      ai_models_list_by_project,
+      ai_models_save,
+      ai_models_delete,
+      ai_models_set_active,
+      ai_models_import,
+      predictions_list_by_image,
+      predictions_generate,
+      predictions_accept,
+      predictions_reject,
       system_info,
       open_path_dialog,
       open_external,
@@ -894,8 +1407,6 @@ pub fn run() {
       secret_delete,
       secret_list,
       updater_status,
-      download_system_model,
-      run_model_inference,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

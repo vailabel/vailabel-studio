@@ -6,9 +6,10 @@ import { useCanvasTool, useCanvasSelection } from "@/contexts/canvas-context"
 
 interface BoxAnnotationProps {
   annotation: Annotation
+  readOnly?: boolean
 }
 
-export const BoxAnnotation = memo(({ annotation }: BoxAnnotationProps) => {
+export const BoxAnnotation = memo(({ annotation, readOnly = false }: BoxAnnotationProps) => {
   const { selectedTool } = useCanvasTool()
   const { selectedAnnotation } = useCanvasSelection()
 
@@ -22,8 +23,9 @@ export const BoxAnnotation = memo(({ annotation }: BoxAnnotationProps) => {
       height: annotation.coordinates[1].y - annotation.coordinates[0].y,
       backgroundColor: getContentBoxColor(annotation.color ?? "#333", 0.2),
       borderColor: annotation.color,
+      borderStyle: readOnly ? "dashed" : "solid",
     }),
-    [annotation.coordinates, annotation.color]
+    [annotation.coordinates, annotation.color, readOnly]
   )
 
   const labelStyles = useMemo(

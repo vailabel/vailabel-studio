@@ -1,19 +1,14 @@
 import { ImageData } from "@vailabel/core"
-import { request } from "./request"
+import { studioCommands } from "@/ipc/studio"
 
 export const imagesService = {
   getImagesByProjectId: (projectId: string) =>
-    request<ImageData[]>("GET", `/projects/${projectId}/images`),
-  getImage: (imageId: string) => request<ImageData>("GET", `/images/${imageId}`),
+    studioCommands.imagesListByProject(projectId),
+  getImage: (imageId: string) => studioCommands.imagesGet(imageId),
   getImageRange: (projectId: string, offset: number, limit: number) =>
-    request<ImageData[]>(
-      "GET",
-      `/projects/${projectId}/images/range?offset=${offset}&limit=${limit}`
-    ),
-  createImage: (image: Partial<ImageData>) =>
-    request<ImageData>("POST", "/images", image),
+    studioCommands.imagesListRange({ projectId, offset, limit }),
+  createImage: (image: Partial<ImageData>) => studioCommands.imagesSave(image),
   updateImage: (imageId: string, updates: Partial<ImageData>) =>
-    request<ImageData>("PUT", `/images/${imageId}`, updates),
-  deleteImage: (imageId: string) =>
-    request<{ success: boolean }>("DELETE", `/images/${imageId}`),
+    studioCommands.imagesSave({ id: imageId, ...updates }),
+  deleteImage: (imageId: string) => studioCommands.imagesDelete(imageId),
 }

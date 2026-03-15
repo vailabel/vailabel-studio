@@ -65,6 +65,30 @@ export class Annotation {
   updatedAt?: Date
 }
 
+export class Prediction {
+  id!: string
+  labelId?: string
+  label_id?: string
+  labelName?: string
+  label_name?: string
+  labelColor?: string
+  label_color?: string
+  modelId?: string
+  model_id?: string
+  name!: string
+  type!: string
+  coordinates!: { x: number; y: number }[]
+  confidence!: number
+  imageId?: string
+  image_id?: string
+  projectId?: string
+  project_id?: string
+  color?: string
+  isAIGenerated?: boolean
+  createdAt?: Date
+  updatedAt?: Date
+}
+
 export class History {
   id!: string
   labels?: Label[]
@@ -112,15 +136,12 @@ export class AIModel {
   configPath!: string
   modelSize!: number
   isCustom!: boolean
-
-  // New fields for frontend compatibility
-  type?: string // e.g., "object_detection", "classification", "segmentation"
-  status?: string // e.g., "active", "training", "deployed", "failed", "inactive"
-  category?: string // e.g., "detection", "classification", "segmentation"
-  isActive?: boolean // Currently active model
-  lastUsed?: Date // When the model was last used
-  modelMetadata?: Record<string, any> // Additional metadata like accuracy, speed, etc.
-
+  type?: string
+  status?: string
+  category?: string
+  isActive?: boolean
+  lastUsed?: Date
+  modelMetadata?: Record<string, any>
   createdAt?: Date
   updatedAt?: Date
 }
@@ -131,4 +152,27 @@ export class Settings {
   value!: string
   createdAt?: Date
   updatedAt?: Date
+}
+
+export class StudioDomainEvent {
+  entity!: string
+  action!: string
+  id!: string
+  projectId?: string
+  project_id?: string
+  imageId?: string
+  image_id?: string
+  occurredAt!: Date | string
+}
+
+export class ModelImportPayload {
+  name!: string
+  description!: string
+  version!: string
+  category!: string
+  type!: string
+  modelFilePath!: string
+  configFilePath?: string
+  projectId?: string
+  project_id?: string
 }

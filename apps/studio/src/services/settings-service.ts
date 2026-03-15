@@ -1,9 +1,8 @@
 import { Settings } from "@vailabel/core"
-import { request } from "./request"
+import { studioCommands } from "@/ipc/studio"
 
 export const settingsService = {
-  list: () => request<Settings[]>("GET", "/settings"),
-  getByKey: (key: string) => request<Settings>("GET", `/settings/${key}`),
-  update: (key: string, value: string) =>
-    request<Settings>("POST", "/settings", { key, value }),
+  list: () => studioCommands.settingsList(),
+  getByKey: (key: string) => studioCommands.settingsGet(key),
+  update: (key: string, value: string) => studioCommands.settingsSet(key, value),
 }

@@ -1,12 +1,5 @@
 import { invoke } from "@tauri-apps/api/core"
 
-export interface DesktopRequest {
-  method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH"
-  path: string
-  body?: unknown
-  authToken?: string | null
-}
-
 export interface DialogFilter {
   name: string
   extensions: string[]
@@ -31,56 +24,9 @@ export interface UpdaterStatus {
   message: string
 }
 
-export interface DownloadSystemModelPayload {
-  systemId: string
-  name: string
-  description: string
-  category: string
-  variantName?: string
-  version: string
-  downloadUrl: string
-  expectedSize?: number
-}
-
-export interface RunModelInferencePayload {
-  imageId: string
-  modelId: string
-  threshold?: number
-}
-
-export interface InferenceAnnotationDraft {
-  name: string
-  type: string
-  coordinates: Array<{
-    x: number
-    y: number
-  }>
-  confidence: number
-  labelId?: string
-  labelName?: string
-  labelColor?: string
-  isAIGenerated?: boolean
-}
-
 export const isDesktopApp = () => {
   if (typeof window === "undefined") return false
   return "__TAURI_INTERNALS__" in window
-}
-
-export const desktopRequest = async <T>({
-  method,
-  path,
-  body,
-  authToken,
-}: DesktopRequest): Promise<T> => {
-  return invoke<T>("desktop_request", {
-    request: {
-      method,
-      path,
-      body: body ?? null,
-      authToken: authToken ?? null,
-    },
-  })
 }
 
 export const getSystemInfo = async () => invoke<SystemInfo>("system_info")
@@ -126,10 +72,3 @@ export const listSecrets = async (namespace: string) =>
 
 export const getUpdaterStatus = async () =>
   invoke<UpdaterStatus>("updater_status")
-
-export const downloadSystemModel = async (
-  payload: DownloadSystemModelPayload
-) => invoke("download_system_model", { payload })
-
-export const runModelInference = async (payload: RunModelInferencePayload) =>
-  invoke<InferenceAnnotationDraft[]>("run_model_inference", { payload })

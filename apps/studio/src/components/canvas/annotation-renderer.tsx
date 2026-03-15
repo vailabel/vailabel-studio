@@ -12,12 +12,30 @@ type RenderableAnnotation = Annotation | Partial<Annotation>
 // Memoized annotation component to prevent unnecessary re-renders
 const MemoizedAnnotation = memo(({ 
   annotation, 
-  AnnotationComponent 
+  AnnotationComponent,
+  readOnly = false,
+  onUpdateAnnotation,
 }: { 
   annotation: Annotation
-  AnnotationComponent: React.ComponentType<{ annotation: Annotation }>
+  AnnotationComponent: React.ComponentType<{
+    annotation: Annotation
+    readOnly?: boolean
+    onUpdateAnnotation?: (
+      annotationId: string,
+      updates: Partial<Annotation>
+    ) => Promise<void>
+  }>
+  readOnly?: boolean
+  onUpdateAnnotation?: (
+    annotationId: string,
+    updates: Partial<Annotation>
+  ) => Promise<void>
 }) => (
-  <AnnotationComponent annotation={annotation} />
+  <AnnotationComponent
+    annotation={annotation}
+    readOnly={readOnly}
+    onUpdateAnnotation={onUpdateAnnotation}
+  />
 ))
 
 MemoizedAnnotation.displayName = "MemoizedAnnotation"
@@ -26,9 +44,16 @@ export const AnnotationRenderer = memo(
   ({
     annotations,
     isTemporary = false,
+    readOnly = false,
+    onUpdateAnnotation,
   }: {
     annotations: RenderableAnnotation[]
     isTemporary?: boolean
+    readOnly?: boolean
+    onUpdateAnnotation?: (
+      annotationId: string,
+      updates: Partial<Annotation>
+    ) => Promise<void>
   }) => {
     const annotationComponents = useMemo(
       () => ({
@@ -69,6 +94,8 @@ export const AnnotationRenderer = memo(
               key={key}
               annotation={annotation as Annotation}
               AnnotationComponent={AnnotationComponent}
+              readOnly={readOnly}
+              onUpdateAnnotation={onUpdateAnnotation}
             />
           )
         })}

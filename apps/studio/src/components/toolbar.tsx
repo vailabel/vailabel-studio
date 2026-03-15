@@ -33,7 +33,8 @@ interface ToolbarProps {
   currentImage: ImageData | null
   onOpenSettings: () => void
   onOpenAISettings: () => void
-  onRefreshAnnotations: () => Promise<void>
+  onGeneratePredictions: (modelId: string) => Promise<unknown>
+  isGeneratingPredictions?: boolean
 }
 
 interface Tool {
@@ -55,11 +56,16 @@ interface AdditionalTool {
 }
 
 export const Toolbar = memo(
-  ({ currentImage, onOpenAISettings, onRefreshAnnotations }: ToolbarProps) => {
+  ({
+    currentImage,
+    onOpenAISettings,
+    onGeneratePredictions,
+    isGeneratingPredictions = false,
+  }: ToolbarProps) => {
   const { selectedTool, setSelectedTool } = useCanvasTool()
   const { zoom, setZoom } = useCanvasZoom()
   const { resetView } = useCanvasPan()
-  const { selectedModel } = useAIModelViewModel()
+  const { selectedModel, selectedModelId } = useAIModelViewModel()
   const { showCrosshair, showCoordinates } = useCanvasState(state => ({
     showCrosshair: state.showCrosshair,
     showCoordinates: state.showCoordinates
@@ -271,8 +277,11 @@ export const Toolbar = memo(
           )}
           <AIDetectionButton
             image={currentImage}
+            selectedModelId={selectedModelId}
+            selectedModelName={selectedModel?.name}
+            isGenerating={isGeneratingPredictions}
             onOpenModelSettings={onOpenAISettings}
-            onRefreshAnnotations={onRefreshAnnotations}
+            onGeneratePredictions={onGeneratePredictions}
           />
 
           <TooltipProvider>

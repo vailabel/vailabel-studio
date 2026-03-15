@@ -1,25 +1,17 @@
 import { AIModel } from "@vailabel/core"
-import { request } from "./request"
-import {
-  downloadSystemModel as invokeDownloadSystemModel,
-  runModelInference as invokeRunModelInference,
-  type DownloadSystemModelPayload,
-  type InferenceAnnotationDraft,
-  type RunModelInferencePayload,
-} from "@/lib/desktop"
+import type { ModelImportPayload } from "@vailabel/core"
+import { studioCommands } from "@/ipc/studio"
 
 export const aiModelsService = {
-  list: () => request<AIModel[]>("GET", "/ai-models"),
+  list: () => studioCommands.aiModelsList(),
   listByProjectId: (projectId: string) =>
-    request<AIModel[]>("GET", `/projects/${projectId}/ai-models`),
+    studioCommands.aiModelsListByProject(projectId),
   create: (model: Partial<AIModel>) =>
-    request<AIModel>("POST", "/ai-models", model),
+    studioCommands.aiModelsSave(model),
   update: (modelId: string, updates: Partial<AIModel>) =>
-    request<AIModel>("PUT", `/ai-models/${modelId}`, updates),
-  delete: (modelId: string) =>
-    request<{ success: boolean }>("DELETE", `/ai-models/${modelId}`),
-  downloadSystemModel: (payload: DownloadSystemModelPayload) =>
-    invokeDownloadSystemModel(payload) as Promise<AIModel>,
-  runModelInference: (payload: RunModelInferencePayload) =>
-    invokeRunModelInference(payload) as Promise<InferenceAnnotationDraft[]>,
+    studioCommands.aiModelsSave({ id: modelId, ...updates }),
+  delete: (modelId: string) => studioCommands.aiModelsDelete(modelId),
+  setActive: (modelId: string) => studioCommands.aiModelsSetActive(modelId),
+  importModel: (payload: ModelImportPayload) =>
+    studioCommands.aiModelsImport(payload),
 }

@@ -3,7 +3,6 @@ import type { Config } from "jest"
 const config: Config = {
   watchman: false,
   projects: [
-    "<rootDir>/apps/core/jest.config.ts",
     "<rootDir>/apps/studio/jest.config.ts",
   ],
   coveragePathIgnorePatterns: [

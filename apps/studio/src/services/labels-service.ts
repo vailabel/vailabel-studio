@@ -1,13 +1,11 @@
 import { Label } from "@vailabel/core"
-import { request } from "./request"
+import { studioCommands } from "@/ipc/studio"
 
 export const labelsService = {
   getLabelsByProjectId: (projectId: string) =>
-    request<Label[]>("GET", `/projects/${projectId}/labels`),
-  createLabel: (label: Partial<Label>) =>
-    request<Label>("POST", "/labels", label),
+    studioCommands.labelsListByProject(projectId),
+  createLabel: (label: Partial<Label>) => studioCommands.labelsSave(label),
   updateLabel: (labelId: string, updates: Partial<Label>) =>
-    request<Label>("PUT", `/labels/${labelId}`, updates),
-  deleteLabel: (labelId: string) =>
-    request<{ success: boolean }>("DELETE", `/labels/${labelId}`),
+    studioCommands.labelsSave({ id: labelId, ...updates }),
+  deleteLabel: (labelId: string) => studioCommands.labelsDelete(labelId),
 }

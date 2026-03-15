@@ -1,6 +1,15 @@
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import {
+  Brain,
+  CheckCircle,
+  Cpu,
+  HardDrive,
+  Import,
+  Settings,
+  Trash2,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -14,10 +23,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-  DialogClose,
 } from "@/components/ui/dialog"
 import {
   Table,
@@ -28,151 +36,101 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  Plus,
-  Download,
-  Play,
-  Edit,
-  Trash2,
-  CheckCircle,
-  XCircle,
-  Brain,
-  Settings,
-  HardDrive,
-  Cpu,
-  Zap,
-  BarChart3,
-  Star,
-  TrendingUp,
-} from "lucide-react"
 import AIModelForm from "@/components/forms/AIModelForm"
 import { useAIModelViewModel } from "@/viewmodels/ai-model-viewmodel"
-import { aiModelFormSchema, AIModelFormData } from "@/lib/schemas/ai-model"
+import { aiModelFormSchema, type AIModelFormData } from "@/lib/schemas/ai-model"
 import { useToast } from "@/hooks/use-toast"
+
+function formatFileSize(bytes: number): string {
+  if (bytes === 0) return "0 Bytes"
+  const k = 1024
+  const sizes = ["Bytes", "KB", "MB", "GB"]
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
+}
 
 export default function AIModelListPage() {
   const {
     availableModels = [],
     systemModels = [],
     isLoading,
+    isImportingModel,
     selectedModel,
-    downloadingModelId,
     deleteModel,
     activateModel,
-    downloadSystemModel,
+    importModel,
     refreshModels,
   } = useAIModelViewModel()
   const { toast } = useToast()
-
-  // Derived values with safe defaults
-  const models = availableModels || []
-  const customModels = models || []
-  const modelsByCategory: Record<string, typeof models> = models.reduce(
-    (acc, model) => {
-      const key = (model as { category?: string }).category || "uncategorized"
-      acc[key] = [...(acc[key] || []), model]
-      return acc
-    },
-    {} as Record<string, typeof models>
-  )
-  const totalModelsCount = models.length || 0
-  const totalModelSize =
-    models.reduce(
-      (sum, m) => sum + ((m as { modelSize?: number }).modelSize || 0),
-      0
-    ) || 0
-  const activeModel = selectedModel || null
-  const isUploading = false // TODO: Implement upload state
-
   const [showAddModelModal, setShowAddModelModal] = useState(false)
-  const [showSystemModelModal, setShowSystemModelModal] = useState(false)
-  const [testingModel, setTestingModel] = useState<string | null>(null)
-  const [uploadProgress, setUploadProgress] = useState(0)
 
-  // Form setup
   const form = useForm<AIModelFormData>({
     resolver: zodResolver(aiModelFormSchema),
     defaultValues: {
       name: "",
       description: "",
       version: "1.0.0",
+      category: "detection",
+      modelFilePath: "",
+      configFilePath: "",
     },
   })
 
-  // Handle form submission
   const onSubmit = async (data: AIModelFormData) => {
     try {
-      toast({
-        title: "Custom model upload not wired yet",
-        description:
-          "System model downloads are ready now. Custom uploads can be added next.",
+      const importedModel = await importModel({
+        name: data.name,
+        description: data.description,
+        version: data.version,
+        category: data.category,
+        modelFilePath: data.modelFilePath,
+        configFilePath: data.configFilePath || undefined,
       })
-      setShowAddModelModal(false)
-      form.reset()
-      setUploadProgress(0)
-    } catch (error) {
-      console.error("Failed to create model:", error)
-    }
-  }
-
-  // Handle delete
-  const handleDelete = async (modelId: string) => {
-    if (confirm("Are you sure you want to delete this model?")) {
-      try {
-        await deleteModel(modelId)
-        toast({
-          title: "Model deleted",
-          description: "The local model entry was removed.",
-        })
-      } catch (error) {
-        console.error("Failed to delete model:", error)
-        toast({
-          title: "Delete failed",
-          description: "The model could not be removed.",
-          variant: "destructive",
-        })
-      }
-    }
-  }
-
-  // Handle test model
-  const handleTestModel = async (modelId: string) => {
-    setTestingModel(modelId)
-    try {
-      // TODO: Implement testModel
-      console.log("Test model:", modelId)
-    } finally {
-      setTestingModel(null)
-    }
-  }
-
-  // Handle download system model
-  const handleDownloadSystemModel = async (
-    modelId: string,
-    variant?: string
-  ) => {
-    try {
-      const model = systemModels.find((entry) => entry.id === modelId)
-      if (!model) return
-      const downloadedModel = await downloadSystemModel(model, variant)
-      await activateModel(downloadedModel.id)
+      await activateModel(importedModel.id)
       await refreshModels()
       toast({
-        title: "Model downloaded",
-        description: `${downloadedModel.name} is ready and active for use.`,
+        title: "Model imported",
+        description: `${importedModel.name} is ready for offline prediction generation.`,
+      })
+      setShowAddModelModal(false)
+      form.reset({
+        name: "",
+        description: "",
+        version: "1.0.0",
+        category: "detection",
+        modelFilePath: "",
+        configFilePath: "",
       })
     } catch (error) {
-      console.error("Failed to download model:", error)
+      console.error("Failed to import model:", error)
       toast({
-        title: "Download failed",
+        title: "Import failed",
         description:
-          error instanceof Error ? error.message : "Could not download model.",
+          error instanceof Error ? error.message : "The model could not be imported.",
         variant: "destructive",
       })
     }
   }
 
-  // Handle set active model
+  const handleDelete = async (modelId: string) => {
+    if (!confirm("Are you sure you want to delete this model?")) return
+
+    try {
+      await deleteModel(modelId)
+      toast({
+        title: "Model deleted",
+        description: "The local model entry was removed.",
+      })
+    } catch (error) {
+      console.error("Failed to delete model:", error)
+      toast({
+        title: "Delete failed",
+        description: "The model could not be removed.",
+        variant: "destructive",
+      })
+    }
+  }
+
   const handleSetActiveModel = async (modelId: string) => {
     try {
       await activateModel(modelId)
@@ -190,58 +148,34 @@ export default function AIModelListPage() {
     }
   }
 
-  // Format file size
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return "0 Bytes"
-    const k = 1024
-    const sizes = ["Bytes", "KB", "MB", "GB"]
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
-  }
-
-  // Get category icon
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case "segmentation":
-        return <Brain className="h-4 w-4" />
-      case "detection":
-        return <Zap className="h-4 w-4" />
-      case "classification":
-        return <BarChart3 className="h-4 w-4" />
-      case "tracking":
-        return <TrendingUp className="h-4 w-4" />
-      case "pose":
-        return <Star className="h-4 w-4" />
-      default:
-        return <Brain className="h-4 w-4" />
-    }
-  }
+  const totalModelSize = availableModels.reduce(
+    (sum, model) => sum + (model.modelSize || 0),
+    0
+  )
 
   return (
-    <div className="max-w-7xl mx-auto py-8 space-y-8">
-      {/* Header */}
+    <div className="mx-auto max-w-7xl space-y-8 py-8">
       <div className="space-y-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center">
-            <Brain className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+            <Brain className="h-5 w-5" />
           </div>
           <div>
             <h1 className="text-3xl font-bold">AI Models</h1>
             <p className="text-muted-foreground">
-              Manage your AI models for intelligent annotation and detection
+              Import and manage local models for offline prediction review.
             </p>
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
                 <Brain className="h-4 w-4 text-blue-600" />
                 <div>
-                  <p className="text-sm font-medium">Total Models</p>
-                  <p className="text-2xl font-bold">{totalModelsCount}</p>
+                  <p className="text-sm font-medium">Installed Models</p>
+                  <p className="text-2xl font-bold">{availableModels.length}</p>
                 </div>
               </div>
             </CardContent>
@@ -251,7 +185,7 @@ export default function AIModelListPage() {
               <div className="flex items-center gap-2">
                 <HardDrive className="h-4 w-4 text-green-600" />
                 <div>
-                  <p className="text-sm font-medium">Total Size</p>
+                  <p className="text-sm font-medium">Storage</p>
                   <p className="text-2xl font-bold">
                     {formatFileSize(totalModelSize)}
                   </p>
@@ -262,11 +196,11 @@ export default function AIModelListPage() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-purple-600" />
+                <CheckCircle className="h-4 w-4 text-emerald-600" />
                 <div>
                   <p className="text-sm font-medium">Active Model</p>
                   <p className="text-lg font-bold">
-                    {activeModel?.name || "None"}
+                    {selectedModel?.name || "None"}
                   </p>
                 </div>
               </div>
@@ -277,70 +211,52 @@ export default function AIModelListPage() {
               <div className="flex items-center gap-2">
                 <Settings className="h-4 w-4 text-orange-600" />
                 <div>
-                  <p className="text-sm font-medium">Custom Models</p>
-                  <p className="text-2xl font-bold">{customModels.length}</p>
+                  <p className="text-sm font-medium">Mode</p>
+                  <p className="text-lg font-bold">Offline Only</p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Action Buttons */}
         <div className="flex gap-2">
           <Button onClick={() => setShowAddModelModal(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Custom Model
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setShowSystemModelModal(true)}
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Browse System Models
+            <Import className="mr-2 h-4 w-4" />
+            Import Local Model
           </Button>
         </div>
       </div>
 
-      {/* Active Model Alert */}
-      {activeModel && (
-        <Alert className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20">
-          <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-          <AlertDescription className="text-green-800 dark:text-green-200">
-            <strong>Active Model:</strong> {activeModel.name} (v
-            {activeModel.version}) - {activeModel.description}
-          </AlertDescription>
-        </Alert>
-      )}
+      <Alert className="border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/30">
+        <Cpu className="h-4 w-4 text-blue-600 dark:text-blue-300" />
+        <AlertDescription>
+          The desktop app no longer downloads remote model assets. Import local
+          files instead to keep prediction generation fully offline.
+        </AlertDescription>
+      </Alert>
 
-      {/* Main Content */}
-      <Tabs defaultValue="models" className="space-y-6">
+      <Tabs defaultValue="installed" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="models">My Models</TabsTrigger>
-          <TabsTrigger value="system">System Models</TabsTrigger>
-          <TabsTrigger value="categories">By Category</TabsTrigger>
+          <TabsTrigger value="installed">Installed Models</TabsTrigger>
+          <TabsTrigger value="catalog">Reference Catalog</TabsTrigger>
         </TabsList>
 
-        {/* My Models Tab */}
-        <TabsContent value="models" className="space-y-6">
+        <TabsContent value="installed">
           <Card>
             <CardHeader>
-              <CardTitle>Your AI Models</CardTitle>
+              <CardTitle>Your Local Models</CardTitle>
               <CardDescription>
-                Manage your custom and downloaded AI models
+                Models available for local prediction generation.
               </CardDescription>
             </CardHeader>
             <CardContent>
               {isLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <div className="py-8 text-center text-muted-foreground">
+                  Loading models...
                 </div>
-              ) : models.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Brain className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg font-medium">No models yet</p>
-                  <p className="text-sm">
-                    Upload your first AI model to get started
-                  </p>
+              ) : availableModels.length === 0 ? (
+                <div className="py-8 text-center text-muted-foreground">
+                  No local models imported yet.
                 </div>
               ) : (
                 <Table>
@@ -351,86 +267,45 @@ export default function AIModelListPage() {
                       <TableHead>Version</TableHead>
                       <TableHead>Size</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Last Used</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {models.map((model) => (
+                    {availableModels.map((model) => (
                       <TableRow key={model.id}>
-                        <TableCell className="font-medium">
-                          <div className="flex items-center gap-2">
-                            {getCategoryIcon(
-                              (model as { category?: string }).category ||
-                                "uncategorized"
-                            )}
-                            {model.name}
-                          </div>
-                        </TableCell>
+                        <TableCell className="font-medium">{model.name}</TableCell>
                         <TableCell>
                           <Badge variant="outline">
-                            {(model as { category?: string }).category ||
-                              "uncategorized"}
+                            {model.category || "uncategorized"}
                           </Badge>
                         </TableCell>
                         <TableCell>v{model.version}</TableCell>
+                        <TableCell>{formatFileSize(model.modelSize || 0)}</TableCell>
                         <TableCell>
-                          {formatFileSize(
-                            (model as { modelSize?: number }).modelSize || 0
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {(model as { isActive?: boolean }).isActive ? (
-                            <Badge variant="default" className="bg-green-600">
-                              <CheckCircle className="h-3 w-3 mr-1" />
+                          {model.isActive ? (
+                            <Badge className="bg-emerald-600 hover:bg-emerald-600">
                               Active
                             </Badge>
                           ) : (
                             <Badge variant="secondary">
-                              <XCircle className="h-3 w-3 mr-1" />
-                              Inactive
+                              {model.status || "ready"}
                             </Badge>
                           )}
                         </TableCell>
-                        <TableCell>
-                          {model.lastUsed
-                            ? new Date(model.lastUsed).toLocaleDateString()
-                            : "Never"}
-                        </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex items-center gap-2 justify-end">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleTestModel(model.id)}
-                              disabled={testingModel === model.id}
-                            >
-                              <Play className="h-4 w-4 mr-1" />
-                              {testingModel === model.id
-                                ? "Testing..."
-                                : "Test"}
-                            </Button>
-                            {!(model as { isActive?: boolean }).isActive && (
+                          <div className="flex justify-end gap-2">
+                            {!model.isActive && (
                               <Button
-                                variant="outline"
                                 size="sm"
+                                variant="outline"
                                 onClick={() => handleSetActiveModel(model.id)}
                               >
                                 Activate
                               </Button>
                             )}
                             <Button
-                              variant="outline"
                               size="sm"
-                              onClick={() => {
-                                /* TODO: Implement edit functionality */
-                              }}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
                               variant="outline"
-                              size="sm"
                               onClick={() => handleDelete(model.id)}
                             >
                               <Trash2 className="h-4 w-4" />
@@ -446,189 +321,37 @@ export default function AIModelListPage() {
           </Card>
         </TabsContent>
 
-        {/* System Models Tab */}
-        <TabsContent value="system" className="space-y-6">
+        <TabsContent value="catalog">
           <Card>
             <CardHeader>
-              <CardTitle>System Models</CardTitle>
+              <CardTitle>Reference Catalog</CardTitle>
               <CardDescription>
-                Pre-trained models available for download
+                Informational model families you can prepare locally and import.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {(systemModels || []).map((model) => (
-                  <Card
-                    key={model.id}
-                    className="hover:shadow-md transition-shadow"
-                  >
+              <div className="grid gap-4 md:grid-cols-2">
+                {systemModels.map((model) => (
+                  <Card key={model.id} className="border-dashed">
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        {getCategoryIcon(
-                          (model as { category?: string }).category ||
-                            "uncategorized"
-                        )}
-                        {model.name}
-                      </CardTitle>
+                      <CardTitle className="text-lg">{model.name}</CardTitle>
                       <CardDescription>{model.description}</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      {/* Model Info */}
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        {(model as { accuracy?: number }).accuracy && (
-                          <div className="flex items-center gap-1">
-                            <BarChart3 className="h-4 w-4" />
-                            {(model as { accuracy?: number }).accuracy}%
-                            accuracy
-                          </div>
-                        )}
-                        {(model as { speed?: string }).speed && (
-                          <div className="flex items-center gap-1">
-                            <Zap className="h-4 w-4" />
-                            {(model as { speed?: string }).speed} speed
-                          </div>
-                        )}
-                        {(model as { size?: number }).size && (
-                          <div className="flex items-center gap-1">
-                            <HardDrive className="h-4 w-4" />
-                            {formatFileSize(
-                              (model as { size?: number }).size || 0
-                            )}
-                          </div>
-                        )}
+                    <CardContent className="space-y-2 text-sm text-muted-foreground">
+                      <div className="flex items-center justify-between">
+                        <span>Category</span>
+                        <Badge variant="outline">{model.category}</Badge>
                       </div>
-
-                      {/* Variants */}
-                      {(
-                        model as {
-                          variants?: Array<{
-                            name: string
-                            size?: number
-                            accuracy?: number
-                            speed?: string
-                          }>
-                        }
-                      ).variants ? (
-                        <div className="space-y-2">
-                          <p className="text-sm font-medium">
-                            Available Variants:
-                          </p>
-                          {(
-                            (
-                              model as {
-                                variants?: Array<{
-                                  name: string
-                                  size?: number
-                                  accuracy?: number
-                                  speed?: string
-                                }>
-                              }
-                            ).variants || []
-                          ).map(
-                            (variant: {
-                              name: string
-                              size?: number
-                              accuracy?: number
-                              speed?: string
-                            }) => (
-                              <div
-                                key={variant.name}
-                                className="flex items-center justify-between p-2 border rounded"
-                              >
-                                <div>
-                                  <p className="text-sm font-medium">
-                                    {variant.name}
-                                  </p>
-                                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                    {variant.size && (
-                                      <span>
-                                        {formatFileSize(variant.size)}
-                                      </span>
-                                    )}
-                                    {variant.accuracy && (
-                                      <span>{variant.accuracy}% accuracy</span>
-                                    )}
-                                    {variant.speed && (
-                                      <span>{variant.speed}</span>
-                                    )}
-                                  </div>
-                                </div>
-                                <Button
-                                  size="sm"
-                                  disabled={
-                                    downloadingModelId ===
-                                    `${model.id}:${variant.name}`
-                                  }
-                                  onClick={() =>
-                                    handleDownloadSystemModel(
-                                      model.id,
-                                      variant.name
-                                    )
-                                  }
-                                >
-                                  <Download className="h-4 w-4 mr-1" />
-                                  {downloadingModelId ===
-                                  `${model.id}:${variant.name}`
-                                    ? "Downloading..."
-                                    : "Download"}
-                                </Button>
-                              </div>
-                            )
-                          )}
+                      {model.requirements?.minMemory && (
+                        <div className="flex items-center justify-between">
+                          <span>Min Memory</span>
+                          <span>{model.requirements.minMemory} MB</span>
                         </div>
-                      ) : (
-                        <Button
-                          className="w-full"
-                          disabled={
-                            downloadingModelId === `${model.id}:default`
-                          }
-                          onClick={() => handleDownloadSystemModel(model.id)}
-                        >
-                          <Download className="h-4 w-4 mr-2" />
-                          {downloadingModelId === `${model.id}:default`
-                            ? "Downloading..."
-                            : "Download Model"}
-                        </Button>
                       )}
-
-                      {/* Requirements */}
-                      {(
-                        model as {
-                          requirements?: {
-                            minMemory?: number
-                            gpuRequired?: boolean
-                            cudaVersion?: string
-                          }
-                        }
-                      ).requirements && (
-                        <Alert>
-                          <Cpu className="h-4 w-4" />
-                          <AlertDescription>
-                            <strong>Requirements:</strong>{" "}
-                            {(
-                              model as {
-                                requirements?: {
-                                  minMemory?: number
-                                  gpuRequired?: boolean
-                                  cudaVersion?: string
-                                }
-                              }
-                            ).requirements?.minMemory &&
-                              `Min ${(model as { requirements?: { minMemory?: number } }).requirements?.minMemory}MB RAM`}
-                            {(
-                              model as {
-                                requirements?: { gpuRequired?: boolean }
-                              }
-                            ).requirements?.gpuRequired && ", GPU required"}
-                            {(
-                              model as {
-                                requirements?: { cudaVersion?: string }
-                              }
-                            ).requirements?.cudaVersion &&
-                              `, CUDA ${(model as { requirements?: { cudaVersion?: string } }).requirements?.cudaVersion}`}
-                          </AlertDescription>
-                        </Alert>
-                      )}
+                      <p>
+                        Import a compatible local checkpoint if you want to use
+                        this family in the desktop app.
+                      </p>
                     </CardContent>
                   </Card>
                 ))}
@@ -636,145 +359,32 @@ export default function AIModelListPage() {
             </CardContent>
           </Card>
         </TabsContent>
-
-        {/* Categories Tab */}
-        <TabsContent value="categories" className="space-y-6">
-          {Object.entries(modelsByCategory || {}).map(
-            ([category, categoryModels]) => (
-              <Card key={category}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    {getCategoryIcon(category)}
-                    {category.charAt(0).toUpperCase() + category.slice(1)}{" "}
-                    Models
-                  </CardTitle>
-                  <CardDescription>
-                    {(categoryModels || []).length} model
-                    {(categoryModels || []).length !== 1 ? "s" : ""} in this
-                    category
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {(categoryModels || []).map((model) => (
-                      <Card
-                        key={model.id}
-                        className="hover:shadow-md transition-shadow cursor-pointer"
-                      >
-                        <CardHeader>
-                          <CardTitle className="text-lg">
-                            {model.name}
-                          </CardTitle>
-                          <CardDescription>{model.description}</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between text-sm">
-                              <span>Version</span>
-                              <Badge variant="outline">v{model.version}</Badge>
-                            </div>
-                            <div className="flex items-center justify-between text-sm">
-                              <span>Size</span>
-                              <span>
-                                {formatFileSize(
-                                  (model as { modelSize?: number }).modelSize ||
-                                    0
-                                )}
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between text-sm">
-                              <span>Status</span>
-                              {(model as { isActive?: boolean }).isActive ? (
-                                <Badge
-                                  variant="default"
-                                  className="bg-green-600"
-                                >
-                                  Active
-                                </Badge>
-                              ) : (
-                                <Badge variant="secondary">Inactive</Badge>
-                              )}
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          )}
-        </TabsContent>
       </Tabs>
 
-      {/* Add Model Modal */}
       <Dialog open={showAddModelModal} onOpenChange={setShowAddModelModal}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Add New AI Model</DialogTitle>
+            <DialogTitle>Import Local Model</DialogTitle>
           </DialogHeader>
 
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <AIModelForm
               control={form.control}
               errors={form.formState.errors}
-              isUploading={isUploading}
-              uploadProgress={uploadProgress}
             />
-
             <DialogFooter>
-              <DialogClose asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => form.reset()}
-                >
-                  Cancel
-                </Button>
-              </DialogClose>
-              <Button type="submit" disabled={isUploading}>
-                {isUploading ? "Uploading..." : "Add Model"}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowAddModelModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isImportingModel}>
+                {isImportingModel ? "Importing..." : "Import Model"}
               </Button>
             </DialogFooter>
           </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* System Models Modal */}
-      <Dialog
-        open={showSystemModelModal}
-        onOpenChange={setShowSystemModelModal}
-      >
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>System Models</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            {(systemModels || []).map((model) => (
-              <Card key={model.id}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    {getCategoryIcon(
-                      (model as { category?: string }).category ||
-                        "uncategorized"
-                    )}
-                    {model.name}
-                  </CardTitle>
-                  <CardDescription>{model.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {/* Implementation similar to system models tab */}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">Close</Button>
-            </DialogClose>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

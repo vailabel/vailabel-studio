@@ -61,27 +61,25 @@ export const aiModelFormSchema = z.object({
     .string()
     .min(1, "Version is required")
     .regex(/^\d+\.\d+(\.\d+)?(-[a-zA-Z0-9]+)?$/, "Version must follow semantic versioning (e.g., 1.0.0, 2.1.0-beta)"),
-  modelFile: z
-    .instanceof(File)
+  category: z.enum(["segmentation", "detection", "classification", "tracking", "pose"]),
+  modelFilePath: z
+    .string()
+    .min(1, "A local model file is required")
     .refine(
-      (file) => {
-        const validExtensions = ['.pt', '.pth', '.onnx', '.tflite', '.h5', '.pb']
-        return validExtensions.some(ext => file.name.toLowerCase().endsWith(ext))
+      (path) => {
+        const validExtensions = [".pt", ".pth", ".onnx", ".tflite", ".h5", ".pb"]
+        return validExtensions.some((ext) => path.toLowerCase().endsWith(ext))
       },
       "Please select a valid model file (.pt, .pth, .onnx, .tflite, .h5, .pb)"
-    )
-    .refine(
-      (file) => file.size <= 10 * 1024 * 1024 * 1024, // 10GB limit
-      "Model file size cannot exceed 10GB"
     ),
-  configFile: z
-    .instanceof(File)
+  configFilePath: z
+    .string()
     .optional()
     .refine(
-      (file) => {
-        if (!file) return true
-        const validExtensions = ['.json', '.yaml', '.yml', '.cfg', '.ini']
-        return validExtensions.some(ext => file.name.toLowerCase().endsWith(ext))
+      (path) => {
+        if (!path) return true
+        const validExtensions = [".json", ".yaml", ".yml", ".cfg", ".ini"]
+        return validExtensions.some((ext) => path.toLowerCase().endsWith(ext))
       },
       "Config file must have a valid extension (.json, .yaml, .yml, .cfg, .ini)"
     ),

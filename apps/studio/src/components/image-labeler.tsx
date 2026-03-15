@@ -29,6 +29,7 @@ import { ResizablePanel } from "@/components/resizable-panel"
 import { SettingsModal } from "@/components/settings-modal"
 import { AIModelSelectModal } from "@/components/ai-model-modal"
 import { ContextMenu } from "@/components/context-menu"
+import { PredictionReviewPanel } from "@/components/prediction-review-panel"
 import { ThemeToggle } from "./theme-toggle"
 import { useNavigate } from "react-router-dom"
 import {
@@ -38,6 +39,7 @@ import {
 import { useImageLabelerViewModel } from "@/viewmodels/image-labeler-viewmodel"
 import { ImageData } from "@vailabel/core"
 import { Annotation } from "@vailabel/core"
+import { Label, Prediction } from "@vailabel/core"
 
 interface ImageLabelerProps {
   projectId?: string
@@ -49,15 +51,38 @@ const MemoizedCanvas = memo(
   ({
     image,
     annotations,
+    predictions,
+    labels,
     onRefreshAnnotations,
+    onCreateAnnotationDraft,
+    onUpdateAnnotation,
+    onDeleteAnnotation,
   }: {
     image: ImageData
     annotations: Annotation[]
+    predictions: Prediction[]
+    labels: Label[]
     onRefreshAnnotations: () => Promise<void>
+    onCreateAnnotationDraft: (draft: {
+      name: string
+      color: string
+      type: string
+      coordinates: Array<{ x: number; y: number }>
+    }) => Promise<void>
+    onUpdateAnnotation: (
+      annotationId: string,
+      updates: Partial<Annotation>
+    ) => Promise<void>
+    onDeleteAnnotation: (annotationId: string) => Promise<void>
   }) => (
     <Canvas
       image={image}
       annotations={annotations}
+      predictions={predictions}
+      labels={labels}
+      onCreateAnnotationDraft={onCreateAnnotationDraft}
+      onUpdateAnnotation={onUpdateAnnotation}
+      onDeleteAnnotation={onDeleteAnnotation}
       onRefreshAnnotations={onRefreshAnnotations}
     />
   )
@@ -77,9 +102,11 @@ const EmptyImageState = memo(() => (
 EmptyImageState.displayName = "EmptyImageState"
 
 // Memoized LabelListPanel wrapper
-const MemoizedLabelListPanel = memo(({ projectId }: { projectId: string }) => (
-  <LabelListPanel onLabelSelect={() => {}} projectId={projectId} />
-))
+const MemoizedLabelListPanel = memo(
+  ({ labels, isLoading }: { labels: Label[]; isLoading: boolean }) => (
+    <LabelListPanel onLabelSelect={() => {}} labels={labels} isLoading={isLoading} />
+  )
+)
 
 MemoizedLabelListPanel.displayName = "MemoizedLabelListPanel"
 
@@ -91,11 +118,21 @@ export const ImageLabeler = memo(
     const {
       image,
       annotations,
+      predictions,
+      labels,
       nextId,
       prevId,
       hasNext,
       hasPrevious,
       refreshAnnotations,
+      createAnnotationFromDraft,
+      updateAnnotation,
+      deleteAnnotation,
+      generatePredictions,
+      acceptPrediction,
+      rejectPrediction,
+      isGeneratingPredictions,
+      isLoading,
       goToNextImage,
       goToPreviousImage,
     } = useImageLabelerViewModel(projectId, imageId)
@@ -215,7 +252,7 @@ export const ImageLabeler = memo(
             maxSize={400}
             className="h-full"
           >
-            {projectId && <MemoizedLabelListPanel projectId={projectId} />}
+            <MemoizedLabelListPanel labels={labels} isLoading={isLoading} />
           </ResizablePanel>
           <div
             role="button"
@@ -228,21 +265,33 @@ export const ImageLabeler = memo(
               currentImage={image}
               onOpenSettings={() => setShowSettingsModal(true)}
               onOpenAISettings={() => setShowAIModelModal(true)}
-              onRefreshAnnotations={refreshAnnotations}
+              onGeneratePredictions={generatePredictions}
+              isGeneratingPredictions={isGeneratingPredictions}
             />
 
             <div className="relative flex-1 overflow-hidden">
               {image ? (
                 <MemoizedCanvas
-                  image={image || null}
+                  image={image}
                   annotations={annotations}
+                  predictions={predictions}
+                  labels={labels}
                   onRefreshAnnotations={async () => {
                     await refreshAnnotations()
                   }}
+                  onCreateAnnotationDraft={createAnnotationFromDraft}
+                  onUpdateAnnotation={updateAnnotation}
+                  onDeleteAnnotation={deleteAnnotation}
                 />
               ) : (
                 <EmptyImageState />
               )}
+
+              <PredictionReviewPanel
+                predictions={predictions}
+                onAccept={acceptPrediction}
+                onReject={rejectPrediction}
+              />
 
               <AnimatePresence>
                 {contextMenu.visible && (

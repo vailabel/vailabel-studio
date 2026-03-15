@@ -7,32 +7,16 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { Label } from "@vailabel/core"
-import { memo, useMemo, useCallback, useEffect, useState } from "react"
-import { services } from "@/services"
+import { memo, useMemo, useCallback, useState } from "react"
 
 interface LabelListPanelProps {
   onLabelSelect: (label: Label) => void
-  projectId: string
+  labels: Label[]
+  isLoading?: boolean
 }
 
 export const LabelListPanel = memo(
-  ({ onLabelSelect, projectId }: LabelListPanelProps) => {
-    const [labels, setLabels] = useState<Label[]>([])
-    const [isLoading, setIsLoading] = useState(true)
-
-    useEffect(() => {
-      const loadLabels = async () => {
-        setIsLoading(true)
-        try {
-          setLabels(await services.getLabelService().getLabelsByProjectId(projectId))
-        } finally {
-          setIsLoading(false)
-        }
-      }
-
-      void loadLabels()
-    }, [projectId])
-
+  ({ onLabelSelect, labels, isLoading = false }: LabelListPanelProps) => {
     // Memoize grouped labels to prevent unnecessary recalculations
     const groupedLabels = useMemo(() => {
       return labels.reduce(
@@ -83,7 +67,8 @@ export const LabelListPanel = memo(
   // Custom comparison function to ensure re-render when props change
   (prevProps, nextProps) => {
     return (
-      prevProps.projectId === nextProps.projectId &&
+      prevProps.labels === nextProps.labels &&
+      prevProps.isLoading === nextProps.isLoading &&
       prevProps.onLabelSelect === nextProps.onLabelSelect
     )
   }

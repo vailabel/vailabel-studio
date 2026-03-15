@@ -1,16 +1,15 @@
 import { Task } from "@vailabel/core"
-import { request } from "./request"
+import { studioCommands } from "@/ipc/studio"
 
 export const tasksService = {
-  list: () => request<Task[]>("GET", "/tasks"),
+  list: () => studioCommands.tasksList(),
   listByProjectId: (projectId: string) =>
     projectId
-      ? request<Task[]>("GET", `/tasks/project/${projectId}`)
-      : request<Task[]>("GET", "/tasks"),
-  getById: (taskId: string) => request<Task>("GET", `/tasks/${taskId}`),
-  create: (task: Partial<Task>) => request<Task>("POST", "/tasks", task),
+      ? studioCommands.tasksListByProject(projectId)
+      : studioCommands.tasksList(),
+  getById: (taskId: string) => studioCommands.tasksGet(taskId),
+  create: (task: Partial<Task>) => studioCommands.tasksSave(task),
   update: (taskId: string, updates: Partial<Task>) =>
-    request<Task>("PUT", `/tasks/${taskId}`, updates),
-  delete: (taskId: string) =>
-    request<{ success: boolean }>("DELETE", `/tasks/${taskId}`),
+    studioCommands.tasksSave({ id: taskId, ...updates }),
+  delete: (taskId: string) => studioCommands.tasksDelete(taskId),
 }

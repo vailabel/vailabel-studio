@@ -1,17 +1,30 @@
 import { useEffect, useMemo, useState } from "react"
-import { AIModel } from "@vailabel/core"
+import { AIModel, ModelImportPayload } from "@vailabel/core"
 import { services } from "@/services"
 import { SYSTEM_MODELS } from "@/lib/system-model-catalog"
 import type { SystemModel } from "@/lib/schemas/ai-model"
+
+function getModelType(category: string) {
+  switch (category) {
+    case "segmentation":
+      return "segmentation"
+    case "classification":
+      return "classification"
+    case "pose":
+      return "pose_estimation"
+    case "tracking":
+      return "tracking"
+    default:
+      return "object_detection"
+  }
+}
 
 export const useAIModelViewModel = () => {
   const [availableModels, setAvailableModels] = useState<AIModel[]>([])
   const [selectedModelId, setSelectedModelId] = useState("")
   const [modelPath, setModelPath] = useState("")
   const [isLoading, setIsLoading] = useState(true)
-  const [downloadingModelId, setDownloadingModelId] = useState<string | null>(
-    null
-  )
+  const [isImportingModel, setIsImportingModel] = useState(false)
 
   const loadData = async () => {
     setIsLoading(true)
@@ -64,7 +77,7 @@ export const useAIModelViewModel = () => {
     selectedModelId,
     modelPath,
     isLoading,
-    downloadingModelId,
+    isImportingModel,
     selectModel,
     saveModelSelection,
     saveModelPath: async (nextModelPath: string) => {
@@ -84,74 +97,39 @@ export const useAIModelViewModel = () => {
       }
     },
     activateModel: async (modelId: string) => {
-      const nextModel = availableModels.find((model) => model.id === modelId)
-      if (!nextModel) return
-
-      await Promise.all(
-        availableModels.map((model) =>
-          services.getAIModelService().update(model.id, {
-            isActive: model.id === modelId,
-            lastUsed:
-              model.id === modelId ? new Date().toISOString() : model.lastUsed,
-          })
-        )
-      )
-
+      const nextModel = await services.getAIModelService().setActive(modelId)
       setAvailableModels((current) =>
         current.map((model) => ({
           ...model,
-          isActive: model.id === modelId,
-          lastUsed:
-            model.id === modelId ? (new Date() as any) : model.lastUsed,
+          isActive: model.id === nextModel.id,
+          lastUsed: model.id === nextModel.id ? nextModel.lastUsed : model.lastUsed,
         }))
       )
-      setSelectedModelId(modelId)
+      setSelectedModelId(nextModel.id)
       setModelPath(nextModel.modelPath || "")
-      await saveModelSelection(modelId)
+      await saveModelSelection(nextModel.id)
+      return nextModel
     },
-    downloadSystemModel: async (
-      systemModel: SystemModel,
-      variantName?: string
+    importModel: async (
+      payload: Omit<ModelImportPayload, "type"> & { category: string }
     ) => {
-      const variant = systemModel.variants?.find(
-        (candidate) => candidate.name === variantName
-      )
-      const downloadUrl = variant?.downloadUrl || systemModel.downloadUrl
-      if (!downloadUrl) {
-        throw new Error("No download URL is defined for this model.")
-      }
-
-      setDownloadingModelId(
-        `${systemModel.id}:${variant?.name || "default"}`
-      )
+      setIsImportingModel(true)
       try {
-        const downloadedModel =
-          await services.getAIModelService().downloadSystemModel({
-            systemId: systemModel.id,
-            name: systemModel.name,
-            description: systemModel.description,
-            category: systemModel.category,
-            variantName: variant?.name,
-            version: "1.0.0",
-            downloadUrl,
-            expectedSize: variant?.size || systemModel.size,
-          })
-
-        setAvailableModels((current) => {
-          const existingIndex = current.findIndex(
-            (model) => model.id === downloadedModel.id
-          )
-          if (existingIndex === -1) return [downloadedModel, ...current]
-          return current.map((model) =>
-            model.id === downloadedModel.id ? downloadedModel : model
-          )
+        const importedModel = await services.getAIModelService().importModel({
+          ...payload,
+          type: getModelType(payload.category),
         })
 
-        return downloadedModel
+        setAvailableModels((current) => [importedModel, ...current])
+        return importedModel
       } finally {
-        setDownloadingModelId(null)
+        setIsImportingModel(false)
       }
     },
     refreshModels: loadData,
+    getModelType,
   }
 }
+
+export type AIModelViewModel = ReturnType<typeof useAIModelViewModel>
+export type { SystemModel }

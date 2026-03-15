@@ -1,4 +1,4 @@
-import { memo, useCallback, useRef, useMemo, useState, useEffect } from "react"
+import { memo, useCallback, useRef, useMemo } from "react"
 import { cn } from "@/lib/utils"
 import { AnnotationRenderer } from "@/components/canvas/annotation-renderer"
 import { PositionCoordinates } from "@/components/canvas/position-coordinates"
@@ -14,11 +14,24 @@ import {
 } from "@/contexts/canvas-context"
 import { TempAnnotation } from "./temp-annotation"
 import { ToolStatus } from "./tool-status"
-import { services } from "@/services"
+import { Prediction } from "@vailabel/core"
 
 interface CanvasProps {
   image: ImageData
   annotations: Annotation[]
+  predictions?: Prediction[]
+  labels: Label[]
+  onCreateAnnotationDraft: (draft: {
+    name: string
+    color: string
+    type: string
+    coordinates: Array<{ x: number; y: number }>
+  }) => Promise<void>
+  onUpdateAnnotation: (
+    annotationId: string,
+    updates: Partial<Annotation>
+  ) => Promise<void>
+  onDeleteAnnotation: (annotationId: string) => Promise<void>
   onRefreshAnnotations?: () => Promise<void>
 }
 
@@ -57,26 +70,21 @@ const EmptyImageState = memo(() => (
 EmptyImageState.displayName = "EmptyImageState"
 
 export const Canvas = memo(
-  ({ image, annotations, onRefreshAnnotations }: CanvasProps) => {
+  ({
+    image,
+    annotations,
+    predictions = [],
+    labels,
+    onCreateAnnotationDraft,
+    onUpdateAnnotation,
+    onDeleteAnnotation,
+    onRefreshAnnotations,
+  }: CanvasProps) => {
     // Use Context hooks instead of Zustand
     const { zoom } = useCanvasZoom()
     const { panOffset } = useCanvasPan()
     const { selectedTool, setToolState } = useCanvasTool()
     const { setSelectedAnnotation } = useCanvasSelection()
-    const [labels, setLabels] = useState<Label[]>([])
-
-    useEffect(() => {
-      const loadLabels = async () => {
-        const nextProjectId = image.projectId || image.project_id
-        if (!nextProjectId) {
-          setLabels([])
-          return
-        }
-        setLabels(await services.getLabelService().getLabelsByProjectId(nextProjectId))
-      }
-
-      void loadLabels()
-    }, [image.projectId, image.project_id])
 
     const canvasRef = useRef<HTMLDivElement | null>(null)
 
@@ -85,28 +93,8 @@ export const Canvas = memo(
       canvasRef,
       annotations,
       {
-        updateAnnotation: async (id: string, updates: Partial<Annotation>) => {
-          try {
-            await services.getAnnotationService().updateAnnotation(id, updates)
-            // Refresh annotations after update
-            if (onRefreshAnnotations) {
-              await onRefreshAnnotations()
-            }
-          } catch (error) {
-            console.error("Failed to update annotation:", error)
-          }
-        },
-        deleteAnnotation: async (id: string) => {
-          try {
-            await services.getAnnotationService().deleteAnnotation(id)
-            // Refresh annotations after delete
-            if (onRefreshAnnotations) {
-              await onRefreshAnnotations()
-            }
-          } catch (error) {
-            console.error("Failed to delete annotation:", error)
-          }
-        },
+        updateAnnotation: onUpdateAnnotation,
+        deleteAnnotation: onDeleteAnnotation,
       },
       { id: image.id }
     )
@@ -161,49 +149,14 @@ export const Canvas = memo(
     const handleCreateAnnotation = useCallback(
       async (name: string, color: string) => {
         if (!tempAnnotation) return
-        if (!image.projectId) return
 
         try {
-          // Get or create label
-          const existingLabels = await services
-            .getLabelService()
-            .getLabelsByProjectId(image.projectId)
-          let label = existingLabels.find((l) => l.name === name)
-
-          if (!label) {
-            // Create new label
-            const newLabel = {
-              id: crypto.randomUUID(),
-              name: name,
-              color: color,
-              projectId: image.projectId,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            }
-            await services.getLabelService().createLabel(newLabel)
-            label = newLabel
-          }
-
-          if (!label) return
-
-          const newAnnotation: Annotation = {
-            label: label,
-            labelId: label.id,
-            color: label.color ?? color,
-            imageId: image.id,
-            id: crypto.randomUUID(),
+          await onCreateAnnotationDraft({
             name: name,
             type: tempAnnotation.type ?? "box",
             coordinates: tempAnnotation.coordinates ?? [],
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          }
-          await services.getAnnotationService().createAnnotation(newAnnotation)
-
-          // Refresh annotations after creation
-          if (onRefreshAnnotations) {
-            await onRefreshAnnotations()
-          }
+            color,
+          })
 
           // Clear tool state after successful creation
           setToolState({
@@ -216,19 +169,16 @@ export const Canvas = memo(
           })
 
           // Select the newly created annotation so it can be moved immediately
-          setSelectedAnnotation(newAnnotation)
+          setSelectedAnnotation(null)
         } catch (error) {
           console.error("Failed to create annotation:", error)
         }
       },
       [
         tempAnnotation,
-        image.projectId,
-        image.id,
-        services,
+        onCreateAnnotationDraft,
         setToolState,
         setSelectedAnnotation,
-        onRefreshAnnotations,
       ]
     )
 
@@ -292,6 +242,15 @@ export const Canvas = memo(
       []
     )
 
+    const predictionAnnotations = useMemo(
+      () =>
+        predictions.map((prediction) => ({
+          ...prediction,
+          color: prediction.labelColor || prediction.color || "#22c55e",
+        })) as Annotation[],
+      [predictions]
+    )
+
     return (
       <>
         <div className="relative h-full w-full overflow-hidden bg-gray-100 dark:bg-gray-900">
@@ -313,7 +272,16 @@ export const Canvas = memo(
               >
                 <div className="absolute" style={transformStyle}>
                   <CanvasImage image={image} />
-                  <AnnotationRenderer annotations={displayAnnotations} />
+                  {predictionAnnotations.length > 0 && (
+                    <AnnotationRenderer
+                      annotations={predictionAnnotations}
+                      readOnly
+                    />
+                  )}
+                  <AnnotationRenderer
+                    annotations={displayAnnotations}
+                    onUpdateAnnotation={onUpdateAnnotation}
+                  />
                   {tempAnnotation && (
                     <TempAnnotation annotation={tempAnnotation} />
                   )}

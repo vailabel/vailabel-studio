@@ -10,10 +10,19 @@ import { memo, useMemo, useCallback } from "react"
 
 interface PolygonAnnotationProps {
   annotation: Annotation
+  readOnly?: boolean
+  onUpdateAnnotation?: (
+    annotationId: string,
+    updates: Partial<Annotation>
+  ) => Promise<void>
 }
 
 export const PolygonAnnotation = memo(
-  ({ annotation }: Readonly<PolygonAnnotationProps>) => {
+  ({
+    annotation,
+    readOnly = false,
+    onUpdateAnnotation,
+  }: Readonly<PolygonAnnotationProps>) => {
     const { zoom } = useCanvasZoom()
     const { selectedTool } = useCanvasTool()
     const { selectedAnnotation } = useCanvasSelection()
@@ -69,12 +78,13 @@ export const PolygonAnnotation = memo(
         const rect = svg.getBoundingClientRect()
 
         function onMouseMove(moveEvent: MouseEvent) {
+          if (readOnly || !onUpdateAnnotation) return
           const newX = (moveEvent.clientX - rect.left) / zoom
           const newY = (moveEvent.clientY - rect.top) / zoom
           const newCoordinates = annotation.coordinates.map((p, i) =>
             i === index ? { x: newX, y: newY } : p
           )
-          services.getAnnotationService().updateAnnotation(annotation.id, {
+          void onUpdateAnnotation(annotation.id, {
             coordinates: newCoordinates,
             updatedAt: new Date(),
           })
@@ -86,12 +96,12 @@ export const PolygonAnnotation = memo(
         window.addEventListener("mousemove", onMouseMove)
         window.addEventListener("mouseup", onMouseUp)
       },
-      [annotation.coordinates, annotation.id, zoom]
+      [annotation.coordinates, annotation.id, onUpdateAnnotation, readOnly, zoom]
     )
 
     // Memoize edit points to prevent recreation
     const editPoints = useMemo(() => {
-      if (!isMoveTool) return null
+      if (!isMoveTool || readOnly) return null
 
       const pointRadius = isSelected ? 4 / zoom : 3 / zoom
       const pointOpacity = isSelected ? 1 : 0.6
@@ -141,12 +151,14 @@ export const PolygonAnnotation = memo(
                   : styles.strokeWidth.default,
             strokeDasharray: isSelected
               ? styles.strokeDashArray.selected
-              : isAIGenerated
-                ? styles.strokeDashArray.aiGenerated
+              : readOnly
+                ? "6 4"
+                : isAIGenerated
+                  ? styles.strokeDashArray.aiGenerated
                 : styles.strokeDashArray.default,
           }}
           className={
-            isMoveTool
+            isMoveTool && !readOnly
               ? "pointer-events-auto cursor-move"
               : "pointer-events-none"
           }

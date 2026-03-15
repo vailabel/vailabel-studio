@@ -10,11 +10,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "@vailabel/core": path.resolve(__dirname, "../core"),
+      "@vailabel/core": path.resolve(__dirname, "./src/types/core.ts"),
     },
-  },
-  optimizeDeps: {
-    include: ["@vailabel/core"],
   },
   server: {
     host: "0.0.0.0",

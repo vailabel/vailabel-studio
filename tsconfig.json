@@ -1,7 +1,6 @@
 {
   "files": [],
   "references": [
-    { "path": "apps/core" },
     { "path": "apps/studio" },
     { "path": "apps/web" }
   ]

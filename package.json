@@ -9,17 +9,17 @@
   },
   "scripts": {
     "clean": "npx git-clear-branch",
-    "format": "yarn workspace @vailabel/core format && yarn workspace @vailabel/studio format && yarn workspace web format",
+    "format": "yarn workspace @vailabel/studio format && yarn workspace web format",
     "commit": "cz",
     "prepare": "husky install",
-    "test": "yarn workspace @vailabel/core test && yarn workspace @vailabel/studio test",
-    "build": "yarn workspace @vailabel/core build && yarn workspace @vailabel/studio build && yarn workspace web build",
+    "test": "yarn workspace @vailabel/studio test",
+    "build": "yarn workspace @vailabel/studio build && yarn workspace web build",
     "dev": "yarn workspace @vailabel/studio tauri:dev",
     "studio": "yarn workspace @vailabel/studio dev",
     "desktop": "yarn workspace @vailabel/studio tauri:dev",
     "release": "yarn workspace @vailabel/studio tauri:build",
-    "typecheck": "yarn workspace @vailabel/core typecheck && yarn workspace @vailabel/studio typecheck",
-    "lint": "yarn workspace @vailabel/core lint && yarn workspace @vailabel/studio lint",
+    "typecheck": "yarn workspace @vailabel/studio typecheck",
+    "lint": "yarn workspace @vailabel/studio lint",
     "changeset": "changeset",
     "changeset:patch": "changeset add --empty",
     "changeset:minor": "changeset add --empty",
@@ -34,11 +34,7 @@
     "release:now": "yarn release:simple"
   },
   "keywords": [],
-  "workspaces": [
-    "apps/core",
-    "apps/studio",
-    "apps/web"
-  ],
+  "workspaces": ["apps/studio", "apps/web"],
   "author": {
     "name": "Vichea Nath",
     "email": "nathvichea1@gmail.com"

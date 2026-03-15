@@ -12,7 +12,8 @@
     "strict": true,
     "baseUrl": ".",
     "paths": {
-      "@vailabel/core/*": ["apps/core/src/*"]
+      "@vailabel/core": ["apps/studio/src/types/core.ts"],
+      "@vailabel/core/*": ["apps/studio/src/types/*"]
     }
   }
 }

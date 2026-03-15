@@ -8,28 +8,29 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { useToast } from "@/hooks/use-toast"
-import type { ImageData, Label } from "@vailabel/core"
-import { services } from "@/services"
-import { useAIModelViewModel } from "@/viewmodels/ai-model-viewmodel"
-import { getRandomColor } from "@/lib/utils"
-import { v4 as uuidv4 } from "uuid"
+import type { ImageData } from "@vailabel/core"
 
 interface AIDetectionButtonProps {
   image: ImageData | null
+  selectedModelId?: string
+  selectedModelName?: string
   disabled?: boolean
+  isGenerating?: boolean
   onOpenModelSettings?: () => void
-  onRefreshAnnotations?: () => Promise<void>
+  onGeneratePredictions: (modelId: string) => Promise<unknown>
 }
 
 export const AIDetectionButton = ({
   image,
+  selectedModelId,
+  selectedModelName,
   disabled,
+  isGenerating = false,
   onOpenModelSettings,
-  onRefreshAnnotations,
+  onGeneratePredictions,
 }: AIDetectionButtonProps) => {
   const { toast } = useToast()
-  const { selectedModel } = useAIModelViewModel()
-  const [isDetecting, setIsDetecting] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleDetection = async () => {
     if (!image) {
@@ -40,67 +41,27 @@ export const AIDetectionButton = ({
       })
       return
     }
-    if (!selectedModel?.id) {
+
+    if (!selectedModelId) {
       toast({
         title: "Select a model first",
-        description: "Download or choose a model before running AI annotation.",
+        description: "Import or choose a local model before running AI annotation.",
       })
       onOpenModelSettings?.()
       return
     }
-    setIsDetecting(true)
+
+    setIsSubmitting(true)
     try {
-      const drafts = await services.getAIModelService().runModelInference({
-        imageId: image.id,
-        modelId: selectedModel.id,
-      })
-
-      if (drafts.length === 0) {
-        toast({
-          title: "No detections found",
-          description: "The current model did not produce any draft annotations.",
-        })
-        return
-      }
-
-      const projectId = image.projectId || image.project_id
-      const labels = projectId
-        ? await services.getLabelService().getLabelsByProjectId(projectId)
-        : []
-
-      for (const draft of drafts) {
-        const label = await ensureDraftLabel(draft, labels, projectId)
-        if (label && !labels.some((entry) => entry.id === label.id)) {
-          labels.push(label)
-        }
-        await services.getAnnotationService().createAnnotation({
-          id: uuidv4(),
-          name: draft.name,
-          type: draft.type,
-          coordinates: draft.coordinates,
-          imageId: image.id,
-          image_id: image.id,
-          projectId,
-          project_id: projectId,
-          labelId: label?.id,
-          label_id: label?.id,
-          color: label?.color || draft.labelColor || getRandomColor(),
-          isAIGenerated: true,
-        })
-      }
-
-      await onRefreshAnnotations?.()
+      await onGeneratePredictions(selectedModelId)
       toast({
-        title: "AI annotations created",
-        description:
-          drafts.length === 1
-            ? "1 draft annotation was added to the canvas."
-            : `${drafts.length} draft annotations were added to the canvas.`,
+        title: "Predictions generated",
+        description: "Review the suggested labels and accept the ones you want.",
       })
     } catch (error) {
-      console.error("AI detection failed:", error)
+      console.error("Prediction generation failed:", error)
       toast({
-        title: "AI detection failed",
+        title: "Prediction generation failed",
         description:
           error instanceof Error
             ? error.message
@@ -108,9 +69,11 @@ export const AIDetectionButton = ({
         variant: "destructive",
       })
     } finally {
-      setIsDetecting(false)
+      setIsSubmitting(false)
     }
   }
+
+  const busy = isGenerating || isSubmitting
 
   return (
     <TooltipProvider>
@@ -121,9 +84,9 @@ export const AIDetectionButton = ({
             size="sm"
             className="h-8 w-8"
             onClick={handleDetection}
-            disabled={disabled || isDetecting || !image}
+            disabled={disabled || busy || !image}
           >
-            {isDetecting ? (
+            {busy ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <Brain className="h-4 w-4" />
@@ -131,43 +94,11 @@ export const AIDetectionButton = ({
           </Button>
         </TooltipTrigger>
         <TooltipContent side="bottom">
-          {selectedModel
-            ? `Run AI detection with ${selectedModel.name}`
+          {selectedModelName
+            ? `Generate predictions with ${selectedModelName}`
             : "Choose a model to enable AI-assisted annotation"}
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
   )
-}
-
-async function ensureDraftLabel(
-  draft: {
-    labelId?: string
-    labelName?: string
-    labelColor?: string
-    name: string
-  },
-  labels: Label[],
-  projectId?: string
-) {
-  if (draft.labelId) {
-    const existingById = labels.find((label) => label.id === draft.labelId)
-    if (existingById) return existingById
-  }
-
-  const desiredName = draft.labelName || draft.name
-  const existingByName = labels.find(
-    (label) => label.name.toLowerCase() === desiredName.toLowerCase()
-  )
-  if (existingByName) return existingByName
-  if (!projectId) return null
-
-  return services.getLabelService().createLabel({
-    id: uuidv4(),
-    name: desiredName,
-    color: draft.labelColor || getRandomColor(),
-    isAIGenerated: true,
-    projectId,
-    project_id: projectId,
-  })
 }
