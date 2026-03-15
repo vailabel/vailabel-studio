@@ -2,11 +2,16 @@ import type { SystemModel } from "@/lib/schemas/ai-model"
 
 export const SYSTEM_MODELS: SystemModel[] = [
   {
-    id: "yolo11-detection",
-    name: "YOLO11 Detection",
+    id: "yolo26-detection",
+    name: "YOLO26 Detection",
     description:
-      "Ultralytics object detection models for general-purpose local inference.",
+      "Ultralytics YOLO26 end-to-end object detection family. Recommended as the default pre-annotation model for image projects.",
     category: "detection",
+    family: "yolo26",
+    taskType: "object_detection",
+    defaultRank: 0,
+    supportsLabelStudioFormat: true,
+    recommended: true,
     requirements: {
       minMemory: 2048,
       recommendedMemory: 4096,
@@ -15,36 +20,77 @@ export const SYSTEM_MODELS: SystemModel[] = [
     variants: [
       {
         name: "nano",
+        slug: "yolo26n",
+        variant: "n",
+        modelVersion: "YOLO26n",
         downloadUrl:
-          "https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11n.pt",
-        size: 5600000,
-        accuracy: 39.5,
+          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26n.pt",
+        size: 2400000,
+        accuracy: 40.9,
         speed: "fast",
+        defaultRank: 0,
+        recommended: true,
       },
       {
         name: "small",
+        slug: "yolo26s",
+        variant: "s",
+        modelVersion: "YOLO26s",
         downloadUrl:
-          "https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11s.pt",
-        size: 19800000,
-        accuracy: 47.0,
+          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26s.pt",
+        size: 9500000,
+        accuracy: 48.6,
         speed: "medium",
+        defaultRank: 10,
       },
       {
         name: "medium",
+        slug: "yolo26m",
+        variant: "m",
+        modelVersion: "YOLO26m",
         downloadUrl:
-          "https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11m.pt",
-        size: 41000000,
-        accuracy: 51.5,
+          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26m.pt",
+        size: 20400000,
+        accuracy: 53.1,
+        speed: "medium",
+        defaultRank: 20,
+      },
+      {
+        name: "large",
+        slug: "yolo26l",
+        variant: "l",
+        modelVersion: "YOLO26l",
+        downloadUrl:
+          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26l.pt",
+        size: 24800000,
+        accuracy: 55.0,
         speed: "slow",
+        defaultRank: 30,
+      },
+      {
+        name: "xlarge",
+        slug: "yolo26x",
+        variant: "x",
+        modelVersion: "YOLO26x",
+        downloadUrl:
+          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26x.pt",
+        size: 55700000,
+        accuracy: 57.5,
+        speed: "slow",
+        defaultRank: 40,
       },
     ],
   },
   {
-    id: "yolo11-segmentation",
-    name: "YOLO11 Segmentation",
+    id: "yolo26-segmentation",
+    name: "YOLO26 Segmentation",
     description:
-      "Ultralytics segmentation models for masks and region-aware annotations.",
+      "Mask-capable YOLO26 models for region proposals and polygon-style review workflows.",
     category: "segmentation",
+    family: "yolo26",
+    taskType: "segmentation",
+    defaultRank: 50,
+    supportsLabelStudioFormat: true,
     requirements: {
       minMemory: 3072,
       recommendedMemory: 6144,
@@ -53,28 +99,34 @@ export const SYSTEM_MODELS: SystemModel[] = [
     variants: [
       {
         name: "nano",
+        slug: "yolo26n-seg",
+        variant: "n",
+        modelVersion: "YOLO26n-seg",
         downloadUrl:
-          "https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11n-seg.pt",
-        size: 9700000,
-        accuracy: 38.9,
+          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26n-seg.pt",
         speed: "fast",
       },
       {
         name: "small",
+        slug: "yolo26s-seg",
+        variant: "s",
+        modelVersion: "YOLO26s-seg",
         downloadUrl:
-          "https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11s-seg.pt",
-        size: 23600000,
-        accuracy: 46.6,
+          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26s-seg.pt",
         speed: "medium",
       },
     ],
   },
   {
-    id: "yolo11-pose",
-    name: "YOLO11 Pose",
+    id: "yolo26-pose",
+    name: "YOLO26 Pose",
     description:
-      "Ultralytics pose-estimation models for keypoints and human pose workflows.",
+      "Pose-estimation variants for keypoint-heavy annotation review and human pose projects.",
     category: "pose",
+    family: "yolo26",
+    taskType: "pose_estimation",
+    defaultRank: 60,
+    supportsLabelStudioFormat: true,
     requirements: {
       minMemory: 3072,
       recommendedMemory: 6144,
@@ -83,18 +135,57 @@ export const SYSTEM_MODELS: SystemModel[] = [
     variants: [
       {
         name: "nano",
+        slug: "yolo26n-pose",
+        variant: "n",
+        modelVersion: "YOLO26n-pose",
         downloadUrl:
-          "https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11n-pose.pt",
-        size: 7600000,
-        accuracy: 50.0,
+          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26n-pose.pt",
         speed: "fast",
       },
       {
         name: "small",
+        slug: "yolo26s-pose",
+        variant: "s",
+        modelVersion: "YOLO26s-pose",
         downloadUrl:
-          "https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11s-pose.pt",
-        size: 25700000,
-        accuracy: 58.9,
+          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26s-pose.pt",
+        speed: "medium",
+      },
+    ],
+  },
+  {
+    id: "yoloe-26-open-vocab",
+    name: "YOLOE-26 Open Vocabulary",
+    description:
+      "Advanced open-vocabulary segmentation family with text and visual prompting. Best for exploratory workflows, not the default offline detector.",
+    category: "segmentation",
+    family: "yoloe-26",
+    taskType: "open_vocabulary_segmentation",
+    defaultRank: 100,
+    supportsLabelStudioFormat: true,
+    requirements: {
+      minMemory: 6144,
+      recommendedMemory: 8192,
+      gpuRequired: true,
+      cudaVersion: "12+",
+    },
+    variants: [
+      {
+        name: "nano",
+        slug: "yoloe-26n-seg",
+        variant: "n",
+        modelVersion: "YOLOE-26n-seg",
+        downloadUrl:
+          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yoloe-26n-seg.pt",
+        speed: "fast",
+      },
+      {
+        name: "small",
+        slug: "yoloe-26s-seg",
+        variant: "s",
+        modelVersion: "YOLOE-26s-seg",
+        downloadUrl:
+          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yoloe-26s-seg.pt",
         speed: "medium",
       },
     ],

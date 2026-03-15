@@ -34,6 +34,8 @@ export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
   const navigate = useNavigate()
   const {
     availableModels,
+    recommendedInstalledModel,
+    recommendedSystemModel,
     selectedModel,
     selectedModelId,
     systemModels,
@@ -63,9 +65,9 @@ export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="min-h-[500px] max-w-5xl">
         <DialogHeader>
-          <DialogTitle>AI Detection Models</DialogTitle>
+          <DialogTitle>Pre-annotation Models</DialogTitle>
           <DialogDescription>
-            Pick an installed local model or open the model manager to import one.
+            Pick an installed local model for ML-assisted labeling, or open the model manager to import the recommended YOLO26 family.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-6 md:grid-cols-[1.3fr_1fr]">
@@ -73,7 +75,7 @@ export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
             <div>
               <h3 className="text-sm font-semibold">Installed Models</h3>
               <p className="text-sm text-muted-foreground">
-                Choose the model the annotation toolbar should use.
+                Choose the model the annotation toolbar should use for pre-annotations.
               </p>
             </div>
             <RadioGroup value={selectedModelId} onValueChange={selectModel}>
@@ -83,8 +85,9 @@ export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
                     <TableRow>
                       <TableHead className="w-16">Use</TableHead>
                       <TableHead>Name</TableHead>
+                      <TableHead>Model Version</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>File Path</TableHead>
+                      <TableHead>Backend</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -100,8 +103,16 @@ export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
                           </TableCell>
                           <TableCell>
                             <Label htmlFor={model.id} className="cursor-pointer">
-                              {model.name}
+                              <div className="flex items-center gap-2">
+                                <span>{model.name}</span>
+                                {recommendedInstalledModel?.id === model.id && (
+                                  <Badge variant="secondary">Default</Badge>
+                                )}
+                              </div>
                             </Label>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {model.modelVersion || model.model_version || model.version}
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-2">
@@ -115,15 +126,15 @@ export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
                               </Badge>
                             </div>
                           </TableCell>
-                          <TableCell className="max-w-[220px] truncate text-muted-foreground">
-                            {model.modelPath || "-"}
+                          <TableCell className="text-muted-foreground">
+                            {model.backend?.toUpperCase() || "CPU"}
                           </TableCell>
                         </TableRow>
                       ))
                     ) : (
                       <TableRow>
                         <TableCell
-                          colSpan={4}
+                          colSpan={5}
                           className="py-6 text-center text-muted-foreground"
                         >
                           No local models imported yet.
@@ -137,8 +148,10 @@ export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
             <Alert>
               <AlertDescription>
                 {selectedModel
-                  ? `Selected model: ${selectedModel.name}`
-                  : "Choose or import a model before running AI annotation."}
+                  ? `Selected model version: ${selectedModel.modelVersion || selectedModel.model_version || selectedModel.version}. Review and correct the generated pre-annotations before accepting them.`
+                  : recommendedSystemModel
+                    ? `Recommended first import: ${recommendedSystemModel.name} with the nano variant for fast image pre-annotations.`
+                    : "Choose or import a model before running AI annotation."}
               </AlertDescription>
             </Alert>
           </div>
@@ -148,7 +161,7 @@ export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
               <div>
                 <h3 className="text-sm font-semibold">Reference Catalog</h3>
                 <p className="text-sm text-muted-foreground">
-                  Local-only import suggestions for common model families.
+                  Local-only import suggestions modeled after Label Studio style ML-assisted labeling workflows.
                 </p>
               </div>
               <Button
@@ -166,16 +179,34 @@ export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
             <ScrollArea className="h-[340px] rounded-md border p-4">
               <div className="space-y-4">
                 {systemModels.map((model) => (
-                  <div key={model.id} className="rounded-lg border p-3">
+                  <div
+                    key={model.id}
+                    className={`rounded-lg border p-3 ${
+                      recommendedSystemModel?.id === model.id
+                        ? "border-primary bg-primary/5"
+                        : ""
+                    }`}
+                  >
                     <div className="mb-2 flex items-start justify-between gap-3">
                       <div>
-                        <p className="font-medium">{model.name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">{model.name}</p>
+                          {recommendedSystemModel?.id === model.id && (
+                            <Badge>Recommended</Badge>
+                          )}
+                        </div>
                         <p className="text-sm text-muted-foreground">
                           {model.description}
                         </p>
                       </div>
                       <Badge variant="outline">{model.category}</Badge>
                     </div>
+                    {model.variants?.length ? (
+                      <p className="mb-2 text-xs text-muted-foreground">
+                        Variants:{" "}
+                        {model.variants.map((variant) => variant.modelVersion || variant.name).join(", ")}
+                      </p>
+                    ) : null}
                     <p className="text-xs text-muted-foreground">
                       Import a compatible local checkpoint from the AI Models
                       page to use this family offline.

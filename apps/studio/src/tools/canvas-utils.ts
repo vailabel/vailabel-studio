@@ -2,7 +2,7 @@ import type { Point, Annotation } from "@/types/core"
 
 export function getCanvasCoords(
   container: HTMLDivElement | null,
-  panOffset: Point,
+  baseOffset: Point,
   zoom: number,
   clientX: number,
   clientY: number
@@ -11,8 +11,21 @@ export function getCanvasCoords(
 
   const rect = container.getBoundingClientRect()
   return {
-    x: (clientX - rect.left - panOffset.x) / zoom,
-    y: (clientY - rect.top - panOffset.y) / zoom,
+    x: (clientX - rect.left - baseOffset.x) / zoom,
+    y: (clientY - rect.top - baseOffset.y) / zoom,
+  }
+}
+
+export function getCenterOffset(
+  container: { width: number; height: number },
+  image: { width: number; height: number },
+  zoom: number
+): Point {
+  const scaledWidth = image.width * zoom
+  const scaledHeight = image.height * zoom
+  return {
+    x: (container.width - scaledWidth) / 2,
+    y: (container.height - scaledHeight) / 2,
   }
 }
 

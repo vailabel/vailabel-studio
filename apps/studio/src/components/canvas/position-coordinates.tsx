@@ -1,11 +1,14 @@
 import React, { useEffect, useState, memo, useMemo, useRef } from "react"
 import { useCanvasCursor, useCanvasZoom, useCanvasPan, useCanvasTool } from "@/contexts/canvas-context"
 
-export const PositionCoordinates: React.FC = memo(() => {
+type Offset = { x: number; y: number }
+
+export const PositionCoordinates: React.FC<{ baseOffset?: Offset }> = memo(({ baseOffset }) => {
   const { cursorPosition } = useCanvasCursor()
   const { zoom } = useCanvasZoom()
   const { panOffset } = useCanvasPan()
   const { toolState } = useCanvasTool()
+  const offset = baseOffset || panOffset
   
   const [tooltipPosition, setTooltipPosition] = useState({ left: 0, top: 0 })
   const lastUpdateRef = useRef<number>(0)
@@ -43,15 +46,15 @@ export const PositionCoordinates: React.FC = memo(() => {
 
     const tooltipOffset = 10
 
-    const calculatedLeft = cursorPosition.x * zoom + panOffset.x + tooltipOffset
-    const calculatedTop = cursorPosition.y * zoom + panOffset.y + tooltipOffset
+    const calculatedLeft = cursorPosition.x * zoom + offset.x + tooltipOffset
+    const calculatedTop = cursorPosition.y * zoom + offset.y + tooltipOffset
 
     // Simple positioning without canvas boundary checks for now
     const adjustedLeft = Math.max(calculatedLeft, tooltipOffset)
     const adjustedTop = Math.max(calculatedTop, tooltipOffset)
 
     setTooltipPosition({ left: adjustedLeft, top: adjustedTop })
-  }, [cursorPosition, zoom, panOffset, shouldUpdate])
+  }, [cursorPosition, zoom, offset.x, offset.y, shouldUpdate])
 
   if (!cursorPosition || !roundedCoords) return null
 

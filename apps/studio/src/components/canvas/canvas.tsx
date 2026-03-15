@@ -1,4 +1,4 @@
-import { memo, useCallback, useRef, useMemo } from "react"
+import { memo, useCallback, useRef, useMemo, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { AnnotationRenderer } from "@/components/canvas/annotation-renderer"
 import { PositionCoordinates } from "@/components/canvas/position-coordinates"
@@ -11,10 +11,12 @@ import {
   useCanvasZoom,
   useCanvasTool,
   useCanvasSelection,
+  useCanvasContainer,
 } from "@/contexts/canvas-context"
 import { TempAnnotation } from "./temp-annotation"
 import { ToolStatus } from "./tool-status"
 import { Prediction } from "@/types/core"
+import { getCenterOffset } from "@/tools/canvas-utils"
 
 interface CanvasProps {
   image: ImageData
@@ -85,8 +87,42 @@ export const Canvas = memo(
     const { panOffset } = useCanvasPan()
     const { selectedTool, setToolState } = useCanvasTool()
     const { setSelectedAnnotation } = useCanvasSelection()
+    const { container, setContainer } = useCanvasContainer()
 
     const canvasRef = useRef<HTMLDivElement | null>(null)
+
+    useEffect(() => {
+      const node = canvasRef.current
+      if (!node) return
+
+      const updateSize = () => {
+        const rect = node.getBoundingClientRect()
+        setContainer({ width: rect.width, height: rect.height })
+      }
+
+      updateSize()
+      const observer = new ResizeObserver(updateSize)
+      observer.observe(node)
+      return () => observer.disconnect()
+    }, [setContainer])
+
+    const centerOffset = useMemo(
+      () =>
+        getCenterOffset(
+          container,
+          { width: image.width, height: image.height },
+          zoom
+        ),
+      [container, image.width, image.height, zoom]
+    )
+
+    const baseOffset = useMemo(
+      () => ({
+        x: centerOffset.x + panOffset.x,
+        y: centerOffset.y + panOffset.y,
+      }),
+      [centerOffset.x, centerOffset.y, panOffset.x, panOffset.y]
+    )
 
     // Get all handler props
     const handlerState = useCanvasHandlers(
@@ -96,7 +132,13 @@ export const Canvas = memo(
         updateAnnotation: onUpdateAnnotation,
         deleteAnnotation: onDeleteAnnotation,
       },
-      { id: image.id }
+      { id: image.id, width: image.width, height: image.height },
+      {
+        baseOffset,
+        centerOffset,
+        container,
+        image: { width: image.width, height: image.height },
+      }
     )
     const {
       handleMouseDown,
@@ -216,11 +258,11 @@ export const Canvas = memo(
     // Memoize transform style to avoid string concatenation on every render
     const transformStyle = useMemo(
       () => ({
-        transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom})`,
+        transform: `translate(${baseOffset.x}px, ${baseOffset.y}px) scale(${zoom})`,
         transformOrigin: "0 0",
         willChange: "transform", // Hint to browser for GPU acceleration
       }),
-      [panOffset.x, panOffset.y, zoom]
+      [baseOffset.x, baseOffset.y, zoom]
     )
 
     // Memoize canvas classes to prevent className string recalculation
@@ -287,8 +329,8 @@ export const Canvas = memo(
                   )}
                 </div>
 
-                <Crosshair canvasRef={canvasRef} />
-                <PositionCoordinates />
+                <Crosshair canvasRef={canvasRef} baseOffset={baseOffset} />
+                <PositionCoordinates baseOffset={baseOffset} />
 
                 {/* Show tool status for all tools */}
                 <ToolStatus

@@ -2,10 +2,10 @@ import { useCallback, useEffect, useMemo, useRef } from "react"
 import type { Point, Annotation } from "@/types/core"
 import {
   getCanvasCoords as utilsGetCanvasCoords,
-  getImageCoords as utilsGetImageCoords,
   isPointInLabel as utilsIsPointInLabel,
   findLabelAtPoint as utilsFindLabelAtPoint,
   getResizeHandle as utilsGetResizeHandle,
+  getCenterOffset,
 } from "@/tools/canvas-utils"
 import {
   useCanvasCursor,
@@ -87,7 +87,13 @@ export function useCanvasHandlers(
     updateAnnotation: (id: string, updates: Partial<Annotation>) => Promise<void>
     deleteAnnotation: (id: string) => Promise<void>
   },
-  currentImage?: { id: string }
+  currentImage?: { id: string; width?: number; height?: number },
+  layout?: {
+    baseOffset: Point
+    centerOffset: Point
+    container: { width: number; height: number }
+    image: { width: number; height: number }
+  }
 ) {
   const defaultCanvasRef = useRef<HTMLDivElement | null>(null)
   const actualCanvasRef = canvasRef || defaultCanvasRef
@@ -105,6 +111,17 @@ export function useCanvasHandlers(
   const { selectedTool, toolState, setToolState } = useCanvasTool()
   const { isPanning, setIsPanning, lastPanPoint, setLastPanPoint } = useCanvasPanning()
   const { selectedAnnotation, setSelectedAnnotation } = useCanvasSelection()
+  const zeroPoint: Point = { x: 0, y: 0 }
+  const baseOffset = layout?.baseOffset || panOffset
+  const centerOffset = layout?.centerOffset || zeroPoint
+  const containerSize =
+    layout?.container ||
+    {
+      width: actualCanvasRef.current?.clientWidth || 0,
+      height: actualCanvasRef.current?.clientHeight || 0,
+    }
+  const imageSize =
+    layout?.image || { width: currentImage?.width || 0, height: currentImage?.height || 0 }
   
   // Get zoom from state (remove this line since we now get it from useCanvasZoom)
   // const { zoom } = useCanvasState<{ zoom: number }>(state => ({ zoom: state.zoom }))
@@ -164,8 +181,10 @@ export function useCanvasHandlers(
       selectedAnnotation,
       setSelectedAnnotation,
       getCanvasCoords: (clientX: number, clientY: number) =>
-        utilsGetImageCoords(
+        utilsGetCanvasCoords(
           actualCanvasRef.current,
+          baseOffset,
+          zoom,
           clientX,
           clientY
         ),
@@ -235,7 +254,7 @@ export function useCanvasHandlers(
       const point = handlerContext.getCanvasCoords(e.clientX, e.clientY)
       const canvasPoint = utilsGetCanvasCoords(
         actualCanvasRef.current,
-        panOffset,
+        baseOffset,
         zoom,
         e.clientX,
         e.clientY
@@ -304,6 +323,8 @@ export function useCanvasHandlers(
       updateCursorPosition,
       zoom,
       setCursorPosition,
+      baseOffset.x,
+      baseOffset.y,
     ]
   )
 
@@ -409,17 +430,20 @@ export function useCanvasHandlers(
           const mouseY = e.clientY - rect.top
 
           // Calculate the point in image coordinates before zoom
-          const beforeZoomX = (mouseX - panOffset.x) / zoom
-          const beforeZoomY = (mouseY - panOffset.y) / zoom
+          const beforeZoomX = (mouseX - baseOffset.x) / zoom
+          const beforeZoomY = (mouseY - baseOffset.y) / zoom
+
+          // Recompute center offset for the new zoom level
+          const nextCenterOffset = getCenterOffset(containerSize, imageSize, newZoom)
 
           // Calculate the point in image coordinates after zoom
-          const afterZoomX = (mouseX - panOffset.x) / newZoom
-          const afterZoomY = (mouseY - panOffset.y) / newZoom
+          const afterZoomX = (mouseX - baseOffset.x) / newZoom
+          const afterZoomY = (mouseY - baseOffset.y) / newZoom
 
           // Adjust pan offset to keep the mouse point stable
           setPanOffset({
-            x: panOffset.x + (beforeZoomX - afterZoomX) * newZoom,
-            y: panOffset.y + (beforeZoomY - afterZoomY) * newZoom,
+            x: (mouseX - nextCenterOffset.x) - beforeZoomX * newZoom,
+            y: (mouseY - nextCenterOffset.y) - beforeZoomY * newZoom,
           })
           
           // Apply the new zoom
@@ -466,6 +490,12 @@ export function useCanvasHandlers(
     setPanOffset,
     setSelectedAnnotation,
     setZoom,
+    baseOffset.x,
+    baseOffset.y,
+    containerSize.width,
+    containerSize.height,
+    imageSize.width,
+    imageSize.height,
   ])
 
   return {

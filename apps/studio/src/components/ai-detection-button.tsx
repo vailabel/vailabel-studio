@@ -55,8 +55,8 @@ export const AIDetectionButton = ({
     try {
       await onGeneratePredictions(selectedModelId)
       toast({
-        title: "Predictions generated",
-        description: "Review the suggested labels and accept the ones you want.",
+        title: "Pre-annotations generated",
+        description: "Review and correct the suggested labels before accepting them.",
       })
     } catch (error) {
       console.error("Prediction generation failed:", error)
@@ -95,8 +95,8 @@ export const AIDetectionButton = ({
         </TooltipTrigger>
         <TooltipContent side="bottom">
           {selectedModelName
-            ? `Generate predictions with ${selectedModelName}`
-            : "Choose a model to enable AI-assisted annotation"}
+            ? `Generate pre-annotations with ${selectedModelName}`
+            : "Choose a model to enable ML-assisted labeling"}
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

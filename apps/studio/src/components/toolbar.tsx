@@ -271,8 +271,21 @@ export const Toolbar = memo(
             className="mx-2 h-6"
           />
           {selectedModel && (
-            <div className="hidden text-xs text-muted-foreground md:block">
-              Model: <span className="font-medium text-foreground">{selectedModel.name}</span>
+            <div className="hidden items-center space-x-2 text-xs text-muted-foreground md:flex">
+              <span>
+                Model: <span className="font-medium text-foreground">{selectedModel.name}</span>
+              </span>
+              <span className="rounded-full bg-muted px-2 py-0.5 text-[11px]">
+                {selectedModel.modelVersion || selectedModel.model_version || selectedModel.version}
+              </span>
+              <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-foreground">
+                {selectedModel.backend?.toUpperCase() || "CPU"}
+              </span>
+              {selectedModel.status && (
+                <span className="rounded-full bg-muted px-2 py-0.5 text-[11px]">
+                  {selectedModel.status}
+                </span>
+              )}
             </div>
           )}
           <AIDetectionButton

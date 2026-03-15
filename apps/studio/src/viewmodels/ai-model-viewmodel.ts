@@ -20,6 +20,47 @@ function getModelType(category: string) {
   }
 }
 
+function normalizeValue(value?: string | null) {
+  return value?.trim().toLowerCase() || ""
+}
+
+function isRecommendedInstalledModel(model: AIModel) {
+  return (
+    normalizeValue(model.family) === "yolo26" &&
+    normalizeValue(model.category) === "detection" &&
+    normalizeValue(model.variant) === "n"
+  )
+}
+
+function getDefaultRank(model: AIModel) {
+  return typeof model.defaultRank === "number" ? model.defaultRank : Number.MAX_SAFE_INTEGER
+}
+
+function getRecommendedInstalledModel(models: AIModel[]) {
+  const preferred = [...models].sort((left, right) => {
+    if (isRecommendedInstalledModel(left) && !isRecommendedInstalledModel(right)) {
+      return -1
+    }
+    if (!isRecommendedInstalledModel(left) && isRecommendedInstalledModel(right)) {
+      return 1
+    }
+    if (left.isActive && !right.isActive) return -1
+    if (!left.isActive && right.isActive) return 1
+    return getDefaultRank(left) - getDefaultRank(right)
+  })
+
+  return preferred[0] || null
+}
+
+function getRecommendedSystemModel(models: SystemModel[]) {
+  return (
+    models.find((model) => model.recommended) ||
+    models.find((model) => normalizeValue(model.family) === "yolo26") ||
+    models[0] ||
+    null
+  )
+}
+
 export const useAIModelViewModel = () => {
   const [availableModels, setAvailableModels] = useState<AIModel[]>([])
   const [selectedModelId, setSelectedModelId] = useState("")
@@ -35,9 +76,22 @@ export const useAIModelViewModel = () => {
         services.getSettingsService().getByKey("selectedModelId"),
         services.getSettingsService().getByKey("modelPath"),
       ])
+      const savedModelId = selectedModelSetting.value || ""
+      const recommendedInstalledModel = getRecommendedInstalledModel(models)
+      const savedModel = models.find((model) => model.id === savedModelId) || null
+      const resolvedModel = savedModel || recommendedInstalledModel
+      const resolvedModelId = resolvedModel?.id || ""
+
       setAvailableModels(models)
-      setSelectedModelId(selectedModelSetting.value || "")
-      setModelPath(modelPathSetting.value || "")
+      setSelectedModelId(resolvedModelId)
+      setModelPath(resolvedModel?.modelPath || modelPathSetting.value || "")
+
+      if ((!savedModelId || !savedModel) && recommendedInstalledModel) {
+        await services.getSettingsService().update("selectedModelId", recommendedInstalledModel.id)
+        await services
+          .getSettingsService()
+          .update("modelPath", recommendedInstalledModel.modelPath || "")
+      }
     } finally {
       setIsLoading(false)
     }
@@ -67,6 +121,16 @@ export const useAIModelViewModel = () => {
     [availableModels, selectedModelId]
   )
 
+  const recommendedInstalledModel = useMemo(
+    () => getRecommendedInstalledModel(availableModels),
+    [availableModels]
+  )
+
+  const recommendedSystemModel = useMemo(
+    () => getRecommendedSystemModel(SYSTEM_MODELS),
+    []
+  )
+
   const selectModel = (modelId: string) => {
     const nextModel =
       availableModels.find((model) => model.id === modelId) || null
@@ -90,6 +154,8 @@ export const useAIModelViewModel = () => {
     systemModels: SYSTEM_MODELS,
     selectedModel,
     selectedModelId,
+    recommendedInstalledModel,
+    recommendedSystemModel,
     modelPath,
     isLoading,
     isImportingModel,

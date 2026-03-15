@@ -1,3 +1,5 @@
+pub mod domain;
+mod inference;
 mod store;
 
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
@@ -11,14 +13,23 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use store::{DesktopStore, StoreError};
 use tauri::{Emitter, Manager};
 use uuid::Uuid;
+use domain::projects::service::ProjectService;
+use domain::tasks::service::TaskService;
+use domain::labels::service::LabelService;
+use domain::images::service::ImageService;
+use inference::{HeuristicEngine, InferenceEngine};
 
 const APP_NAME: &str = "Vailabel Studio";
 const SERVICE_NAME: &str = "com.vailabel.studio";
 const DOMAIN_EVENT_NAME: &str = "studio://domain-event";
 
 #[derive(Clone)]
-struct AppState {
-  store: Arc<Mutex<DesktopStore>>,
+pub struct AppState {
+  pub store: Arc<Mutex<DesktopStore>>,
+  pub project_service: Arc<ProjectService>,
+  pub task_service: Arc<TaskService>,
+  pub label_service: Arc<LabelService>,
+  pub image_service: Arc<ImageService>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -182,7 +193,7 @@ struct InferencePoint {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-struct InferenceAnnotationDraft {
+pub struct InferenceAnnotationDraft {
   name: String,
   #[serde(rename = "type")]
   annotation_type: String,
@@ -214,7 +225,7 @@ struct StudioDomainEvent {
   occurred_at: String,
 }
 
-fn now_iso() -> String {
+pub fn now_iso() -> String {
   chrono::Utc::now().to_rfc3339()
 }
 
@@ -336,10 +347,20 @@ fn normalize_entity(kind: &str, mut value: Value) -> Result<Value, AppError> {
       ensure_string_field(object, "status", "inactive");
       ensure_string_field(object, "category", "detection");
       ensure_string_field(object, "type", "object_detection");
+      ensure_string_field(object, "backend", "cpu");
+      ensure_string_field(object, "framework", "onnx");
+      ensure_string_field(object, "labelsPath", "");
+      ensure_string_field(object, "family", "");
+      ensure_string_field(object, "variant", "");
+      ensure_string_field(object, "taskType", "object_detection");
+      ensure_string_field(object, "modelVersion", "");
       mirror_alias(object, "projectId", "project_id");
       object.entry("modelSize").or_insert(Value::Number(0.into()));
       object.entry("isCustom").or_insert(Value::Bool(true));
       object.entry("isActive").or_insert(Value::Bool(false));
+      object.entry("stride").or_insert(Value::Number(0.into()));
+      object.entry("defaultRank").or_insert(Value::Number(999.into()));
+      object.entry("supportsLabelStudioFormat").or_insert(Value::Bool(false));
     }
     "predictions" => {
       ensure_string_field(object, "name", "Prediction");
@@ -350,9 +371,19 @@ fn normalize_entity(kind: &str, mut value: Value) -> Result<Value, AppError> {
       mirror_alias(object, "modelId", "model_id");
       mirror_alias(object, "imageId", "image_id");
       mirror_alias(object, "projectId", "project_id");
+      mirror_alias(object, "fromName", "from_name");
+      mirror_alias(object, "toName", "to_name");
+      mirror_alias(object, "resultType", "result_type");
+      mirror_alias(object, "modelVersion", "model_version");
       object.entry("coordinates").or_insert_with(|| json!([]));
       object.entry("confidence").or_insert_with(|| json!(0.0));
       object.entry("isAIGenerated").or_insert(Value::Bool(true));
+      ensure_string_field(object, "fromName", "label");
+      ensure_string_field(object, "toName", "image");
+      ensure_string_field(object, "resultType", "rectanglelabels");
+      ensure_string_field(object, "modelVersion", "");
+      ensure_string_field(object, "family", "");
+      ensure_string_field(object, "variant", "");
     }
     _ => {}
   }
@@ -398,7 +429,7 @@ fn domain_event_from_value(entity: &str, action: &str, value: &Value) -> StudioD
   }
 }
 
-fn emit_domain_event(app: &tauri::AppHandle, entity: &str, action: &str, value: &Value) -> Result<(), AppError> {
+pub fn emit_domain_event(app: &tauri::AppHandle, entity: &str, action: &str, value: &Value) -> Result<(), AppError> {
   app.emit(DOMAIN_EVENT_NAME, domain_event_from_value(entity, action, value))?;
   Ok(())
 }
@@ -485,138 +516,6 @@ fn delete_entity_for(
 #[tauri::command]
 fn health() -> bool {
   true
-}
-
-#[tauri::command]
-fn projects_list(state: tauri::State<AppState>) -> Result<Vec<Value>, AppError> {
-  list_entities_for(&state, "projects")
-}
-
-#[tauri::command]
-fn projects_get(state: tauri::State<AppState>, payload: EntityIdPayload) -> Result<Value, AppError> {
-  get_entity_for(&state, "projects", &payload.id, "Project not found")
-}
-
-#[tauri::command]
-fn projects_save(
-  app: tauri::AppHandle,
-  state: tauri::State<AppState>,
-  payload: Value,
-) -> Result<Value, AppError> {
-  save_entity_for(&app, &state, "projects", "projects", payload)
-}
-
-#[tauri::command]
-fn projects_delete(
-  app: tauri::AppHandle,
-  state: tauri::State<AppState>,
-  payload: EntityIdPayload,
-) -> Result<Value, AppError> {
-  delete_entity_for(&app, &state, "projects", "projects", &payload.id, "Project not found")
-}
-
-#[tauri::command]
-fn tasks_list(state: tauri::State<AppState>) -> Result<Vec<Value>, AppError> {
-  list_entities_for(&state, "tasks")
-}
-
-#[tauri::command]
-fn tasks_list_by_project(
-  state: tauri::State<AppState>,
-  payload: ProjectIdPayload,
-) -> Result<Vec<Value>, AppError> {
-  list_by_project_for(&state, "tasks", &payload.project_id)
-}
-
-#[tauri::command]
-fn tasks_get(state: tauri::State<AppState>, payload: EntityIdPayload) -> Result<Value, AppError> {
-  get_entity_for(&state, "tasks", &payload.id, "Task not found")
-}
-
-#[tauri::command]
-fn tasks_save(
-  app: tauri::AppHandle,
-  state: tauri::State<AppState>,
-  payload: Value,
-) -> Result<Value, AppError> {
-  save_entity_for(&app, &state, "tasks", "tasks", payload)
-}
-
-#[tauri::command]
-fn tasks_delete(
-  app: tauri::AppHandle,
-  state: tauri::State<AppState>,
-  payload: EntityIdPayload,
-) -> Result<Value, AppError> {
-  delete_entity_for(&app, &state, "tasks", "tasks", &payload.id, "Task not found")
-}
-
-#[tauri::command]
-fn labels_list_by_project(
-  state: tauri::State<AppState>,
-  payload: ProjectIdPayload,
-) -> Result<Vec<Value>, AppError> {
-  list_by_project_for(&state, "labels", &payload.project_id)
-}
-
-#[tauri::command]
-fn labels_save(
-  app: tauri::AppHandle,
-  state: tauri::State<AppState>,
-  payload: Value,
-) -> Result<Value, AppError> {
-  save_entity_for(&app, &state, "labels", "labels", payload)
-}
-
-#[tauri::command]
-fn labels_delete(
-  app: tauri::AppHandle,
-  state: tauri::State<AppState>,
-  payload: EntityIdPayload,
-) -> Result<Value, AppError> {
-  delete_entity_for(&app, &state, "labels", "labels", &payload.id, "Label not found")
-}
-
-#[tauri::command]
-fn images_list_by_project(
-  state: tauri::State<AppState>,
-  payload: ProjectIdPayload,
-) -> Result<Vec<Value>, AppError> {
-  list_by_project_for(&state, "images", &payload.project_id)
-}
-
-#[tauri::command]
-fn images_list_range(
-  state: tauri::State<AppState>,
-  payload: ImageRangePayload,
-) -> Result<Vec<Value>, AppError> {
-  let images = list_by_project_for(&state, "images", &payload.project_id)?;
-  let offset = payload.offset.unwrap_or(0);
-  let limit = payload.limit.unwrap_or(images.len());
-  Ok(images.into_iter().skip(offset).take(limit).collect())
-}
-
-#[tauri::command]
-fn images_get(state: tauri::State<AppState>, payload: EntityIdPayload) -> Result<Value, AppError> {
-  get_entity_for(&state, "images", &payload.id, "Image not found")
-}
-
-#[tauri::command]
-fn images_save(
-  app: tauri::AppHandle,
-  state: tauri::State<AppState>,
-  payload: Value,
-) -> Result<Value, AppError> {
-  save_entity_for(&app, &state, "images", "images", payload)
-}
-
-#[tauri::command]
-fn images_delete(
-  app: tauri::AppHandle,
-  state: tauri::State<AppState>,
-  payload: EntityIdPayload,
-) -> Result<Value, AppError> {
-  delete_entity_for(&app, &state, "images", "images", &payload.id, "Image not found")
 }
 
 #[tauri::command]
@@ -821,6 +720,75 @@ fn value_u32(value: &Value, key: &str) -> Option<u32> {
     .and_then(|number| u32::try_from(number).ok())
 }
 
+fn infer_model_family_and_variant(name: &str, model_path: &Path) -> (String, String) {
+  let haystack = format!(
+    "{} {}",
+    name.to_lowercase(),
+    model_path
+      .file_name()
+      .and_then(|value| value.to_str())
+      .unwrap_or_default()
+      .to_lowercase()
+  );
+
+  let family = if haystack.contains("yoloe-26") {
+    "yoloe-26"
+  } else if haystack.contains("yolo26") {
+    "yolo26"
+  } else {
+    ""
+  };
+
+  let variant = ["n", "s", "m", "l", "x"]
+    .into_iter()
+    .find(|variant| {
+      haystack.contains(&format!("yolo26{variant}"))
+        || haystack.contains(&format!("yoloe-26{variant}"))
+    })
+    .unwrap_or_default();
+
+  (family.to_string(), variant.to_string())
+}
+
+fn infer_default_rank(family: &str, category: &str, variant: &str) -> i64 {
+  if family == "yolo26" && category == "detection" {
+    match variant {
+      "n" => 0,
+      "s" => 10,
+      "m" => 20,
+      "l" => 30,
+      "x" => 40,
+      _ => 100,
+    }
+  } else if family == "yolo26" {
+    50
+  } else if family == "yoloe-26" {
+    100
+  } else {
+    999
+  }
+}
+
+fn task_type_for_category(category: &str) -> &'static str {
+  match category {
+    "segmentation" => "segmentation",
+    "classification" => "classification",
+    "pose" => "pose_estimation",
+    "tracking" => "tracking",
+    _ => "object_detection",
+  }
+}
+
+fn build_model_version(name: &str, version: &str, family: &str, variant: &str) -> String {
+  if !family.is_empty() && !variant.is_empty() {
+    if family == "yoloe-26" {
+      return format!("YOLOE-26{variant}");
+    }
+    return format!("YOLO26{variant}");
+  }
+  format!("{name} {version}")
+}
+
 fn build_fallback_bbox(width: u32, height: u32) -> (u32, u32, u32, u32) {
   let left = (width as f32 * 0.2).round() as u32;
   let top = (height as f32 * 0.2).round() as u32;
@@ -885,7 +853,7 @@ fn detect_salient_region(image_bytes: &[u8], threshold_bias: f32) -> Result<(u32
   ))
 }
 
-fn build_draft_annotations(
+pub(crate) fn build_draft_annotations(
   image_value: &Value,
   model_value: &Value,
   labels: &[Value],
@@ -1170,6 +1138,11 @@ fn ai_models_import(
 
   let model_size = fs::metadata(&target_model_path)?.len();
   let project_id = payload.project_id.clone();
+  let (family, variant) = infer_model_family_and_variant(&payload.name, &target_model_path);
+  let task_type = task_type_for_category(&payload.category);
+  let model_version = build_model_version(&payload.name, &payload.version, &family, &variant);
+  let default_rank = infer_default_rank(&family, &payload.category, &variant);
+  let supports_label_studio_format = payload.category == "detection" || payload.category == "segmentation" || payload.category == "pose";
   let model = normalize_entity(
     "ai_models",
     json!({
@@ -1185,6 +1158,16 @@ fn ai_models_import(
       "status": "ready",
       "category": payload.category,
       "type": payload.model_type,
+      "family": family,
+      "variant": variant,
+      "framework": "onnx",
+      "backend": "ort",
+      "labelsPath": "",
+      "stride": 0,
+      "defaultRank": default_rank,
+      "supportsLabelStudioFormat": supports_label_studio_format,
+      "taskType": task_type,
+      "modelVersion": model_version,
       "projectId": project_id.clone(),
       "project_id": project_id,
       "source": "local",
@@ -1242,10 +1225,32 @@ fn predictions_generate(
     }
   }
 
-  let drafts = build_draft_annotations(&image, &model, &labels, payload.threshold.unwrap_or(0.5))?;
+  #[cfg(feature = "yolo-inference")]
+  let engine: Box<dyn InferenceEngine> = if model_path.ends_with(".onnx") {
+    if let Ok(yolo) = inference::YoloEngine::new(&model_path) {
+      Box::new(yolo)
+    } else {
+      Box::new(HeuristicEngine)
+    }
+  } else {
+    Box::new(HeuristicEngine)
+  };
+  #[cfg(not(feature = "yolo-inference"))]
+  let engine: Box<dyn InferenceEngine> = Box::new(HeuristicEngine);
+
+  let (drafts, metrics) = engine.predict(&image, &model, &labels, payload.threshold.unwrap_or(0.5))?;
   let mut predictions = Vec::new();
+  let model_version =
+    value_string(&model, "modelVersion", "model_version").unwrap_or_else(|| value_string(&model, "version", "version").unwrap_or_default());
+  let model_family = value_string(&model, "family", "family").unwrap_or_default();
+  let model_variant = value_string(&model, "variant", "variant").unwrap_or_default();
 
   for draft in drafts {
+    let result_type = if draft.annotation_type == "polygon" {
+      "polygonlabels"
+    } else {
+      "rectanglelabels"
+    };
     let prediction = normalize_entity(
       "predictions",
       json!({
@@ -1267,6 +1272,18 @@ fn predictions_generate(
         "projectId": if project_id.is_empty() { Value::Null } else { Value::String(project_id.clone()) },
         "project_id": if project_id.is_empty() { Value::Null } else { Value::String(project_id.clone()) },
         "isAIGenerated": true,
+        "backend": metrics.backend.clone(),
+        "inferenceMs": metrics.infer_ms,
+        "modelVersion": model_version.clone(),
+        "model_version": model_version.clone(),
+        "family": model_family.clone(),
+        "variant": model_variant.clone(),
+        "fromName": "label",
+        "from_name": "label",
+        "toName": "image",
+        "to_name": "image",
+        "resultType": result_type,
+        "result_type": result_type,
       }),
     )?;
     let prediction = store.upsert_entity("predictions", prediction)?;
@@ -1350,30 +1367,46 @@ pub fn run() {
       let app_dir = app.path().app_data_dir()?;
       fs::create_dir_all(&app_dir)?;
       let store = DesktopStore::open(app_dir.join("vailabel-desktop.sqlite"))?;
+      let store_arc = Arc::new(Mutex::new(store));
+      let store_handle: Arc<dyn store::Store> = Arc::new(store::StoreHandle::new(store_arc.clone()));
+
+      let project_repo = Arc::new(crate::domain::projects::repository::SqliteProjectRepository::new(store_handle.clone()));
+      let project_service = Arc::new(crate::domain::projects::service::ProjectService::new(project_repo));
+      let task_repo = Arc::new(crate::domain::tasks::repository::SqliteTaskRepository::new(store_handle.clone()));
+      let task_service = Arc::new(crate::domain::tasks::service::TaskService::new(task_repo));
+      let label_repo = Arc::new(crate::domain::labels::repository::SqliteLabelRepository::new(store_handle.clone()));
+      let label_service = Arc::new(crate::domain::labels::service::LabelService::new(label_repo));
+      let image_repo = Arc::new(crate::domain::images::repository::SqliteImageRepository::new(store_handle.clone()));
+      let image_service = Arc::new(crate::domain::images::service::ImageService::new(image_repo));
+      
       app.manage(AppState {
-        store: Arc::new(Mutex::new(store)),
+        store: store_arc,
+        project_service,
+        task_service,
+        label_service,
+        image_service,
       });
       Ok(())
     })
     .invoke_handler(tauri::generate_handler![
       health,
-      projects_list,
-      projects_get,
-      projects_save,
-      projects_delete,
-      tasks_list,
-      tasks_list_by_project,
-      tasks_get,
-      tasks_save,
-      tasks_delete,
-      labels_list_by_project,
-      labels_save,
-      labels_delete,
-      images_list_by_project,
-      images_list_range,
-      images_get,
-      images_save,
-      images_delete,
+      domain::projects::commands::projects_list,
+      domain::projects::commands::projects_get,
+      domain::projects::commands::projects_save,
+      domain::projects::commands::projects_delete,
+      domain::tasks::commands::tasks_list,
+      domain::tasks::commands::tasks_list_by_project,
+      domain::tasks::commands::tasks_get,
+      domain::tasks::commands::tasks_save,
+      domain::tasks::commands::tasks_delete,
+      domain::labels::commands::labels_list_by_project,
+      domain::labels::commands::labels_save,
+      domain::labels::commands::labels_delete,
+      domain::images::commands::images_list_by_project,
+      domain::images::commands::images_list_range,
+      domain::images::commands::images_get,
+      domain::images::commands::images_save,
+      domain::images::commands::images_delete,
       annotations_list_by_project,
       annotations_list_by_image,
       annotations_save,

@@ -1,11 +1,12 @@
-import { memo, useRef } from "react"
+import { memo, useRef, useEffect, useMemo } from "react"
 import { cn } from "@/lib/utils"
 import { AnnotationRenderer } from "@/components/canvas/annotation-renderer"
 import { PositionCoordinates } from "@/components/canvas/position-coordinates"
 import { useCanvasHandlers } from "@/hooks/use-canvas-handlers-context"
 import { type Annotation, type ImageData } from "@/types/core"
 import { Crosshair } from "@/components/canvas/crosshair-context"
-import { useCanvasZoom, useCanvasPan, useCanvasTool } from "@/contexts/canvas-context"
+import { useCanvasZoom, useCanvasPan, useCanvasTool, useCanvasContainer } from "@/contexts/canvas-context"
+import { getCenterOffset } from "@/tools/canvas-utils"
 
 interface CanvasProps {
   image: ImageData
@@ -17,27 +18,68 @@ export const Canvas = memo(({ image, annotations, onRefreshAnnotations }: Canvas
   const { zoom } = useCanvasZoom()
   const { panOffset } = useCanvasPan()
   const { selectedTool } = useCanvasTool()
+  const { container, setContainer } = useCanvasContainer()
 
   const canvasRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    const node = canvasRef.current
+    if (!node) return
+    const updateSize = () => {
+      const rect = node.getBoundingClientRect()
+      setContainer({ width: rect.width, height: rect.height })
+    }
+    updateSize()
+    const observer = new ResizeObserver(updateSize)
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [setContainer])
+
+  const centerOffset = useMemo(
+    () =>
+      getCenterOffset(
+        container,
+        { width: image.width, height: image.height },
+        zoom
+      ),
+    [container, image.width, image.height, zoom]
+  )
+
+  const baseOffset = useMemo(
+    () => ({
+      x: centerOffset.x + panOffset.x,
+      y: centerOffset.y + panOffset.y,
+    }),
+    [centerOffset.x, centerOffset.y, panOffset.x, panOffset.y]
+  )
   const {
     handleMouseDown,
     handleMouseMove,
     handleMouseUp,
     handleDoubleClick,
-  } = useCanvasHandlers(canvasRef, annotations, {
-    updateAnnotation: async (id: string, updates: Partial<Annotation>) => {
-      // TODO: Add proper store methods
-      if (onRefreshAnnotations) {
-        await onRefreshAnnotations()
-      }
+  } = useCanvasHandlers(
+    canvasRef,
+    annotations,
+    {
+      updateAnnotation: async (id: string, updates: Partial<Annotation>) => {
+        if (onRefreshAnnotations) {
+          await onRefreshAnnotations()
+        }
+      },
+      deleteAnnotation: async (id: string) => {
+        if (onRefreshAnnotations) {
+          await onRefreshAnnotations()
+        }
+      },
     },
-    deleteAnnotation: async (id: string) => {
-      // TODO: Add proper store methods
-      if (onRefreshAnnotations) {
-        await onRefreshAnnotations()
-      }
+    { id: image.id, width: image.width, height: image.height },
+    {
+      baseOffset,
+      centerOffset,
+      container,
+      image: { width: image.width, height: image.height },
     }
-  }, { id: image.id })
+  )
 
   // Simplified canvas component - annotation creation handled elsewhere
 
@@ -78,7 +120,7 @@ export const Canvas = memo(({ image, annotations, onRefreshAnnotations }: Canvas
               <div
                 className="absolute"
                 style={{
-                  transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom})`,
+                  transform: `translate(${baseOffset.x}px, ${baseOffset.y}px) scale(${zoom})`,
                   transformOrigin: "0 0",
                 }}
               >
@@ -100,8 +142,8 @@ export const Canvas = memo(({ image, annotations, onRefreshAnnotations }: Canvas
                 <AnnotationRenderer annotations={annotations} /> 
               </div>
 
-              <Crosshair canvasRef={canvasRef} />
-              <PositionCoordinates />
+              <Crosshair canvasRef={canvasRef} baseOffset={baseOffset} />
+              <PositionCoordinates baseOffset={baseOffset} />
             </div>
           )}
         </div>

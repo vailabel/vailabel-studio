@@ -3,13 +3,15 @@ import { useCanvasCursor, useCanvasPan, useCanvasState } from "@/contexts/canvas
 
 interface CrosshairProps {
   canvasRef: React.RefObject<HTMLDivElement | null>
+  baseOffset?: { x: number; y: number }
 }
 
-export const Crosshair: React.FC<CrosshairProps> = memo(({ canvasRef }) => {
+export const Crosshair: React.FC<CrosshairProps> = memo(({ canvasRef, baseOffset }) => {
   // Use selective hooks for better performance - only re-render when these specific values change
   const { cursorPosition } = useCanvasCursor()
   const { panOffset } = useCanvasPan()
   const { zoom } = useCanvasState<{ zoom: number }>(state => ({ zoom: state.zoom }))
+  const offset = baseOffset || panOffset
 
   // Render crosshair immediately when cursor position changes - no throttling
   const styles = useMemo(() => {
@@ -20,8 +22,8 @@ export const Crosshair: React.FC<CrosshairProps> = memo(({ canvasRef }) => {
     const canvasHeight = canvasRect.height
     
     // Calculate crosshair position in canvas coordinates
-    const crosshairX = cursorPosition.x * zoom + panOffset.x
-    const crosshairY = cursorPosition.y * zoom + panOffset.y
+    const crosshairX = cursorPosition.x * zoom + offset.x
+    const crosshairY = cursorPosition.y * zoom + offset.y
     
     // Check if crosshair is within canvas boundaries
     const isWithinCanvas = crosshairX >= 0 && crosshairX <= canvasWidth && 
@@ -41,7 +43,7 @@ export const Crosshair: React.FC<CrosshairProps> = memo(({ canvasRef }) => {
         left: '0px',
       }
     }
-  }, [cursorPosition, zoom, panOffset.x, panOffset.y, canvasRef])
+  }, [cursorPosition, zoom, offset.x, offset.y, canvasRef])
 
   if (!cursorPosition || !styles) return null
 

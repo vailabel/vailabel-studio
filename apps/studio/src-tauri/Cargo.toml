@@ -25,3 +25,10 @@ serde_json = "1"
 tauri = { version = "2", features = [] }
 thiserror = "2"
 uuid = { version = "1", features = ["v4", "serde"] }
+ort = { version = "2.0.0-rc.12", optional = true, default-features = false, features = ["load-dynamic", "cuda"] }
+ndarray = { version = "0.15", optional = true, features = ["serde"] }
+
+[features]
+default = []
+# Enable to build with YOLO/ONNX inference and CUDA provider (requires CUDA 12 runtime on host)
+yolo-inference = ["ort", "ndarray"]

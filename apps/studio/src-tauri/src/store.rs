@@ -1,6 +1,7 @@
 use rusqlite::{params, Connection, OptionalExtension};
 use serde_json::{json, Value};
 use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 use uuid::Uuid;
 
 #[derive(Debug, thiserror::Error)]
@@ -9,10 +10,82 @@ pub enum StoreError {
   Sql(#[from] rusqlite::Error),
   #[error(transparent)]
   Json(#[from] serde_json::Error),
+  #[error("Store is unavailable")]
+  Unavailable,
 }
 
 pub struct DesktopStore {
   connection: Connection,
+}
+
+pub trait Store: Send + Sync {
+  fn upsert_entity(&self, kind: &str, value: Value) -> Result<Value, StoreError>;
+  fn get_entity(&self, kind: &str, id: &str) -> Result<Option<Value>, StoreError>;
+  fn list_entities(&self, kind: &str) -> Result<Vec<Value>, StoreError>;
+  fn list_by_field(&self, kind: &str, field: &str, value: &str) -> Result<Vec<Value>, StoreError>;
+  fn delete_entity(&self, kind: &str, id: &str) -> Result<(), StoreError>;
+  fn get_setting(&self, key: &str) -> Result<Option<Value>, StoreError>;
+  fn upsert_setting(&self, value: Value) -> Result<Value, StoreError>;
+  fn list_secret_keys(&self, namespace: &str) -> Result<Vec<String>, StoreError>;
+  fn register_secret_key(&self, namespace: &str, key: &str) -> Result<(), StoreError>;
+  fn unregister_secret_key(&self, namespace: &str, key: &str) -> Result<(), StoreError>;
+}
+
+#[derive(Clone)]
+pub struct StoreHandle {
+  inner: Arc<Mutex<DesktopStore>>,
+}
+
+impl StoreHandle {
+  pub fn new(inner: Arc<Mutex<DesktopStore>>) -> Self {
+    Self { inner }
+  }
+
+  fn guard(&self) -> Result<std::sync::MutexGuard<'_, DesktopStore>, StoreError> {
+    self.inner.lock().map_err(|_| StoreError::Unavailable)
+  }
+}
+
+impl Store for StoreHandle {
+  fn upsert_entity(&self, kind: &str, value: Value) -> Result<Value, StoreError> {
+    self.guard()?.upsert_entity(kind, value)
+  }
+
+  fn get_entity(&self, kind: &str, id: &str) -> Result<Option<Value>, StoreError> {
+    self.guard()?.get_entity(kind, id)
+  }
+
+  fn list_entities(&self, kind: &str) -> Result<Vec<Value>, StoreError> {
+    self.guard()?.list_entities(kind)
+  }
+
+  fn list_by_field(&self, kind: &str, field: &str, value: &str) -> Result<Vec<Value>, StoreError> {
+    self.guard()?.list_by_field(kind, field, value)
+  }
+
+  fn delete_entity(&self, kind: &str, id: &str) -> Result<(), StoreError> {
+    self.guard()?.delete_entity(kind, id)
+  }
+
+  fn get_setting(&self, key: &str) -> Result<Option<Value>, StoreError> {
+    self.guard()?.get_setting(key)
+  }
+
+  fn upsert_setting(&self, value: Value) -> Result<Value, StoreError> {
+    self.guard()?.upsert_setting(value)
+  }
+
+  fn list_secret_keys(&self, namespace: &str) -> Result<Vec<String>, StoreError> {
+    self.guard()?.list_secret_keys(namespace)
+  }
+
+  fn register_secret_key(&self, namespace: &str, key: &str) -> Result<(), StoreError> {
+    self.guard()?.register_secret_key(namespace, key)
+  }
+
+  fn unregister_secret_key(&self, namespace: &str, key: &str) -> Result<(), StoreError> {
+    self.guard()?.unregister_secret_key(namespace, key)
+  }
 }
 
 impl DesktopStore {

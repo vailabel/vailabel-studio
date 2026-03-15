@@ -88,6 +88,18 @@ export class Prediction {
   project_id?: string
   color?: string
   isAIGenerated?: boolean
+  backend?: string
+  inferenceMs?: number
+  modelVersion?: string
+  model_version?: string
+  family?: string
+  variant?: string
+  fromName?: string
+  from_name?: string
+  toName?: string
+  to_name?: string
+  resultType?: string
+  result_type?: string
   createdAt?: Date
   updatedAt?: Date
 }
@@ -146,9 +158,42 @@ export class AIModel {
   category?: string
   isActive?: boolean
   lastUsed?: Date
+  backend?: string
+  framework?: string
+  labelsPath?: string
+  stride?: number
+  family?: string
+  variant?: string
+  defaultRank?: number
+  supportsLabelStudioFormat?: boolean
+  taskType?: string
+  modelVersion?: string
+  model_version?: string
   modelMetadata?: Record<string, any>
   createdAt?: Date
   updatedAt?: Date
+}
+
+export class LabelStudioResult {
+  id!: string
+  from_name!: string
+  to_name!: string
+  type!: string
+  value!: Record<string, unknown>
+  score?: number
+  readonly?: boolean
+  hidden?: boolean
+}
+
+export class LabelStudioPrediction {
+  model_version!: string
+  score?: number
+  result!: LabelStudioResult[]
+}
+
+export class LabelStudioTask {
+  data!: Record<string, unknown>
+  predictions!: LabelStudioPrediction[]
 }
 
 export class Settings {

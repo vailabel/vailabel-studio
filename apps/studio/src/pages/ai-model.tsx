@@ -55,6 +55,8 @@ export default function AIModelListPage() {
     systemModels = [],
     isLoading,
     isImportingModel,
+    recommendedInstalledModel,
+    recommendedSystemModel,
     selectedModel,
     deleteModel,
     activateModel,
@@ -163,7 +165,7 @@ export default function AIModelListPage() {
           <div>
             <h1 className="text-3xl font-bold">AI Models</h1>
             <p className="text-muted-foreground">
-              Import and manage local models for offline prediction review.
+              Import and manage local models for offline pre-annotations and Label Studio-style review workflows.
             </p>
           </div>
         </div>
@@ -263,17 +265,29 @@ export default function AIModelListPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Name</TableHead>
+                      <TableHead>Model Version</TableHead>
                       <TableHead>Category</TableHead>
                       <TableHead>Version</TableHead>
                       <TableHead>Size</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Backend</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {availableModels.map((model) => (
                       <TableRow key={model.id}>
-                        <TableCell className="font-medium">{model.name}</TableCell>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            <span>{model.name}</span>
+                            {recommendedInstalledModel?.id === model.id && (
+                              <Badge variant="secondary">Default</Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {model.modelVersion || model.model_version || model.version}
+                        </TableCell>
                         <TableCell>
                           <Badge variant="outline">
                             {model.category || "uncategorized"}
@@ -291,6 +305,11 @@ export default function AIModelListPage() {
                               {model.status || "ready"}
                             </Badge>
                           )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {(model.backend || "cpu").toUpperCase()}
+                          </Badge>
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
@@ -332,9 +351,21 @@ export default function AIModelListPage() {
             <CardContent>
               <div className="grid gap-4 md:grid-cols-2">
                 {systemModels.map((model) => (
-                  <Card key={model.id} className="border-dashed">
+                  <Card
+                    key={model.id}
+                    className={`border-dashed ${
+                      recommendedSystemModel?.id === model.id
+                        ? "border-primary"
+                        : ""
+                    }`}
+                  >
                     <CardHeader>
-                      <CardTitle className="text-lg">{model.name}</CardTitle>
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <span>{model.name}</span>
+                        {recommendedSystemModel?.id === model.id && (
+                          <Badge>Recommended</Badge>
+                        )}
+                      </CardTitle>
                       <CardDescription>{model.description}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-2 text-sm text-muted-foreground">
@@ -342,6 +373,16 @@ export default function AIModelListPage() {
                         <span>Category</span>
                         <Badge variant="outline">{model.category}</Badge>
                       </div>
+                      {model.variants?.length ? (
+                        <div className="flex items-center justify-between">
+                          <span>Default Variant</span>
+                          <span>
+                            {model.variants.find((variant) => variant.recommended)?.modelVersion ||
+                              model.variants[0]?.modelVersion ||
+                              model.variants[0]?.name}
+                          </span>
+                        </div>
+                      ) : null}
                       {model.requirements?.minMemory && (
                         <div className="flex items-center justify-between">
                           <span>Min Memory</span>
