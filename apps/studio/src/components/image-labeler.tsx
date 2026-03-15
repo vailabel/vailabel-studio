@@ -289,6 +289,7 @@ export const ImageLabeler = memo(
 
               <PredictionReviewPanel
                 predictions={predictions}
+                labels={labels}
                 onAccept={acceptPrediction}
                 onReject={rejectPrediction}
               />

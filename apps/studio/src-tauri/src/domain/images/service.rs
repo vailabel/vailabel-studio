@@ -1,10 +1,10 @@
-use crate::domain::images::model::{Image, ProjectIdPayload, ImageRangePayload};
+use crate::domain::images::model::{Image, ImageRangePayload, ProjectIdPayload};
 use crate::domain::images::repository::ImageRepository;
+use crate::domain::projects::model::EntityIdPayload;
+use crate::emit_domain_event;
 use crate::AppError;
 use serde_json::Value;
-use crate::{emit_domain_event};
 use std::sync::Arc;
-use crate::domain::projects::model::EntityIdPayload;
 
 pub struct ImageService {
     repo: Arc<dyn ImageRepository + Send + Sync>,
@@ -15,7 +15,10 @@ impl ImageService {
         Self { repo }
     }
 
-    pub fn list_images_by_project(&self, payload: ProjectIdPayload) -> Result<Vec<Image>, AppError> {
+    pub fn list_images_by_project(
+        &self,
+        payload: ProjectIdPayload,
+    ) -> Result<Vec<Image>, AppError> {
         Ok(self.repo.list_by_project(&payload.project_id)?)
     }
 
@@ -32,11 +35,7 @@ impl ImageService {
             .ok_or_else(|| AppError::Message("Image not found".to_string()))
     }
 
-    pub fn save_image(
-        &self,
-        app: &tauri::AppHandle,
-        payload: Value,
-    ) -> Result<Image, AppError> {
+    pub fn save_image(&self, app: &tauri::AppHandle, payload: Value) -> Result<Image, AppError> {
         let image: Image = serde_json::from_value(payload)?;
         let (image, action) = if self.repo.get(&image.id)?.is_some() {
             (self.repo.update(&image)?, "updated")

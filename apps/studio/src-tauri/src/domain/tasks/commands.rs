@@ -1,8 +1,8 @@
+use crate::domain::projects::model::EntityIdPayload;
 use crate::domain::tasks::model::ProjectIdPayload;
-use crate::{AppState, AppError};
+use crate::{AppError, AppState};
 use serde_json::Value;
 use tauri::State;
-use crate::domain::projects::model::EntityIdPayload;
 
 #[tauri::command]
 pub fn tasks_list(state: State<AppState>) -> Result<Value, AppError> {
@@ -12,7 +12,10 @@ pub fn tasks_list(state: State<AppState>) -> Result<Value, AppError> {
 }
 
 #[tauri::command]
-pub fn tasks_list_by_project(state: State<AppState>, payload: ProjectIdPayload) -> Result<Value, AppError> {
+pub fn tasks_list_by_project(
+    state: State<AppState>,
+    payload: ProjectIdPayload,
+) -> Result<Value, AppError> {
     let tasks = state.task_service.list_tasks_by_project(payload)?;
     let tasks_value = serde_json::to_value(tasks)?;
     Ok(tasks_value)

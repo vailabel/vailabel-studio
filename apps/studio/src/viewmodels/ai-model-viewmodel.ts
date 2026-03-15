@@ -3,6 +3,7 @@ import { AIModel, ModelImportPayload } from "@/types/core"
 import { listenToStudioEvents } from "@/ipc/events"
 import { services } from "@/services"
 import { SYSTEM_MODELS } from "@/lib/system-model-catalog"
+import { isModelPredictionReady } from "@/lib/ai-model-metadata"
 import type { SystemModel } from "@/lib/schemas/ai-model"
 
 function getModelType(category: string) {
@@ -45,6 +46,12 @@ function getDefaultRank(model: AIModel) {
 
 function getRecommendedInstalledModel(models: AIModel[]) {
   const preferred = models.filter(isRecommendedFamilyModel).sort((left, right) => {
+    if (isModelPredictionReady(left) && !isModelPredictionReady(right)) {
+      return -1
+    }
+    if (!isModelPredictionReady(left) && isModelPredictionReady(right)) {
+      return 1
+    }
     if (isRecommendedInstalledModel(left) && !isRecommendedInstalledModel(right)) {
       return -1
     }

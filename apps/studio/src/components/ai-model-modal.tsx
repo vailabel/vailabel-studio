@@ -23,6 +23,11 @@ import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Import } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import {
+  getModelClassCount,
+  getModelUnsupportedReason,
+  isModelPredictionReady,
+} from "@/lib/ai-model-metadata"
 import { useAIModelViewModel } from "@/viewmodels/ai-model-viewmodel"
 
 interface AIModelModalProps {
@@ -87,8 +92,10 @@ export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
                       <TableHead className="w-16">Use</TableHead>
                       <TableHead>Name</TableHead>
                       <TableHead>Model Version</TableHead>
+                      <TableHead>Labels</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Backend</TableHead>
+                      <TableHead>Prediction</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -115,6 +122,9 @@ export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
                           <TableCell className="text-muted-foreground">
                             {model.modelVersion || model.model_version || model.version}
                           </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {getModelClassCount(model) || "-"}
+                          </TableCell>
                           <TableCell>
                             <div className="flex gap-2">
                               {model.isActive && (
@@ -130,12 +140,23 @@ export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
                           <TableCell className="text-muted-foreground">
                             {model.backend?.toUpperCase() || "CPU"}
                           </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                isModelPredictionReady(model)
+                                  ? "secondary"
+                                  : "outline"
+                              }
+                            >
+                              {isModelPredictionReady(model) ? "Ready" : "Unsupported"}
+                            </Badge>
+                          </TableCell>
                         </TableRow>
                       ))
                     ) : (
                       <TableRow>
                         <TableCell
-                          colSpan={5}
+                          colSpan={7}
                           className="py-6 text-center text-muted-foreground"
                         >
                           No local models imported yet.
@@ -149,7 +170,10 @@ export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
             <Alert>
               <AlertDescription>
                 {selectedModel
-                  ? `Selected model version: ${selectedModel.modelVersion || selectedModel.model_version || selectedModel.version}. Review and correct the generated pre-annotations before accepting them.`
+                  ? isModelPredictionReady(selectedModel)
+                    ? `Selected model version: ${selectedModel.modelVersion || selectedModel.model_version || selectedModel.version}. Review and correct the generated pre-annotations before accepting them.`
+                    : getModelUnsupportedReason(selectedModel) ||
+                      "The selected model is not ready for AI detect yet."
                   : recommendedSystemModel
                     ? `Recommended first import: ${recommendedSystemModel.name} with the nano variant for fast image pre-annotations.`
                     : "Choose or import a model before running AI annotation."}

@@ -1,16 +1,32 @@
 import { Check, Sparkles, X } from "lucide-react"
-import type { Prediction } from "@/types/core"
+import type { Label, Prediction } from "@/types/core"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
 interface PredictionReviewPanelProps {
   predictions: Prediction[]
+  labels: Label[]
   onAccept: (predictionId: string) => Promise<void>
   onReject: (predictionId: string) => Promise<void>
 }
 
+function willCreateLabel(prediction: Prediction, labels: Label[]) {
+  if (prediction.labelId || prediction.label_id) {
+    const labelId = prediction.labelId || prediction.label_id
+    return !labels.some((label) => label.id === labelId)
+  }
+
+  const desiredName = prediction.labelName || prediction.label_name || prediction.name
+  if (!desiredName) return false
+
+  return !labels.some(
+    (label) => label.name.toLowerCase() === desiredName.toLowerCase()
+  )
+}
+
 export function PredictionReviewPanel({
   predictions,
+  labels,
   onAccept,
   onReject,
 }: PredictionReviewPanelProps) {
@@ -37,6 +53,11 @@ export function PredictionReviewPanel({
               key={prediction.id}
               className="rounded-lg border border-border bg-background/70 p-3"
             >
+              {willCreateLabel(prediction, labels) && (
+                <p className="mb-2 text-xs font-medium text-amber-600 dark:text-amber-400">
+                  Accepting this will create a new project label.
+                </p>
+              )}
               <div className="mb-2 flex items-center justify-between gap-2">
                 <div>
                   <p className="text-sm font-medium">

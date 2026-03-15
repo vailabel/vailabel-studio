@@ -43,6 +43,12 @@ import {
   type SystemModel,
   type SystemModelVariant,
 } from "@/viewmodels/ai-model-viewmodel"
+import {
+  getAIModelMetadata,
+  getModelClassCount,
+  getModelUnsupportedReason,
+  isModelPredictionReady,
+} from "@/lib/ai-model-metadata"
 import { aiModelFormSchema, type AIModelFormData } from "@/lib/schemas/ai-model"
 import { useToast } from "@/hooks/use-toast"
 import type { AIModel } from "@/types/core"
@@ -137,7 +143,10 @@ export default function AIModelListPage() {
       await refreshModels()
       toast({
         title: "Model imported",
-        description: `${importedModel.name} is ready for offline prediction generation.`,
+        description: isModelPredictionReady(importedModel)
+          ? `${importedModel.name} is ready for offline prediction generation.`
+          : getModelUnsupportedReason(importedModel) ||
+            `${importedModel.name} was imported, but it is not prediction-ready yet.`,
       })
       setShowAddModelModal(false)
       form.reset({
@@ -205,7 +214,10 @@ export default function AIModelListPage() {
       await refreshModels()
       toast({
         title: "Model installed",
-        description: `${installedModel.name} was installed and activated for offline prediction generation.`,
+        description: isModelPredictionReady(installedModel)
+          ? `${installedModel.name} was installed and activated for offline prediction generation.`
+          : getModelUnsupportedReason(installedModel) ||
+            `${installedModel.name} was installed, but it is not prediction-ready yet.`,
       })
     } catch (error) {
       console.error("Failed to install model:", error)
@@ -340,7 +352,9 @@ export default function AIModelListPage() {
                       <TableHead>Category</TableHead>
                       <TableHead>Version</TableHead>
                       <TableHead>Size</TableHead>
+                      <TableHead>Labels</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Prediction</TableHead>
                       <TableHead>Backend</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -367,15 +381,43 @@ export default function AIModelListPage() {
                         <TableCell>v{model.version}</TableCell>
                         <TableCell>{formatFileSize(model.modelSize || 0)}</TableCell>
                         <TableCell>
-                          {model.isActive ? (
-                            <Badge className="bg-emerald-600 hover:bg-emerald-600">
-                              Active
+                          {getModelClassCount(model) || "-"}
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            {model.isActive ? (
+                              <Badge className="bg-emerald-600 hover:bg-emerald-600">
+                                Active
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary">
+                                {model.status || "ready"}
+                              </Badge>
+                            )}
+                            {getAIModelMetadata(model).labelSource && (
+                              <div className="text-xs text-muted-foreground">
+                                {getAIModelMetadata(model).labelSource}
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            <Badge
+                              variant={
+                                isModelPredictionReady(model)
+                                  ? "secondary"
+                                  : "outline"
+                              }
+                            >
+                              {isModelPredictionReady(model) ? "Ready" : "Unsupported"}
                             </Badge>
-                          ) : (
-                            <Badge variant="secondary">
-                              {model.status || "ready"}
-                            </Badge>
-                          )}
+                            {!isModelPredictionReady(model) && (
+                              <div className="max-w-xs text-xs text-muted-foreground">
+                                {getModelUnsupportedReason(model)}
+                              </div>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline">
@@ -469,6 +511,9 @@ export default function AIModelListPage() {
                               model,
                               variant
                             )
+                            const variantMetadata = getAIModelMetadata({
+                              modelMetadata: variant.modelMetadata,
+                            })
                             const variantKey = buildCatalogVariantKey(
                               model,
                               variant
@@ -505,6 +550,32 @@ export default function AIModelListPage() {
                                         <span>{variant.accuracy}% mAP</span>
                                       )}
                                       {variant.speed && <span>{variant.speed}</span>}
+                                      {getModelClassCount({
+                                        modelMetadata: variant.modelMetadata,
+                                      }) > 0 && (
+                                        <span>
+                                          {getModelClassCount({
+                                            modelMetadata: variant.modelMetadata,
+                                          })}{" "}
+                                          classes
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="space-y-1 text-xs">
+                                      <Badge
+                                        variant={
+                                          variantMetadata.supportsPrediction
+                                            ? "secondary"
+                                            : "outline"
+                                        }
+                                      >
+                                        {variantMetadata.supportsPrediction
+                                          ? "Prediction ready"
+                                          : "Reference install"}
+                                      </Badge>
+                                      {variantMetadata.unsupportedReason && (
+                                        <p>{variantMetadata.unsupportedReason}</p>
+                                      )}
                                     </div>
                                   </div>
 

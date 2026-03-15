@@ -23,7 +23,9 @@ impl SqliteImageRepository {
 
 impl ImageRepository for SqliteImageRepository {
     fn list_by_project(&self, project_id: &str) -> Result<Vec<Image>, StoreError> {
-        let values = self.store.list_by_field("images", "project_id", project_id)?;
+        let values = self
+            .store
+            .list_by_field("images", "project_id", project_id)?;
         let images = values
             .into_iter()
             .map(|v| serde_json::from_value(v).map_err(StoreError::Json))

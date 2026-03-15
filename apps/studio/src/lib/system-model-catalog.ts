@@ -1,5 +1,112 @@
 import type { SystemModel } from "@/lib/schemas/ai-model"
 
+const COCO_80_CLASS_NAMES = [
+  "person",
+  "bicycle",
+  "car",
+  "motorcycle",
+  "airplane",
+  "bus",
+  "train",
+  "truck",
+  "boat",
+  "traffic light",
+  "fire hydrant",
+  "stop sign",
+  "parking meter",
+  "bench",
+  "bird",
+  "cat",
+  "dog",
+  "horse",
+  "sheep",
+  "cow",
+  "elephant",
+  "bear",
+  "zebra",
+  "giraffe",
+  "backpack",
+  "umbrella",
+  "handbag",
+  "tie",
+  "suitcase",
+  "frisbee",
+  "skis",
+  "snowboard",
+  "sports ball",
+  "kite",
+  "baseball bat",
+  "baseball glove",
+  "skateboard",
+  "surfboard",
+  "tennis racket",
+  "bottle",
+  "wine glass",
+  "cup",
+  "fork",
+  "knife",
+  "spoon",
+  "bowl",
+  "banana",
+  "apple",
+  "sandwich",
+  "orange",
+  "broccoli",
+  "carrot",
+  "hot dog",
+  "pizza",
+  "donut",
+  "cake",
+  "chair",
+  "couch",
+  "potted plant",
+  "bed",
+  "dining table",
+  "toilet",
+  "tv",
+  "laptop",
+  "mouse",
+  "remote",
+  "keyboard",
+  "cell phone",
+  "microwave",
+  "oven",
+  "toaster",
+  "sink",
+  "refrigerator",
+  "book",
+  "clock",
+  "vase",
+  "scissors",
+  "teddy bear",
+  "hair drier",
+  "toothbrush",
+]
+
+function buildCatalogMetadata(category: SystemModel["category"], downloadUrl: string) {
+  const isOnnx = downloadUrl.toLowerCase().endsWith(".onnx")
+
+  if (category !== "detection") {
+    return {
+      classCount: 0,
+      labelSource: "catalog_reference",
+      supportsPrediction: false,
+      unsupportedReason:
+        "AI detect currently supports object-detection models only. Segmentation, pose, and open-vocabulary variants are reference installs for now.",
+    }
+  }
+
+  return {
+    classNames: COCO_80_CLASS_NAMES,
+    classCount: COCO_80_CLASS_NAMES.length,
+    labelSource: "builtin_catalog",
+    supportsPrediction: isOnnx,
+    unsupportedReason: isOnnx
+      ? null
+      : "Catalog installs currently download PyTorch checkpoints. Import an ONNX export to run local AI detect.",
+  }
+}
+
 export const SYSTEM_MODELS: SystemModel[] = [
   {
     id: "yolo26-detection",
@@ -30,6 +137,10 @@ export const SYSTEM_MODELS: SystemModel[] = [
         speed: "fast",
         defaultRank: 0,
         recommended: true,
+        modelMetadata: buildCatalogMetadata(
+          "detection",
+          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26n.pt"
+        ),
       },
       {
         name: "small",
@@ -42,6 +153,10 @@ export const SYSTEM_MODELS: SystemModel[] = [
         accuracy: 48.6,
         speed: "medium",
         defaultRank: 10,
+        modelMetadata: buildCatalogMetadata(
+          "detection",
+          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26s.pt"
+        ),
       },
       {
         name: "medium",
@@ -54,6 +169,10 @@ export const SYSTEM_MODELS: SystemModel[] = [
         accuracy: 53.1,
         speed: "medium",
         defaultRank: 20,
+        modelMetadata: buildCatalogMetadata(
+          "detection",
+          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26m.pt"
+        ),
       },
       {
         name: "large",
@@ -66,6 +185,10 @@ export const SYSTEM_MODELS: SystemModel[] = [
         accuracy: 55.0,
         speed: "slow",
         defaultRank: 30,
+        modelMetadata: buildCatalogMetadata(
+          "detection",
+          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26l.pt"
+        ),
       },
       {
         name: "xlarge",
@@ -78,6 +201,10 @@ export const SYSTEM_MODELS: SystemModel[] = [
         accuracy: 57.5,
         speed: "slow",
         defaultRank: 40,
+        modelMetadata: buildCatalogMetadata(
+          "detection",
+          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26x.pt"
+        ),
       },
     ],
   },
@@ -105,6 +232,10 @@ export const SYSTEM_MODELS: SystemModel[] = [
         downloadUrl:
           "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26n-seg.pt",
         speed: "fast",
+        modelMetadata: buildCatalogMetadata(
+          "segmentation",
+          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26n-seg.pt"
+        ),
       },
       {
         name: "small",
@@ -114,6 +245,10 @@ export const SYSTEM_MODELS: SystemModel[] = [
         downloadUrl:
           "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26s-seg.pt",
         speed: "medium",
+        modelMetadata: buildCatalogMetadata(
+          "segmentation",
+          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26s-seg.pt"
+        ),
       },
     ],
   },
@@ -141,6 +276,10 @@ export const SYSTEM_MODELS: SystemModel[] = [
         downloadUrl:
           "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26n-pose.pt",
         speed: "fast",
+        modelMetadata: buildCatalogMetadata(
+          "pose",
+          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26n-pose.pt"
+        ),
       },
       {
         name: "small",
@@ -150,6 +289,10 @@ export const SYSTEM_MODELS: SystemModel[] = [
         downloadUrl:
           "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26s-pose.pt",
         speed: "medium",
+        modelMetadata: buildCatalogMetadata(
+          "pose",
+          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26s-pose.pt"
+        ),
       },
     ],
   },
@@ -178,6 +321,10 @@ export const SYSTEM_MODELS: SystemModel[] = [
         downloadUrl:
           "https://github.com/ultralytics/assets/releases/download/v8.4.0/yoloe-26n-seg.pt",
         speed: "fast",
+        modelMetadata: buildCatalogMetadata(
+          "segmentation",
+          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yoloe-26n-seg.pt"
+        ),
       },
       {
         name: "small",
@@ -187,6 +334,10 @@ export const SYSTEM_MODELS: SystemModel[] = [
         downloadUrl:
           "https://github.com/ultralytics/assets/releases/download/v8.4.0/yoloe-26s-seg.pt",
         speed: "medium",
+        modelMetadata: buildCatalogMetadata(
+          "segmentation",
+          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yoloe-26s-seg.pt"
+        ),
       },
     ],
   },

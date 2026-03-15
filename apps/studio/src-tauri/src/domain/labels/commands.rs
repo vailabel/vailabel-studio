@@ -1,11 +1,14 @@
 use crate::domain::labels::model::ProjectIdPayload;
-use crate::{AppState, AppError};
+use crate::domain::projects::model::EntityIdPayload;
+use crate::{AppError, AppState};
 use serde_json::Value;
 use tauri::State;
-use crate::domain::projects::model::EntityIdPayload;
 
 #[tauri::command]
-pub fn labels_list_by_project(state: State<AppState>, payload: ProjectIdPayload) -> Result<Value, AppError> {
+pub fn labels_list_by_project(
+    state: State<AppState>,
+    payload: ProjectIdPayload,
+) -> Result<Value, AppError> {
     let labels = state.label_service.list_labels_by_project(payload)?;
     let labels_value = serde_json::to_value(labels)?;
     Ok(labels_value)

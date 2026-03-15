@@ -18,13 +18,13 @@ pub struct Image {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProjectIdPayload {
-  pub project_id: String,
+    pub project_id: String,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ImageRangePayload {
-  pub project_id: String,
-  pub offset: Option<usize>,
-  pub limit: Option<usize>,
+    pub project_id: String,
+    pub offset: Option<usize>,
+    pub limit: Option<usize>,
 }

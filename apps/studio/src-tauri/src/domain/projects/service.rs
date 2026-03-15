@@ -1,8 +1,8 @@
-use crate::domain::projects::model::{Project, EntityIdPayload};
+use crate::domain::projects::model::{EntityIdPayload, Project};
 use crate::domain::projects::repository::ProjectRepository;
+use crate::emit_domain_event;
 use crate::AppError;
 use serde_json::Value;
-use crate::{emit_domain_event};
 use std::sync::Arc;
 
 pub struct ProjectService {

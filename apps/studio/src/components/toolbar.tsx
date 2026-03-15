@@ -24,6 +24,10 @@ import {
 } from "@/components/ui/tooltip"
 import { Separator } from "@/components/ui/separator"
 import { AIDetectionButton } from "@/components/ai-detection-button"
+import {
+  getModelUnsupportedReason,
+  isModelPredictionReady,
+} from "@/lib/ai-model-metadata"
 import type { ImageData } from "@/types/core"
 import { useCanvasTool, useCanvasZoom, useCanvasPan, useCanvasState } from "@/contexts/canvas-context"
 import { memo, useCallback } from "react"
@@ -66,6 +70,8 @@ export const Toolbar = memo(
   const { zoom, setZoom } = useCanvasZoom()
   const { resetView } = useCanvasPan()
   const { selectedModel, selectedModelId } = useAIModelViewModel()
+  const modelPredictionReady = isModelPredictionReady(selectedModel)
+  const modelUnsupportedReason = getModelUnsupportedReason(selectedModel)
   const { showCrosshair, showCoordinates } = useCanvasState(state => ({
     showCrosshair: state.showCrosshair,
     showCoordinates: state.showCoordinates
@@ -281,6 +287,9 @@ export const Toolbar = memo(
               <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-foreground">
                 {selectedModel.backend?.toUpperCase() || "CPU"}
               </span>
+              <span className="rounded-full bg-muted px-2 py-0.5 text-[11px]">
+                {modelPredictionReady ? "AI Detect Ready" : "Not Ready"}
+              </span>
               {selectedModel.status && (
                 <span className="rounded-full bg-muted px-2 py-0.5 text-[11px]">
                   {selectedModel.status}
@@ -292,6 +301,8 @@ export const Toolbar = memo(
             image={currentImage}
             selectedModelId={selectedModelId}
             selectedModelName={selectedModel?.name}
+            selectedModelPredictionReady={modelPredictionReady}
+            selectedModelUnsupportedReason={modelUnsupportedReason}
             isGenerating={isGeneratingPredictions}
             onOpenModelSettings={onOpenAISettings}
             onGeneratePredictions={onGeneratePredictions}

@@ -1,5 +1,5 @@
 use crate::domain::projects::model::EntityIdPayload;
-use crate::{AppState, AppError};
+use crate::{AppError, AppState};
 use serde_json::Value;
 use tauri::State;
 

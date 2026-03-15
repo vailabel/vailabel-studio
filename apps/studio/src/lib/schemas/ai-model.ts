@@ -1,5 +1,15 @@
 import { z } from "zod"
 
+const modelMetadataSchema = z
+  .object({
+    classNames: z.array(z.string()).optional(),
+    classCount: z.number().int().nonnegative().optional(),
+    labelSource: z.string().optional(),
+    supportsPrediction: z.boolean().optional(),
+    unsupportedReason: z.string().nullable().optional(),
+  })
+  .passthrough()
+
 // Enhanced AI Model schemas with comprehensive validation
 export const aiModelSchema = z.object({
   id: z.string().min(1, "ID is required"),
@@ -50,6 +60,8 @@ export const aiModelSchema = z.object({
   supportsLabelStudioFormat: z.boolean().optional(),
   taskType: z.string().optional(),
   modelVersion: z.string().optional(),
+  labelsPath: z.string().optional(),
+  modelMetadata: modelMetadataSchema.optional(),
   createdAt: z.date().optional(),
   updatedAt: z.date().optional(),
 })
@@ -115,6 +127,7 @@ export const systemModelSchema = z.object({
     modelVersion: z.string().optional(),
     defaultRank: z.number().optional(),
     recommended: z.boolean().optional(),
+    modelMetadata: modelMetadataSchema.optional(),
   })).optional(),
   downloadUrl: z.string().url().optional(),
   size: z.number().optional(),

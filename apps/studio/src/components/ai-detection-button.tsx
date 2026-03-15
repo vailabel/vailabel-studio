@@ -14,6 +14,8 @@ interface AIDetectionButtonProps {
   image: ImageData | null
   selectedModelId?: string
   selectedModelName?: string
+  selectedModelPredictionReady?: boolean
+  selectedModelUnsupportedReason?: string
   disabled?: boolean
   isGenerating?: boolean
   onOpenModelSettings?: () => void
@@ -24,6 +26,8 @@ export const AIDetectionButton = ({
   image,
   selectedModelId,
   selectedModelName,
+  selectedModelPredictionReady = false,
+  selectedModelUnsupportedReason,
   disabled,
   isGenerating = false,
   onOpenModelSettings,
@@ -46,6 +50,18 @@ export const AIDetectionButton = ({
       toast({
         title: "Select a model first",
         description: "Import or choose a local model before running AI annotation.",
+      })
+      onOpenModelSettings?.()
+      return
+    }
+
+    if (!selectedModelPredictionReady) {
+      toast({
+        title: "Selected model is not ready",
+        description:
+          selectedModelUnsupportedReason ||
+          "Choose a detection-ready ONNX model before running AI detect.",
+        variant: "destructive",
       })
       onOpenModelSettings?.()
       return
@@ -94,7 +110,10 @@ export const AIDetectionButton = ({
           </Button>
         </TooltipTrigger>
         <TooltipContent side="bottom">
-          {selectedModelName
+          {selectedModelName && !selectedModelPredictionReady
+            ? selectedModelUnsupportedReason ||
+              `${selectedModelName} is not ready for AI detect yet`
+            : selectedModelName
             ? `Generate pre-annotations with ${selectedModelName}`
             : "Choose a model to enable ML-assisted labeling"}
         </TooltipContent>

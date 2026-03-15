@@ -23,7 +23,9 @@ impl SqliteLabelRepository {
 
 impl LabelRepository for SqliteLabelRepository {
     fn list_by_project(&self, project_id: &str) -> Result<Vec<Label>, StoreError> {
-        let values = self.store.list_by_field("labels", "project_id", project_id)?;
+        let values = self
+            .store
+            .list_by_field("labels", "project_id", project_id)?;
         let labels = values
             .into_iter()
             .map(|v| serde_json::from_value(v).map_err(StoreError::Json))

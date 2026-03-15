@@ -169,9 +169,18 @@ export class AIModel {
   taskType?: string
   modelVersion?: string
   model_version?: string
-  modelMetadata?: Record<string, any>
+  modelMetadata?: AIModelMetadata
   createdAt?: Date
   updatedAt?: Date
+}
+
+export type AIModelMetadata = {
+  classNames?: string[]
+  classCount?: number
+  labelSource?: string
+  supportsPrediction?: boolean
+  unsupportedReason?: string | null
+  [key: string]: unknown
 }
 
 export class LabelStudioResult {

@@ -1,10 +1,10 @@
 use crate::domain::labels::model::{Label, ProjectIdPayload};
 use crate::domain::labels::repository::LabelRepository;
+use crate::domain::projects::model::EntityIdPayload;
+use crate::emit_domain_event;
 use crate::AppError;
 use serde_json::Value;
-use crate::{emit_domain_event};
 use std::sync::Arc;
-use crate::domain::projects::model::EntityIdPayload;
 
 pub struct LabelService {
     repo: Arc<dyn LabelRepository + Send + Sync>,
@@ -15,7 +15,10 @@ impl LabelService {
         Self { repo }
     }
 
-    pub fn list_labels_by_project(&self, payload: ProjectIdPayload) -> Result<Vec<Label>, AppError> {
+    pub fn list_labels_by_project(
+        &self,
+        payload: ProjectIdPayload,
+    ) -> Result<Vec<Label>, AppError> {
         Ok(self.repo.list_by_project(&payload.project_id)?)
     }
 
@@ -25,11 +28,7 @@ impl LabelService {
             .ok_or_else(|| AppError::Message("Label not found".to_string()))
     }
 
-    pub fn save_label(
-        &self,
-        app: &tauri::AppHandle,
-        payload: Value,
-    ) -> Result<Label, AppError> {
+    pub fn save_label(&self, app: &tauri::AppHandle, payload: Value) -> Result<Label, AppError> {
         let label: Label = serde_json::from_value(payload)?;
         let (label, action) = if self.repo.get(&label.id)?.is_some() {
             (self.repo.update(&label)?, "updated")

@@ -33,7 +33,9 @@ impl TaskRepository for SqliteTaskRepository {
     }
 
     fn list_by_project(&self, project_id: &str) -> Result<Vec<Task>, StoreError> {
-        let values = self.store.list_by_field("tasks", "project_id", project_id)?;
+        let values = self
+            .store
+            .list_by_field("tasks", "project_id", project_id)?;
         let tasks = values
             .into_iter()
             .map(|v| serde_json::from_value(v).map_err(StoreError::Json))

@@ -20,12 +20,11 @@ pub struct Project {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProjectIdPayload {
-  pub project_id: String,
+    pub project_id: String,
 }
-
 
 #[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct EntityIdPayload {
-  pub id: String,
+    pub id: String,
 }

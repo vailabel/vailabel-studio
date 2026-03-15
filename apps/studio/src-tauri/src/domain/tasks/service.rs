@@ -1,10 +1,10 @@
-use crate::domain::tasks::model::{Task, ProjectIdPayload};
+use crate::domain::projects::model::EntityIdPayload;
+use crate::domain::tasks::model::{ProjectIdPayload, Task};
 use crate::domain::tasks::repository::TaskRepository;
+use crate::emit_domain_event;
 use crate::AppError;
 use serde_json::Value;
-use crate::{emit_domain_event};
 use std::sync::Arc;
-use crate::domain::projects::model::EntityIdPayload;
 
 pub struct TaskService {
     repo: Arc<dyn TaskRepository + Send + Sync>,
@@ -29,11 +29,7 @@ impl TaskService {
             .ok_or_else(|| AppError::Message("Task not found".to_string()))
     }
 
-    pub fn save_task(
-        &self,
-        app: &tauri::AppHandle,
-        payload: Value,
-    ) -> Result<Task, AppError> {
+    pub fn save_task(&self, app: &tauri::AppHandle, payload: Value) -> Result<Task, AppError> {
         let task: Task = serde_json::from_value(payload)?;
         let (task, action) = if self.repo.get(&task.id)?.is_some() {
             (self.repo.update(&task)?, "updated")

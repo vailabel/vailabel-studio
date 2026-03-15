@@ -1,18 +1,24 @@
-use crate::domain::images::model::{ProjectIdPayload, ImageRangePayload};
-use crate::{AppState, AppError};
+use crate::domain::images::model::{ImageRangePayload, ProjectIdPayload};
+use crate::domain::projects::model::EntityIdPayload;
+use crate::{AppError, AppState};
 use serde_json::Value;
 use tauri::State;
-use crate::domain::projects::model::EntityIdPayload;
 
 #[tauri::command]
-pub fn images_list_by_project(state: State<AppState>, payload: ProjectIdPayload) -> Result<Value, AppError> {
+pub fn images_list_by_project(
+    state: State<AppState>,
+    payload: ProjectIdPayload,
+) -> Result<Value, AppError> {
     let images = state.image_service.list_images_by_project(payload)?;
     let images_value = serde_json::to_value(images)?;
     Ok(images_value)
 }
 
 #[tauri::command]
-pub fn images_list_range(state: State<AppState>, payload: ImageRangePayload) -> Result<Value, AppError> {
+pub fn images_list_range(
+    state: State<AppState>,
+    payload: ImageRangePayload,
+) -> Result<Value, AppError> {
     let images = state.image_service.list_images_range(payload)?;
     let images_value = serde_json::to_value(images)?;
     Ok(images_value)

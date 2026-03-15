@@ -207,4 +207,25 @@ describe("useImageLabelerViewModel", () => {
     })
     expect(result.current.predictions).toEqual(nextPredictions)
   })
+
+  it("resets loading state when prediction generation fails", async () => {
+    mockPredictionService.generate.mockRejectedValue(
+      new Error("This model is not ready for AI detect.")
+    )
+
+    const { result } = renderHook(() =>
+      useImageLabelerViewModel("project-1", "image-1")
+    )
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+    await expect(
+      act(async () => {
+        await result.current.generatePredictions("model-1", 0.5)
+      })
+    ).rejects.toThrow("This model is not ready for AI detect.")
+
+    expect(result.current.isGeneratingPredictions).toBe(false)
+    expect(result.current.predictions).toEqual([prediction])
+  })
 })
