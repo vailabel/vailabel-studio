@@ -86,6 +86,8 @@ export function useCanvasHandlers(
   storeMethods?: {
     updateAnnotation: (id: string, updates: Partial<Annotation>) => Promise<void>
     deleteAnnotation: (id: string) => Promise<void>
+    undo?: () => Promise<void> | void
+    redo?: () => Promise<void> | void
   },
   currentImage?: { id: string; width?: number; height?: number },
   layout?: {
@@ -101,6 +103,8 @@ export function useCanvasHandlers(
     annotations,
     updateAnnotation: storeMethods?.updateAnnotation || (async () => {}),
     deleteAnnotation: storeMethods?.deleteAnnotation || (async () => {}),
+    undo: storeMethods?.undo || (() => {}),
+    redo: storeMethods?.redo || (() => {}),
     currentImage
   }), [annotations, storeMethods, currentImage])
   
@@ -108,7 +112,7 @@ export function useCanvasHandlers(
   const { setCursorPosition } = useCanvasCursor()
   const { panOffset, setPanOffset } = useCanvasPan()
   const { zoom, setZoom } = useCanvasZoom()
-  const { selectedTool, toolState, setToolState } = useCanvasTool()
+  const { selectedTool, setSelectedTool, toolState, setToolState } = useCanvasTool()
   const { isPanning, setIsPanning, lastPanPoint, setLastPanPoint } = useCanvasPanning()
   const { selectedAnnotation, setSelectedAnnotation } = useCanvasSelection()
   const zeroPoint: Point = { x: 0, y: 0 }
@@ -353,49 +357,80 @@ export function useCanvasHandlers(
   // Keyboard event handling
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null
+      const isTypingTarget =
+        !!target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable)
+
+      if (isTypingTarget) {
+        return
+      }
+
       if (e.code === "Space" && !isPanning) {
         e.preventDefault()
         setIsPanning(true)
+        return
       }
 
-      if (e.key === "Delete" && selectedAnnotation) {
-        // Handle delete annotation
+      if ((e.key === "Delete" || e.key === "Backspace") && selectedAnnotation) {
+        e.preventDefault()
+        void annotationsStore.deleteAnnotation(selectedAnnotation.id).catch(
+          (error) => {
+            console.error("Failed to delete annotation:", error)
+          }
+        )
         setSelectedAnnotation(null)
+        return
       }
 
       if (e.ctrlKey || e.metaKey) {
         switch (e.key) {
           case "z":
-            // Handle undo
-            break
+            e.preventDefault()
+            void annotationsStore.undo()
+            return
           case "y":
-            // Handle redo
-            break
+            e.preventDefault()
+            void annotationsStore.redo()
+            return
         }
       } else {
         // When switching tools, clear tempAnnotation and toolState
         const clearTemp = () => setToolState({})
-        switch (e.key) {
-          case "1":
-            // setSelectedTool("move")
+        switch (e.key.toLowerCase()) {
+          case "m":
+            setSelectedTool("move")
             clearTemp()
-            break
-          case "2":
-            // setSelectedTool("box")
+            return
+          case "b":
+            setSelectedTool("box")
             clearTemp()
-            break
-          case "3":
-            // setSelectedTool("polygon")
+            return
+          case "p":
+            setSelectedTool("polygon")
             clearTemp()
-            break
-          case "4":
-            // setSelectedTool("freeDraw")
+            return
+          case "f":
+            setSelectedTool("freeDraw")
             clearTemp()
-            break
-          case "5":
-            // setSelectedTool("delete")
+            return
+          case "d":
+            setSelectedTool("delete")
             clearTemp()
-            break
+            return
+          case "=":
+          case "+":
+            e.preventDefault()
+            setZoom(Math.min(5, zoom * 1.2))
+            return
+          case "-":
+          case "_":
+            e.preventDefault()
+            setZoom(Math.max(0.1, zoom / 1.2))
+            return
         }
 
         // Let the current tool handle key events
@@ -481,8 +516,10 @@ export function useCanvasHandlers(
     actualCanvasRef,
     isPanning,
     selectedAnnotation,
+    annotationsStore,
     setIsPanning,
     setLastPanPoint,
+    setSelectedTool,
     setToolState,
     toolHandler,
     zoom,

@@ -1,19 +1,6 @@
-import React, {
-  useState,
-  useEffect,
-  useMemo,
-  memo,
-  useCallback,
-  useRef,
-} from "react"
+import { memo, useCallback, useRef } from "react"
 import { AnimatePresence } from "framer-motion"
-import {
-  ArrowLeft,
-  Download,
-  Settings,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react"
+import { ArrowLeft, ChevronLeft, ChevronRight, Download, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import {
@@ -31,22 +18,14 @@ import { AIModelSelectModal } from "@/components/ai-model-modal"
 import { ContextMenu } from "@/components/context-menu"
 import { PredictionReviewPanel } from "@/components/prediction-review-panel"
 import { ThemeToggle } from "./theme-toggle"
-import { useNavigate } from "react-router-dom"
-import {
-  useCanvasContextMenu,
-  useCanvasContainer,
-} from "@/contexts/canvas-context"
-import { useImageLabelerViewModel } from "@/viewmodels/image-labeler-viewmodel"
-import { ImageData } from "@/types/core"
-import { Annotation } from "@/types/core"
-import { Label, Prediction } from "@/types/core"
+import { useStudioScreenViewModel } from "@/features/studio/use-studio-screen-viewmodel"
+import type { Annotation, ImageData, Label, Prediction } from "@/types/core"
 
 interface ImageLabelerProps {
   projectId?: string
   imageId?: string
 }
 
-// Memoized Canvas wrapper
 const MemoizedCanvas = memo(
   ({
     image,
@@ -57,6 +36,8 @@ const MemoizedCanvas = memo(
     onCreateAnnotationDraft,
     onUpdateAnnotation,
     onDeleteAnnotation,
+    onUndo,
+    onRedo,
   }: {
     image: ImageData
     annotations: Annotation[]
@@ -74,6 +55,8 @@ const MemoizedCanvas = memo(
       updates: Partial<Annotation>
     ) => Promise<void>
     onDeleteAnnotation: (annotationId: string) => Promise<void>
+    onUndo: () => Promise<void> | void
+    onRedo: () => Promise<void> | void
   }) => (
     <Canvas
       image={image}
@@ -84,337 +67,224 @@ const MemoizedCanvas = memo(
       onUpdateAnnotation={onUpdateAnnotation}
       onDeleteAnnotation={onDeleteAnnotation}
       onRefreshAnnotations={onRefreshAnnotations}
+      onUndo={onUndo}
+      onRedo={onRedo}
     />
   )
 )
 
 MemoizedCanvas.displayName = "MemoizedCanvas"
 
-// Memoized Empty State component
 const EmptyImageState = memo(() => (
   <div className="flex h-full items-center justify-center bg-gray-100 dark:bg-gray-900">
-    <p className="text-gray-500 dark:text-gray-400">
-      No images in this project
-    </p>
+    <p className="text-gray-500 dark:text-gray-400">No images in this project</p>
   </div>
 ))
 
 EmptyImageState.displayName = "EmptyImageState"
 
-// Memoized LabelListPanel wrapper
-const MemoizedLabelListPanel = memo(
-  ({ labels, isLoading }: { labels: Label[]; isLoading: boolean }) => (
-    <LabelListPanel onLabelSelect={() => {}} labels={labels} isLoading={isLoading} />
+export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => {
+  const canvasContainerRef = useRef<HTMLDivElement>(null)
+  const viewModel = useStudioScreenViewModel(projectId, imageId)
+
+  const handleContextMenu = useCallback(
+    (event: React.MouseEvent) => {
+      event.preventDefault()
+
+      if (canvasContainerRef.current) {
+        const rect = canvasContainerRef.current.getBoundingClientRect()
+        viewModel.setContainer({ width: rect.width, height: rect.height })
+      }
+
+      viewModel.openContextMenu({ x: event.clientX, y: event.clientY })
+      return false
+    },
+    [viewModel]
   )
-)
 
-MemoizedLabelListPanel.displayName = "MemoizedLabelListPanel"
+  const handleLabelSelect = useCallback(
+    (label: Label) => {
+      if (!viewModel.selectedAnnotation) return
 
-export const ImageLabeler = memo(
-  ({ projectId, imageId }: ImageLabelerProps) => {
-    const { contextMenu, setContextMenu } = useCanvasContextMenu()
-    const { container, setContainer } = useCanvasContainer()
-    const canvasContainerRef = useRef<HTMLDivElement>(null)
-    const {
-      image,
-      annotations,
-      predictions,
-      labels,
-      nextId,
-      prevId,
-      hasNext,
-      hasPrevious,
-      refreshAnnotations,
-      createAnnotationFromDraft,
-      updateAnnotation,
-      deleteAnnotation,
-      generatePredictions,
-      acceptPrediction,
-      rejectPrediction,
-      isGeneratingPredictions,
-      isLoading,
-      goToNextImage,
-      goToPreviousImage,
-    } = useImageLabelerViewModel(projectId, imageId)
-    const navigate = useNavigate()
-
-    const [showSettingsModal, setShowSettingsModal] = useState(false)
-    const [showAIModelModal, setShowAIModelModal] = useState(false)
-
-    const handleContextMenu = useCallback(
-      (e: React.MouseEvent) => {
-        e.preventDefault()
-        // Only update container if it's null or context menu is not open
-        // This prevents unnecessary updates during window resize
-        if (
-          canvasContainerRef.current &&
-          (!container || !contextMenu.visible)
-        ) {
-          const rect = canvasContainerRef.current.getBoundingClientRect()
-          setContainer({ width: rect.width, height: rect.height })
-        }
-        setContextMenu({
-          visible: true,
-          x: e.clientX,
-          y: e.clientY,
-          items: [
-            {
-              label: "Next Image",
-              onClick: () => goToNextImage(),
-              disabled: !hasNext,
-            },
-            {
-              label: "Previous Image",
-              onClick: () => goToPreviousImage(),
-              disabled: !hasPrevious,
-            },
-            { type: "separator" },
-            { label: "Settings", onClick: () => setShowSettingsModal(true) },
-          ],
-        })
-        return false
-      },
-      [
-        canvasContainerRef,
-        setContainer,
-        setContextMenu,
-        container,
-        contextMenu.visible,
-        goToNextImage,
-        goToPreviousImage,
-        hasNext,
-        hasPrevious,
-      ]
-    )
-
-    const handleCloseContextMenu = useCallback(() => {
-      setContextMenu({
-        visible: false,
-        x: 0,
-        y: 0,
-        items: [],
+      void viewModel.updateAnnotation(viewModel.selectedAnnotation.id, {
+        name: label.name,
+        color: label.color,
+        labelId: label.id,
+        label_id: label.id,
       })
-    }, [setContextMenu])
+    },
+    [viewModel]
+  )
 
-    // Handle keyboard shortcuts
-    useEffect(() => {
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === "ArrowRight" || e.code === "ArrowRight") {
-          if (hasNext && nextId)
-            navigate(`/projects/${projectId}/studio/${nextId}`)
-        } else if (e.key === "ArrowLeft" || e.code === "ArrowLeft") {
-          if (hasPrevious && prevId)
-            navigate(`/projects/${projectId}/studio/${prevId}`)
-        }
-      }
+  return (
+    <div className="flex h-screen w-full flex-col overflow-hidden bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+      <StudioHeader
+        projectName={viewModel.project?.name || "Project"}
+        projectStats={viewModel.projectStats}
+        hasNext={viewModel.hasNext}
+        hasPrevious={viewModel.hasPrevious}
+        isLoading={viewModel.isProjectSummaryLoading}
+        onBack={viewModel.navigateBackToProjects}
+        onNext={viewModel.goToNextImage}
+        onPrevious={viewModel.goToPreviousImage}
+        onOpenSettings={viewModel.openSettingsModal}
+      />
 
-      window.addEventListener("keydown", handleKeyDown)
-      return () => window.removeEventListener("keydown", handleKeyDown)
-    }, [hasNext, hasPrevious, nextId, prevId, navigate, projectId])
+      <div className="flex flex-1 overflow-hidden">
+        <ResizablePanel
+          direction="horizontal"
+          controlPosition="right"
+          defaultSize={280}
+          minSize={200}
+          maxSize={400}
+          className="h-full"
+        >
+          <LabelListPanel
+            onLabelSelect={handleLabelSelect}
+            labels={viewModel.data.labels}
+            isLoading={viewModel.data.isLoading}
+          />
+        </ResizablePanel>
 
-    const goNextImage = useCallback(async () => {
-      if (hasNext && nextId) {
-        navigate(`/projects/${projectId}/studio/${nextId}`)
-        return
-      }
-      goToNextImage()
-    }, [hasNext, nextId, navigate, projectId, goToNextImage])
+        <div
+          role="button"
+          ref={canvasContainerRef}
+          className="relative flex flex-1 flex-col overflow-hidden"
+          onContextMenu={handleContextMenu}
+          onClick={viewModel.closeContextMenu}
+        >
+          <Toolbar
+            currentImage={viewModel.data.image}
+            selectedTool={viewModel.selectedTool}
+            onSelectTool={viewModel.setSelectedTool}
+            zoom={viewModel.zoom}
+            onZoomIn={viewModel.zoomIn}
+            onZoomOut={viewModel.zoomOut}
+            onResetView={viewModel.resetView}
+            showCrosshair={viewModel.showCrosshair}
+            showCoordinates={viewModel.showCoordinates}
+            onToggleCrosshair={viewModel.toggleCrosshair}
+            onToggleCoordinates={viewModel.toggleCoordinates}
+            canUndo={viewModel.canUndo}
+            canRedo={viewModel.canRedo}
+            onUndo={viewModel.undo}
+            onRedo={viewModel.redo}
+            selectedModel={viewModel.selectedModel}
+            selectedModelId={viewModel.selectedModelId}
+            selectedModelPredictionReady={viewModel.selectedModelPredictionReady}
+            selectedModelCanAttemptPrediction={
+              viewModel.selectedModelCanAttemptPrediction
+            }
+            selectedModelWillConvertOnRun={viewModel.selectedModelWillConvertOnRun}
+            selectedModelUnsupportedReason={
+              viewModel.selectedModelUnsupportedReason
+            }
+            selectedModelReadinessLabel={viewModel.selectedModelReadinessLabel}
+            onOpenAISettings={viewModel.openAIModelModal}
+            onGeneratePredictions={viewModel.generatePredictions}
+            isGeneratingPredictions={viewModel.isGeneratingPredictions}
+          />
 
-    const goPreviousImage = useCallback(async () => {
-      if (hasPrevious && prevId) {
-        navigate(`/projects/${projectId}/studio/${prevId}`)
-        return
-      }
-      goToPreviousImage()
-    }, [hasPrevious, prevId, navigate, projectId, goToPreviousImage])
+          <div className="relative flex-1 overflow-hidden">
+            {viewModel.data.image ? (
+              <MemoizedCanvas
+                image={viewModel.data.image}
+                annotations={viewModel.data.annotations}
+                predictions={viewModel.data.predictions}
+                labels={viewModel.data.labels}
+                onRefreshAnnotations={viewModel.refreshAnnotations}
+                onCreateAnnotationDraft={viewModel.createAnnotationFromDraft}
+                onUpdateAnnotation={viewModel.updateAnnotation}
+                onDeleteAnnotation={viewModel.deleteAnnotation}
+                onUndo={viewModel.undo}
+                onRedo={viewModel.redo}
+              />
+            ) : (
+              <EmptyImageState />
+            )}
 
-    // Memoize the header props to prevent unnecessary re-renders
-    const headerProps = useMemo(
-      () => ({
-        onNext: goNextImage,
-        onPrevious: goPreviousImage,
-        hasNext,
-        hasPrevious,
-        projectId,
-      }),
-      [goNextImage, goPreviousImage, hasNext, hasPrevious, projectId]
-    )
-
-    return (
-      <div className="flex flex-col h-screen w-full overflow-hidden bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-        <Header {...headerProps} />
-        <div className="flex flex-1 overflow-hidden">
-          <ResizablePanel
-            direction="horizontal"
-            controlPosition="right"
-            defaultSize={280}
-            minSize={200}
-            maxSize={400}
-            className="h-full"
-          >
-            <MemoizedLabelListPanel labels={labels} isLoading={isLoading} />
-          </ResizablePanel>
-          <div
-            role="button"
-            ref={canvasContainerRef}
-            className="flex flex-1 flex-col overflow-hidden relative"
-            onContextMenu={handleContextMenu}
-            onClick={handleCloseContextMenu}
-          >
-            <Toolbar
-              currentImage={image}
-              onOpenSettings={() => setShowSettingsModal(true)}
-              onOpenAISettings={() => setShowAIModelModal(true)}
-              onGeneratePredictions={generatePredictions}
-              isGeneratingPredictions={isGeneratingPredictions}
+            <PredictionReviewPanel
+              predictions={viewModel.data.predictions}
+              labels={viewModel.data.labels}
+              onAccept={viewModel.acceptPrediction}
+              onReject={viewModel.rejectPrediction}
             />
 
-            <div className="relative flex-1 overflow-hidden">
-              {image ? (
-                <MemoizedCanvas
-                  image={image}
-                  annotations={annotations}
-                  predictions={predictions}
-                  labels={labels}
-                  onRefreshAnnotations={async () => {
-                    await refreshAnnotations()
-                  }}
-                  onCreateAnnotationDraft={createAnnotationFromDraft}
-                  onUpdateAnnotation={updateAnnotation}
-                  onDeleteAnnotation={deleteAnnotation}
+            <AnimatePresence>
+              {viewModel.contextMenu.visible ? (
+                <ContextMenu
+                  x={viewModel.contextMenu.x}
+                  y={viewModel.contextMenu.y}
+                  image={viewModel.data.image}
+                  selectedModelId={viewModel.selectedModelId}
+                  selectedModelCanAttemptPrediction={
+                    viewModel.selectedModelCanAttemptPrediction
+                  }
+                  selectedModelUnsupportedReason={
+                    viewModel.selectedModelUnsupportedReason
+                  }
+                  onGeneratePredictions={viewModel.generatePredictions}
+                  onOpenAISettings={viewModel.openAIModelModal}
+                  onSelectTool={viewModel.setSelectedTool}
+                  onResetView={viewModel.resetView}
+                  containerRect={
+                    canvasContainerRef.current?.getBoundingClientRect() || null
+                  }
+                  onClose={viewModel.closeContextMenu}
                 />
-              ) : (
-                <EmptyImageState />
-              )}
-
-              <PredictionReviewPanel
-                predictions={predictions}
-                labels={labels}
-                onAccept={acceptPrediction}
-                onReject={rejectPrediction}
-              />
-
-              <AnimatePresence>
-                {contextMenu.visible && (
-                  <ContextMenu
-                    x={contextMenu.x}
-                    y={contextMenu.y}
-                    containerRect={
-                      canvasContainerRef.current?.getBoundingClientRect() ||
-                      null
-                    }
-                    onClose={handleCloseContextMenu}
-                  />
-                )}
-              </AnimatePresence>
-            </div>
+              ) : null}
+            </AnimatePresence>
           </div>
         </div>
-
-        {showSettingsModal && (
-          <SettingsModal onClose={() => setShowSettingsModal(false)} />
-        )}
-        {showAIModelModal && (
-          <AIModelSelectModal onClose={() => setShowAIModelModal(false)} />
-        )}
       </div>
-    )
-  }
-)
 
-const Header = memo(
+      {viewModel.showSettingsModal ? (
+        <SettingsModal onClose={viewModel.closeSettingsModal} />
+      ) : null}
+      {viewModel.showAIModelModal ? (
+        <AIModelSelectModal onClose={viewModel.closeAIModelModal} />
+      ) : null}
+    </div>
+  )
+})
+
+ImageLabeler.displayName = "ImageLabeler"
+
+const StudioHeader = memo(
   ({
-    onNext,
-    onPrevious,
+    projectName,
+    projectStats,
     hasNext,
     hasPrevious,
-    projectId,
+    isLoading,
+    onBack,
+    onNext,
+    onPrevious,
+    onOpenSettings,
   }: {
-    onNext: () => void
-    onPrevious: () => void
+    projectName: string
+    projectStats: {
+      totalImages: number
+      labeledImages: number
+      totalLabels: number
+    }
     hasNext: boolean
     hasPrevious: boolean
-    projectId?: string
+    isLoading: boolean
+    onBack: () => void
+    onNext: () => void
+    onPrevious: () => void
+    onOpenSettings: () => void
   }) => {
-    const navigate = useNavigate()
-    const [currentProject, setCurrentProject] = useState<{
-      id: string
-      name: string
-      labelCount: number
-      imageCount: number
-    } | null>(null)
+    const progress =
+      projectStats.totalImages > 0
+        ? Math.round((projectStats.labeledImages / projectStats.totalImages) * 100)
+        : 0
 
-    // Load project data
-    useEffect(() => {
-      const loadProject = async () => {
-        if (projectId) {
-          try {
-            // TODO: Load project data
-            // TODO: Set project data when available
-            setCurrentProject(null)
-          } catch (error) {
-            console.error("Failed to load project:", error)
-          }
-        }
-      }
-      loadProject()
-    }, [projectId])
-
-    const projectName = useMemo(
-      () => currentProject?.name || "Project Name",
-      [currentProject?.name]
-    )
-    const labelCount = useMemo(
-      () => currentProject?.labelCount || 0,
-      [currentProject?.labelCount]
-    )
-    const imageCount = useMemo(
-      () => currentProject?.imageCount || 0,
-      [currentProject?.imageCount]
-    )
-
-    const onClose = () => {
-      navigate("/projects")
-    }
-
-    const handleExportProject = () => {
-      setShowExport(true)
-    }
-
-    const [showSettings, setShowSettings] = useState(false)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const [_, setShowExport] = useState(false)
-    const [showAISettings, setShowAISettings] = useState(false)
-
-    const [localImageCount, setLocalImageCount] = useState<number>(imageCount)
-    const [localLabelCount, setLocalLabelCount] = useState<number>(labelCount)
-
-    useEffect(() => {
-      let cancelled = false
-      ;(async () => {
-        const projectId = currentProject?.id
-        if (!projectId) {
-          setLocalImageCount(0)
-          setLocalLabelCount(0)
-          return
-        }
-
-        // try using cached id list first
-        // Note: imageIdListCache would need to be implemented in the service layer
-        // TODO: Load project statistics
-        if (!cancelled) {
-          setLocalImageCount(0)
-          setLocalLabelCount(0)
-        }
-      })()
-      return () => {
-        cancelled = true
-      }
-    }, [currentProject?.id])
     return (
-      <header className="flex justify-between border-b px-4 py-1 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-        <div className="flex items-center gap-4 min-w-[250px]">
-          <Button variant="ghost" size="icon" onClick={onClose}>
+      <header className="flex justify-between border-b border-gray-200 bg-white px-4 py-1 dark:border-gray-700 dark:bg-gray-800">
+        <div className="flex min-w-[250px] items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={onBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
@@ -422,11 +292,14 @@ const Header = memo(
               {projectName}
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {labelCount} of {imageCount} images labeled
+              {isLoading
+                ? "Loading project stats..."
+                : `${projectStats.labeledImages} of ${projectStats.totalImages} images labeled`}
             </p>
           </div>
         </div>
-        <div className="p-4 w-full ">
+
+        <div className="w-full p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <TooltipProvider>
@@ -443,7 +316,7 @@ const Header = memo(
                   </TooltipTrigger>
                   <TooltipContent>
                     Previous image
-                    <kbd className="ml-2 rounded border px-1.5 text-xs dark:border-gray-700 dark:bg-gray-800 border-gray-200 bg-gray-100">
+                    <kbd className="ml-2 rounded border border-gray-200 bg-gray-100 px-1.5 text-xs dark:border-gray-700 dark:bg-gray-800">
                       Left Arrow
                     </kbd>
                   </TooltipContent>
@@ -456,12 +329,12 @@ const Header = memo(
                       onClick={onNext}
                       disabled={!hasNext}
                     >
-                      <ChevronRight className="h-4 w-4 ml-1" />
+                      <ChevronRight className="ml-1 h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
                     Next image
-                    <kbd className="ml-2 rounded border px-1.5 text-xs dark:border-gray-700 dark:bg-gray-800 border-gray-200 bg-gray-100">
+                    <kbd className="ml-2 rounded border border-gray-200 bg-gray-100 px-1.5 text-xs dark:border-gray-700 dark:bg-gray-800">
                       Right Arrow
                     </kbd>
                   </TooltipContent>
@@ -471,36 +344,31 @@ const Header = memo(
 
             <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
               <span>
-                {localLabelCount} labeled (
-                {localImageCount > 0
-                  ? Math.round((localLabelCount / localImageCount) * 100)
-                  : 0}
-                %)
+                {projectStats.totalLabels} labels / {progress}% complete
               </span>
               <Separator orientation="vertical" className="h-4" />
             </div>
           </div>
         </div>
+
         <div className="flex items-center gap-2">
           <ThemeToggle />
 
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" onClick={handleExportProject}>
+                <Button variant="outline" disabled>
                   <Download className="mr-2 h-4 w-4" />
                   Export
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Export project in various formats</TooltipContent>
+              <TooltipContent>
+                Project export is not available from the studio screen yet.
+              </TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setShowSettings(true)}
-                >
+                <Button variant="outline" size="icon" onClick={onOpenSettings}>
                   <Settings className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
@@ -508,18 +376,9 @@ const Header = memo(
             </Tooltip>
           </TooltipProvider>
         </div>
-        <AnimatePresence>
-          {showSettings && (
-            <SettingsModal onClose={() => setShowSettings(false)} />
-          )}
-        </AnimatePresence>
-        <AnimatePresence>
-          {showAISettings && (
-            <AIModelSelectModal onClose={() => setShowAISettings(false)} />
-          )}
-        </AnimatePresence>
       </header>
     )
   }
 )
 
+StudioHeader.displayName = "StudioHeader"

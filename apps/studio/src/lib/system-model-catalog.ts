@@ -83,11 +83,15 @@ const COCO_80_CLASS_NAMES = [
   "toothbrush",
 ]
 
-const YOLO26_ONNX_BASE_URL =
-  "https://huggingface.co/zwh20081/yolo26-onnx/resolve/main"
+const ULTRALYTICS_RELEASE_BASE_URL =
+  "https://github.com/ultralytics/assets/releases/download"
+const DEFAULT_ULTRALYTICS_RELEASE_TAG = "v8.4.0"
 
-function yolo26OnnxUrl(fileName: string) {
-  return `${YOLO26_ONNX_BASE_URL}/${fileName}`
+function ultralyticsReleaseUrl(
+  fileName: string,
+  releaseTag = DEFAULT_ULTRALYTICS_RELEASE_TAG
+) {
+  return `${ULTRALYTICS_RELEASE_BASE_URL}/${releaseTag}/${fileName}`
 }
 
 function buildCatalogMetadata(category: SystemModel["category"], downloadUrl: string) {
@@ -122,6 +126,11 @@ export const SYSTEM_MODELS: SystemModel[] = [
       "Ultralytics YOLO26 end-to-end object detection family. Recommended as the default pre-annotation model for image projects.",
     category: "detection",
     family: "yolo26",
+    releaseSource: {
+      provider: "github",
+      owner: "ultralytics",
+      repo: "assets",
+    },
     taskType: "object_detection",
     defaultRank: 0,
     supportsLabelStudioFormat: true,
@@ -135,63 +144,83 @@ export const SYSTEM_MODELS: SystemModel[] = [
       {
         name: "nano",
         slug: "yolo26n",
+        assetName: "yolo26n.onnx",
         variant: "n",
         modelVersion: "YOLO26n",
-        downloadUrl: yolo26OnnxUrl("yolo26n.onnx"),
+        downloadUrl: ultralyticsReleaseUrl("yolo26n.onnx"),
         size: 2400000,
         accuracy: 40.9,
         speed: "fast",
         defaultRank: 0,
         recommended: true,
-        modelMetadata: buildCatalogMetadata("detection", yolo26OnnxUrl("yolo26n.onnx")),
+        modelMetadata: buildCatalogMetadata(
+          "detection",
+          ultralyticsReleaseUrl("yolo26n.onnx")
+        ),
       },
       {
         name: "small",
         slug: "yolo26s",
+        assetName: "yolo26s.onnx",
         variant: "s",
         modelVersion: "YOLO26s",
-        downloadUrl: yolo26OnnxUrl("yolo26s.onnx"),
+        downloadUrl: ultralyticsReleaseUrl("yolo26s.onnx"),
         size: 9500000,
         accuracy: 48.6,
         speed: "medium",
         defaultRank: 10,
-        modelMetadata: buildCatalogMetadata("detection", yolo26OnnxUrl("yolo26s.onnx")),
+        modelMetadata: buildCatalogMetadata(
+          "detection",
+          ultralyticsReleaseUrl("yolo26s.onnx")
+        ),
       },
       {
         name: "medium",
         slug: "yolo26m",
+        assetName: "yolo26m.onnx",
         variant: "m",
         modelVersion: "YOLO26m",
-        downloadUrl: yolo26OnnxUrl("yolo26m.onnx"),
+        downloadUrl: ultralyticsReleaseUrl("yolo26m.onnx"),
         size: 20400000,
         accuracy: 53.1,
         speed: "medium",
         defaultRank: 20,
-        modelMetadata: buildCatalogMetadata("detection", yolo26OnnxUrl("yolo26m.onnx")),
+        modelMetadata: buildCatalogMetadata(
+          "detection",
+          ultralyticsReleaseUrl("yolo26m.onnx")
+        ),
       },
       {
         name: "large",
         slug: "yolo26l",
+        assetName: "yolo26l.onnx",
         variant: "l",
         modelVersion: "YOLO26l",
-        downloadUrl: yolo26OnnxUrl("yolo26l.onnx"),
+        downloadUrl: ultralyticsReleaseUrl("yolo26l.onnx"),
         size: 24800000,
         accuracy: 55.0,
         speed: "slow",
         defaultRank: 30,
-        modelMetadata: buildCatalogMetadata("detection", yolo26OnnxUrl("yolo26l.onnx")),
+        modelMetadata: buildCatalogMetadata(
+          "detection",
+          ultralyticsReleaseUrl("yolo26l.onnx")
+        ),
       },
       {
         name: "xlarge",
         slug: "yolo26x",
+        assetName: "yolo26x.onnx",
         variant: "x",
         modelVersion: "YOLO26x",
-        downloadUrl: yolo26OnnxUrl("yolo26x.onnx"),
+        downloadUrl: ultralyticsReleaseUrl("yolo26x.onnx"),
         size: 55700000,
         accuracy: 57.5,
         speed: "slow",
         defaultRank: 40,
-        modelMetadata: buildCatalogMetadata("detection", yolo26OnnxUrl("yolo26x.onnx")),
+        modelMetadata: buildCatalogMetadata(
+          "detection",
+          ultralyticsReleaseUrl("yolo26x.onnx")
+        ),
       },
     ],
   },
@@ -202,6 +231,11 @@ export const SYSTEM_MODELS: SystemModel[] = [
       "Mask-capable YOLO26 models for region proposals and polygon-style review workflows.",
     category: "segmentation",
     family: "yolo26",
+    releaseSource: {
+      provider: "github",
+      owner: "ultralytics",
+      repo: "assets",
+    },
     taskType: "segmentation",
     defaultRank: 50,
     supportsLabelStudioFormat: true,
@@ -214,27 +248,27 @@ export const SYSTEM_MODELS: SystemModel[] = [
       {
         name: "nano",
         slug: "yolo26n-seg",
+        assetName: "yolo26n-seg.pt",
         variant: "n",
         modelVersion: "YOLO26n-seg",
-        downloadUrl:
-          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26n-seg.pt",
+        downloadUrl: ultralyticsReleaseUrl("yolo26n-seg.pt"),
         speed: "fast",
         modelMetadata: buildCatalogMetadata(
           "segmentation",
-          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26n-seg.pt"
+          ultralyticsReleaseUrl("yolo26n-seg.pt")
         ),
       },
       {
         name: "small",
         slug: "yolo26s-seg",
+        assetName: "yolo26s-seg.pt",
         variant: "s",
         modelVersion: "YOLO26s-seg",
-        downloadUrl:
-          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26s-seg.pt",
+        downloadUrl: ultralyticsReleaseUrl("yolo26s-seg.pt"),
         speed: "medium",
         modelMetadata: buildCatalogMetadata(
           "segmentation",
-          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26s-seg.pt"
+          ultralyticsReleaseUrl("yolo26s-seg.pt")
         ),
       },
     ],
@@ -246,6 +280,11 @@ export const SYSTEM_MODELS: SystemModel[] = [
       "Pose-estimation variants for keypoint-heavy annotation review and human pose projects.",
     category: "pose",
     family: "yolo26",
+    releaseSource: {
+      provider: "github",
+      owner: "ultralytics",
+      repo: "assets",
+    },
     taskType: "pose_estimation",
     defaultRank: 60,
     supportsLabelStudioFormat: true,
@@ -258,27 +297,27 @@ export const SYSTEM_MODELS: SystemModel[] = [
       {
         name: "nano",
         slug: "yolo26n-pose",
+        assetName: "yolo26n-pose.pt",
         variant: "n",
         modelVersion: "YOLO26n-pose",
-        downloadUrl:
-          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26n-pose.pt",
+        downloadUrl: ultralyticsReleaseUrl("yolo26n-pose.pt"),
         speed: "fast",
         modelMetadata: buildCatalogMetadata(
           "pose",
-          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26n-pose.pt"
+          ultralyticsReleaseUrl("yolo26n-pose.pt")
         ),
       },
       {
         name: "small",
         slug: "yolo26s-pose",
+        assetName: "yolo26s-pose.pt",
         variant: "s",
         modelVersion: "YOLO26s-pose",
-        downloadUrl:
-          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26s-pose.pt",
+        downloadUrl: ultralyticsReleaseUrl("yolo26s-pose.pt"),
         speed: "medium",
         modelMetadata: buildCatalogMetadata(
           "pose",
-          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26s-pose.pt"
+          ultralyticsReleaseUrl("yolo26s-pose.pt")
         ),
       },
     ],
@@ -290,6 +329,11 @@ export const SYSTEM_MODELS: SystemModel[] = [
       "Advanced open-vocabulary segmentation family with text and visual prompting. Best for exploratory workflows, not the default offline detector.",
     category: "segmentation",
     family: "yoloe-26",
+    releaseSource: {
+      provider: "github",
+      owner: "ultralytics",
+      repo: "assets",
+    },
     taskType: "open_vocabulary_segmentation",
     defaultRank: 100,
     supportsLabelStudioFormat: true,
@@ -303,27 +347,27 @@ export const SYSTEM_MODELS: SystemModel[] = [
       {
         name: "nano",
         slug: "yoloe-26n-seg",
+        assetName: "yoloe-26n-seg.pt",
         variant: "n",
         modelVersion: "YOLOE-26n-seg",
-        downloadUrl:
-          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yoloe-26n-seg.pt",
+        downloadUrl: ultralyticsReleaseUrl("yoloe-26n-seg.pt"),
         speed: "fast",
         modelMetadata: buildCatalogMetadata(
           "segmentation",
-          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yoloe-26n-seg.pt"
+          ultralyticsReleaseUrl("yoloe-26n-seg.pt")
         ),
       },
       {
         name: "small",
         slug: "yoloe-26s-seg",
+        assetName: "yoloe-26s-seg.pt",
         variant: "s",
         modelVersion: "YOLOE-26s-seg",
-        downloadUrl:
-          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yoloe-26s-seg.pt",
+        downloadUrl: ultralyticsReleaseUrl("yoloe-26s-seg.pt"),
         speed: "medium",
         modelMetadata: buildCatalogMetadata(
           "segmentation",
-          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yoloe-26s-seg.pt"
+          ultralyticsReleaseUrl("yoloe-26s-seg.pt")
         ),
       },
     ],

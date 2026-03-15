@@ -850,6 +850,7 @@ pub fn run() {
             domain::ai::commands::ai_models_set_active,
             domain::ai::commands::ai_models_import,
             domain::ai::commands::ai_models_install,
+            domain::ai::commands::ai_models_catalog_releases,
             domain::ai::commands::predictions_list_by_image,
             domain::ai::commands::predictions_generate,
             domain::ai::commands::predictions_accept,

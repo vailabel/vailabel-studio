@@ -1,5 +1,10 @@
 import React, { memo, useMemo } from "react"
-import { useCanvasCursor, useCanvasPan, useCanvasState } from "@/contexts/canvas-context"
+import {
+  useCanvasCursor,
+  useCanvasDisplay,
+  useCanvasPan,
+  useCanvasState,
+} from "@/contexts/canvas-context"
 
 interface CrosshairProps {
   canvasRef: React.RefObject<HTMLDivElement | null>
@@ -11,6 +16,7 @@ export const Crosshair: React.FC<CrosshairProps> = memo(({ canvasRef, baseOffset
   const { cursorPosition } = useCanvasCursor()
   const { panOffset } = useCanvasPan()
   const { zoom } = useCanvasState<{ zoom: number }>(state => ({ zoom: state.zoom }))
+  const { showCrosshair } = useCanvasDisplay()
   const offset = baseOffset || panOffset
 
   // Render crosshair immediately when cursor position changes - no throttling
@@ -45,7 +51,7 @@ export const Crosshair: React.FC<CrosshairProps> = memo(({ canvasRef, baseOffset
     }
   }, [cursorPosition, zoom, offset.x, offset.y, canvasRef])
 
-  if (!cursorPosition || !styles) return null
+  if (!showCrosshair || !cursorPosition || !styles) return null
 
   return (
     <div data-testid="crosshair">

@@ -28,7 +28,6 @@ interface Settings {
 
 export const SettingsModal = ({ onClose }: SettingsModalProps) => {
   const { toast } = useToast()
-  const [isClearing, setIsClearing] = useState(false)
   const { theme, setTheme } = useTheme()
   const { settings, updateSetting } = useSettingsViewModel()
 
@@ -64,38 +63,6 @@ export const SettingsModal = ({ onClose }: SettingsModalProps) => {
         description: "Failed to save setting",
         variant: "destructive",
       })
-    }
-  }
-
-  const handleClearAllData = async () => {
-    if (
-      !confirm(
-        "Are you sure you want to clear all data? This action cannot be undone."
-      )
-    ) {
-      return
-    }
-
-    setIsClearing(true)
-
-    try {
-      // TODO - Implement the actual data clearing logic
-      toast({
-        title: "Success",
-        description: "All data has been cleared",
-      })
-
-      // Reload the page to reset the app state
-      window.location.reload()
-    } catch (error) {
-      console.error("Failed to clear data:", error)
-      toast({
-        title: "Error",
-        description: "Failed to clear data",
-        variant: "destructive",
-      })
-    } finally {
-      setIsClearing(false)
     }
   }
 
@@ -263,12 +230,15 @@ export const SettingsModal = ({ onClose }: SettingsModalProps) => {
                 <Button
                   variant="destructive"
                   className="mt-4"
-                  onClick={handleClearAllData}
-                  disabled={isClearing}
+                  disabled
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
-                  {isClearing ? "Clearing..." : "Clear All Data"}
+                  Clear All Data
                 </Button>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Workspace-wide data clearing is disabled until a supported
+                  desktop backup and restore flow is added.
+                </p>
               </AlertDescription>
             </Alert>
 
@@ -278,7 +248,13 @@ export const SettingsModal = ({ onClose }: SettingsModalProps) => {
                 <p className="mt-1 text-sm text-muted-foreground">
                   Export all your projects, images, and labels as a JSON file.
                 </p>
-                <Button className="mt-4">Export Data</Button>
+                <Button className="mt-4" disabled>
+                  Export Data
+                </Button>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Full workspace export is not available from the studio modal
+                  yet.
+                </p>
               </AlertDescription>
             </Alert>
           </TabsContent>

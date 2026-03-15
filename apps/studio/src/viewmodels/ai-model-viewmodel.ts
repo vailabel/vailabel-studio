@@ -4,7 +4,16 @@ import { listenToStudioEvents } from "@/ipc/events"
 import { services } from "@/services"
 import { SYSTEM_MODELS } from "@/lib/system-model-catalog"
 import { isModelPredictionReady } from "@/lib/ai-model-metadata"
-import type { SystemModel } from "@/lib/schemas/ai-model"
+import type { SystemModel as BaseSystemModel } from "@/lib/schemas/ai-model"
+import type {
+  GitHubRelease,
+  GitHubReleaseSource,
+} from "@/lib/github-releases"
+import {
+  extractAssetFileName,
+  githubReleaseSourceKey,
+  normalizeReleaseTag,
+} from "@/lib/github-releases"
 
 function getModelType(category: string) {
   switch (category) {
@@ -41,7 +50,9 @@ function isRecommendedFamilyModel(model: AIModel) {
 }
 
 function getDefaultRank(model: AIModel) {
-  return typeof model.defaultRank === "number" ? model.defaultRank : Number.MAX_SAFE_INTEGER
+  return typeof model.defaultRank === "number"
+    ? model.defaultRank
+    : Number.MAX_SAFE_INTEGER
 }
 
 function getRecommendedInstalledModel(models: AIModel[]) {
@@ -66,15 +77,6 @@ function getRecommendedInstalledModel(models: AIModel[]) {
   return preferred[0] || null
 }
 
-function getRecommendedSystemModel(models: SystemModel[]) {
-  return (
-    models.find((model) => model.recommended) ||
-    models.find((model) => normalizeValue(model.family) === "yolo26") ||
-    models[0] ||
-    null
-  )
-}
-
 function getCatalogVersion(downloadUrl: string) {
   const match = downloadUrl.match(/\/download\/v?(\d+\.\d+(?:\.\d+)?)/i)
   if (match?.[1]) {
@@ -88,11 +90,114 @@ function getCatalogVersion(downloadUrl: string) {
   return "1.0.0"
 }
 
-function buildCatalogVariantKey(model: SystemModel, variant: SystemModelVariant) {
+function getDefaultCatalogRelease(releases: GitHubRelease[]) {
+  return (
+    releases.find((release) => !release.draft && !release.prerelease) ||
+    releases.find((release) => !release.draft) ||
+    releases[0] ||
+    null
+  )
+}
+
+function buildCatalogVariantKey(model: BaseSystemModel, variant: SystemModelVariant) {
   return `${model.id}:${variant.slug || variant.modelVersion || variant.name}`
 }
 
+function releaseOptionLabel(release: GitHubRelease) {
+  const base = release.name || release.tagName
+  return release.prerelease ? `${base} (Pre-release)` : base
+}
+
+function buildReleaseUnavailableReason(assetName: string, tagName: string) {
+  return `${assetName} is not published in GitHub release ${tagName}.`
+}
+
+export type SystemModel = BaseSystemModel
 export type SystemModelVariant = NonNullable<SystemModel["variants"]>[number]
+
+export interface CatalogReleaseOption {
+  tagName: string
+  label: string
+  prerelease: boolean
+  publishedAt?: string | null
+}
+
+export interface CatalogSystemModelVariant extends SystemModelVariant {
+  assetName: string
+  resolvedDownloadUrl: string
+  resolvedVersion: string
+  releaseTag?: string
+  available: boolean
+  unavailableReason?: string | null
+}
+
+export interface CatalogSystemModel extends SystemModel {
+  selectedReleaseTag?: string
+  releaseOptions?: CatalogReleaseOption[]
+  isReleaseLoading?: boolean
+  releaseError?: string | null
+  variants?: CatalogSystemModelVariant[]
+}
+
+function getRecommendedSystemModel(models: CatalogSystemModel[]) {
+  return (
+    models.find((model) => model.recommended) ||
+    models.find((model) => normalizeValue(model.family) === "yolo26") ||
+    models[0] ||
+    null
+  )
+}
+
+function resolveCatalogVariant(
+  variant: SystemModelVariant,
+  selectedRelease: GitHubRelease | null
+): CatalogSystemModelVariant {
+  const assetName =
+    variant.assetName || extractAssetFileName(variant.downloadUrl) || ""
+  const fallbackVersion = getCatalogVersion(variant.downloadUrl)
+
+  if (!selectedRelease) {
+    return {
+      ...variant,
+      assetName,
+      resolvedDownloadUrl: variant.downloadUrl,
+      resolvedVersion: fallbackVersion,
+      available: true,
+      unavailableReason: null,
+    }
+  }
+
+  const matchingAsset = assetName
+    ? selectedRelease.assets.find(
+        (asset) => normalizeValue(asset.name) === normalizeValue(assetName)
+      )
+    : null
+
+  if (!matchingAsset) {
+    return {
+      ...variant,
+      assetName,
+      resolvedDownloadUrl: variant.downloadUrl,
+      resolvedVersion: normalizeReleaseTag(selectedRelease.tagName),
+      releaseTag: selectedRelease.tagName,
+      available: false,
+      unavailableReason: assetName
+        ? buildReleaseUnavailableReason(assetName, selectedRelease.tagName)
+        : "This catalog entry does not define a GitHub asset name.",
+    }
+  }
+
+  return {
+    ...variant,
+    assetName,
+    size: matchingAsset.size || variant.size,
+    resolvedDownloadUrl: matchingAsset.browserDownloadUrl,
+    resolvedVersion: normalizeReleaseTag(selectedRelease.tagName),
+    releaseTag: selectedRelease.tagName,
+    available: true,
+    unavailableReason: null,
+  }
+}
 
 export const useAIModelViewModel = () => {
   const [availableModels, setAvailableModels] = useState<AIModel[]>([])
@@ -101,6 +206,30 @@ export const useAIModelViewModel = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [isImportingModel, setIsImportingModel] = useState(false)
   const [installingCatalogVariantKey, setInstallingCatalogVariantKey] = useState("")
+  const [catalogReleasesBySource, setCatalogReleasesBySource] = useState<
+    Record<string, GitHubRelease[]>
+  >({})
+  const [catalogReleaseSelectionBySource, setCatalogReleaseSelectionBySource] =
+    useState<Record<string, string>>({})
+  const [catalogReleaseLoadingBySource, setCatalogReleaseLoadingBySource] =
+    useState<Record<string, boolean>>({})
+  const [catalogReleaseErrorBySource, setCatalogReleaseErrorBySource] = useState<
+    Record<string, string | null>
+  >({})
+
+  const releaseSources = useMemo(() => {
+    const uniqueSources = new Map<string, GitHubReleaseSource>()
+
+    for (const model of SYSTEM_MODELS) {
+      if (!model.releaseSource) continue
+      uniqueSources.set(
+        githubReleaseSourceKey(model.releaseSource),
+        model.releaseSource
+      )
+    }
+
+    return Array.from(uniqueSources.values())
+  }, [])
 
   const loadData = useCallback(async () => {
     setIsLoading(true)
@@ -122,7 +251,9 @@ export const useAIModelViewModel = () => {
       setModelPath(resolvedModel?.modelPath || modelPathSetting.value || "")
 
       if ((!savedModelId || !savedModel) && recommendedInstalledModel) {
-        await services.getSettingsService().update("selectedModelId", recommendedInstalledModel.id)
+        await services
+          .getSettingsService()
+          .update("selectedModelId", recommendedInstalledModel.id)
         await services
           .getSettingsService()
           .update("modelPath", recommendedInstalledModel.modelPath || "")
@@ -132,9 +263,70 @@ export const useAIModelViewModel = () => {
     }
   }, [])
 
+  const loadCatalogReleases = useCallback(
+    async (source: GitHubReleaseSource) => {
+      const sourceKey = githubReleaseSourceKey(source)
+      setCatalogReleaseLoadingBySource((current) => ({
+        ...current,
+        [sourceKey]: true,
+      }))
+      setCatalogReleaseErrorBySource((current) => ({
+        ...current,
+        [sourceKey]: null,
+      }))
+
+      try {
+        const releases = await services
+          .getAIModelService()
+          .listGitHubReleases(source.owner, source.repo)
+
+        setCatalogReleasesBySource((current) => ({
+          ...current,
+          [sourceKey]: releases,
+        }))
+        setCatalogReleaseSelectionBySource((current) => {
+          const defaultRelease = getDefaultCatalogRelease(releases)
+          const currentSelection = current[sourceKey]
+          const hasCurrentSelection = releases.some(
+            (release) => release.tagName === currentSelection
+          )
+
+          if (hasCurrentSelection) {
+            return current
+          }
+
+          return {
+            ...current,
+            [sourceKey]: defaultRelease?.tagName || "",
+          }
+        })
+      } catch (error) {
+        setCatalogReleaseErrorBySource((current) => ({
+          ...current,
+          [sourceKey]:
+            error instanceof Error
+              ? error.message
+              : "Could not load GitHub releases for this model family.",
+        }))
+      } finally {
+        setCatalogReleaseLoadingBySource((current) => ({
+          ...current,
+          [sourceKey]: false,
+        }))
+      }
+    },
+    []
+  )
+
   useEffect(() => {
     void loadData()
   }, [loadData])
+
+  useEffect(() => {
+    for (const source of releaseSources) {
+      void loadCatalogReleases(source)
+    }
+  }, [loadCatalogReleases, releaseSources])
 
   useEffect(() => {
     let unlisten: (() => void) | undefined
@@ -161,9 +353,53 @@ export const useAIModelViewModel = () => {
     [availableModels]
   )
 
+  const systemModels = useMemo<CatalogSystemModel[]>(() => {
+    return SYSTEM_MODELS.map((model) => {
+      if (!model.releaseSource) {
+        return {
+          ...model,
+          variants: model.variants?.map((variant) =>
+            resolveCatalogVariant(variant, null)
+          ),
+        }
+      }
+
+      const sourceKey = githubReleaseSourceKey(model.releaseSource)
+      const releases = catalogReleasesBySource[sourceKey] || []
+      const defaultRelease = getDefaultCatalogRelease(releases)
+      const selectedReleaseTag =
+        catalogReleaseSelectionBySource[sourceKey] || defaultRelease?.tagName
+      const selectedRelease =
+        releases.find((release) => release.tagName === selectedReleaseTag) ||
+        defaultRelease ||
+        null
+
+      return {
+        ...model,
+        selectedReleaseTag,
+        releaseOptions: releases.map((release) => ({
+          tagName: release.tagName,
+          label: releaseOptionLabel(release),
+          prerelease: release.prerelease,
+          publishedAt: release.publishedAt,
+        })),
+        isReleaseLoading: catalogReleaseLoadingBySource[sourceKey] || false,
+        releaseError: catalogReleaseErrorBySource[sourceKey] || null,
+        variants: model.variants?.map((variant) =>
+          resolveCatalogVariant(variant, selectedRelease)
+        ),
+      }
+    })
+  }, [
+    catalogReleaseErrorBySource,
+    catalogReleaseLoadingBySource,
+    catalogReleaseSelectionBySource,
+    catalogReleasesBySource,
+  ])
+
   const recommendedSystemModel = useMemo(
-    () => getRecommendedSystemModel(SYSTEM_MODELS),
-    []
+    () => getRecommendedSystemModel(systemModels),
+    [systemModels]
   )
 
   const selectModel = (modelId: string) => {
@@ -184,9 +420,19 @@ export const useAIModelViewModel = () => {
       .update("modelPath", nextModel?.modelPath || "")
   }
 
+  const selectCatalogRelease = (model: SystemModel, tagName: string) => {
+    if (!model.releaseSource) return
+
+    const sourceKey = githubReleaseSourceKey(model.releaseSource)
+    setCatalogReleaseSelectionBySource((current) => ({
+      ...current,
+      [sourceKey]: tagName,
+    }))
+  }
+
   return {
     availableModels,
-    systemModels: SYSTEM_MODELS,
+    systemModels,
     selectedModel,
     selectedModelId,
     recommendedInstalledModel,
@@ -196,6 +442,11 @@ export const useAIModelViewModel = () => {
     isImportingModel,
     installingCatalogVariantKey,
     selectModel,
+    selectCatalogRelease,
+    refreshCatalogReleases: async (model: SystemModel) => {
+      if (!model.releaseSource) return
+      await loadCatalogReleases(model.releaseSource)
+    },
     saveModelSelection,
     saveModelPath: async (nextModelPath: string) => {
       setModelPath(nextModelPath)
@@ -219,7 +470,8 @@ export const useAIModelViewModel = () => {
         current.map((model) => ({
           ...model,
           isActive: model.id === nextModel.id,
-          lastUsed: model.id === nextModel.id ? nextModel.lastUsed : model.lastUsed,
+          lastUsed:
+            model.id === nextModel.id ? nextModel.lastUsed : model.lastUsed,
         }))
       )
       setSelectedModelId(nextModel.id)
@@ -244,22 +496,31 @@ export const useAIModelViewModel = () => {
       }
     },
     installSystemModel: async (
-      model: SystemModel,
-      variant: SystemModelVariant
+      model: CatalogSystemModel,
+      variant: CatalogSystemModelVariant
     ) => {
       const variantKey = buildCatalogVariantKey(model, variant)
       setInstallingCatalogVariantKey(variantKey)
 
       try {
+        if (!variant.available) {
+          throw new Error(
+            variant.unavailableReason ||
+              "This asset is not available in the selected GitHub release."
+          )
+        }
+
         const taskType = model.taskType || getModelType(model.category)
+        const downloadUrl = variant.resolvedDownloadUrl || variant.downloadUrl
         const installedModel = await services.getAIModelService().installModel({
           name: `${model.name} (${variant.name})`,
           description: model.description,
-          version: getCatalogVersion(variant.downloadUrl),
+          version: variant.resolvedVersion || getCatalogVersion(downloadUrl),
           category: model.category,
           type: taskType,
           taskType,
-          downloadUrl: variant.downloadUrl,
+          downloadUrl,
+          fileName: variant.assetName || extractAssetFileName(downloadUrl) || undefined,
         })
 
         setAvailableModels((current) => {
@@ -278,5 +539,3 @@ export const useAIModelViewModel = () => {
 }
 
 export type AIModelViewModel = ReturnType<typeof useAIModelViewModel>
-export type { SystemModel }
-

@@ -36,11 +36,14 @@ interface CanvasContextType {
   lastPanPoint: Point | null
   contextMenu: { visible: boolean; x: number; y: number; items: any[] }
   container: { width: number; height: number }
+  showCrosshair: boolean
+  showCoordinates: boolean
   setZoom: (zoom: number) => void
   zoomIn: () => void
   zoomOut: () => void
   setPanOffset: (pan: Point) => void
   panTo: (x: number, y: number) => void
+  resetView: () => void
   setCursorPosition: (cursor: Point | null) => void
   setSelectedTool: (tool: string) => void
   setToolState: (state: Partial<ToolState>) => void
@@ -54,13 +57,17 @@ interface CanvasContextType {
     items: any[]
   }) => void
   setContainer: (container: { width: number; height: number }) => void
+  setShowCrosshair: (showCrosshair: boolean) => void
+  setShowCoordinates: (showCoordinates: boolean) => void
+  toggleCrosshair: () => void
+  toggleCoordinates: () => void
   resetCanvas: () => void
 }
 
 const CanvasContext = createContext<CanvasContextType | undefined>(undefined)
 
 export const CanvasProvider = ({ children }: { children: ReactNode }) => {
-  const [zoom, setZoom] = useState(1)
+  const [zoom, setInternalZoom] = useState(1)
   const [panOffset, setPanOffset] = useState<Point>({ x: 0, y: 0 })
   const [cursorPosition, setCursorPosition] = useState<Point | null>(null)
   const [selectedTool, setSelectedTool] = useState("move")
@@ -74,35 +81,69 @@ export const CanvasProvider = ({ children }: { children: ReactNode }) => {
     y: 0,
     items: [],
   })
-  const [container, setContainer] = useState({ width: 0, height: 0 })
+  const [container, setContainerState] = useState({ width: 0, height: 0 })
+  const [showCrosshair, setShowCrosshair] = useState(true)
+  const [showCoordinates, setShowCoordinates] = useState(true)
+
+  const setZoom = useCallback((nextZoom: number) => {
+    const normalizedZoom = Number.isFinite(nextZoom) ? nextZoom : 1
+    setInternalZoom(Math.min(Math.max(normalizedZoom, 0.1), 5))
+  }, [])
 
   const setToolState = useCallback((state: Partial<ToolState>) => {
     setInternalToolState((current) => ({ ...current, ...state }))
   }, [])
 
   const zoomIn = useCallback(() => {
-    setZoom((current) => Math.min(current * 1.2, 5))
+    setInternalZoom((current) => Math.min(current * 1.2, 5))
   }, [])
 
   const zoomOut = useCallback(() => {
-    setZoom((current) => Math.max(current / 1.2, 0.1))
+    setInternalZoom((current) => Math.max(current / 1.2, 0.1))
   }, [])
 
   const panTo = useCallback((x: number, y: number) => {
     setPanOffset({ x, y })
   }, [])
 
-  const resetCanvas = useCallback(() => {
+  const resetView = useCallback(() => {
     setZoom(1)
     setPanOffset({ x: 0, y: 0 })
     setCursorPosition(null)
+    setIsPanning(false)
+    setLastPanPoint(null)
+  }, [setZoom])
+
+  const setContainer = useCallback(
+    (nextContainer: { width: number; height: number }) => {
+      setContainerState((current) => {
+        if (
+          current.width === nextContainer.width &&
+          current.height === nextContainer.height
+        ) {
+          return current
+        }
+        return nextContainer
+      })
+    },
+    []
+  )
+
+  const toggleCrosshair = useCallback(() => {
+    setShowCrosshair((current) => !current)
+  }, [])
+
+  const toggleCoordinates = useCallback(() => {
+    setShowCoordinates((current) => !current)
+  }, [])
+
+  const resetCanvas = useCallback(() => {
+    resetView()
     setSelectedTool("move")
     setInternalToolState({})
     setSelectedAnnotation(null)
-    setIsPanning(false)
-    setLastPanPoint(null)
     setContextMenu({ visible: false, x: 0, y: 0, items: [] })
-  }, [])
+  }, [resetView])
 
   const value = useMemo<CanvasContextType>(
     () => ({
@@ -116,11 +157,14 @@ export const CanvasProvider = ({ children }: { children: ReactNode }) => {
       lastPanPoint,
       contextMenu,
       container,
+      showCrosshair,
+      showCoordinates,
       setZoom,
       zoomIn,
       zoomOut,
       setPanOffset,
       panTo,
+      resetView,
       setCursorPosition,
       setSelectedTool,
       setToolState,
@@ -129,6 +173,10 @@ export const CanvasProvider = ({ children }: { children: ReactNode }) => {
       setLastPanPoint,
       setContextMenu,
       setContainer,
+      setShowCrosshair,
+      setShowCoordinates,
+      toggleCrosshair,
+      toggleCoordinates,
       resetCanvas,
     }),
     [
@@ -142,10 +190,17 @@ export const CanvasProvider = ({ children }: { children: ReactNode }) => {
       lastPanPoint,
       contextMenu,
       container,
+      showCrosshair,
+      showCoordinates,
+      setZoom,
       zoomIn,
       zoomOut,
       panTo,
       setToolState,
+      resetView,
+      setContainer,
+      toggleCrosshair,
+      toggleCoordinates,
       resetCanvas,
     ]
   )
@@ -163,7 +218,12 @@ const useCanvas = () => {
   return context
 }
 
-export const useCanvasState = () => useCanvas()
+export const useCanvasState = <TSelected = CanvasContextType>(
+  selector?: (state: CanvasContextType) => TSelected
+): TSelected => {
+  const state = useCanvas()
+  return selector ? selector(state) : (state as TSelected)
+}
 
 export const useCanvasTool = () => {
   const { selectedTool, setSelectedTool, toolState, setToolState } = useCanvas()
@@ -176,8 +236,8 @@ export const useCanvasZoom = () => {
 }
 
 export const useCanvasPan = () => {
-  const { panOffset, setPanOffset, panTo } = useCanvas()
-  return { panOffset, setPanOffset, panTo }
+  const { panOffset, setPanOffset, panTo, resetView } = useCanvas()
+  return { panOffset, setPanOffset, panTo, resetView }
 }
 
 export const useCanvasCursor = () => {
@@ -218,5 +278,25 @@ export const useCanvasPanning = () => {
     setIsPanning,
     lastPanPoint,
     setLastPanPoint,
+  }
+}
+
+export const useCanvasDisplay = () => {
+  const {
+    showCrosshair,
+    showCoordinates,
+    setShowCrosshair,
+    setShowCoordinates,
+    toggleCrosshair,
+    toggleCoordinates,
+  } = useCanvas()
+
+  return {
+    showCrosshair,
+    showCoordinates,
+    setShowCrosshair,
+    setShowCoordinates,
+    toggleCrosshair,
+    toggleCoordinates,
   }
 }

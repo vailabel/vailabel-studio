@@ -208,6 +208,43 @@ describe("useImageLabelerViewModel", () => {
     expect(result.current.predictions).toEqual(nextPredictions)
   })
 
+  it("keeps loading state active while prediction generation is in flight", async () => {
+    const nextPredictions = [
+      {
+        ...prediction,
+        id: "prediction-2",
+      },
+    ]
+    let resolveGenerate: ((value: typeof nextPredictions) => void) | undefined
+    let generatePromise: Promise<unknown> | undefined
+    mockPredictionService.generate.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveGenerate = resolve
+        })
+    )
+
+    const { result } = renderHook(() =>
+      useImageLabelerViewModel("project-1", "image-1")
+    )
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+    act(() => {
+      generatePromise = result.current.generatePredictions("model-1", 0.5)
+    })
+
+    await waitFor(() => expect(result.current.isGeneratingPredictions).toBe(true))
+
+    await act(async () => {
+      resolveGenerate?.(nextPredictions)
+      await generatePromise
+    })
+
+    await waitFor(() => expect(result.current.isGeneratingPredictions).toBe(false))
+    expect(result.current.predictions).toEqual(nextPredictions)
+  })
+
   it("resets loading state when prediction generation fails", async () => {
     mockPredictionService.generate.mockRejectedValue(
       new Error("This model is not ready for AI detect.")

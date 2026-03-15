@@ -111,6 +111,11 @@ export const systemModelSchema = z.object({
   name: z.string(),
   description: z.string(),
   category: z.enum(["segmentation", "detection", "classification", "tracking", "pose"]),
+  releaseSource: z.object({
+    provider: z.literal("github"),
+    owner: z.string(),
+    repo: z.string(),
+  }).optional(),
   family: z.string().optional(),
   taskType: z.string().optional(),
   defaultRank: z.number().optional(),
@@ -119,6 +124,7 @@ export const systemModelSchema = z.object({
   variants: z.array(z.object({
     name: z.string(),
     slug: z.string().optional(),
+    assetName: z.string().optional(),
     downloadUrl: z.string().url(),
     size: z.number().optional(),
     accuracy: z.number().min(0).max(100).optional(),

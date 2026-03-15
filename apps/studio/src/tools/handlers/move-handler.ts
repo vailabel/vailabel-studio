@@ -71,6 +71,7 @@ export class MoveHandler implements ToolHandler {
           isMoving: true,
         })
       } else {
+        this.context.setSelectedAnnotation(null)
         // Start panning with alt+click or middle button
         if (e.altKey || (e.button && e.button === 1)) {
           this.context.setIsPanning(true)
@@ -100,7 +101,7 @@ export class MoveHandler implements ToolHandler {
         annotation.coordinates = (toolState.previewCoordinates as Point[])
         annotation.updatedAt = new Date()
         // Save the resized annotation with updated timestamp
-        this.context.annotationsStore.updateAnnotation(
+        void this.context.annotationsStore.updateAnnotation(
           annotation.id,
           { coordinates: annotation.coordinates, updatedAt: annotation.updatedAt }
         )
@@ -121,7 +122,7 @@ export class MoveHandler implements ToolHandler {
         annotation.coordinates = (toolState.previewCoordinates as Point[])
         annotation.updatedAt = new Date()
         // Save the moved annotation with updated timestamp
-        this.context.annotationsStore.updateAnnotation(
+        void this.context.annotationsStore.updateAnnotation(
           annotation.id,
           { coordinates: annotation.coordinates, updatedAt: annotation.updatedAt }
         )

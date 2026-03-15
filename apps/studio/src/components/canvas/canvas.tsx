@@ -12,6 +12,7 @@ import {
   useCanvasTool,
   useCanvasSelection,
   useCanvasContainer,
+  useCanvasDisplay,
 } from "@/contexts/canvas-context"
 import { TempAnnotation } from "./temp-annotation"
 import { ToolStatus } from "./tool-status"
@@ -35,6 +36,8 @@ interface CanvasProps {
   ) => Promise<void>
   onDeleteAnnotation: (annotationId: string) => Promise<void>
   onRefreshAnnotations?: () => Promise<void>
+  onUndo?: () => Promise<void> | void
+  onRedo?: () => Promise<void> | void
 }
 
 // Memoize the image component to prevent unnecessary re-renders
@@ -81,6 +84,8 @@ export const Canvas = memo(
     onUpdateAnnotation,
     onDeleteAnnotation,
     onRefreshAnnotations,
+    onUndo,
+    onRedo,
   }: CanvasProps) => {
     // Use Context hooks instead of Zustand
     const { zoom } = useCanvasZoom()
@@ -88,8 +93,11 @@ export const Canvas = memo(
     const { selectedTool, setToolState } = useCanvasTool()
     const { setSelectedAnnotation } = useCanvasSelection()
     const { container, setContainer } = useCanvasContainer()
+    const { showCrosshair, showCoordinates } = useCanvasDisplay()
 
     const canvasRef = useRef<HTMLDivElement | null>(null)
+    const resizeFrameRef = useRef<number | null>(null)
+    const lastMeasuredSizeRef = useRef({ width: 0, height: 0 })
 
     useEffect(() => {
       const node = canvasRef.current
@@ -97,13 +105,52 @@ export const Canvas = memo(
 
       const updateSize = () => {
         const rect = node.getBoundingClientRect()
-        setContainer({ width: rect.width, height: rect.height })
+        const nextSize = {
+          width: Math.round(rect.width),
+          height: Math.round(rect.height),
+        }
+
+        if (
+          nextSize.width === lastMeasuredSizeRef.current.width &&
+          nextSize.height === lastMeasuredSizeRef.current.height
+        ) {
+          return
+        }
+
+        lastMeasuredSizeRef.current = nextSize
+        setContainer(nextSize)
       }
 
-      updateSize()
-      const observer = new ResizeObserver(updateSize)
-      observer.observe(node)
-      return () => observer.disconnect()
+      const scheduleUpdateSize = () => {
+        if (resizeFrameRef.current !== null) {
+          cancelAnimationFrame(resizeFrameRef.current)
+        }
+
+        resizeFrameRef.current = requestAnimationFrame(() => {
+          resizeFrameRef.current = null
+          updateSize()
+        })
+      }
+
+      scheduleUpdateSize()
+
+      const observer =
+        typeof ResizeObserver === "undefined"
+          ? null
+          : new ResizeObserver(() => {
+              scheduleUpdateSize()
+            })
+
+      observer?.observe(node)
+      window.addEventListener("resize", scheduleUpdateSize)
+
+      return () => {
+        observer?.disconnect()
+        window.removeEventListener("resize", scheduleUpdateSize)
+        if (resizeFrameRef.current !== null) {
+          cancelAnimationFrame(resizeFrameRef.current)
+        }
+      }
     }, [setContainer])
 
     const centerOffset = useMemo(
@@ -131,6 +178,8 @@ export const Canvas = memo(
       {
         updateAnnotation: onUpdateAnnotation,
         deleteAnnotation: onDeleteAnnotation,
+        undo: onUndo,
+        redo: onRedo,
       },
       { id: image.id, width: image.width, height: image.height },
       {
@@ -329,8 +378,12 @@ export const Canvas = memo(
                   )}
                 </div>
 
-                <Crosshair canvasRef={canvasRef} baseOffset={baseOffset} />
-                <PositionCoordinates baseOffset={baseOffset} />
+                {showCrosshair && (
+                  <Crosshair canvasRef={canvasRef} baseOffset={baseOffset} />
+                )}
+                {showCoordinates && (
+                  <PositionCoordinates baseOffset={baseOffset} />
+                )}
 
                 {/* Show tool status for all tools */}
                 <ToolStatus

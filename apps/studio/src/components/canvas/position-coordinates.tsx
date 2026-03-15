@@ -1,5 +1,11 @@
 import React, { useEffect, useState, memo, useMemo, useRef } from "react"
-import { useCanvasCursor, useCanvasZoom, useCanvasPan, useCanvasTool } from "@/contexts/canvas-context"
+import {
+  useCanvasCursor,
+  useCanvasDisplay,
+  useCanvasZoom,
+  useCanvasPan,
+  useCanvasTool,
+} from "@/contexts/canvas-context"
 
 type Offset = { x: number; y: number }
 
@@ -8,6 +14,7 @@ export const PositionCoordinates: React.FC<{ baseOffset?: Offset }> = memo(({ ba
   const { zoom } = useCanvasZoom()
   const { panOffset } = useCanvasPan()
   const { toolState } = useCanvasTool()
+  const { showCoordinates } = useCanvasDisplay()
   const offset = baseOffset || panOffset
   
   const [tooltipPosition, setTooltipPosition] = useState({ left: 0, top: 0 })
@@ -56,7 +63,7 @@ export const PositionCoordinates: React.FC<{ baseOffset?: Offset }> = memo(({ ba
     setTooltipPosition({ left: adjustedLeft, top: adjustedTop })
   }, [cursorPosition, zoom, offset.x, offset.y, shouldUpdate])
 
-  if (!cursorPosition || !roundedCoords) return null
+  if (!showCoordinates || !cursorPosition || !roundedCoords) return null
 
   return (
     <div

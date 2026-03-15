@@ -10,6 +10,10 @@ interface CreateAnnotationDraftInput {
   coordinates: Array<{ x: number; y: number }>
 }
 
+function waitForNextPaint(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0))
+}
+
 export const useImageLabelerViewModel = (
   projectId?: string,
   imageId?: string
@@ -201,6 +205,7 @@ export const useImageLabelerViewModel = (
 
       setIsGeneratingPredictions(true)
       try {
+        await waitForNextPaint()
         const nextPredictions = await services.getPredictionService().generate({
           imageId: image.id,
           modelId,

@@ -1,6 +1,7 @@
 import { AIModel } from "@/types/core"
 import type { ModelImportPayload, ModelInstallPayload } from "@/types/core"
 import { studioCommands } from "@/ipc/studio"
+import type { GitHubRelease } from "@/lib/github-releases"
 
 export const aiModelsService = {
   list: () => studioCommands.aiModelsList(),
@@ -16,5 +17,7 @@ export const aiModelsService = {
     studioCommands.aiModelsImport(payload),
   installModel: (payload: ModelInstallPayload) =>
     studioCommands.aiModelsInstall(payload),
+  listGitHubReleases: (owner: string, repo: string): Promise<GitHubRelease[]> =>
+    studioCommands.aiModelsCatalogReleases({ owner, repo }),
 }
 

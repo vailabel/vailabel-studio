@@ -31,6 +31,13 @@ pub struct ModelInstallPayload {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct GitHubReleaseLookupPayload {
+    pub owner: String,
+    pub repo: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ModelActivationPayload {
     pub model_id: String,
 }

@@ -1,4 +1,4 @@
-import React from "react"
+import React, { memo, useMemo } from "react"
 import {
   Square,
   OctagonIcon as Polygon,
@@ -24,143 +24,121 @@ import {
 } from "@/components/ui/tooltip"
 import { Separator } from "@/components/ui/separator"
 import { AIDetectionButton } from "@/components/ai-detection-button"
-import {
-  canAttemptModelPrediction,
-  getPredictionReadinessLabel,
-  getModelUnsupportedReason,
-  isModelPredictionReady,
-  willModelConvertOnRun,
-} from "@/lib/ai-model-metadata"
-import type { ImageData } from "@/types/core"
-import { useCanvasTool, useCanvasZoom, useCanvasPan, useCanvasState } from "@/contexts/canvas-context"
-import { memo, useCallback } from "react"
-import { useAIModelViewModel } from "@/viewmodels/ai-model-viewmodel"
+import type { AIModel, ImageData } from "@/types/core"
+import type { CanvasTool } from "@/features/studio/types"
 
 interface ToolbarProps {
   currentImage: ImageData | null
-  onOpenSettings: () => void
+  selectedTool: CanvasTool
+  onSelectTool: (tool: CanvasTool) => void
+  zoom: number
+  onZoomIn: () => void
+  onZoomOut: () => void
+  onResetView: () => void
+  showCrosshair: boolean
+  showCoordinates: boolean
+  onToggleCrosshair: () => void | Promise<void>
+  onToggleCoordinates: () => void | Promise<void>
+  canUndo: boolean
+  canRedo: boolean
+  onUndo: () => void | Promise<void>
+  onRedo: () => void | Promise<void>
+  selectedModel: AIModel | null
+  selectedModelId?: string
+  selectedModelPredictionReady: boolean
+  selectedModelCanAttemptPrediction: boolean
+  selectedModelWillConvertOnRun: boolean
+  selectedModelUnsupportedReason?: string
+  selectedModelReadinessLabel: string
   onOpenAISettings: () => void
   onGeneratePredictions: (modelId: string) => Promise<unknown>
   isGeneratingPredictions?: boolean
 }
 
-interface Tool {
-  id: string
+interface ToolButtonConfig {
+  id: CanvasTool
   name: string
   icon: React.ElementType
   shortcut: string
-  condition?: boolean
-  action?: () => void
 }
 
-interface AdditionalTool {
+interface UtilityButtonConfig {
   id: string
   name: string
   icon: React.ElementType
   shortcut: string
   active?: boolean
-  action: () => void
+  disabled?: boolean
+  onClick: () => void | Promise<void>
 }
+
+const annotationTools: ToolButtonConfig[] = [
+  { id: "move", name: "Move", icon: Move, shortcut: "M" },
+  { id: "box", name: "Draw Box", icon: Square, shortcut: "B" },
+  { id: "polygon", name: "Draw Polygon", icon: Polygon, shortcut: "P" },
+  { id: "freeDraw", name: "Free Draw", icon: Pencil, shortcut: "F" },
+  { id: "delete", name: "Delete", icon: Trash2, shortcut: "D" },
+]
 
 export const Toolbar = memo(
   ({
     currentImage,
+    selectedTool,
+    onSelectTool,
+    zoom,
+    onZoomIn,
+    onZoomOut,
+    onResetView,
+    showCrosshair,
+    showCoordinates,
+    onToggleCrosshair,
+    onToggleCoordinates,
+    canUndo,
+    canRedo,
+    onUndo,
+    onRedo,
+    selectedModel,
+    selectedModelId,
+    selectedModelPredictionReady,
+    selectedModelCanAttemptPrediction,
+    selectedModelWillConvertOnRun,
+    selectedModelUnsupportedReason,
+    selectedModelReadinessLabel,
     onOpenAISettings,
     onGeneratePredictions,
     isGeneratingPredictions = false,
   }: ToolbarProps) => {
-  const { selectedTool, setSelectedTool } = useCanvasTool()
-  const { zoom, setZoom } = useCanvasZoom()
-  const { resetView } = useCanvasPan()
-  const { selectedModel, selectedModelId } = useAIModelViewModel()
-  const modelPredictionReady = isModelPredictionReady(selectedModel)
-  const modelCanAttemptPrediction = canAttemptModelPrediction(selectedModel)
-  const modelWillConvertOnRun = willModelConvertOnRun(selectedModel)
-  const modelUnsupportedReason = getModelUnsupportedReason(selectedModel)
-  const modelReadinessLabel = getPredictionReadinessLabel(selectedModel)
-  const { showCrosshair, showCoordinates } = useCanvasState(state => ({
-    showCrosshair: state.showCrosshair,
-    showCoordinates: state.showCoordinates
-  }))
-  // Note: Undo/Redo functionality would need to be implemented in the service layer
-  const undo = useCallback(() => console.log("Undo not implemented yet"), [])
-  const redo = useCallback(() => console.log("Redo not implemented yet"), [])
-  const canUndo = false
-  const canRedo = false
-    const selectedTools = React.useMemo(
-      (): Tool[] => [
-        {
-          id: "move",
-          name: "Move",
-          icon: Move,
-          shortcut: "M",
-          action: () => setSelectedTool("move"),
-        },
-        {
-          id: "box",
-          name: "Draw Box",
-          icon: Square,
-          shortcut: "B",
-          action: () => setSelectedTool("box"),
-        },
-        {
-          id: "polygon",
-          name: "Draw Polygon",
-          icon: Polygon,
-          shortcut: "P",
-          action: () => setSelectedTool("polygon"),
-        },
-        {
-          id: "freeDraw",
-          name: "Free Draw",
-          icon: Pencil,
-          shortcut: "F",
-          action: () => setSelectedTool("freeDraw"),
-        },
-        {
-          id: "delete",
-          name: "Delete",
-          icon: Trash2,
-          shortcut: "D",
-          action: () => setSelectedTool("delete"),
-        },
-      ],
-      [setSelectedTool]
-    )
-
-    const clickableTools = React.useMemo(
-      (): Tool[] => [
+    const utilityButtons = useMemo<UtilityButtonConfig[]>(
+      () => [
         {
           id: "undo",
           name: "Undo",
           icon: RotateCcw,
           shortcut: "Cmd+Z",
-          condition: canUndo,
-          action: () => undo(),
+          disabled: !canUndo,
+          onClick: onUndo,
         },
         {
           id: "redo",
           name: "Redo",
           icon: RotateCw,
-          condition: canRedo,
           shortcut: "Cmd+Shift+Z",
-          action: () => redo(),
+          disabled: !canRedo,
+          onClick: onRedo,
         },
       ],
-      [canUndo, canRedo, undo, redo]
+      [canRedo, canUndo, onRedo, onUndo]
     )
 
-    const additionalTool = React.useMemo(
-      (): AdditionalTool[] => [
+    const displayButtons = useMemo<UtilityButtonConfig[]>(
+      () => [
         {
           id: "crosshair",
           name: "Crosshair",
           icon: Crosshair,
           shortcut: "C",
           active: showCrosshair,
-          action: () => {
-            // TODO: Implement crosshair toggle in Context
-          },
+          onClick: onToggleCrosshair,
         },
         {
           id: "coordinates",
@@ -168,22 +146,78 @@ export const Toolbar = memo(
           icon: MousePointer,
           shortcut: "Alt+Shift+C",
           active: showCoordinates,
-          action: () => {
-            // TODO: Implement coordinates toggle in Context
-          },
+          onClick: onToggleCoordinates,
         },
       ],
-      [showCrosshair, showCoordinates]
+      [
+        onToggleCoordinates,
+        onToggleCrosshair,
+        showCoordinates,
+        showCrosshair,
+      ]
     )
 
     return (
-      <div className="flex items-center justify-between border-b p-1 bg-background border-border">
-        <AnnotationTools
-          selectedTool={selectedTool}
-          setSelectedTool={setSelectedTool}
-          clickableTools={clickableTools}
-          selectedTools={selectedTools}
-        />
+      <div className="flex items-center justify-between border-b bg-background p-1 border-border">
+        <div className="flex items-center space-x-1">
+          <TooltipProvider>
+            {annotationTools.map((tool) => (
+              <Tooltip key={tool.id}>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      "relative h-8 w-8 transition-all duration-200",
+                      selectedTool === tool.id &&
+                        "border-2 border-primary bg-primary/10 text-primary"
+                    )}
+                    onClick={() => onSelectTool(tool.id)}
+                  >
+                    <tool.icon className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <div className="flex items-center">
+                    <span>{tool.name}</span>
+                    <kbd className="ml-2 rounded border border-border bg-muted px-1.5 text-xs">
+                      {tool.shortcut}
+                    </kbd>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            ))}
+
+            <Separator orientation="vertical" className="mx-2 h-6" />
+
+            {utilityButtons.map((tool) => (
+              <Tooltip key={tool.id}>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={tool.disabled}
+                    className="relative h-8 w-8 hover:bg-muted"
+                    onClick={() => {
+                      void tool.onClick()
+                    }}
+                  >
+                    <tool.icon className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <div className="flex items-center">
+                    <span>{tool.name}</span>
+                    <kbd className="ml-2 rounded border border-border bg-muted px-1.5 text-xs">
+                      {tool.shortcut}
+                    </kbd>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            ))}
+          </TooltipProvider>
+        </div>
+
         <div className="flex items-center space-x-1">
           <TooltipProvider>
             <Tooltip>
@@ -192,23 +226,21 @@ export const Toolbar = memo(
                   variant="outline"
                   size="sm"
                   className="h-8 w-8"
-                  onClick={() => setZoom(zoom - 0.1)}
+                  onClick={onZoomOut}
                 >
                   <Minus className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom">Zoom Out</TooltipContent>
             </Tooltip>
-            <p className="text-sm text-foreground">
-              {(zoom * 100).toFixed(0)}%
-            </p>
+            <p className="text-sm text-foreground">{(zoom * 100).toFixed(0)}%</p>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="outline"
                   size="sm"
                   className="h-8 w-8"
-                  onClick={() => setZoom(zoom + 0.1)}
+                  onClick={onZoomIn}
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
@@ -224,7 +256,7 @@ export const Toolbar = memo(
                   variant="ghost"
                   size="sm"
                   className="h-8 w-8"
-                  onClick={() => resetView()}
+                  onClick={onResetView}
                 >
                   <RefreshCcw className="h-4 w-4" />
                 </Button>
@@ -233,12 +265,10 @@ export const Toolbar = memo(
             </Tooltip>
           </TooltipProvider>
 
-          <Separator
-            orientation="vertical"
-            className="mx-2 h-6"
-          />
+          <Separator orientation="vertical" className="mx-2 h-6" />
+
           <TooltipProvider>
-            {additionalTool.map((tool) => (
+            {displayButtons.map((tool) => (
               <Tooltip key={tool.id}>
                 <TooltipTrigger asChild>
                   <Button
@@ -247,29 +277,26 @@ export const Toolbar = memo(
                     className={cn(
                       "h-8 w-8",
                       tool.active
-                        ? "bg-primary/10 text-primary border-2 border-primary"
+                        ? "border-2 border-primary bg-primary/10 text-primary"
                         : "hover:bg-muted"
                     )}
-                    onClick={tool.action}
+                    onClick={() => {
+                      void tool.onClick()
+                    }}
                     aria-pressed={tool.active}
                   >
                     <tool.icon
                       className={cn("h-4 w-4", tool.active ? "scale-110" : "")}
                     />
-                    {tool.active && (
-                      <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-primary animate-pulse" />
-                    )}
+                    {tool.active ? (
+                      <span className="absolute right-1 top-1 block h-2 w-2 animate-pulse rounded-full bg-primary" />
+                    ) : null}
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom">
                   <div className="flex items-center">
                     <span>{tool.name}</span>
-                    <kbd
-                      className={cn(
-                        "ml-2 rounded border px-1.5 text-xs",
-                        "border-border bg-muted"
-                      )}
-                    >
+                    <kbd className="ml-2 rounded border border-border bg-muted px-1.5 text-xs">
                       {tool.shortcut}
                     </kbd>
                   </div>
@@ -278,39 +305,43 @@ export const Toolbar = memo(
             ))}
           </TooltipProvider>
 
-          <Separator
-            orientation="vertical"
-            className="mx-2 h-6"
-          />
-          {selectedModel && (
+          <Separator orientation="vertical" className="mx-2 h-6" />
+
+          {selectedModel ? (
             <div className="hidden items-center space-x-2 text-xs text-muted-foreground md:flex">
               <span>
-                Model: <span className="font-medium text-foreground">{selectedModel.name}</span>
+                Model:{" "}
+                <span className="font-medium text-foreground">
+                  {selectedModel.name}
+                </span>
               </span>
               <span className="rounded-full bg-muted px-2 py-0.5 text-[11px]">
-                {selectedModel.modelVersion || selectedModel.model_version || selectedModel.version}
+                {selectedModel.modelVersion ||
+                  selectedModel.model_version ||
+                  selectedModel.version}
               </span>
               <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-foreground">
                 {selectedModel.backend?.toUpperCase() || "CPU"}
               </span>
               <span className="rounded-full bg-muted px-2 py-0.5 text-[11px]">
-                {modelReadinessLabel}
+                {selectedModelReadinessLabel}
               </span>
-              {selectedModel.status && (
+              {selectedModel.status ? (
                 <span className="rounded-full bg-muted px-2 py-0.5 text-[11px]">
                   {selectedModel.status}
                 </span>
-              )}
+              ) : null}
             </div>
-          )}
+          ) : null}
+
           <AIDetectionButton
             image={currentImage}
             selectedModelId={selectedModelId}
             selectedModelName={selectedModel?.name}
-            selectedModelPredictionReady={modelPredictionReady}
-            selectedModelCanAttemptPrediction={modelCanAttemptPrediction}
-            selectedModelWillConvertOnRun={modelWillConvertOnRun}
-            selectedModelUnsupportedReason={modelUnsupportedReason}
+            selectedModelPredictionReady={selectedModelPredictionReady}
+            selectedModelCanAttemptPrediction={selectedModelCanAttemptPrediction}
+            selectedModelWillConvertOnRun={selectedModelWillConvertOnRun}
+            selectedModelUnsupportedReason={selectedModelUnsupportedReason}
             isGenerating={isGeneratingPredictions}
             onOpenModelSettings={onOpenAISettings}
             onGeneratePredictions={onGeneratePredictions}
@@ -337,91 +368,4 @@ export const Toolbar = memo(
   }
 )
 
-type AnnotationToolsProps = {
-  selectedTools: Tool[]
-  selectedTool: string
-  setSelectedTool: (tool: string) => void
-  clickableTools: Tool[]
-}
-
-const AnnotationTools = memo(
-  ({
-    selectedTools,
-    setSelectedTool,
-    selectedTool,
-    clickableTools,
-  }: AnnotationToolsProps) => {
-    return (
-      <div className="flex items-center space-x-1">
-        <TooltipProvider>
-          {selectedTools.map((tool) => (
-            <Tooltip key={tool.id}>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    "relative h-8 w-8 transition-all duration-200",
-                    selectedTool === tool.id &&
-                      "bg-primary/10 text-primary border-2 border-primary"
-                  )}
-                  onClick={() => setSelectedTool(tool.id)}
-                >
-                  <tool.icon className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">
-                <div className="flex items-center">
-                  <span>{tool.name}</span>
-                  <kbd
-                    className={cn(
-                      "ml-2 rounded border px-1.5 text-xs",
-                      "border-border bg-muted"
-                    )}
-                  >
-                    {tool.shortcut}
-                  </kbd>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          ))}
-          <Separator
-            orientation="vertical"
-            className="mx-2 h-6"
-          />
-          {clickableTools.map((tool) => (
-            <Tooltip key={tool.id}>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={!tool.condition}
-                  className={cn(
-                    "relative h-8 w-8 hover:bg-muted"
-                  )}
-                  onClick={() => tool.action && tool.action()}
-                >
-                  <tool.icon className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">
-                <div className="flex items-center">
-                  <span>{tool.name}</span>
-                  <kbd
-                    className={cn(
-                      "ml-2 rounded border px-1.5 text-xs",
-                      "border-border bg-muted"
-                    )}
-                  >
-                    {tool.shortcut}
-                  </kbd>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          ))}
-        </TooltipProvider>
-      </div>
-    )
-  }
-)
-
+Toolbar.displayName = "Toolbar"

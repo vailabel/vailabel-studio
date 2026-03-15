@@ -1,5 +1,6 @@
 use crate::domain::ai::model::{
-    ImageIdPayload, ModelActivationPayload, ModelImportPayload, ModelInstallPayload,
+    GitHubReleaseLookupPayload, ImageIdPayload, ModelActivationPayload, ModelImportPayload,
+    ModelInstallPayload,
     PredictionActionPayload, PredictionGeneratePayload,
 };
 use crate::domain::projects::model::{EntityIdPayload, ProjectIdPayload};
@@ -68,6 +69,14 @@ pub fn ai_models_install(
 }
 
 #[tauri::command]
+pub fn ai_models_catalog_releases(
+    state: State<AppState>,
+    payload: GitHubReleaseLookupPayload,
+) -> Result<Vec<Value>, AppError> {
+    state.ai_service.list_github_releases(payload)
+}
+
+#[tauri::command]
 pub fn predictions_list_by_image(
     state: State<AppState>,
     payload: ImageIdPayload,
@@ -78,12 +87,19 @@ pub fn predictions_list_by_image(
 }
 
 #[tauri::command]
-pub fn predictions_generate(
+pub async fn predictions_generate(
     app: tauri::AppHandle,
-    state: State<AppState>,
+    state: State<'_, AppState>,
     payload: PredictionGeneratePayload,
 ) -> Result<Vec<Value>, AppError> {
-    state.ai_service.generate_predictions(&app, payload)
+    let ai_service = state.ai_service.clone();
+    let app = app.clone();
+
+    tauri::async_runtime::spawn_blocking(move || -> Result<Vec<Value>, AppError> {
+        ai_service.generate_predictions(&app, payload)
+    })
+        .await
+        .map_err(|error| AppError::Message(format!("AI detection task failed: {error}")))?
 }
 
 #[tauri::command]

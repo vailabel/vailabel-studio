@@ -1,4 +1,5 @@
 import { invokeWithLogging } from "@/ipc/invoke"
+import type { GitHubRelease } from "@/lib/github-releases"
 import type {
   AIModel,
   Annotation,
@@ -27,6 +28,11 @@ interface PredictionGenerateRequest {
   imageId: string
   modelId: string
   threshold?: number
+}
+
+interface GitHubReleaseLookupRequest {
+  owner: string
+  repo: string
 }
 
 const call = <T>(command: string, args?: Record<string, unknown>) =>
@@ -102,6 +108,8 @@ export const studioCommands = {
     call<AIModel>("ai_models_import", { payload }),
   aiModelsInstall: (payload: ModelInstallPayload) =>
     call<AIModel>("ai_models_install", { payload }),
+  aiModelsCatalogReleases: (payload: GitHubReleaseLookupRequest) =>
+    call<GitHubRelease[]>("ai_models_catalog_releases", { payload }),
 
   predictionsListByImage: (imageId: string) =>
     call<Prediction[]>("predictions_list_by_image", { payload: { imageId } }),

@@ -1,5 +1,6 @@
 use crate::domain::ai::model::{
-    InferenceAnnotationDraft, ModelImportPayload, ModelInstallPayload, PredictionGeneratePayload,
+    GitHubReleaseLookupPayload, InferenceAnnotationDraft, ModelImportPayload,
+    ModelInstallPayload, PredictionGeneratePayload,
 };
 use crate::inference::{self, InferenceEngine};
 use crate::store::EntityStore;
@@ -255,6 +256,7 @@ impl AiService {
             &payload.category,
             &family,
             &variant,
+            &payload.version,
         )? {
             return Ok(existing);
         }
@@ -295,6 +297,82 @@ impl AiService {
         }
 
         install_result
+    }
+
+    pub fn list_github_releases(
+        &self,
+        payload: GitHubReleaseLookupPayload,
+    ) -> Result<Vec<Value>, AppError> {
+        let client = Client::builder()
+            .user_agent(format!("{APP_NAME}/{}", env!("CARGO_PKG_VERSION")))
+            .build()?;
+        let url = format!(
+            "https://api.github.com/repos/{}/{}/releases?per_page=20",
+            payload.owner, payload.repo
+        );
+        let response = client
+            .get(url)
+            .header("Accept", "application/vnd.github+json")
+            .header("X-GitHub-Api-Version", "2022-11-28")
+            .send()?
+            .error_for_status()?;
+        let releases: Value = response.json()?;
+        let releases = releases
+            .as_array()
+            .ok_or_else(|| AppError::Message("GitHub releases response was invalid".into()))?;
+
+        Ok(releases
+            .iter()
+            .filter_map(|release| {
+                let id = release.get("id")?.as_i64()?;
+                let tag_name = release.get("tag_name")?.as_str()?.to_string();
+                let name = release
+                    .get("name")
+                    .and_then(Value::as_str)
+                    .unwrap_or(&tag_name)
+                    .to_string();
+                let draft = release
+                    .get("draft")
+                    .and_then(Value::as_bool)
+                    .unwrap_or(false);
+                let prerelease = release
+                    .get("prerelease")
+                    .and_then(Value::as_bool)
+                    .unwrap_or(false);
+                let published_at = release
+                    .get("published_at")
+                    .and_then(Value::as_str)
+                    .map(ToString::to_string);
+                let assets = release
+                    .get("assets")
+                    .and_then(Value::as_array)
+                    .map(|assets| {
+                        assets
+                            .iter()
+                            .filter_map(|asset| {
+                                Some(json!({
+                                  "id": asset.get("id")?.as_i64()?,
+                                  "name": asset.get("name")?.as_str()?,
+                                  "browserDownloadUrl": asset.get("browser_download_url")?.as_str()?,
+                                  "size": asset.get("size").and_then(Value::as_u64),
+                                  "contentType": asset.get("content_type").and_then(Value::as_str),
+                                }))
+                            })
+                            .collect::<Vec<_>>()
+                    })
+                    .unwrap_or_default();
+
+                Some(json!({
+                  "id": id,
+                  "tagName": tag_name,
+                  "name": name,
+                  "draft": draft,
+                  "prerelease": prerelease,
+                  "publishedAt": published_at,
+                  "assets": assets,
+                }))
+            })
+            .collect())
     }
 
     pub fn list_predictions_by_image(&self, image_id: &str) -> Result<Vec<Value>, AppError> {
@@ -1254,6 +1332,7 @@ fn find_existing_model_installation(
     category: &str,
     family: &str,
     variant: &str,
+    version: &str,
 ) -> Result<Option<Value>, AppError> {
     if family.is_empty() || variant.is_empty() {
         return Ok(None);
@@ -1262,6 +1341,7 @@ fn find_existing_model_installation(
     let normalized_category = category.trim().to_ascii_lowercase();
     let normalized_family = family.trim().to_ascii_lowercase();
     let normalized_variant = variant.trim().to_ascii_lowercase();
+    let normalized_version = version.trim().to_ascii_lowercase();
 
     for model in store.list_entities("ai_models")? {
         let installed_category = value_string(&model, "category", "category")
@@ -1276,11 +1356,16 @@ fn find_existing_model_installation(
             .unwrap_or_default()
             .trim()
             .to_ascii_lowercase();
+        let installed_version = value_string(&model, "version", "version")
+            .unwrap_or_default()
+            .trim()
+            .to_ascii_lowercase();
         let model_path = value_string(&model, "modelPath", "model_path").unwrap_or_default();
 
         if installed_category == normalized_category
             && installed_family == normalized_family
             && installed_variant == normalized_variant
+            && installed_version == normalized_version
             && !model_path.is_empty()
             && Path::new(&model_path).exists()
         {

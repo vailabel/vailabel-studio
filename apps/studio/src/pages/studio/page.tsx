@@ -1,5 +1,6 @@
 import { memo, useMemo } from "react"
 import { ImageLabeler } from "@/components/image-labeler"
+import { CanvasProvider } from "@/contexts/canvas-context"
 import { useParams } from "react-router-dom"
 
 // Memoized wrapper to prevent unnecessary re-renders
@@ -20,5 +21,9 @@ export default function ImageStudio() {
     [projectId, imageId]
   )
 
-  return <MemoizedImageLabeler {...labelerProps} />
+  return (
+    <CanvasProvider>
+      <MemoizedImageLabeler {...labelerProps} />
+    </CanvasProvider>
+  )
 }
