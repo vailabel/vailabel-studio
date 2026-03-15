@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Point } from "@vailabel/core"
+import { Point } from "@/types/core"
 
 // Interface for tool handlers
 export interface ToolHandler {
@@ -9,3 +9,4 @@ export interface ToolHandler {
   onMouseUp(e: React.MouseEvent, ...args: any[]): void
   getUIState(): any
 }
+

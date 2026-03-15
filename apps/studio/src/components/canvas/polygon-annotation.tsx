@@ -1,6 +1,6 @@
 import { motion } from "framer-motion"
 import { rgbToRgba } from "../../lib/utils"
-import type { Annotation, Point } from "@vailabel/core"
+import type { Annotation, Point } from "@/types/core"
 import {
   useCanvasZoom,
   useCanvasTool,
@@ -183,3 +183,4 @@ export const PolygonAnnotation = memo(
     )
   }
 )
+

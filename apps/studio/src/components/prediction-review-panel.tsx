@@ -1,5 +1,5 @@
 import { Check, Sparkles, X } from "lucide-react"
-import type { Prediction } from "@vailabel/core"
+import type { Prediction } from "@/types/core"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
@@ -80,3 +80,4 @@ export function PredictionReviewPanel({
     </div>
   )
 }
+

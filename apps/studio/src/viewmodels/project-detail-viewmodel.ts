@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react"
-import { Annotation, ImageData, Label, Project, Task } from "@vailabel/core"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { Annotation, ImageData, Label, Project, Task } from "@/types/core"
 import { z } from "zod"
 import { v4 as uuidv4 } from "uuid"
 import { useNavigate } from "react-router-dom"
+import { listenToStudioEvents } from "@/ipc/events"
 import { services } from "@/services"
 
 export const ProjectEditSchema = z.object({
@@ -49,7 +50,7 @@ export const useProjectDetailViewModel = (projectId: string) => {
   const [isEditingProject, setIsEditingProject] = useState(false)
   const [isCreatingLabel, setIsCreatingLabel] = useState(false)
 
-  const refreshData = async () => {
+  const refreshData = useCallback(async () => {
     setIsLoading(true)
     setError(null)
     try {
@@ -71,11 +72,38 @@ export const useProjectDetailViewModel = (projectId: string) => {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [projectId])
 
   useEffect(() => {
     void refreshData()
-  }, [projectId])
+  }, [refreshData])
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined
+
+    void listenToStudioEvents((event) => {
+      const eventProjectId = event.projectId || event.project_id
+      const isMatchingProjectEvent =
+        event.entity === "projects" && event.id === projectId
+
+      if (eventProjectId && eventProjectId !== projectId && !isMatchingProjectEvent) {
+        return
+      }
+      if (!eventProjectId && event.entity !== "projects") {
+        return
+      }
+
+      void refreshData()
+    }, ["projects", "images", "annotations", "labels", "tasks"]).then(
+      (cleanup) => {
+        unlisten = cleanup
+      }
+    )
+
+    return () => {
+      unlisten?.()
+    }
+  }, [projectId, refreshData])
 
   const projectStats = useMemo(() => {
     const annotatedImages = new Set(annotations.map((item) => item.image_id)).size
@@ -250,3 +278,4 @@ function getImageDimensions(
     image.src = dataUrl
   })
 }
+

@@ -1,5 +1,5 @@
 import { motion } from "framer-motion"
-import type { Annotation } from "@vailabel/core"
+import type { Annotation } from "@/types/core"
 import { memo } from "react"
 
 interface TempBoxAnnotationProps {
@@ -44,3 +44,4 @@ export const TempBoxAnnotation = memo(
 )
 
 TempBoxAnnotation.displayName = "TempBoxAnnotation"
+

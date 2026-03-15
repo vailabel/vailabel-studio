@@ -1,4 +1,4 @@
-import { Task } from "@vailabel/core"
+import { Task } from "@/types/core"
 import { studioCommands } from "@/ipc/studio"
 
 export const tasksService = {
@@ -13,3 +13,4 @@ export const tasksService = {
     studioCommands.tasksSave({ id: taskId, ...updates }),
   delete: (taskId: string) => studioCommands.tasksDelete(taskId),
 }
+

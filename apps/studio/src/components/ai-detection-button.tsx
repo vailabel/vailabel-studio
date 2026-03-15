@@ -8,7 +8,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { useToast } from "@/hooks/use-toast"
-import type { ImageData } from "@vailabel/core"
+import type { ImageData } from "@/types/core"
 
 interface AIDetectionButtonProps {
   image: ImageData | null
@@ -102,3 +102,4 @@ export const AIDetectionButton = ({
     </TooltipProvider>
   )
 }
+

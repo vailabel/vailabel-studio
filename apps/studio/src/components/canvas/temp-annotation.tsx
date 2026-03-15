@@ -1,4 +1,4 @@
-import type { Annotation } from "@vailabel/core"
+import type { Annotation } from "@/types/core"
 import { memo } from "react"
 import {
   TempBoxAnnotation,
@@ -24,3 +24,4 @@ export const TempAnnotation = memo(({ annotation }: TempAnnotationProps) => {
 })
 
 TempAnnotation.displayName = "TempAnnotation"
+

@@ -1,4 +1,4 @@
-import type { Point, Annotation } from "@vailabel/core"
+import type { Point, Annotation } from "@/types/core"
 
 export function getCanvasCoords(
   container: HTMLDivElement | null,
@@ -349,3 +349,4 @@ export function isPointInPolygon(point: Point, polygon: Point[]): boolean {
 
   return inside
 }
+

@@ -56,6 +56,9 @@ export class Annotation {
   name!: string
   type!: string
   coordinates!: { x: number; y: number }[]
+  projectId?: string
+  project_id?: string
+  project?: Project
   imageId?: string
   image_id?: string
   image?: ImageData
@@ -132,6 +135,8 @@ export class AIModel {
   name!: string
   description!: string
   version!: string
+  projectId?: string
+  project_id?: string
   modelPath!: string
   configPath!: string
   modelSize!: number

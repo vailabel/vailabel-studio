@@ -1,7 +1,7 @@
 import React from "react"
 import { CanvasProvider } from "@/contexts/canvas-context"
 import { Canvas } from "./canvas"
-import type { Annotation, ImageData } from "@vailabel/core"
+import type { Annotation, ImageData } from "@/types/core"
 
 interface CanvasWithProviderProps {
   image: ImageData
@@ -15,3 +15,4 @@ export const CanvasWithProvider: React.FC<CanvasWithProviderProps> = ({ image, a
     </CanvasProvider>
   )
 }
+

@@ -16,7 +16,7 @@ import {
 import { sortableKeyboardCoordinates, arrayMove } from "@dnd-kit/sortable"
 import { KanbanTaskCard } from "@/components/kanban-task-card"
 import { DroppableColumn } from "@/components/droppable-column"
-import { Task } from "@vailabel/core"
+import { Task } from "@/types/core"
 
 interface TaskKanbanProps {
   tasks: Task[]
@@ -272,3 +272,4 @@ export const TaskKanban: React.FC<TaskKanbanProps> = ({
     </div>
   )
 }
+

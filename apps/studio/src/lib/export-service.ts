@@ -1,4 +1,4 @@
-import type { Annotation } from "@vailabel/core"
+import type { Annotation } from "@/types/core"
 import JSZip from "jszip"
 import type { IDataAdapter } from "../adapters/data/IDataAdapter"
 
@@ -230,3 +230,4 @@ export class ExportService {
     })
   }
 }
+

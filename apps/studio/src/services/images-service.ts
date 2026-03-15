@@ -1,4 +1,4 @@
-import { ImageData } from "@vailabel/core"
+import { ImageData } from "@/types/core"
 import { studioCommands } from "@/ipc/studio"
 
 export const imagesService = {
@@ -12,3 +12,4 @@ export const imagesService = {
     studioCommands.imagesSave({ id: imageId, ...updates }),
   deleteImage: (imageId: string) => studioCommands.imagesDelete(imageId),
 }
+

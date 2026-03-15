@@ -86,7 +86,7 @@ const LabelsPage: React.FC = () => {
             <Search className="h-4 w-4 mr-2" />
             Refresh
           </Button>
-          <LabelCreateForm onCreateLabel={createLabel} />
+          <LabelCreateForm projects={projects} onCreateLabel={createLabel} />
         </div>
       </div>
 
@@ -209,7 +209,7 @@ const LabelsPage: React.FC = () => {
                 : "Create your first label to start organizing your annotations."}
             </p>
             {!searchQuery && !selectedProject && (
-              <LabelCreateForm onCreateLabel={createLabel} />
+              <LabelCreateForm projects={projects} onCreateLabel={createLabel} />
             )}
           </div>
         ) : (

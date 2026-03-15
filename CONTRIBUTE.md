@@ -3,7 +3,7 @@
 ## Apps
 
 - `apps/studio`: Tauri desktop app built with React and Rust
-- `apps/core`: shared TypeScript package
+- `apps/studio/src/types/core.ts`: Studio-owned TypeScript models
 - `apps/web`: documentation site
 
 ## Setup

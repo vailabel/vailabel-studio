@@ -203,7 +203,7 @@ struct SystemInfo {
   platform: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct StudioDomainEvent {
   entity: String,

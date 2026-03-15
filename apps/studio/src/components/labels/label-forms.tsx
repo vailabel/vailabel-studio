@@ -26,8 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { SketchPicker } from "react-color"
-import { Label as LabelType } from "@vailabel/core"
-import { services } from "@/services"
+import { Label as LabelType } from "@/types/core"
 
 const colorPalette = [
   "#3b82f6", // blue
@@ -43,15 +42,14 @@ const colorPalette = [
 ]
 
 interface LabelCreateFormProps {
+  projects: Array<{ id: string; name: string }>
   onCreateLabel: (label: Omit<LabelType, "id">) => Promise<void>
 }
 
 export const LabelCreateForm: React.FC<LabelCreateFormProps> = ({
+  projects,
   onCreateLabel,
 }) => {
-  const [projects, setProjects] = useState<Array<{ id: string; name: string }>>(
-    []
-  )
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -61,16 +59,6 @@ export const LabelCreateForm: React.FC<LabelCreateFormProps> = ({
     description: "",
   })
   const [showColorPicker, setShowColorPicker] = useState(false)
-
-  React.useEffect(() => {
-    const loadProjects = async () => {
-      const data = await services.getProjectService().list()
-      setProjects(data.map((project) => ({ id: project.id, name: project.name })))
-    }
-
-    void loadProjects()
-  }, [])
-
   React.useEffect(() => {
     if (projects.length > 0 && !formData.projectId) {
       setFormData((prev) => ({ ...prev, projectId: projects[0].id }))
@@ -443,3 +431,4 @@ export const LabelEditForm: React.FC<LabelEditFormProps> = ({
     </Dialog>
   )
 }
+

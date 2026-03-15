@@ -3,7 +3,7 @@ import { BoxAnnotation } from "@/components/canvas/box-annotation"
 import { PolygonAnnotation } from "@/components/canvas/polygon-annotation"
 import { FreeDrawAnnotation } from "@/components/canvas/free-draw-annotation"
 import { TempAnnotation } from "@/components/canvas/temp-annotation"
-import { Annotation } from "@vailabel/core"
+import { Annotation } from "@/types/core"
 
 type AnnotationType = "box" | "polygon" | "freeDraw"
 
@@ -103,3 +103,4 @@ export const AnnotationRenderer = memo(
     )
   }
 )
+

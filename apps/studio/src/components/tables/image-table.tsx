@@ -32,7 +32,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import type { ImageData } from "@vailabel/core"
+import type { ImageData } from "@/types/core"
 import { cn } from "@/lib/utils"
 
 // Types
@@ -475,3 +475,4 @@ export const ImageTable = memo(({
 })
 
 ImageTable.displayName = "ImageTable"
+

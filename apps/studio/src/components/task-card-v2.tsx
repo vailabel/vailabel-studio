@@ -25,7 +25,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
-import { Task } from "@vailabel/core"
+import { Task } from "@/types/core"
 import { cn } from "@/lib/utils"
 
 interface TaskCardProps {
@@ -253,3 +253,4 @@ export const TaskCard: React.FC<TaskCardProps> = ({
     </Card>
   )
 }
+

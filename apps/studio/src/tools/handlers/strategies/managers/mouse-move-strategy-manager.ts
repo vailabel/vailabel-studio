@@ -1,4 +1,4 @@
-import { Point } from "@vailabel/core"
+import { Point } from "@/types/core"
 import { ToolHandlerContext } from "../../../canvas-handler"
 import { MouseMoveStrategy } from "../interfaces/mouse-move-strategy"
 import { ResizeStrategy } from "../resize/resize-strategy"
@@ -44,3 +44,4 @@ export class MouseMoveStrategyManager {
     this.moveStrategy.clearCache()
   }
 }
+

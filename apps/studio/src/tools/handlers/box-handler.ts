@@ -1,4 +1,4 @@
-import type { Point, Annotation } from "@vailabel/core"
+import type { Point, Annotation } from "@/types/core"
 import { ToolHandlerContext } from "../../hooks/use-canvas-handlers-context"
 import { ToolHandler } from "../tool-handlers"
 
@@ -128,3 +128,4 @@ export class BoxHandler implements ToolHandler {
     return uiState
   }
 }
+

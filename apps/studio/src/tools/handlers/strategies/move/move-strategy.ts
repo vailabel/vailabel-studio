@@ -1,4 +1,4 @@
-import { Point } from "@vailabel/core"
+import { Point } from "@/types/core"
 import { ToolHandlerContext } from "../../../canvas-handler"
 import { MouseMoveStrategy } from "../interfaces/mouse-move-strategy"
 import { calculatePolygonCentroid } from "@/lib/canvas-utils"
@@ -150,3 +150,4 @@ export class MoveStrategy implements MouseMoveStrategy {
     this.lastUpdateTime = 0
   }
 }
+

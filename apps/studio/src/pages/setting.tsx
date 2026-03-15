@@ -44,6 +44,7 @@ export default function Setting() {
     categories,
     activeTab,
     searchQuery,
+    keyboardShortcutsList,
     isSaving,
     hasUnsavedChanges,
     lastSaved,
@@ -52,6 +53,7 @@ export default function Setting() {
     setSearchQuery,
     saveSettings,
     resetToDefaults,
+    updateKeyboardShortcuts,
     exportSettings,
     importSettings,
   } = useSettingsViewModel()
@@ -286,7 +288,10 @@ export default function Setting() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <KeyboardShortcuts />
+                    <KeyboardShortcuts
+                      shortcuts={keyboardShortcutsList}
+                      onChange={updateKeyboardShortcuts}
+                    />
                   </CardContent>
                 </Card>
               </div>

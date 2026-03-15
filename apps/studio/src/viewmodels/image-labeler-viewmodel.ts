@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Annotation, ImageData, Label, Prediction } from "@vailabel/core"
+import { Annotation, ImageData, Label, Prediction } from "@/types/core"
 import { services } from "@/services"
 import { listenToStudioEvents } from "@/ipc/events"
 
@@ -233,3 +233,4 @@ export const useImageLabelerViewModel = (
     goToPreviousImage: () => prevImage?.id ?? null,
   }
 }
+

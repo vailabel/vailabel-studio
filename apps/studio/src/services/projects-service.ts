@@ -1,4 +1,4 @@
-import { Project } from "@vailabel/core"
+import { Project } from "@/types/core"
 import { studioCommands } from "@/ipc/studio"
 
 export const projectsService = {
@@ -9,3 +9,4 @@ export const projectsService = {
     studioCommands.projectsSave({ id: projectId, ...updates }),
   delete: (projectId: string) => studioCommands.projectsDelete(projectId),
 }
+

@@ -1,73 +1,31 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Undo2, Pencil } from "lucide-react"
 import { Combobox } from "@/components/ui/combobox"
-import { services } from "@/services"
+import {
+  DEFAULT_KEYBOARD_SHORTCUTS,
+  type KeyboardShortcut,
+} from "@/viewmodels/settings-viewmodel"
 
-interface KeyboardShortcut {
-  category: string
-  action: string
-  key: string
+interface KeyboardShortcutsProps {
+  shortcuts: KeyboardShortcut[]
+  onChange: (shortcuts: KeyboardShortcut[]) => Promise<unknown> | unknown
 }
 
-const DEFAULT_SHORTCUTS: KeyboardShortcut[] = [
-  { category: "File", action: "Open File", key: "Ctrl+O" },
-  { category: "File", action: "Save File", key: "Ctrl+S" },
-  { category: "Edit", action: "Undo", key: "Ctrl+Z" },
-  { category: "Edit", action: "Redo", key: "Ctrl+Y" },
-  { category: "Edit", action: "Delete Selection", key: "Del" },
-  { category: "Annotation", action: "Add Bounding Box", key: "B" },
-  { category: "Annotation", action: "Add Polygon", key: "P" },
-  { category: "Annotation", action: "Add Point", key: "O" },
-  { category: "Navigation", action: "Zoom In", key: "+" },
-  { category: "Navigation", action: "Zoom Out", key: "-" },
-  { category: "Navigation", action: "Pan", key: "Space" },
-]
-
-const CATEGORIES = [
-  "All",
-  ...Array.from(new Set(DEFAULT_SHORTCUTS.map((s) => s.category))),
-]
-
-export function KeyboardShortcuts() {
-  const [shortcuts, setShortcuts] =
-    useState<KeyboardShortcut[]>(DEFAULT_SHORTCUTS)
+export function KeyboardShortcuts({
+  shortcuts,
+  onChange,
+}: KeyboardShortcutsProps) {
   const [editingIdx, setEditingIdx] = useState<number | null>(null)
   const [editValue, setEditValue] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("All")
-
-  // Load shortcuts from settings when data is available
-  useEffect(() => {
-    const loadShortcuts = async () => {
-      try {
-        const shortcutsSetting = await services
-          .getSettingsService()
-          .getByKey("keyboardShortcuts")
-        const parsed = JSON.parse(shortcutsSetting.value || "[]")
-        if (Array.isArray(parsed)) {
-          setShortcuts(parsed as KeyboardShortcut[])
-        }
-      } catch {
-        setShortcuts(DEFAULT_SHORTCUTS)
-      }
-    }
-    void loadShortcuts()
-  }, [])
-
-  // Save to settings whenever shortcuts change
-  useEffect(() => {
-    const saveShortcuts = async () => {
-      try {
-        await services
-          .getSettingsService()
-          .update("keyboardShortcuts", JSON.stringify(shortcuts))
-      } catch (error) {
-        console.error("Failed to save keyboard shortcuts:", error)
-      }
-    }
-    saveShortcuts()
-  }, [shortcuts])
+  const categories = [
+    "All",
+    ...Array.from(
+      new Set([...DEFAULT_KEYBOARD_SHORTCUTS, ...shortcuts].map((item) => item.category))
+    ),
+  ]
 
   const handleEdit = (idx: number) => {
     setEditingIdx(idx)
@@ -79,20 +37,18 @@ export function KeyboardShortcuts() {
   }
 
   const handleEditSave = (idx: number) => {
-    setShortcuts((prev: KeyboardShortcut[]) =>
-      prev.map((s: KeyboardShortcut, i: number) =>
-        i === idx ? { ...s, key: editValue } : s
-      )
+    const nextShortcuts = shortcuts.map((shortcut, index) =>
+      index === idx ? { ...shortcut, key: editValue } : shortcut
     )
+    void onChange(nextShortcuts)
     setEditingIdx(null)
     setEditValue("")
   }
 
   const handleRestoreDefaults = () => {
-    setShortcuts([...DEFAULT_SHORTCUTS])
+    void onChange([...DEFAULT_KEYBOARD_SHORTCUTS])
     setEditingIdx(null)
     setEditValue("")
-    // updateSetting will be called by useEffect
   }
 
   const filteredShortcuts: KeyboardShortcut[] =
@@ -115,7 +71,10 @@ export function KeyboardShortcuts() {
           Category:
         </label>
         <Combobox
-          options={CATEGORIES.map((cat) => ({ label: cat, value: cat }))}
+          options={categories.map((category) => ({
+            label: category,
+            value: category,
+          }))}
           value={selectedCategory}
           onChange={setSelectedCategory}
           placeholder="Filter by category"

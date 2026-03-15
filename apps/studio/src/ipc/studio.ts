@@ -10,7 +10,7 @@ import type {
   Project,
   Settings,
   Task,
-} from "@vailabel/core"
+} from "@/types/core"
 
 interface SuccessResponse {
   success: boolean
@@ -113,3 +113,4 @@ export const studioCommands = {
 }
 
 export type StudioCommands = typeof studioCommands
+

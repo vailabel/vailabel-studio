@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Project } from "@vailabel/core"
+import { Project } from "@/types/core"
+import { listenToStudioEvents } from "@/ipc/events"
 import { useToast } from "@/hooks/use-toast"
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog"
 import { services } from "@/services"
@@ -18,7 +19,7 @@ export const useProjectListViewModel = () => {
   )
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc")
 
-  const loadProjects = async () => {
+  const loadProjects = useCallback(async () => {
     setIsLoading(true)
     setError(null)
     try {
@@ -28,11 +29,25 @@ export const useProjectListViewModel = () => {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     void loadProjects()
-  }, [])
+  }, [loadProjects])
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined
+
+    void listenToStudioEvents(() => {
+      void loadProjects()
+    }, ["projects"]).then((cleanup) => {
+      unlisten = cleanup
+    })
+
+    return () => {
+      unlisten?.()
+    }
+  }, [loadProjects])
 
   const filteredAndSortedProjects = useMemo(() => {
     const filtered = projects.filter((project) => {
@@ -99,3 +114,4 @@ export const useProjectListViewModel = () => {
     isEmpty: filteredAndSortedProjects.length === 0,
   }
 }
+

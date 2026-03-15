@@ -1,4 +1,4 @@
-import { Annotation } from "@vailabel/core"
+import { Annotation } from "@/types/core"
 import { studioCommands } from "@/ipc/studio"
 
 export const annotationsService = {
@@ -13,3 +13,4 @@ export const annotationsService = {
   deleteAnnotation: (annotationId: string) =>
     studioCommands.annotationsDelete(annotationId),
 }
+

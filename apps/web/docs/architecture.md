@@ -37,4 +37,4 @@ flowchart TD
 
 - Offline-first project management
 - Native desktop capabilities through Tauri
-- Shared TypeScript models through `apps/core`
+- Studio-owned TypeScript models in `apps/studio/src/types/core.ts`

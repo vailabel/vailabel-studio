@@ -1,7 +1,7 @@
 import { memo, useMemo } from "react"
 import { motion } from "framer-motion"
 import { cn, getContentBoxColor } from "@/lib/utils"
-import type { Annotation } from "@vailabel/core"
+import type { Annotation } from "@/types/core"
 import { useCanvasTool, useCanvasSelection } from "@/contexts/canvas-context"
 
 interface BoxAnnotationProps {
@@ -77,3 +77,4 @@ export const BoxAnnotation = memo(({ annotation, readOnly = false }: BoxAnnotati
     </motion.div>
   )
 })
+

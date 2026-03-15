@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Project } from "@vailabel/core"
+import { Project } from "@/types/core"
+import { listenToStudioEvents } from "@/ipc/events"
 import { services } from "@/services"
 
 export const useOverviewViewModel = () => {
@@ -10,7 +11,7 @@ export const useOverviewViewModel = () => {
   const [error, setError] = useState<unknown>(null)
   const [lastUpdated, setLastUpdated] = useState(new Date())
 
-  const refreshData = async () => {
+  const refreshData = useCallback(async () => {
     setIsLoading(true)
     setError(null)
     try {
@@ -21,11 +22,25 @@ export const useOverviewViewModel = () => {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     void refreshData()
-  }, [])
+  }, [refreshData])
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined
+
+    void listenToStudioEvents(() => {
+      void refreshData()
+    }, ["projects"]).then((cleanup) => {
+      unlisten = cleanup
+    })
+
+    return () => {
+      unlisten?.()
+    }
+  }, [refreshData])
 
   const stats = useMemo(() => {
     const totalProjects = projects.length
@@ -122,3 +137,4 @@ export const useOverviewViewModel = () => {
     refreshData,
   }
 }
+

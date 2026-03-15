@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
-import type { Annotation, Project } from "@vailabel/core"
+import type { Annotation, Project } from "@/types/core"
 interface ExportModalProps {
   project: Project
   annotations: Annotation[]
@@ -159,3 +159,4 @@ export function ExportModal({ project, onClose }: ExportModalProps) {
     </Dialog>
   )
 }
+

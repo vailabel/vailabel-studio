@@ -25,7 +25,7 @@ import {
   Copy,
   UserPlus,
 } from "lucide-react"
-import { Task } from "@vailabel/core"
+import { Task } from "@/types/core"
 import { cn } from "@/lib/utils"
 
 interface KanbanTaskCardProps {
@@ -404,3 +404,4 @@ export const KanbanTaskCard: React.FC<KanbanTaskCardProps> = ({
     </Card>
   )
 }
+

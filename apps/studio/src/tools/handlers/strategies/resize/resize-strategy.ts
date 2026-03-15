@@ -1,4 +1,4 @@
-import { Point } from "@vailabel/core"
+import { Point } from "@/types/core"
 import { ToolHandlerContext } from "../../../canvas-handler"
 import { MouseMoveStrategy } from "../interfaces/mouse-move-strategy"
 import { ResizeStrategyManager } from "../managers/resize-strategy-manager"
@@ -33,3 +33,4 @@ export class ResizeStrategy implements MouseMoveStrategy {
     }
   }
 }
+

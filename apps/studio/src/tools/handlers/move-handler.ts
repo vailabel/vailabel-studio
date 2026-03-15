@@ -1,4 +1,4 @@
-import { Annotation, Point } from "@vailabel/core"
+import { Annotation, Point } from "@/types/core"
 import { ToolHandlerContext } from "../../hooks/use-canvas-handlers-context"
 import { calculatePolygonCentroid } from "@/lib/canvas-utils"
 import { ToolHandler } from "../tool-handlers"
@@ -198,3 +198,4 @@ export class MoveHandler implements ToolHandler {
     }
   }
 }
+

@@ -5,7 +5,7 @@ import {
   useCanvasTool,
   useCanvasSelection,
 } from "@/contexts/canvas-context"
-import { Annotation, Point } from "@vailabel/core"
+import { Annotation, Point } from "@/types/core"
 
 interface FreeDrawAnnotationProps {
   annotation: Annotation
@@ -287,3 +287,4 @@ export const FreeDrawAnnotation = memo(
 )
 
 FreeDrawAnnotation.displayName = "FreeDrawAnnotation"
+

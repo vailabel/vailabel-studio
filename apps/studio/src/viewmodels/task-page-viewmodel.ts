@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react"
-import { Project, Task } from "@vailabel/core"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { Project, Task } from "@/types/core"
+import { listenToStudioEvents } from "@/ipc/events"
 import { services } from "@/services"
 
 type TaskFormInput = Omit<Task, "id" | "createdAt" | "updatedAt"> & { id?: string }
@@ -20,7 +21,7 @@ export const useTaskPageViewModel = (projectId?: string) => {
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [detailTask, setDetailTask] = useState<Task | null>(null)
 
-  const refreshData = async () => {
+  const refreshData = useCallback(async () => {
     setIsLoadingData(true)
     setError(null)
     try {
@@ -37,11 +38,36 @@ export const useTaskPageViewModel = (projectId?: string) => {
     } finally {
       setIsLoadingData(false)
     }
-  }
+  }, [projectId])
 
   useEffect(() => {
     void refreshData()
-  }, [projectId])
+  }, [refreshData])
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined
+
+    void listenToStudioEvents((event) => {
+      if (!projectId) {
+        void refreshData()
+        return
+      }
+
+      const eventProjectId = event.projectId || event.project_id
+      const isMatchingProjectEvent =
+        event.entity === "projects" && event.id === projectId
+
+      if (eventProjectId === projectId || isMatchingProjectEvent) {
+        void refreshData()
+      }
+    }, ["tasks", "projects"]).then((cleanup) => {
+      unlisten = cleanup
+    })
+
+    return () => {
+      unlisten?.()
+    }
+  }, [projectId, refreshData])
 
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
@@ -173,3 +199,4 @@ function normalizeStatus(status: string) {
   if (status === "in_progress") return "in-progress"
   return status
 }
+

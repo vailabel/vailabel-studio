@@ -84,6 +84,6 @@ This guide provides instructions for developers to add new features, pages, or c
 ## 7. References
 - [Studio README.md](../README.md)
 - [Performance Optimization Guide](../PERFORMANCE_OPTIMIZATION.md)
-- [Core Developer Guide](../../core/DEVELOPER_GUIDE.md)
+- [`src/types/core.ts`](../src/types/core.ts)
 
 ---

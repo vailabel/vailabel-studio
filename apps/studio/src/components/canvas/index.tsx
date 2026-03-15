@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils"
 import { AnnotationRenderer } from "@/components/canvas/annotation-renderer"
 import { PositionCoordinates } from "@/components/canvas/position-coordinates"
 import { useCanvasHandlers } from "@/hooks/use-canvas-handlers-context"
-import { type Annotation, type ImageData } from "@vailabel/core"
+import { type Annotation, type ImageData } from "@/types/core"
 import { Crosshair } from "@/components/canvas/crosshair-context"
 import { useCanvasZoom, useCanvasPan, useCanvasTool } from "@/contexts/canvas-context"
 
@@ -109,3 +109,4 @@ export const Canvas = memo(({ image, annotations, onRefreshAnnotations }: Canvas
     </>
   )
 })
+

@@ -1,5 +1,5 @@
-import { AIModel } from "@vailabel/core"
-import type { ModelImportPayload } from "@vailabel/core"
+import { AIModel } from "@/types/core"
+import type { ModelImportPayload } from "@/types/core"
 import { studioCommands } from "@/ipc/studio"
 
 export const aiModelsService = {
@@ -15,3 +15,4 @@ export const aiModelsService = {
   importModel: (payload: ModelImportPayload) =>
     studioCommands.aiModelsImport(payload),
 }
+

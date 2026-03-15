@@ -1,8 +1,29 @@
-import { useEffect, useMemo, useState } from "react"
-import { Settings } from "@vailabel/core"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { Settings } from "@/types/core"
+import { listenToStudioEvents } from "@/ipc/events"
 import { services } from "@/services"
 
 type SettingValue = string | number | boolean
+
+export interface KeyboardShortcut {
+  category: string
+  action: string
+  key: string
+}
+
+export const DEFAULT_KEYBOARD_SHORTCUTS: KeyboardShortcut[] = [
+  { category: "File", action: "Open File", key: "Ctrl+O" },
+  { category: "File", action: "Save File", key: "Ctrl+S" },
+  { category: "Edit", action: "Undo", key: "Ctrl+Z" },
+  { category: "Edit", action: "Redo", key: "Ctrl+Y" },
+  { category: "Edit", action: "Delete Selection", key: "Del" },
+  { category: "Annotation", action: "Add Bounding Box", key: "B" },
+  { category: "Annotation", action: "Add Polygon", key: "P" },
+  { category: "Annotation", action: "Add Point", key: "O" },
+  { category: "Navigation", action: "Zoom In", key: "+" },
+  { category: "Navigation", action: "Zoom Out", key: "-" },
+  { category: "Navigation", action: "Pan", key: "Space" },
+]
 
 const DEFAULT_SETTINGS: Record<string, SettingValue> = {
   showRulers: true,
@@ -10,7 +31,7 @@ const DEFAULT_SETTINGS: Record<string, SettingValue> = {
   showCoordinates: true,
   brightness: 100,
   contrast: 100,
-  keyboardShortcuts: "[]",
+  keyboardShortcuts: JSON.stringify(DEFAULT_KEYBOARD_SHORTCUTS),
 }
 
 export const useSettingsViewModel = () => {
@@ -23,7 +44,7 @@ export const useSettingsViewModel = () => {
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
     setIsLoading(true)
     setError(null)
     try {
@@ -33,11 +54,25 @@ export const useSettingsViewModel = () => {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     void loadSettings()
-  }, [])
+  }, [loadSettings])
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined
+
+    void listenToStudioEvents(() => {
+      void loadSettings()
+    }, ["settings"]).then((cleanup) => {
+      unlisten = cleanup
+    })
+
+    return () => {
+      unlisten?.()
+    }
+  }, [loadSettings])
 
   const settings = useMemo(() => {
     const base = { ...DEFAULT_SETTINGS } as Record<string, SettingValue>
@@ -46,6 +81,11 @@ export const useSettingsViewModel = () => {
     }
     return base
   }, [settingsArray])
+
+  const keyboardShortcutsList = useMemo(
+    () => parseKeyboardShortcuts(String(settings.keyboardShortcuts ?? "[]")),
+    [settings.keyboardShortcuts]
+  )
 
   const updateSetting = async (key: string, value: SettingValue) => {
     setIsSaving(true)
@@ -74,6 +114,7 @@ export const useSettingsViewModel = () => {
     brightness: Number(settings.brightness ?? 100),
     contrast: Number(settings.contrast ?? 100),
     keyboardShortcuts: String(settings.keyboardShortcuts ?? "[]"),
+    keyboardShortcutsList,
     isLoading,
     isSaving,
     categories: [
@@ -97,7 +138,7 @@ export const useSettingsViewModel = () => {
       updateSetting("showCoordinates", value),
     updateBrightness: (value: number) => updateSetting("brightness", value),
     updateContrast: (value: number) => updateSetting("contrast", value),
-    updateKeyboardShortcuts: (shortcuts: Array<Record<string, unknown>>) =>
+    updateKeyboardShortcuts: (shortcuts: KeyboardShortcut[]) =>
       updateSetting("keyboardShortcuts", JSON.stringify(shortcuts)),
     setActiveTab,
     setSearchQuery,
@@ -158,3 +199,15 @@ function upsertSetting(current: Settings[], next: Settings) {
   if (!existing) return [...current, next]
   return current.map((setting) => (setting.key === next.key ? next : setting))
 }
+
+function parseKeyboardShortcuts(value: string): KeyboardShortcut[] {
+  try {
+    const parsed = JSON.parse(value)
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      return parsed as KeyboardShortcut[]
+    }
+  } catch {}
+
+  return [...DEFAULT_KEYBOARD_SHORTCUTS]
+}
+

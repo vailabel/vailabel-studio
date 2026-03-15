@@ -10,10 +10,6 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "strict": true,
-    "baseUrl": ".",
-    "paths": {
-      "@vailabel/core": ["apps/studio/src/types/core.ts"],
-      "@vailabel/core/*": ["apps/studio/src/types/*"]
-    }
+    "baseUrl": "."
   }
 }

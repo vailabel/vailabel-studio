@@ -1,4 +1,4 @@
-import { Annotation, Point } from "@vailabel/core"
+import { Annotation, Point } from "@/types/core"
 import { ToolHandlerContext } from "../../hooks/use-canvas-handlers-context"
 import { AnnotationResizeStrategy } from "../interfaces/annotation-resize-strategy"
 import {
@@ -47,3 +47,4 @@ export class ResizeStrategyManager {
     )
   }
 }
+

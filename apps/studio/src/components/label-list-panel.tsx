@@ -6,7 +6,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
-import { Label } from "@vailabel/core"
+import { Label } from "@/types/core"
 import { memo, useMemo, useCallback, useState } from "react"
 
 interface LabelListPanelProps {
@@ -273,3 +273,4 @@ const EmptyState = memo(() => (
 ))
 
 EmptyState.displayName = "EmptyState"
+

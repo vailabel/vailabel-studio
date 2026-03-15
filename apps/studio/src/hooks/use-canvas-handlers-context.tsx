@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from "react"
-import type { Point, Annotation } from "@vailabel/core"
+import type { Point, Annotation } from "@/types/core"
 import {
   getCanvasCoords as utilsGetCanvasCoords,
   getImageCoords as utilsGetImageCoords,
@@ -479,3 +479,4 @@ export function useCanvasHandlers(
     ...toolHandler.getUIState(),
   }
 }
+

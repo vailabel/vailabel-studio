@@ -1,4 +1,4 @@
-import { Task } from "@vailabel/core"
+import { Task } from "@/types/core"
 
 export const sampleTasks: Task[] = [
   {
@@ -83,3 +83,4 @@ export const sampleTasks: Task[] = [
     updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
   },
 ]
+

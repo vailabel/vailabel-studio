@@ -2,7 +2,7 @@ import React from "react"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { KanbanTaskCard } from "@/components/kanban-task-card"
-import { Task } from "@vailabel/core"
+import { Task } from "@/types/core"
 import { cn } from "@/lib/utils"
 
 interface DraggableTaskCardProps {
@@ -78,3 +78,4 @@ export const DraggableTaskCard: React.FC<DraggableTaskCardProps> = ({
     </div>
   )
 }
+

@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react"
-import { AIModel, ModelImportPayload } from "@vailabel/core"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { AIModel, ModelImportPayload } from "@/types/core"
+import { listenToStudioEvents } from "@/ipc/events"
 import { services } from "@/services"
 import { SYSTEM_MODELS } from "@/lib/system-model-catalog"
 import type { SystemModel } from "@/lib/schemas/ai-model"
@@ -26,7 +27,7 @@ export const useAIModelViewModel = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [isImportingModel, setIsImportingModel] = useState(false)
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setIsLoading(true)
     try {
       const [models, selectedModelSetting, modelPathSetting] = await Promise.all([
@@ -40,11 +41,25 @@ export const useAIModelViewModel = () => {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     void loadData()
-  }, [])
+  }, [loadData])
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined
+
+    void listenToStudioEvents(() => {
+      void loadData()
+    }, ["ai_models", "settings"]).then((cleanup) => {
+      unlisten = cleanup
+    })
+
+    return () => {
+      unlisten?.()
+    }
+  }, [loadData])
 
   const selectedModel = useMemo(
     () =>
@@ -133,3 +148,4 @@ export const useAIModelViewModel = () => {
 
 export type AIModelViewModel = ReturnType<typeof useAIModelViewModel>
 export type { SystemModel }
+

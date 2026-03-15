@@ -1,4 +1,4 @@
-import { History } from "@vailabel/core"
+import { History } from "@/types/core"
 import { studioCommands } from "@/ipc/studio"
 
 export const historyService = {
@@ -6,3 +6,4 @@ export const historyService = {
     studioCommands.historyListByProject(projectId),
   create: (history: Partial<History>) => studioCommands.historySave(history),
 }
+

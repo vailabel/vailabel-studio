@@ -39,7 +39,7 @@ import {
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { CalendarIcon, Plus, Save, X } from "lucide-react"
-import { Task } from "@vailabel/core"
+import { Task } from "@/types/core"
 
 const taskFormSchema = z.object({
   name: z.string().min(1, "Task name is required"),
@@ -393,3 +393,4 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
     </Dialog>
   )
 }
+

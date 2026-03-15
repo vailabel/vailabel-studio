@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react"
 import { useToast } from "@/hooks/use-toast"
-import type { ImageData } from "@vailabel/core"
+import type { ImageData } from "@/types/core"
 
 export interface PaginatedImageData {
   images: ImageData[]
@@ -230,3 +230,4 @@ export function usePaginatedImages(
     updateImage,
   }
 }
+

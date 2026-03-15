@@ -1,4 +1,4 @@
-import { Label } from "@vailabel/core"
+import { Label } from "@/types/core"
 import { studioCommands } from "@/ipc/studio"
 
 export const labelsService = {
@@ -9,3 +9,4 @@ export const labelsService = {
     studioCommands.labelsSave({ id: labelId, ...updates }),
   deleteLabel: (labelId: string) => studioCommands.labelsDelete(labelId),
 }
+

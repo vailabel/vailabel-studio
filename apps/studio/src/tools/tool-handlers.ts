@@ -13,7 +13,7 @@ export {
   type DeleteHandlerUIState,
 } from "./handlers/delete-handler"
 
-import type { Point } from "@vailabel/core"
+import type { Point } from "@/types/core"
 
 export type ToolHandlerUIState =
   | import("./handlers/move-handler").MoveHandlerUIState
@@ -30,3 +30,4 @@ export interface ToolHandler {
   onKeyDown?(e: KeyboardEvent): void
   getUIState(): ToolHandlerUIState
 }
+

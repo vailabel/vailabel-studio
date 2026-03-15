@@ -1,5 +1,5 @@
 import { listen, type UnlistenFn } from "@tauri-apps/api/event"
-import type { StudioDomainEvent } from "@vailabel/core"
+import type { StudioDomainEvent } from "@/types/core"
 import { isDesktopApp } from "@/lib/desktop"
 
 export async function listenToStudioEvents(
@@ -17,3 +17,4 @@ export async function listenToStudioEvents(
     handler(payload)
   })
 }
+

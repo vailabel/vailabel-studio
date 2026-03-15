@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { format } from "date-fns"
-import { Task } from "@vailabel/core"
+import { Task } from "@/types/core"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -848,3 +848,4 @@ export function TaskDetailDialog({
     </Dialog>
   )
 }
+

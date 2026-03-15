@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react"
-import { Label, Project } from "@vailabel/core"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { Label, Project } from "@/types/core"
+import { listenToStudioEvents } from "@/ipc/events"
 import { services } from "@/services"
 
 export const useLabelsViewModel = (projectId?: string) => {
@@ -12,7 +13,7 @@ export const useLabelsViewModel = (projectId?: string) => {
     projectId ?? null
   )
 
-  const loadLabels = async () => {
+  const loadLabels = useCallback(async () => {
     setIsLoading(true)
     setError(null)
     try {
@@ -32,11 +33,29 @@ export const useLabelsViewModel = (projectId?: string) => {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [projectId])
 
   useEffect(() => {
     void loadLabels()
-  }, [projectId])
+  }, [loadLabels])
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined
+
+    void listenToStudioEvents((event) => {
+      const eventProjectId = event.projectId || event.project_id
+      if (projectId && eventProjectId && eventProjectId !== projectId) {
+        return
+      }
+      void loadLabels()
+    }, ["labels", "projects"]).then((cleanup) => {
+      unlisten = cleanup
+    })
+
+    return () => {
+      unlisten?.()
+    }
+  }, [loadLabels, projectId])
 
   const filteredLabels = useMemo(() => {
     return labels.filter((label) => {
@@ -90,3 +109,4 @@ export const useLabelsViewModel = (projectId?: string) => {
     refreshLabels: loadLabels,
   }
 }
+

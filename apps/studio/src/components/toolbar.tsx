@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/tooltip"
 import { Separator } from "@/components/ui/separator"
 import { AIDetectionButton } from "@/components/ai-detection-button"
-import type { ImageData } from "@vailabel/core"
+import type { ImageData } from "@/types/core"
 import { useCanvasTool, useCanvasZoom, useCanvasPan, useCanvasState } from "@/contexts/canvas-context"
 import { memo, useCallback } from "react"
 import { useAIModelViewModel } from "@/viewmodels/ai-model-viewmodel"
@@ -392,3 +392,4 @@ const AnnotationTools = memo(
     )
   }
 )
+

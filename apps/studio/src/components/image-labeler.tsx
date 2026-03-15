@@ -37,9 +37,9 @@ import {
   useCanvasContainer,
 } from "@/contexts/canvas-context"
 import { useImageLabelerViewModel } from "@/viewmodels/image-labeler-viewmodel"
-import { ImageData } from "@vailabel/core"
-import { Annotation } from "@vailabel/core"
-import { Label, Prediction } from "@vailabel/core"
+import { ImageData } from "@/types/core"
+import { Annotation } from "@/types/core"
+import { Label, Prediction } from "@/types/core"
 
 interface ImageLabelerProps {
   projectId?: string
@@ -521,3 +521,4 @@ const Header = memo(
     )
   }
 )
+

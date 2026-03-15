@@ -1,4 +1,4 @@
-import type { Annotation, Prediction } from "@vailabel/core"
+import type { Annotation, Prediction } from "@/types/core"
 import { studioCommands } from "@/ipc/studio"
 
 export const predictionsService = {
@@ -14,3 +14,4 @@ export const predictionsService = {
   reject: (predictionId: string) =>
     studioCommands.predictionsReject(predictionId),
 }
+

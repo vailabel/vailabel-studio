@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils"
 import { AnnotationRenderer } from "@/components/canvas/annotation-renderer"
 import { PositionCoordinates } from "@/components/canvas/position-coordinates"
 import { useCanvasHandlers } from "@/hooks/use-canvas-handlers-context"
-import { type Annotation, type ImageData, type Label } from "@vailabel/core"
+import { type Annotation, type ImageData, type Label } from "@/types/core"
 import { Crosshair } from "@/components/canvas/crosshair-context"
 import { CreateAnnotation } from "@/components/canvas/create-annotation"
 import {
@@ -14,7 +14,7 @@ import {
 } from "@/contexts/canvas-context"
 import { TempAnnotation } from "./temp-annotation"
 import { ToolStatus } from "./tool-status"
-import { Prediction } from "@vailabel/core"
+import { Prediction } from "@/types/core"
 
 interface CanvasProps {
   image: ImageData
@@ -332,3 +332,4 @@ export const Canvas = memo(
     )
   }
 )
+
