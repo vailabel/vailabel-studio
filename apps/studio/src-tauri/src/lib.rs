@@ -5,6 +5,7 @@ use keyring::Entry;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 use std::fs;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard};
 use store::{DesktopStore, StoreError};
@@ -31,6 +32,8 @@ pub enum AppError {
   Json(#[from] serde_json::Error),
   #[error(transparent)]
   Keyring(#[from] keyring::Error),
+  #[error(transparent)]
+  Tauri(#[from] tauri::Error),
 }
 
 impl Serialize for AppError {
@@ -115,6 +118,19 @@ struct SecretListPayload {
 #[serde(rename_all = "camelCase")]
 struct UrlPayload {
   url: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct DownloadSystemModelPayload {
+  system_id: String,
+  name: String,
+  description: String,
+  category: String,
+  variant_name: Option<String>,
+  version: String,
+  download_url: String,
+  expected_size: Option<u64>,
 }
 
 #[derive(Debug, Serialize)]
@@ -563,6 +579,83 @@ fn updater_status() -> Value {
   })
 }
 
+#[tauri::command]
+fn download_system_model(
+  app: tauri::AppHandle,
+  state: tauri::State<AppState>,
+  payload: DownloadSystemModelPayload,
+) -> Result<Value, AppError> {
+  let response = reqwest::blocking::get(&payload.download_url)
+    .map_err(|error| AppError::Message(error.to_string()))?;
+
+  if !response.status().is_success() {
+    return Err(AppError::Message(format!(
+      "Failed to download model asset: HTTP {}",
+      response.status()
+    )));
+  }
+
+  let bytes = response
+    .bytes()
+    .map_err(|error| AppError::Message(error.to_string()))?;
+
+  let app_dir = app.path().app_data_dir()?;
+  let models_dir = app_dir.join("models").join("system").join(&payload.system_id);
+  fs::create_dir_all(&models_dir)?;
+
+  let source_file_name = payload
+    .download_url
+    .rsplit('/')
+    .next()
+    .filter(|value| !value.is_empty())
+    .unwrap_or("model.pt");
+
+  let file_path = models_dir.join(source_file_name);
+  let mut file = fs::File::create(&file_path)?;
+  file.write_all(&bytes)?;
+
+  let variant_suffix = payload
+    .variant_name
+    .clone()
+    .map(|value| format!(" ({value})"))
+    .unwrap_or_default();
+  let model_id = format!(
+    "{}-{}",
+    payload.system_id,
+    payload.variant_name.clone().unwrap_or_else(|| "default".into())
+  );
+
+  let type_value = match payload.category.as_str() {
+    "segmentation" => "segmentation",
+    "classification" => "classification",
+    "pose" => "pose_estimation",
+    "tracking" => "tracking",
+    _ => "object_detection",
+  };
+
+  let model = normalize_entity(
+    "ai_models",
+    json!({
+      "id": model_id,
+      "name": format!("{}{}", payload.name, variant_suffix),
+      "description": payload.description,
+      "version": payload.version,
+      "modelPath": file_path.to_string_lossy().to_string(),
+      "configPath": "",
+      "modelSize": payload.expected_size.unwrap_or(bytes.len() as u64),
+      "isCustom": false,
+      "isActive": false,
+      "status": "ready",
+      "category": payload.category,
+      "type": type_value,
+      "source": "system",
+    }),
+  )?;
+
+  let store = state_guard(&state)?;
+  Ok(store.upsert_entity("ai_models", model)?)
+}
+
 pub fn run() {
   tauri::Builder::default()
     .setup(|app| {
@@ -590,6 +683,7 @@ pub fn run() {
       secret_delete,
       secret_list,
       updater_status,
+      download_system_model,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

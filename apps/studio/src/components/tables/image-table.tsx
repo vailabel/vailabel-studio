@@ -41,8 +41,8 @@ export interface ImageTableColumn {
   name: string
   width: number
   height: number
-  createdAt: Date | undefined
-  updatedAt: Date | undefined
+  createdAt: string | Date | undefined
+  updatedAt: string | Date | undefined
   annotationCount: number
   thumbnail: string
 }
@@ -79,6 +79,21 @@ export const ImageTable = memo(({
     pageIndex: 0,
     pageSize,
   })
+
+  const formatDateValue = useCallback((value: string | Date | undefined) => {
+    if (!value) return "Unknown"
+
+    const date = value instanceof Date ? value : new Date(value)
+    if (Number.isNaN(date.getTime())) {
+      return "Unknown"
+    }
+
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }).format(date)
+  }, [])
 
   // Transform images data for table
   const tableData = useMemo(() => {
@@ -206,13 +221,7 @@ export const ImageTable = memo(({
         ),
         cell: ({ row }) => (
           <span className="text-sm text-gray-600 dark:text-gray-400">
-            {row.original.createdAt
-              ? new Intl.DateTimeFormat("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                }).format(row.original.createdAt)
-              : "Unknown"}
+            {formatDateValue(row.original.createdAt)}
           </span>
         ),
       },
@@ -273,7 +282,14 @@ export const ImageTable = memo(({
     }
 
     return cols
-  }, [showActions, onImageClick, onImagePreview, onImageDownload, onImageDelete])
+  }, [
+    formatDateValue,
+    showActions,
+    onImageClick,
+    onImagePreview,
+    onImageDownload,
+    onImageDelete,
+  ])
 
   // Create table instance
   const table = useReactTable({

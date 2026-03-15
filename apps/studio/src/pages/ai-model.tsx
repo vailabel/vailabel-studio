@@ -48,19 +48,33 @@ import {
 import AIModelForm from "@/components/forms/AIModelForm"
 import { useAIModelViewModel } from "@/viewmodels/ai-model-viewmodel"
 import { aiModelFormSchema, AIModelFormData } from "@/lib/schemas/ai-model"
+import { useToast } from "@/hooks/use-toast"
 
 export default function AIModelListPage() {
   const {
     availableModels = [],
+    systemModels = [],
     isLoading,
     selectedModel,
+    downloadingModelId,
+    deleteModel,
+    activateModel,
+    downloadSystemModel,
+    refreshModels,
   } = useAIModelViewModel()
+  const { toast } = useToast()
 
   // Derived values with safe defaults
   const models = availableModels || []
-  const systemModels: typeof models = [] // TODO: Implement system models
   const customModels = models || []
-  const modelsByCategory: Record<string, typeof models> = {}
+  const modelsByCategory: Record<string, typeof models> = models.reduce(
+    (acc, model) => {
+      const key = (model as { category?: string }).category || "uncategorized"
+      acc[key] = [...(acc[key] || []), model]
+      return acc
+    },
+    {} as Record<string, typeof models>
+  )
   const totalModelsCount = models.length || 0
   const totalModelSize =
     models.reduce(
@@ -88,8 +102,11 @@ export default function AIModelListPage() {
   // Handle form submission
   const onSubmit = async (data: AIModelFormData) => {
     try {
-      // TODO: Implement createModel
-      console.log("Create model:", data)
+      toast({
+        title: "Custom model upload not wired yet",
+        description:
+          "System model downloads are ready now. Custom uploads can be added next.",
+      })
       setShowAddModelModal(false)
       form.reset()
       setUploadProgress(0)
@@ -102,10 +119,18 @@ export default function AIModelListPage() {
   const handleDelete = async (modelId: string) => {
     if (confirm("Are you sure you want to delete this model?")) {
       try {
-        // TODO: Implement deleteModel
-        console.log("Delete model:", modelId)
+        await deleteModel(modelId)
+        toast({
+          title: "Model deleted",
+          description: "The local model entry was removed.",
+        })
       } catch (error) {
         console.error("Failed to delete model:", error)
+        toast({
+          title: "Delete failed",
+          description: "The model could not be removed.",
+          variant: "destructive",
+        })
       }
     }
   }
@@ -127,17 +152,42 @@ export default function AIModelListPage() {
     variant?: string
   ) => {
     try {
-      // TODO: Implement downloadSystemModel
-      console.log("Download model:", modelId, variant)
+      const model = systemModels.find((entry) => entry.id === modelId)
+      if (!model) return
+      const downloadedModel = await downloadSystemModel(model, variant)
+      await activateModel(downloadedModel.id)
+      await refreshModels()
+      toast({
+        title: "Model downloaded",
+        description: `${downloadedModel.name} is ready and active for use.`,
+      })
     } catch (error) {
       console.error("Failed to download model:", error)
+      toast({
+        title: "Download failed",
+        description:
+          error instanceof Error ? error.message : "Could not download model.",
+        variant: "destructive",
+      })
     }
   }
 
   // Handle set active model
-  const handleSetActiveModel = (modelId: string) => {
-    // TODO: Implement setActiveModel
-    console.log("Set active model:", modelId)
+  const handleSetActiveModel = async (modelId: string) => {
+    try {
+      await activateModel(modelId)
+      toast({
+        title: "Model activated",
+        description: "This model is now the default local detector.",
+      })
+    } catch (error) {
+      console.error("Failed to activate model:", error)
+      toast({
+        title: "Activation failed",
+        description: "The model could not be activated.",
+        variant: "destructive",
+      })
+    }
   }
 
   // Format file size
@@ -505,6 +555,10 @@ export default function AIModelListPage() {
                                 </div>
                                 <Button
                                   size="sm"
+                                  disabled={
+                                    downloadingModelId ===
+                                    `${model.id}:${variant.name}`
+                                  }
                                   onClick={() =>
                                     handleDownloadSystemModel(
                                       model.id,
@@ -513,7 +567,10 @@ export default function AIModelListPage() {
                                   }
                                 >
                                   <Download className="h-4 w-4 mr-1" />
-                                  Download
+                                  {downloadingModelId ===
+                                  `${model.id}:${variant.name}`
+                                    ? "Downloading..."
+                                    : "Download"}
                                 </Button>
                               </div>
                             )
@@ -522,10 +579,15 @@ export default function AIModelListPage() {
                       ) : (
                         <Button
                           className="w-full"
+                          disabled={
+                            downloadingModelId === `${model.id}:default`
+                          }
                           onClick={() => handleDownloadSystemModel(model.id)}
                         >
                           <Download className="h-4 w-4 mr-2" />
-                          Download Model
+                          {downloadingModelId === `${model.id}:default`
+                            ? "Downloading..."
+                            : "Download Model"}
                         </Button>
                       )}
 

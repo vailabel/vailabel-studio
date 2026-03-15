@@ -31,6 +31,17 @@ export interface UpdaterStatus {
   message: string
 }
 
+export interface DownloadSystemModelPayload {
+  systemId: string
+  name: string
+  description: string
+  category: string
+  variantName?: string
+  version: string
+  downloadUrl: string
+  expectedSize?: number
+}
+
 export const isDesktopApp = () => {
   if (typeof window === "undefined") return false
   return "__TAURI_INTERNALS__" in window
@@ -95,3 +106,7 @@ export const listSecrets = async (namespace: string) =>
 
 export const getUpdaterStatus = async () =>
   invoke<UpdaterStatus>("updater_status")
+
+export const downloadSystemModel = async (
+  payload: DownloadSystemModelPayload
+) => invoke("download_system_model", { payload })

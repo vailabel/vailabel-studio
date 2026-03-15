@@ -1,45 +1,52 @@
-/**
- * Canvas Context Provider
- * Provides canvas-related functionality for the application
- * Stores canvas-only interaction state for the studio workspace
- */
-
 import React, {
   createContext,
-  useContext,
-  ReactNode,
-  useState,
   useCallback,
+  useContext,
+  useMemo,
+  useState,
+  type ReactNode,
 } from "react"
 
-// Canvas state interfaces
-interface CanvasState {
-  zoom: number
-  panOffset: { x: number; y: number }
-  cursor: { x: number; y: number }
-  isDrawing: boolean
-  selectedTool: string | null
-  selection: any
-  contextMenu: { visible: boolean; x: number; y: number; items: any[] }
-  container: { width: number; height: number }
+type Point = { x: number; y: number }
+
+type ToolState = {
+  isDragging?: boolean
+  isResizing?: boolean
+  isMoving?: boolean
+  isDrawing?: boolean
+  startPoint?: Point | null
+  tempAnnotation?: any
+  showLabelInput?: boolean
+  polygonPoints?: Point[]
+  freeDrawPoints?: Point[]
+  movingAnnotationId?: string | null
+  resizingAnnotationId?: string | null
+  previewCoordinates?: Point[] | null
+  resizeHandle?: string | null
 }
 
-interface CanvasContextType extends CanvasState {
+interface CanvasContextType {
+  zoom: number
+  panOffset: Point
+  cursorPosition: Point | null
+  selectedTool: string
+  toolState: ToolState
+  selectedAnnotation: any
+  isPanning: boolean
+  lastPanPoint: Point | null
+  contextMenu: { visible: boolean; x: number; y: number; items: any[] }
+  container: { width: number; height: number }
   setZoom: (zoom: number) => void
-  setPanOffset: (pan: { x: number; y: number }) => void
-  setCursor: (cursor: { x: number; y: number }) => void
-  setIsDrawing: (drawing: boolean) => void
-  setToolState: (state: Partial<Pick<CanvasContextType, "selectedTool">> & {
-    tempAnnotation?: any
-    showLabelInput?: boolean
-    resizingAnnotationId?: string | null
-    movingAnnotationId?: string | null
-    previewCoordinates?: any
-    polygonPoints?: any[]
-  }) => void
-  setSelectedTool: (tool: string | null) => void
-  setSelection: (selection: any) => void
-  setSelectedAnnotation: (selection: any) => void
+  zoomIn: () => void
+  zoomOut: () => void
+  setPanOffset: (pan: Point) => void
+  panTo: (x: number, y: number) => void
+  setCursorPosition: (cursor: Point | null) => void
+  setSelectedTool: (tool: string) => void
+  setToolState: (state: Partial<ToolState>) => void
+  setSelectedAnnotation: (annotation: any) => void
+  setIsPanning: (isPanning: boolean) => void
+  setLastPanPoint: (point: Point | null) => void
   setContextMenu: (menu: {
     visible: boolean
     x: number
@@ -47,27 +54,20 @@ interface CanvasContextType extends CanvasState {
     items: any[]
   }) => void
   setContainer: (container: { width: number; height: number }) => void
-
-  // Actions
   resetCanvas: () => void
-  zoomIn: () => void
-  zoomOut: () => void
-  panTo: (x: number, y: number) => void
 }
 
 const CanvasContext = createContext<CanvasContextType | undefined>(undefined)
 
-interface CanvasProviderProps {
-  children: ReactNode
-}
-
-export const CanvasProvider: React.FC<CanvasProviderProps> = ({ children }) => {
+export const CanvasProvider = ({ children }: { children: ReactNode }) => {
   const [zoom, setZoom] = useState(1)
-  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 })
-  const [cursor, setCursor] = useState({ x: 0, y: 0 })
-  const [isDrawing, setIsDrawing] = useState(false)
-  const [selectedTool, setSelectedTool] = useState<string | null>(null)
-  const [selection, setSelection] = useState(null)
+  const [panOffset, setPanOffset] = useState<Point>({ x: 0, y: 0 })
+  const [cursorPosition, setCursorPosition] = useState<Point | null>(null)
+  const [selectedTool, setSelectedTool] = useState("move")
+  const [toolState, setInternalToolState] = useState<ToolState>({})
+  const [selectedAnnotation, setSelectedAnnotation] = useState<any>(null)
+  const [isPanning, setIsPanning] = useState(false)
+  const [lastPanPoint, setLastPanPoint] = useState<Point | null>(null)
   const [contextMenu, setContextMenu] = useState({
     visible: false,
     x: 0,
@@ -76,105 +76,98 @@ export const CanvasProvider: React.FC<CanvasProviderProps> = ({ children }) => {
   })
   const [container, setContainer] = useState({ width: 0, height: 0 })
 
-  // Canvas actions
-  const resetCanvas = useCallback(() => {
-    setZoom(1)
-    setPanOffset({ x: 0, y: 0 })
-    setCursor({ x: 0, y: 0 })
-    setIsDrawing(false)
-    setSelectedTool(null)
-    setSelection(null)
-    setContextMenu({ visible: false, x: 0, y: 0, items: [] })
+  const setToolState = useCallback((state: Partial<ToolState>) => {
+    setInternalToolState((current) => ({ ...current, ...state }))
   }, [])
 
   const zoomIn = useCallback(() => {
-    setZoom((prev) => Math.min(prev * 1.2, 5))
+    setZoom((current) => Math.min(current * 1.2, 5))
   }, [])
 
   const zoomOut = useCallback(() => {
-    setZoom((prev) => Math.max(prev / 1.2, 0.1))
+    setZoom((current) => Math.max(current / 1.2, 0.1))
   }, [])
 
   const panTo = useCallback((x: number, y: number) => {
     setPanOffset({ x, y })
   }, [])
 
-  const setToolState = useCallback(
-    (state: Partial<Pick<CanvasContextType, "selectedTool">>) => {
-      if (state.selectedTool !== undefined) {
-        setSelectedTool(state.selectedTool)
-      }
-    },
-    []
+  const resetCanvas = useCallback(() => {
+    setZoom(1)
+    setPanOffset({ x: 0, y: 0 })
+    setCursorPosition(null)
+    setSelectedTool("move")
+    setInternalToolState({})
+    setSelectedAnnotation(null)
+    setIsPanning(false)
+    setLastPanPoint(null)
+    setContextMenu({ visible: false, x: 0, y: 0, items: [] })
+  }, [])
+
+  const value = useMemo<CanvasContextType>(
+    () => ({
+      zoom,
+      panOffset,
+      cursorPosition,
+      selectedTool,
+      toolState,
+      selectedAnnotation,
+      isPanning,
+      lastPanPoint,
+      contextMenu,
+      container,
+      setZoom,
+      zoomIn,
+      zoomOut,
+      setPanOffset,
+      panTo,
+      setCursorPosition,
+      setSelectedTool,
+      setToolState,
+      setSelectedAnnotation,
+      setIsPanning,
+      setLastPanPoint,
+      setContextMenu,
+      setContainer,
+      resetCanvas,
+    }),
+    [
+      zoom,
+      panOffset,
+      cursorPosition,
+      selectedTool,
+      toolState,
+      selectedAnnotation,
+      isPanning,
+      lastPanPoint,
+      contextMenu,
+      container,
+      zoomIn,
+      zoomOut,
+      panTo,
+      setToolState,
+      resetCanvas,
+    ]
   )
-
-  const value: CanvasContextType = {
-    zoom,
-    panOffset,
-    cursor,
-    isDrawing,
-    selectedTool,
-    selection,
-    contextMenu,
-    container,
-
-    setZoom,
-    setPanOffset,
-    setCursor,
-    setIsDrawing,
-    setToolState,
-    setSelectedTool,
-    setSelection,
-    setSelectedAnnotation: setSelection,
-    setContextMenu,
-    setContainer,
-
-    resetCanvas,
-    zoomIn,
-    zoomOut,
-    panTo,
-  }
 
   return (
     <CanvasContext.Provider value={value}>{children}</CanvasContext.Provider>
   )
 }
 
-// Hook exports for backward compatibility
-export const useCanvas = (): CanvasContextType => {
+const useCanvas = () => {
   const context = useContext(CanvasContext)
-  if (context === undefined) {
+  if (!context) {
     throw new Error("useCanvas must be used within a CanvasProvider")
   }
   return context
 }
 
-export const useCanvasState = () => {
-  const {
-    zoom,
-    panOffset,
-    cursor,
-    isDrawing,
-    selectedTool,
-    selection,
-    contextMenu,
-    container,
-  } = useCanvas()
-  return {
-    zoom,
-    panOffset,
-    cursor,
-    isDrawing,
-    selectedTool,
-    selection,
-    contextMenu,
-    container,
-  }
-}
+export const useCanvasState = () => useCanvas()
 
 export const useCanvasTool = () => {
-  const { selectedTool, setSelectedTool } = useCanvas()
-  return { selectedTool, setSelectedTool }
+  const { selectedTool, setSelectedTool, toolState, setToolState } = useCanvas()
+  return { selectedTool, setSelectedTool, toolState, setToolState }
 }
 
 export const useCanvasZoom = () => {
@@ -188,13 +181,13 @@ export const useCanvasPan = () => {
 }
 
 export const useCanvasCursor = () => {
-  const { cursor, setCursor } = useCanvas()
-  return { cursor, setCursor }
+  const { cursorPosition, setCursorPosition } = useCanvas()
+  return { cursorPosition, setCursorPosition }
 }
 
 export const useCanvasSelection = () => {
-  const { selection, setSelection } = useCanvas()
-  return { selection, setSelection }
+  const { selectedAnnotation, setSelectedAnnotation } = useCanvas()
+  return { selectedAnnotation, setSelectedAnnotation }
 }
 
 export const useCanvasContextMenu = () => {
@@ -208,6 +201,22 @@ export const useCanvasContainer = () => {
 }
 
 export const useCanvasPanning = () => {
-  const { panOffset, setPanOffset, panTo } = useCanvas()
-  return { panOffset, setPanOffset, panTo }
+  const {
+    panOffset,
+    setPanOffset,
+    panTo,
+    isPanning,
+    setIsPanning,
+    lastPanPoint,
+    setLastPanPoint,
+  } = useCanvas()
+  return {
+    panOffset,
+    setPanOffset,
+    panTo,
+    isPanning,
+    setIsPanning,
+    lastPanPoint,
+    setLastPanPoint,
+  }
 }

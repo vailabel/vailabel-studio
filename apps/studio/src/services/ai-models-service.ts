@@ -1,5 +1,9 @@
 import { AIModel } from "@vailabel/core"
 import { request } from "./request"
+import {
+  downloadSystemModel as invokeDownloadSystemModel,
+  type DownloadSystemModelPayload,
+} from "@/lib/desktop"
 
 export const aiModelsService = {
   list: () => request<AIModel[]>("GET", "/ai-models"),
@@ -11,4 +15,6 @@ export const aiModelsService = {
     request<AIModel>("PUT", `/ai-models/${modelId}`, updates),
   delete: (modelId: string) =>
     request<{ success: boolean }>("DELETE", `/ai-models/${modelId}`),
+  downloadSystemModel: (payload: DownloadSystemModelPayload) =>
+    invokeDownloadSystemModel(payload) as Promise<AIModel>,
 }
