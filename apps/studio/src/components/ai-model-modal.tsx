@@ -24,9 +24,11 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Import } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import {
+  getPredictionReadinessLabel,
   getModelClassCount,
   getModelUnsupportedReason,
   isModelPredictionReady,
+  willModelConvertOnRun,
 } from "@/lib/ai-model-metadata"
 import { useAIModelViewModel } from "@/viewmodels/ai-model-viewmodel"
 
@@ -73,7 +75,7 @@ export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
           <DialogTitle>Pre-annotation Models</DialogTitle>
           <DialogDescription>
             Pick an installed local model for ML-assisted labeling, or open the
-            model manager to install a recommended YOLO26-family checkpoint.
+            model manager to install a recommended YOLO26-family ONNX model.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-6 md:grid-cols-[1.3fr_1fr]">
@@ -148,7 +150,7 @@ export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
                                   : "outline"
                               }
                             >
-                              {isModelPredictionReady(model) ? "Ready" : "Unsupported"}
+                              {getPredictionReadinessLabel(model)}
                             </Badge>
                           </TableCell>
                         </TableRow>
@@ -172,6 +174,8 @@ export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
                 {selectedModel
                   ? isModelPredictionReady(selectedModel)
                     ? `Selected model version: ${selectedModel.modelVersion || selectedModel.model_version || selectedModel.version}. Review and correct the generated pre-annotations before accepting them.`
+                    : willModelConvertOnRun(selectedModel)
+                    ? `Selected model version: ${selectedModel.modelVersion || selectedModel.model_version || selectedModel.version}. This checkpoint can be converted to ONNX automatically the first time you run AI detect.`
                     : getModelUnsupportedReason(selectedModel) ||
                       "The selected model is not ready for AI detect yet."
                   : recommendedSystemModel

@@ -70,25 +70,25 @@ describe("studioCommands", () => {
 
     await studioCommands.aiModelsInstall({
       name: "YOLO26 Detection (nano)",
-      description: "Curated catalog checkpoint",
+      description: "Curated catalog ONNX model",
       version: "8.4.0",
       category: "detection",
       type: "object_detection",
       taskType: "object_detection",
       downloadUrl:
-        "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26n.pt",
+        "https://huggingface.co/zwh20081/yolo26-onnx/resolve/main/yolo26n.onnx",
     })
 
     expect(mockInvoke).toHaveBeenCalledWith("ai_models_install", {
       payload: {
         name: "YOLO26 Detection (nano)",
-        description: "Curated catalog checkpoint",
+        description: "Curated catalog ONNX model",
         version: "8.4.0",
         category: "detection",
         type: "object_detection",
         taskType: "object_detection",
         downloadUrl:
-          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26n.pt",
+          "https://huggingface.co/zwh20081/yolo26-onnx/resolve/main/yolo26n.onnx",
       },
     })
   })

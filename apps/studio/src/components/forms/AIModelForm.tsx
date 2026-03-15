@@ -39,7 +39,7 @@ export default function AIModelForm({ control, errors }: AIModelFormProps) {
           <Info className="h-4 w-4" />
           <AlertDescription>
             Use this form when you already have a model file on disk. Curated
-            checkpoints can also be installed directly from the catalog.
+            ONNX models can also be installed directly from the catalog.
           </AlertDescription>
         </Alert>
 
@@ -122,7 +122,9 @@ export default function AIModelForm({ control, errors }: AIModelFormProps) {
             )}
           />
           <p className="text-xs text-muted-foreground">
-            Supported formats: `.pt`, `.pth`, `.onnx`, `.tflite`, `.h5`, `.pb`
+            Supported formats: `.pt`, `.pth`, `.onnx`, `.tflite`, `.h5`, `.pb`.
+            PyTorch checkpoints are auto-converted to `.onnx` for local AI detect
+            when Ultralytics is available on this machine.
           </p>
           {errors.modelFilePath && (
             <p className="text-xs text-red-500">

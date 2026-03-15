@@ -15,6 +15,8 @@ interface AIDetectionButtonProps {
   selectedModelId?: string
   selectedModelName?: string
   selectedModelPredictionReady?: boolean
+  selectedModelCanAttemptPrediction?: boolean
+  selectedModelWillConvertOnRun?: boolean
   selectedModelUnsupportedReason?: string
   disabled?: boolean
   isGenerating?: boolean
@@ -27,6 +29,8 @@ export const AIDetectionButton = ({
   selectedModelId,
   selectedModelName,
   selectedModelPredictionReady = false,
+  selectedModelCanAttemptPrediction = false,
+  selectedModelWillConvertOnRun = false,
   selectedModelUnsupportedReason,
   disabled,
   isGenerating = false,
@@ -55,12 +59,12 @@ export const AIDetectionButton = ({
       return
     }
 
-    if (!selectedModelPredictionReady) {
+    if (!selectedModelCanAttemptPrediction) {
       toast({
         title: "Selected model is not ready",
         description:
           selectedModelUnsupportedReason ||
-          "Choose a detection-ready ONNX model before running AI detect.",
+          "Choose a detection-ready local model before running AI detect.",
         variant: "destructive",
       })
       onOpenModelSettings?.()
@@ -110,9 +114,11 @@ export const AIDetectionButton = ({
           </Button>
         </TooltipTrigger>
         <TooltipContent side="bottom">
-          {selectedModelName && !selectedModelPredictionReady
+          {selectedModelName && !selectedModelCanAttemptPrediction
             ? selectedModelUnsupportedReason ||
               `${selectedModelName} is not ready for AI detect yet`
+            : selectedModelName && !selectedModelPredictionReady && selectedModelWillConvertOnRun
+            ? `Generate pre-annotations with ${selectedModelName}. This checkpoint may be converted to ONNX first.`
             : selectedModelName
             ? `Generate pre-annotations with ${selectedModelName}`
             : "Choose a model to enable ML-assisted labeling"}

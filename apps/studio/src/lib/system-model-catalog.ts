@@ -83,6 +83,13 @@ const COCO_80_CLASS_NAMES = [
   "toothbrush",
 ]
 
+const YOLO26_ONNX_BASE_URL =
+  "https://huggingface.co/zwh20081/yolo26-onnx/resolve/main"
+
+function yolo26OnnxUrl(fileName: string) {
+  return `${YOLO26_ONNX_BASE_URL}/${fileName}`
+}
+
 function buildCatalogMetadata(category: SystemModel["category"], downloadUrl: string) {
   const isOnnx = downloadUrl.toLowerCase().endsWith(".onnx")
 
@@ -103,7 +110,7 @@ function buildCatalogMetadata(category: SystemModel["category"], downloadUrl: st
     supportsPrediction: isOnnx,
     unsupportedReason: isOnnx
       ? null
-      : "Catalog installs currently download PyTorch checkpoints. Import an ONNX export to run local AI detect.",
+      : "Catalog installs download PyTorch checkpoints first. The desktop app will try to convert them to ONNX for local AI detect when Ultralytics is available.",
   }
 }
 
@@ -130,81 +137,61 @@ export const SYSTEM_MODELS: SystemModel[] = [
         slug: "yolo26n",
         variant: "n",
         modelVersion: "YOLO26n",
-        downloadUrl:
-          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26n.pt",
+        downloadUrl: yolo26OnnxUrl("yolo26n.onnx"),
         size: 2400000,
         accuracy: 40.9,
         speed: "fast",
         defaultRank: 0,
         recommended: true,
-        modelMetadata: buildCatalogMetadata(
-          "detection",
-          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26n.pt"
-        ),
+        modelMetadata: buildCatalogMetadata("detection", yolo26OnnxUrl("yolo26n.onnx")),
       },
       {
         name: "small",
         slug: "yolo26s",
         variant: "s",
         modelVersion: "YOLO26s",
-        downloadUrl:
-          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26s.pt",
+        downloadUrl: yolo26OnnxUrl("yolo26s.onnx"),
         size: 9500000,
         accuracy: 48.6,
         speed: "medium",
         defaultRank: 10,
-        modelMetadata: buildCatalogMetadata(
-          "detection",
-          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26s.pt"
-        ),
+        modelMetadata: buildCatalogMetadata("detection", yolo26OnnxUrl("yolo26s.onnx")),
       },
       {
         name: "medium",
         slug: "yolo26m",
         variant: "m",
         modelVersion: "YOLO26m",
-        downloadUrl:
-          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26m.pt",
+        downloadUrl: yolo26OnnxUrl("yolo26m.onnx"),
         size: 20400000,
         accuracy: 53.1,
         speed: "medium",
         defaultRank: 20,
-        modelMetadata: buildCatalogMetadata(
-          "detection",
-          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26m.pt"
-        ),
+        modelMetadata: buildCatalogMetadata("detection", yolo26OnnxUrl("yolo26m.onnx")),
       },
       {
         name: "large",
         slug: "yolo26l",
         variant: "l",
         modelVersion: "YOLO26l",
-        downloadUrl:
-          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26l.pt",
+        downloadUrl: yolo26OnnxUrl("yolo26l.onnx"),
         size: 24800000,
         accuracy: 55.0,
         speed: "slow",
         defaultRank: 30,
-        modelMetadata: buildCatalogMetadata(
-          "detection",
-          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26l.pt"
-        ),
+        modelMetadata: buildCatalogMetadata("detection", yolo26OnnxUrl("yolo26l.onnx")),
       },
       {
         name: "xlarge",
         slug: "yolo26x",
         variant: "x",
         modelVersion: "YOLO26x",
-        downloadUrl:
-          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26x.pt",
+        downloadUrl: yolo26OnnxUrl("yolo26x.onnx"),
         size: 55700000,
         accuracy: 57.5,
         speed: "slow",
         defaultRank: 40,
-        modelMetadata: buildCatalogMetadata(
-          "detection",
-          "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26x.pt"
-        ),
+        modelMetadata: buildCatalogMetadata("detection", yolo26OnnxUrl("yolo26x.onnx")),
       },
     ],
   },

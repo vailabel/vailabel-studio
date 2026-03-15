@@ -77,7 +77,15 @@ function getRecommendedSystemModel(models: SystemModel[]) {
 
 function getCatalogVersion(downloadUrl: string) {
   const match = downloadUrl.match(/\/download\/v?(\d+\.\d+(?:\.\d+)?)/i)
-  return match?.[1] || "1.0.0"
+  if (match?.[1]) {
+    return match[1]
+  }
+
+  if (downloadUrl.includes("/yolo26-onnx/")) {
+    return "8.4.0"
+  }
+
+  return "1.0.0"
 }
 
 function buildCatalogVariantKey(model: SystemModel, variant: SystemModelVariant) {

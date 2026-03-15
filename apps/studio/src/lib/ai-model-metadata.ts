@@ -2,12 +2,29 @@ import type { AIModel, AIModelMetadata } from "@/types/core"
 
 type ModelMetadataContainer = {
   modelMetadata?: AIModelMetadata | null
+  modelPath?: string | null
+  model_path?: string | null
+  category?: string | null
 }
 
 export function getAIModelMetadata(
   model?: ModelMetadataContainer | null
 ): AIModelMetadata {
   return model?.modelMetadata || {}
+}
+
+function getModelPath(model?: ModelMetadataContainer | null): string {
+  return model?.modelPath || model?.model_path || ""
+}
+
+function isDetectionModel(model?: ModelMetadataContainer | null): boolean {
+  const category = model?.category?.trim().toLowerCase()
+  return !category || category === "detection"
+}
+
+function isPyTorchCheckpointPath(modelPath: string): boolean {
+  const normalizedPath = modelPath.trim().toLowerCase()
+  return normalizedPath.endsWith(".pt") || normalizedPath.endsWith(".pth")
 }
 
 export function getModelClassCount(model?: ModelMetadataContainer | null): number {
@@ -22,6 +39,25 @@ export function isModelPredictionReady(model?: ModelMetadataContainer | null): b
   return getAIModelMetadata(model).supportsPrediction === true
 }
 
+export function willModelConvertOnRun(
+  model?: ModelMetadataContainer | null
+): boolean {
+  if (isModelPredictionReady(model)) {
+    return false
+  }
+
+  return (
+    isDetectionModel(model) &&
+    isPyTorchCheckpointPath(getModelPath(model))
+  )
+}
+
+export function canAttemptModelPrediction(
+  model?: ModelMetadataContainer | null
+): boolean {
+  return isModelPredictionReady(model) || willModelConvertOnRun(model)
+}
+
 export function getModelUnsupportedReason(
   model?: ModelMetadataContainer | null
 ): string {
@@ -30,5 +66,13 @@ export function getModelUnsupportedReason(
 }
 
 export function getPredictionReadinessLabel(model?: AIModel | null): string {
-  return isModelPredictionReady(model) ? "Ready" : "Unsupported"
+  if (isModelPredictionReady(model)) {
+    return "Ready"
+  }
+
+  if (willModelConvertOnRun(model)) {
+    return "Converts on Run"
+  }
+
+  return "Unsupported"
 }

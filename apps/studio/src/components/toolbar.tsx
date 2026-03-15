@@ -25,8 +25,11 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { AIDetectionButton } from "@/components/ai-detection-button"
 import {
+  canAttemptModelPrediction,
+  getPredictionReadinessLabel,
   getModelUnsupportedReason,
   isModelPredictionReady,
+  willModelConvertOnRun,
 } from "@/lib/ai-model-metadata"
 import type { ImageData } from "@/types/core"
 import { useCanvasTool, useCanvasZoom, useCanvasPan, useCanvasState } from "@/contexts/canvas-context"
@@ -71,7 +74,10 @@ export const Toolbar = memo(
   const { resetView } = useCanvasPan()
   const { selectedModel, selectedModelId } = useAIModelViewModel()
   const modelPredictionReady = isModelPredictionReady(selectedModel)
+  const modelCanAttemptPrediction = canAttemptModelPrediction(selectedModel)
+  const modelWillConvertOnRun = willModelConvertOnRun(selectedModel)
   const modelUnsupportedReason = getModelUnsupportedReason(selectedModel)
+  const modelReadinessLabel = getPredictionReadinessLabel(selectedModel)
   const { showCrosshair, showCoordinates } = useCanvasState(state => ({
     showCrosshair: state.showCrosshair,
     showCoordinates: state.showCoordinates
@@ -288,7 +294,7 @@ export const Toolbar = memo(
                 {selectedModel.backend?.toUpperCase() || "CPU"}
               </span>
               <span className="rounded-full bg-muted px-2 py-0.5 text-[11px]">
-                {modelPredictionReady ? "AI Detect Ready" : "Not Ready"}
+                {modelReadinessLabel}
               </span>
               {selectedModel.status && (
                 <span className="rounded-full bg-muted px-2 py-0.5 text-[11px]">
@@ -302,6 +308,8 @@ export const Toolbar = memo(
             selectedModelId={selectedModelId}
             selectedModelName={selectedModel?.name}
             selectedModelPredictionReady={modelPredictionReady}
+            selectedModelCanAttemptPrediction={modelCanAttemptPrediction}
+            selectedModelWillConvertOnRun={modelWillConvertOnRun}
             selectedModelUnsupportedReason={modelUnsupportedReason}
             isGenerating={isGeneratingPredictions}
             onOpenModelSettings={onOpenAISettings}

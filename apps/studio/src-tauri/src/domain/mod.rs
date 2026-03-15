@@ -1,3 +1,4 @@
+pub mod ai;
 pub mod common;
 pub mod images;
 pub mod labels;

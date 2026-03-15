@@ -46,8 +46,10 @@ import {
 import {
   getAIModelMetadata,
   getModelClassCount,
+  getPredictionReadinessLabel,
   getModelUnsupportedReason,
   isModelPredictionReady,
+  willModelConvertOnRun,
 } from "@/lib/ai-model-metadata"
 import { aiModelFormSchema, type AIModelFormData } from "@/lib/schemas/ai-model"
 import { useToast } from "@/hooks/use-toast"
@@ -145,6 +147,8 @@ export default function AIModelListPage() {
         title: "Model imported",
         description: isModelPredictionReady(importedModel)
           ? `${importedModel.name} is ready for offline prediction generation.`
+          : willModelConvertOnRun(importedModel)
+          ? `${importedModel.name} can be converted to ONNX automatically the first time you run AI detect.`
           : getModelUnsupportedReason(importedModel) ||
             `${importedModel.name} was imported, but it is not prediction-ready yet.`,
       })
@@ -216,6 +220,8 @@ export default function AIModelListPage() {
         title: "Model installed",
         description: isModelPredictionReady(installedModel)
           ? `${installedModel.name} was installed and activated for offline prediction generation.`
+          : willModelConvertOnRun(installedModel)
+          ? `${installedModel.name} will be converted to ONNX automatically the first time you run AI detect.`
           : getModelUnsupportedReason(installedModel) ||
             `${installedModel.name} was installed, but it is not prediction-ready yet.`,
       })
@@ -314,7 +320,7 @@ export default function AIModelListPage() {
       <Alert className="border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/30">
         <Cpu className="h-4 w-4 text-blue-600 dark:text-blue-300" />
         <AlertDescription>
-          Install a curated checkpoint from the catalog or import an existing
+          Install a curated ONNX model from the catalog or import an existing
           local file. Once a model is added, prediction generation stays local
           and offline.
         </AlertDescription>
@@ -410,11 +416,13 @@ export default function AIModelListPage() {
                                   : "outline"
                               }
                             >
-                              {isModelPredictionReady(model) ? "Ready" : "Unsupported"}
+                              {getPredictionReadinessLabel(model)}
                             </Badge>
                             {!isModelPredictionReady(model) && (
                               <div className="max-w-xs text-xs text-muted-foreground">
-                                {getModelUnsupportedReason(model)}
+                                {willModelConvertOnRun(model)
+                                  ? "This checkpoint can be converted to ONNX automatically when AI detect runs."
+                                  : getModelUnsupportedReason(model)}
                               </div>
                             )}
                           </div>
