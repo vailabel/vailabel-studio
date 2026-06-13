@@ -6,7 +6,11 @@ use serde::{Deserialize, Serialize};
 pub struct Image {
     pub id: String,
     pub name: String,
-    pub data: String,
+    /// Absolute on-disk path to the referenced image file (never base64).
+    pub path: String,
+    /// Path relative to the opened folder, used for LabelMe JSON sidecars.
+    #[serde(default)]
+    pub image_path: Option<String>,
     pub project_id: String,
     pub width: u32,
     pub height: u32,

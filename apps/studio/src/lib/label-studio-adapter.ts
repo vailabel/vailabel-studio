@@ -33,7 +33,7 @@ function clampPercentage(value: number) {
 }
 
 function getImageSource(image: ImageData) {
-  return image.url || image.data || image.name
+  return image.url || image.path || image.name
 }
 
 function toPercentX(value: number, image: ImageData) {

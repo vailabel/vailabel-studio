@@ -18,7 +18,9 @@ import {
   willModelConvertOnRun,
 } from "@/lib/ai-model-metadata"
 import { services } from "@/services"
-import type { Project } from "@/types/core"
+import type { Annotation, ImageData, Label, Project } from "@/types/core"
+import { openPathDialog } from "@/lib/desktop"
+import { exportDataset, type ExportFormat } from "@/lib/export"
 import { useAIModelViewModel } from "@/viewmodels/ai-model-viewmodel"
 import { useImageLabelerViewModel } from "@/viewmodels/image-labeler-viewmodel"
 import { useSettingsViewModel } from "@/viewmodels/settings-viewmodel"
@@ -40,6 +42,10 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
     useCanvasDisplay()
 
   const [project, setProject] = useState<Project | null>(null)
+  const [projectImages, setProjectImages] = useState<ImageData[]>([])
+  const [annotatedImageIds, setAnnotatedImageIds] = useState<Set<string>>(
+    new Set()
+  )
   const [projectStats, setProjectStats] = useState<StudioHeaderStats>({
     totalImages: 0,
     labeledImages: 0,
@@ -48,6 +54,7 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
   const [isProjectSummaryLoading, setIsProjectSummaryLoading] = useState(true)
   const [showSettingsModal, setShowSettingsModal] = useState(false)
   const [showAIModelModal, setShowAIModelModal] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
 
   const effectiveProjectId = useMemo(
     () =>
@@ -99,13 +106,17 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
       ])
 
       const labeledImages = new Set(
-        annotations.map((annotation) => annotation.imageId || annotation.image_id || "")
+        annotations
+          .map((annotation) => annotation.imageId || annotation.image_id || "")
+          .filter(Boolean)
       )
 
       setProject(nextProject)
+      setProjectImages(images)
+      setAnnotatedImageIds(labeledImages)
       setProjectStats({
         totalImages: images.length,
-        labeledImages: Array.from(labeledImages).filter(Boolean).length,
+        labeledImages: labeledImages.size,
         totalLabels: labels.length,
       })
     } finally {
@@ -241,6 +252,46 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
     }
   }, [setShowCoordinates, settings, showCoordinates])
 
+  // Export the whole project to a chosen folder in the requested format.
+  // Returns { count, outputDir } on success, or null if cancelled.
+  const exportProject = useCallback(
+    async (format: ExportFormat) => {
+      if (!effectiveProjectId) return null
+
+      const [outputDir] = await openPathDialog({ directory: true })
+      if (!outputDir) return null
+
+      setIsExporting(true)
+      try {
+        const [images, annotations, labels] = await Promise.all([
+          services.getImageService().getImagesByProjectId(effectiveProjectId),
+          services
+            .getAnnotationService()
+            .getAnnotationsByProjectId(effectiveProjectId),
+          services.getLabelService().getLabelsByProjectId(effectiveProjectId),
+        ])
+
+        const annotationsByImage = new Map<string, Annotation[]>()
+        for (const annotation of annotations) {
+          const id = annotation.imageId || annotation.image_id || ""
+          const list = annotationsByImage.get(id)
+          if (list) list.push(annotation)
+          else annotationsByImage.set(id, [annotation])
+        }
+
+        const count = await exportDataset(
+          format,
+          { images, annotationsByImage, labels: labels as Label[] },
+          outputDir
+        )
+        return { count, outputDir }
+      } finally {
+        setIsExporting(false)
+      }
+    },
+    [effectiveProjectId]
+  )
+
   const selectedModel = aiModels.selectedModel
   const selectedModelCanAttemptPrediction = canAttemptModelPrediction(selectedModel)
 
@@ -306,6 +357,12 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
     rejectPrediction: imageLabeler.rejectPrediction,
     goToNextImage,
     goToPreviousImage,
+    projectImages,
+    annotatedImageIds,
+    currentImageId: imageId,
+    navigateToImage,
+    exportProject,
+    isExporting,
     navigateBackToProjects: () => navigate("/projects"),
   }
 }

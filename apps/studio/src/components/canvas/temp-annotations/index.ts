@@ -1,3 +1,7 @@
 export { TempBoxAnnotation } from "./temp-box-annotation"
 export { TempPolygonAnnotation } from "./temp-polygon-annotation"
 export { TempFreeDrawAnnotation } from "./temp-free-draw-annotation"
+export { TempPointAnnotation } from "./temp-point-annotation"
+export { TempLineAnnotation } from "./temp-line-annotation"
+export { TempLinestripAnnotation } from "./temp-linestrip-annotation"
+export { TempCircleAnnotation } from "./temp-circle-annotation"

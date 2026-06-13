@@ -12,7 +12,7 @@ const mockListenToStudioEvents = jest.mocked(listenToStudioEvents)
 const image = {
   id: "image-1",
   name: "Sample Image",
-  data: "data:image/png;base64,AAAA",
+  path: "/dataset/sample-image.png",
   width: 100,
   height: 100,
   projectId: "project-1",

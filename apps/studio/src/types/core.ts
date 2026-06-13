@@ -36,10 +36,15 @@ export class Label {
 export class ImageData {
   id!: string
   name!: string
-  data!: string
+  /** Absolute on-disk path to the referenced image file (never base64). */
+  path!: string
+  /** Path relative to the opened folder, used for LabelMe JSON sidecars. */
+  imagePath?: string
   width!: number
   height!: number
   url?: string
+  /** LabelMe-style boolean flags for the whole image (e.g. {blurry: true}). */
+  flags?: Record<string, boolean>
   projectId?: string
   project_id?: string
   project?: Project
@@ -56,6 +61,11 @@ export class Annotation {
   name!: string
   type!: string
   coordinates!: { x: number; y: number }[]
+  /** Optional group id (LabelMe) linking related shapes. */
+  groupId?: number | null
+  group_id?: number | null
+  /** LabelMe-style boolean flags for this shape. */
+  flags?: Record<string, boolean>
   projectId?: string
   project_id?: string
   project?: Project

@@ -5,6 +5,13 @@ import { v4 as uuidv4 } from "uuid"
 import { useNavigate } from "react-router-dom"
 import { listenToStudioEvents } from "@/ipc/events"
 import { services } from "@/services"
+import {
+  allowImageDirectory,
+  openPathDialog,
+  scanImageDirectory,
+} from "@/lib/desktop"
+import { importLabelMeSidecar } from "@/lib/labelme-sidecar"
+import { recordRecentProject } from "@/lib/recent-projects"
 
 export const ProjectEditSchema = z.object({
   name: z.string().min(1).max(100),
@@ -25,7 +32,6 @@ export const LabelCreateSchema = z.object({
 export type LabelCreateForm = z.infer<typeof LabelCreateSchema>
 
 interface UploadImage extends ImageData {
-  file?: File
   size?: number
 }
 
@@ -63,6 +69,7 @@ export const useProjectDetailViewModel = (projectId: string) => {
           services.getTaskService().listByProjectId(projectId),
         ])
       setProject(nextProject)
+      if (nextProject) recordRecentProject(projectId)
       setImages(nextImages)
       setAnnotations(nextAnnotations)
       setLabels(nextLabels)
@@ -118,29 +125,28 @@ export const useProjectDetailViewModel = (projectId: string) => {
     }
   }, [annotations, images.length, labels.length, tasks])
 
-  const handleFiles = async (files: File[]) => {
+  // Reference images in place from a folder (LabelMe-style) — no base64, no copy.
+  const addImagesFromFolder = async () => {
+    const [folder] = await openPathDialog({ directory: true })
+    if (!folder) return
+
     setIsUploading(true)
     setUploadProgress(0)
     try {
-      const preparedImages: UploadImage[] = []
-      for (let index = 0; index < files.length; index += 1) {
-        const file = files[index]
-        const data = await readFileAsDataURL(file)
-        const dimensions = await getImageDimensions(data)
-        preparedImages.push({
-          id: uuidv4(),
-          name: file.name,
-          data,
-          width: dimensions.width,
-          height: dimensions.height,
-          file,
-          size: file.size,
-          projectId,
-          project_id: projectId,
-        })
-        setUploadProgress(Math.round(((index + 1) / files.length) * 100))
-      }
+      await allowImageDirectory(folder)
+      const scanned = await scanImageDirectory(folder)
+      const preparedImages: UploadImage[] = scanned.map((image) => ({
+        id: uuidv4(),
+        name: image.name,
+        path: image.path,
+        imagePath: image.name,
+        width: image.width,
+        height: image.height,
+        projectId,
+        project_id: projectId,
+      }))
       setNewImages((current) => [...current, ...preparedImages])
+      setUploadProgress(100)
     } finally {
       setIsUploading(false)
     }
@@ -209,7 +215,7 @@ export const useProjectDetailViewModel = (projectId: string) => {
     getAnnotationLabel: (annotation: Annotation) =>
       labels.find((label) => label.id === annotation.label_id),
     getTaskProgress: (task: Task) => (task.status === "completed" ? 100 : 0),
-    handleFiles,
+    addImagesFromFolder,
     handleRemoveImage: (index: number) =>
       setNewImages((current) => current.filter((_, itemIndex) => itemIndex !== index)),
     saveImages: async () => {
@@ -218,6 +224,30 @@ export const useProjectDetailViewModel = (projectId: string) => {
         const createdImages = await Promise.all(
           newImages.map((image) => services.getImageService().createImage(image))
         )
+
+        // Hydrate annotations from any LabelMe sidecar files in the folder.
+        await Promise.all(
+          createdImages.map(async (image) => {
+            try {
+              const drafts = await importLabelMeSidecar(image, projectId)
+              await Promise.all(
+                drafts.map((draft) =>
+                  services.getAnnotationService().createAnnotation({
+                    id: uuidv4(),
+                    ...draft,
+                  } as Annotation)
+                )
+              )
+            } catch (sidecarError) {
+              console.error(
+                "Failed to import LabelMe sidecar for",
+                image.name,
+                sidecarError
+              )
+            }
+          })
+        )
+
         setImages((current) => [...createdImages, ...current])
         setNewImages([])
       } finally {
@@ -259,23 +289,4 @@ export const useProjectDetailViewModel = (projectId: string) => {
   }
 }
 
-function readFileAsDataURL(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result as string)
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
-}
-
-function getImageDimensions(
-  dataUrl: string
-): Promise<{ width: number; height: number }> {
-  return new Promise((resolve, reject) => {
-    const image = new Image()
-    image.onload = () => resolve({ width: image.width, height: image.height })
-    image.onerror = reject
-    image.src = dataUrl
-  })
-}
 

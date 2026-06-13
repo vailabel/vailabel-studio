@@ -156,7 +156,7 @@ describe("useStudioScreenViewModel", () => {
       image: {
         id: "image-1",
         name: "image-1",
-        data: "data:image/png;base64,AAAA",
+        path: "/dataset/image-1.png",
         width: 100,
         height: 100,
         projectId: "project-1",

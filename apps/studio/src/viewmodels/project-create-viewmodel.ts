@@ -1,8 +1,14 @@
 import { useState } from "react"
 import { v4 as uuidv4 } from "uuid"
-import { z } from "zod"
 import { useNavigate } from "react-router-dom"
 import { services } from "@/services"
+import type { Annotation } from "@/types/core"
+import {
+  allowImageDirectory,
+  openPathDialog,
+  scanImageDirectory,
+} from "@/lib/desktop"
+import { importLabelMeSidecar } from "@/lib/labelme-sidecar"
 
 export const PROJECT_TYPES = {
   IMAGE_ANNOTATION: "image_annotation",
@@ -17,104 +23,90 @@ export const PROJECT_TYPES = {
 
 export type ProjectType = (typeof PROJECT_TYPES)[keyof typeof PROJECT_TYPES]
 
-export const ProjectDetailSchema = z.object({
-  name: z.string().min(1).max(100),
-  description: z.string().max(500).optional(),
-  type: z.string().min(1),
-  labels: z
-    .array(
-      z.object({
-        name: z.string(),
-        color: z.string(),
-      })
-    )
-    .min(1),
-})
-
-export type ProjectDetailForm = z.infer<typeof ProjectDetailSchema>
-
 interface ImageFile {
   id: string
   name: string
-  data: string
+  path: string
+  imagePath?: string
   width: number
   height: number
-  file?: File
   size?: number
 }
 
-type Step = "details" | "dataset"
+function folderBaseName(folder: string): string {
+  return (
+    folder
+      .split(/[\\/]/)
+      .filter(Boolean)
+      .pop() || "Untitled Project"
+  )
+}
 
 export const useProjectCreateViewModel = () => {
   const navigate = useNavigate()
-  const [step, setStep] = useState<Step>("details")
+  const [name, setName] = useState("")
+  const [description, setDescription] = useState("")
+  const [type, setType] = useState<string>(PROJECT_TYPES.IMAGE_ANNOTATION)
   const [images, setImages] = useState<ImageFile[]>([])
-  const [isUploading, setIsUploading] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState(0)
+  const [folderPath, setFolderPath] = useState<string | null>(null)
+  const [isScanning, setIsScanning] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<unknown>(null)
 
-  const handleFiles = async (files: File[]) => {
-    setIsUploading(true)
-    setUploadProgress(0)
+  // LabelMe-style: pick a folder, reference its images in place (no base64).
+  const openImageFolder = async () => {
+    const [folder] = await openPathDialog({ directory: true })
+    if (!folder) return
+
+    setIsScanning(true)
+    setError(null)
     try {
-      const nextImages: ImageFile[] = []
-      for (let index = 0; index < files.length; index += 1) {
-        const file = files[index]
-        const data = await readFileAsDataURL(file)
-        const dimensions = await getImageDimensions(data)
-        nextImages.push({
-          id: uuidv4(),
-          name: file.name,
-          data,
-          width: dimensions.width,
-          height: dimensions.height,
-          file,
-          size: file.size,
-        })
-        setUploadProgress(Math.round(((index + 1) / files.length) * 100))
-      }
-      setImages((current) => [...current, ...nextImages])
+      await allowImageDirectory(folder)
+      const scanned = await scanImageDirectory(folder)
+      const nextImages: ImageFile[] = scanned.map((image) => ({
+        id: uuidv4(),
+        name: image.name,
+        path: image.path,
+        imagePath: image.name,
+        width: image.width,
+        height: image.height,
+      }))
+      setImages(nextImages)
+      setFolderPath(folder)
+      setName((current) => current.trim() || folderBaseName(folder))
+    } catch (nextError) {
+      setError(nextError)
     } finally {
-      setIsUploading(false)
+      setIsScanning(false)
     }
   }
 
-  const createProject = async (formData: ProjectDetailForm) => {
+  const removeImage = (index: number) =>
+    setImages((current) => current.filter((_, itemIndex) => itemIndex !== index))
+
+  const createProject = async () => {
+    if (!name.trim() || images.length === 0) return
+
     setIsCreating(true)
     setError(null)
     try {
       const project = await services.getProjectService().create({
         id: uuidv4(),
-        name: formData.name.trim(),
-        description: formData.description?.trim() || "",
-        type: formData.type,
+        name: name.trim(),
+        description: description.trim(),
+        type,
         status: "active",
         settings: {
-          annotationTypes: getAnnotationTypesForProjectType(formData.type),
+          annotationTypes: getAnnotationTypesForProjectType(type),
           autoSave: true,
-          showGrid: false,
-          gridSize: 20,
         },
         metadata: {
-          labelCount: formData.labels.length,
           imageCount: images.length,
+          sourceFolder: folderPath,
         },
       })
 
-      await Promise.all(
-        formData.labels.map((label) =>
-          services.getLabelService().createLabel({
-            id: uuidv4(),
-            name: label.name,
-            color: label.color,
-            projectId: project.id,
-            project_id: project.id,
-          })
-        )
-      )
-
-      await Promise.all(
+      const createdImages = await Promise.all(
         images.map((image) =>
           services.getImageService().createImage({
             ...image,
@@ -124,7 +116,31 @@ export const useProjectCreateViewModel = () => {
         )
       )
 
-      navigate(`/projects/detail/${project.id}`)
+      // Hydrate annotations from any LabelMe sidecars already in the folder.
+      await Promise.all(
+        createdImages.map(async (image) => {
+          try {
+            const drafts = await importLabelMeSidecar(image, project.id)
+            await Promise.all(
+              drafts.map((draft) =>
+                services
+                  .getAnnotationService()
+                  .createAnnotation({ id: uuidv4(), ...draft } as Annotation)
+              )
+            )
+          } catch (sidecarError) {
+            console.error("Failed to import sidecar for", image.name, sidecarError)
+          }
+        })
+      )
+
+      // Drop straight into annotating the first image (LabelMe behaviour).
+      const firstImage = createdImages[0]
+      if (firstImage) {
+        navigate(`/projects/${project.id}/studio/${firstImage.id}`)
+      } else {
+        navigate(`/projects/detail/${project.id}`)
+      }
     } catch (nextError) {
       setError(nextError)
       throw nextError
@@ -134,49 +150,23 @@ export const useProjectCreateViewModel = () => {
   }
 
   return {
-    step,
+    name,
+    setName,
+    description,
+    setDescription,
+    type,
+    setType,
     images,
-    isUploading,
-    uploadProgress,
+    folderPath,
+    isScanning,
     isCreating,
     error,
-    goToNextStep: () => setStep("dataset"),
-    goToPreviousStep: () => setStep("details"),
-    handleFiles,
-    handleRemoveImage: (index: number) =>
-      setImages((current) => current.filter((_, itemIndex) => itemIndex !== index)),
-    validateForm: (formData: ProjectDetailForm) => {
-      const result = ProjectDetailSchema.safeParse(formData)
-      if (result.success) return {}
-      return Object.fromEntries(
-        result.error.issues.map((issue) => [
-          issue.path.join(".") || "form",
-          issue.message,
-        ])
-      )
-    },
+    canCreate: name.trim().length > 0 && images.length > 0,
+    openImageFolder,
+    removeImage,
     createProject,
+    cancel: () => navigate("/projects"),
   }
-}
-
-function readFileAsDataURL(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result as string)
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
-}
-
-function getImageDimensions(
-  dataUrl: string
-): Promise<{ width: number; height: number }> {
-  return new Promise((resolve, reject) => {
-    const image = new Image()
-    image.onload = () => resolve({ width: image.width, height: image.height })
-    image.onerror = reject
-    image.src = dataUrl
-  })
 }
 
 function getAnnotationTypesForProjectType(type: string): string[] {

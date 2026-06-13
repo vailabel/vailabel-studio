@@ -710,12 +710,99 @@ fn fs_list_images(payload: DirectoryPayload) -> Result<Vec<String>, AppError> {
 }
 
 #[tauri::command]
+fn fs_write_text_file(payload: FilePayload) -> Result<(), AppError> {
+    let path = PathBuf::from(&payload.path);
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(path, payload.data)?;
+    Ok(())
+}
+
+#[tauri::command]
+fn fs_read_text_file(payload: PathPayload) -> Result<Option<String>, AppError> {
+    let path = PathBuf::from(&payload.path);
+    if !path.exists() {
+        return Ok(None);
+    }
+    Ok(Some(fs::read_to_string(path)?))
+}
+
+#[tauri::command]
 fn fs_get_base_name(payload: BaseNamePayload) -> String {
     Path::new(&payload.file)
         .file_name()
         .and_then(|name| name.to_str())
         .unwrap_or_default()
         .to_string()
+}
+
+const SUPPORTED_IMAGE_EXTENSIONS: &[&str] =
+    &["png", "jpg", "jpeg", "gif", "bmp", "webp", "tiff", "tif"];
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ScannedImage {
+    name: String,
+    path: String,
+    width: u32,
+    height: u32,
+}
+
+/// Scan a directory for image files, returning each file's absolute path, name,
+/// and dimensions. Reads only image headers (no full decode, no base64), so
+/// large folders stay fast. Width/height fall back to 0 when the format is not
+/// decodable here; the frontend recomputes those lazily from the loaded asset.
+#[tauri::command]
+fn images_scan_directory(payload: DirectoryPayload) -> Result<Vec<ScannedImage>, AppError> {
+    let directory = PathBuf::from(&payload.directory);
+    if !directory.exists() {
+        return Ok(Vec::new());
+    }
+
+    let mut images = Vec::new();
+    for entry in fs::read_dir(&directory)? {
+        let entry = entry?;
+        let path = entry.path();
+        if !path.is_file() {
+            continue;
+        }
+        let is_image = path
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .map(|ext| SUPPORTED_IMAGE_EXTENSIONS.contains(&ext.to_lowercase().as_str()))
+            .unwrap_or(false);
+        if !is_image {
+            continue;
+        }
+
+        let (width, height) = image::image_dimensions(&path).unwrap_or((0, 0));
+        let name = path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or_default()
+            .to_string();
+        images.push(ScannedImage {
+            name,
+            path: path.to_string_lossy().to_string(),
+            width,
+            height,
+        });
+    }
+
+    images.sort_by(|a, b| a.name.cmp(&b.name));
+    Ok(images)
+}
+
+/// Grant the asset protocol read access to a directory the user just opened so
+/// `convertFileSrc` can render its images. Lets us keep the configured scope
+/// tight while still supporting arbitrary "reference in place" folders.
+#[tauri::command]
+fn allow_image_directory(app: tauri::AppHandle, payload: PathPayload) -> Result<(), AppError> {
+    app.asset_protocol_scope()
+        .allow_directory(&payload.path, true)
+        .map_err(|error| AppError::Message(error.to_string()))?;
+    Ok(())
 }
 
 fn keyring_entry(namespace: &str, key: &str) -> Result<Entry, AppError> {
@@ -871,6 +958,10 @@ pub fn run() {
             fs_delete_image,
             fs_list_images,
             fs_get_base_name,
+            fs_write_text_file,
+            fs_read_text_file,
+            images_scan_directory,
+            allow_image_directory,
             secret_set,
             secret_get,
             secret_delete,

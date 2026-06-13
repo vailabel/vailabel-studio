@@ -33,6 +33,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { ImageData } from "@/types/core"
 import { cn } from "@/lib/utils"
+import { toAssetUrl } from "@/lib/desktop"
 
 // Types
 export interface ImageTableColumn {
@@ -104,7 +105,9 @@ export const ImageTable = memo(({
       createdAt: image.createdAt,
       updatedAt: image.updatedAt,
       annotationCount: image.annotations?.length || 0,
-      thumbnail: image.data || image.url || "/placeholder.svg",
+      thumbnail: image.path
+        ? toAssetUrl(image.path)
+        : image.url || "/placeholder.svg",
     }))
   }, [images])
 

@@ -12,6 +12,16 @@ export {
   DeleteHandler,
   type DeleteHandlerUIState,
 } from "./handlers/delete-handler"
+export { PointHandler, type PointHandlerUIState } from "./handlers/point-handler"
+export { LineHandler, type LineHandlerUIState } from "./handlers/line-handler"
+export {
+  LinestripHandler,
+  type LinestripHandlerUIState,
+} from "./handlers/linestrip-handler"
+export {
+  CircleHandler,
+  type CircleHandlerUIState,
+} from "./handlers/circle-handler"
 
 import type { Point } from "@/types/core"
 
@@ -21,6 +31,10 @@ export type ToolHandlerUIState =
   | import("./handlers/polygon-handler").PolygonHandlerUIState
   | import("./handlers/free-draw-handler").FreeDrawHandlerUIState
   | import("./handlers/delete-handler").DeleteHandlerUIState
+  | import("./handlers/point-handler").PointHandlerUIState
+  | import("./handlers/line-handler").LineHandlerUIState
+  | import("./handlers/linestrip-handler").LinestripHandlerUIState
+  | import("./handlers/circle-handler").CircleHandlerUIState
 
 export interface ToolHandler {
   onMouseDown(e: React.MouseEvent): void

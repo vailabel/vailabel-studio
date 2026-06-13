@@ -13,6 +13,10 @@ import {
   Plus,
   Minus,
   RefreshCcw,
+  Dot,
+  Slash,
+  Spline,
+  Circle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -77,6 +81,10 @@ const annotationTools: ToolButtonConfig[] = [
   { id: "box", name: "Draw Box", icon: Square, shortcut: "B" },
   { id: "polygon", name: "Draw Polygon", icon: Polygon, shortcut: "P" },
   { id: "freeDraw", name: "Free Draw", icon: Pencil, shortcut: "F" },
+  { id: "point", name: "Point", icon: Dot, shortcut: "O" },
+  { id: "line", name: "Line", icon: Slash, shortcut: "L" },
+  { id: "linestrip", name: "Line Strip", icon: Spline, shortcut: "S" },
+  { id: "circle", name: "Circle", icon: Circle, shortcut: "C" },
   { id: "delete", name: "Delete", icon: Trash2, shortcut: "D" },
 ]
 

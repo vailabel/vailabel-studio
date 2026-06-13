@@ -155,6 +155,38 @@ const ProjectList = memo(() => {
         </div>
       </div>
 
+      {/* Recent Projects */}
+      {!viewModel.searchQuery && viewModel.recentProjects.length > 0 && (
+        <div className="mb-8">
+          <div className="mb-3 flex items-center gap-2">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-sm font-semibold text-muted-foreground">
+              Recent
+            </h2>
+          </div>
+          <div className="flex gap-3 overflow-x-auto pb-2">
+            {viewModel.recentProjects.map((project) => (
+              <button
+                key={project.id}
+                type="button"
+                onClick={() => viewModel.navigateToProject(project.id)}
+                className="flex min-w-[200px] items-center gap-3 rounded-lg border border-border bg-card p-3 text-left transition-colors hover:bg-accent/50"
+              >
+                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-primary/10">
+                  <FolderOpen className="h-4 w-4 text-primary" />
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{project.name}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {project.images?.length || 0} images
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Projects Grid */}
       {viewModel.isLoading ? (
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">

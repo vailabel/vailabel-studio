@@ -1,6 +1,15 @@
 import type { Annotation, ImageData, Label, Prediction, Project } from "@/types/core"
 
-export type CanvasTool = "move" | "box" | "polygon" | "freeDraw" | "delete"
+export type CanvasTool =
+  | "move"
+  | "box"
+  | "polygon"
+  | "freeDraw"
+  | "point"
+  | "line"
+  | "linestrip"
+  | "circle"
+  | "delete"
 
 export type CanvasHistoryKind = "create" | "update" | "delete"
 

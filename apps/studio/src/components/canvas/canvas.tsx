@@ -18,6 +18,7 @@ import { TempAnnotation } from "./temp-annotation"
 import { ToolStatus } from "./tool-status"
 import { Prediction } from "@/types/core"
 import { getCenterOffset } from "@/tools/canvas-utils"
+import { toAssetUrl } from "@/lib/desktop"
 
 interface CanvasProps {
   image: ImageData
@@ -42,7 +43,7 @@ interface CanvasProps {
 // Memoize the image component to prevent unnecessary re-renders
 const CanvasImage = memo(({ image }: { image: ImageData }) => (
   <img
-    src={image.data}
+    src={toAssetUrl(image.path)}
     alt="Canvas"
     className="pointer-events-none select-none"
     draggable={false}

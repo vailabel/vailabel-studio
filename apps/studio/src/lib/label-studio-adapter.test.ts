@@ -9,7 +9,7 @@ describe("label studio adapter", () => {
     const image = {
       id: "image-1",
       name: "sample.png",
-      data: "data:image/png;base64,abc",
+      path: "/dataset/sample.png",
       width: 1000,
       height: 500,
     } as ImageData
@@ -34,7 +34,7 @@ describe("label studio adapter", () => {
 
     const task = createLabelStudioTask({ image, predictions, model })
 
-    expect(task.data.image).toBe(image.data)
+    expect(task.data.image).toBe(image.path)
     expect(task.predictions[0].model_version).toBe("YOLO26n")
     expect(task.predictions[0].result[0]).toMatchObject({
       id: "prediction-1",
@@ -56,7 +56,7 @@ describe("label studio adapter", () => {
     const image = {
       id: "image-1",
       name: "sample.png",
-      data: "data:image/png;base64,abc",
+      path: "/dataset/sample.png",
       width: 1000,
       height: 500,
     } as ImageData
@@ -67,7 +67,7 @@ describe("label studio adapter", () => {
       projectId: "project-1",
       task: {
         data: {
-          image: image.data,
+          image: image.path,
         },
         predictions: [
           {
@@ -115,7 +115,7 @@ describe("label studio adapter", () => {
     const image = {
       id: "image-2",
       name: "sample-2.png",
-      data: "data:image/png;base64,def",
+      path: "/dataset/sample-2.png",
       width: 200,
       height: 100,
     } as ImageData

@@ -98,6 +98,45 @@ export const PolygonAnnotation = memo(
       [annotation.coordinates, annotation.id, onUpdateAnnotation, readOnly, zoom]
     )
 
+    // Delete a vertex (right-click / alt-click). Keeps a valid polygon (>= 3).
+    const handleDeleteVertex = useCallback(
+      (e: React.MouseEvent<SVGCircleElement>, index: number) => {
+        e.preventDefault()
+        e.stopPropagation()
+        if (readOnly || !onUpdateAnnotation) return
+        if (annotation.coordinates.length <= 3) return
+        const newCoordinates = annotation.coordinates.filter(
+          (_, i) => i !== index
+        )
+        void onUpdateAnnotation(annotation.id, {
+          coordinates: newCoordinates,
+          updatedAt: new Date(),
+        })
+      },
+      [annotation.coordinates, annotation.id, onUpdateAnnotation, readOnly]
+    )
+
+    // Add a vertex by clicking the midpoint handle of an edge.
+    const handleAddVertex = useCallback(
+      (e: React.MouseEvent<SVGCircleElement>, afterIndex: number) => {
+        e.stopPropagation()
+        if (readOnly || !onUpdateAnnotation) return
+        const a = annotation.coordinates[afterIndex]
+        const b =
+          annotation.coordinates[
+            (afterIndex + 1) % annotation.coordinates.length
+          ]
+        const midpoint = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
+        const newCoordinates = [...annotation.coordinates]
+        newCoordinates.splice(afterIndex + 1, 0, midpoint)
+        void onUpdateAnnotation(annotation.id, {
+          coordinates: newCoordinates,
+          updatedAt: new Date(),
+        })
+      },
+      [annotation.coordinates, annotation.id, onUpdateAnnotation, readOnly]
+    )
+
     // Memoize edit points to prevent recreation
     const editPoints = useMemo(() => {
       if (!isMoveTool || readOnly) return null
@@ -113,15 +152,50 @@ export const PolygonAnnotation = memo(
           r={pointRadius}
           className="fill-white stroke-gray-400 stroke-1 cursor-pointer pointer-events-auto hover:fill-blue-200 transition-colors"
           style={{ opacity: pointOpacity }}
-          onMouseDown={(e) => handlePointMouseDown(e, index)}
+          onMouseDown={(e) =>
+            e.altKey
+              ? handleDeleteVertex(e, index)
+              : handlePointMouseDown(e, index)
+          }
+          onContextMenu={(e) => handleDeleteVertex(e, index)}
         />
       ))
     }, [
       isMoveTool,
       isSelected,
+      readOnly,
       annotation.coordinates,
       zoom,
       handlePointMouseDown,
+      handleDeleteVertex,
+    ])
+
+    // Midpoint "add vertex" handles, one per edge (including the closing edge).
+    const addVertexHandles = useMemo(() => {
+      if (!isMoveTool || readOnly || !isSelected) return null
+
+      return annotation.coordinates.map((point: Point, index: number) => {
+        const next =
+          annotation.coordinates[(index + 1) % annotation.coordinates.length]
+        const mid = { x: (point.x + next.x) / 2, y: (point.y + next.y) / 2 }
+        return (
+          <circle
+            key={`add-${index}`}
+            cx={mid.x}
+            cy={mid.y}
+            r={3 / zoom}
+            className="fill-green-400/70 stroke-white stroke-1 cursor-copy pointer-events-auto hover:fill-green-400 transition-colors"
+            onMouseDown={(e) => handleAddVertex(e, index)}
+          />
+        )
+      })
+    }, [
+      isMoveTool,
+      isSelected,
+      readOnly,
+      annotation.coordinates,
+      zoom,
+      handleAddVertex,
     ])
 
     return (
@@ -175,6 +249,7 @@ export const PolygonAnnotation = memo(
           {annotation.name}
         </text>
 
+        {addVertexHandles}
         {editPoints}
       </svg>
     )

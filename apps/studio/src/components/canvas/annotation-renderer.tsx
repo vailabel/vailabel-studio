@@ -2,10 +2,21 @@ import { memo, useMemo } from "react"
 import { BoxAnnotation } from "@/components/canvas/box-annotation"
 import { PolygonAnnotation } from "@/components/canvas/polygon-annotation"
 import { FreeDrawAnnotation } from "@/components/canvas/free-draw-annotation"
+import { PointAnnotation } from "@/components/canvas/point-annotation"
+import { LineAnnotation } from "@/components/canvas/line-annotation"
+import { LinestripAnnotation } from "@/components/canvas/linestrip-annotation"
+import { CircleAnnotation } from "@/components/canvas/circle-annotation"
 import { TempAnnotation } from "@/components/canvas/temp-annotation"
 import { Annotation } from "@/types/core"
 
-type AnnotationType = "box" | "polygon" | "freeDraw"
+type AnnotationType =
+  | "box"
+  | "polygon"
+  | "freeDraw"
+  | "point"
+  | "line"
+  | "linestrip"
+  | "circle"
 
 type RenderableAnnotation = Annotation | Partial<Annotation>
 
@@ -60,6 +71,10 @@ export const AnnotationRenderer = memo(
         box: BoxAnnotation,
         polygon: PolygonAnnotation,
         freeDraw: FreeDrawAnnotation,
+        point: PointAnnotation,
+        line: LineAnnotation,
+        linestrip: LinestripAnnotation,
+        circle: CircleAnnotation,
       }),
       []
     )

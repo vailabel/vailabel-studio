@@ -22,6 +22,10 @@ import {
   PolygonHandler,
   FreeDrawHandler,
   DeleteHandler,
+  PointHandler,
+  LineHandler,
+  LinestripHandler,
+  CircleHandler,
 } from "@/tools/tool-handlers"
 
 export interface ToolHandlerContext {
@@ -75,6 +79,14 @@ const createToolHandler = (
       return new FreeDrawHandler(context)
     case "delete":
       return new DeleteHandler(context)
+    case "point":
+      return new PointHandler(context)
+    case "line":
+      return new LineHandler(context)
+    case "linestrip":
+      return new LinestripHandler(context)
+    case "circle":
+      return new CircleHandler(context)
     default:
       throw new Error(`Unknown tool: ${tool}`)
   }
@@ -417,6 +429,22 @@ export function useCanvasHandlers(
             return
           case "d":
             setSelectedTool("delete")
+            clearTemp()
+            return
+          case "o":
+            setSelectedTool("point")
+            clearTemp()
+            return
+          case "l":
+            setSelectedTool("line")
+            clearTemp()
+            return
+          case "s":
+            setSelectedTool("linestrip")
+            clearTemp()
+            return
+          case "c":
+            setSelectedTool("circle")
             clearTemp()
             return
           case "=":

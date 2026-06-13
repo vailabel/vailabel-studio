@@ -10,6 +10,7 @@ import {
   Plus,
   Trash2,
   Upload,
+  FolderOpen,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -18,7 +19,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { ImageTable } from "@/components/tables/image-table"
 import { EditProjectModal } from "@/components/modals/edit-project-modal"
 import { AddLabelModal } from "@/components/modals/add-label-modal"
-import { ImageUploadArea, ImageGrid } from "@/components/ui/image-upload"
+import { ImageGrid } from "@/components/ui/image-upload"
 import { useProjectDetailViewModel } from "@/viewmodels/project-detail-viewmodel"
 import { useParams } from "react-router-dom"
 import { cn } from "@/lib/utils"
@@ -244,11 +245,21 @@ const ProjectDetails = memo(() => {
                       </Badge>
                     </div>
 
-                    <ImageUploadArea
-                      onFiles={viewModel.handleFiles}
-                      isUploading={viewModel.isUploading}
-                      uploadProgress={viewModel.uploadProgress}
-                    />
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={viewModel.addImagesFromFolder}
+                      disabled={viewModel.isUploading}
+                    >
+                      {viewModel.isUploading ? (
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      ) : (
+                        <FolderOpen className="mr-2 h-5 w-5" />
+                      )}
+                      {viewModel.isUploading
+                        ? "Scanning folder..."
+                        : "Open Image Folder"}
+                    </Button>
 
                     <ImageGrid
                       images={viewModel.newImages}

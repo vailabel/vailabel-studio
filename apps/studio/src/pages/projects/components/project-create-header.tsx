@@ -5,8 +5,8 @@ export function ProjectCreateHeader() {
         Create New Project
       </h1>
       <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-        Set up your annotation project with labels and images. Build powerful
-        datasets for your AI models.
+        Open a folder of images and start annotating right away. Labels are
+        created as you go.
       </p>
     </div>
   )

@@ -132,11 +132,10 @@ impl InferenceEngine for YoloEngine {
         _labels: &[serde_json::Value],
         threshold: f32,
     ) -> Result<(Vec<InferenceAnnotationDraft>, InferenceMetrics), AppError> {
-        let image_data = image.get("data").and_then(Value::as_str).ok_or_else(|| {
-            AppError::Message("Image data is unavailable for AI annotation".into())
+        let image_path = image.get("path").and_then(Value::as_str).ok_or_else(|| {
+            AppError::Message("Image path is unavailable for AI annotation".into())
         })?;
-        let image_bytes = crate::decode_file_bytes(image_data)?;
-        let decoded = image::load_from_memory(&image_bytes).map_err(|error| {
+        let decoded = image::open(image_path).map_err(|error| {
             AppError::Message(format!("Failed to load image for inference: {error}"))
         })?;
         let rgb = decoded.to_rgb8();

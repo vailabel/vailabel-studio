@@ -5,6 +5,11 @@ import { listenToStudioEvents } from "@/ipc/events"
 import { toast } from "sonner"
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog"
 import { services } from "@/services"
+import {
+  getRecentProjectIds,
+  recordRecentProject,
+  removeRecentProject,
+} from "@/lib/recent-projects"
 
 export const useProjectListViewModel = () => {
   const navigate = useNavigate()
@@ -74,6 +79,13 @@ export const useProjectListViewModel = () => {
     })
   }, [projects, searchQuery, sortBy, sortOrder])
 
+  const recentProjects = useMemo(() => {
+    const ids = getRecentProjectIds()
+    return ids
+      .map((id) => projects.find((project) => project.id === id))
+      .filter((project): project is Project => Boolean(project))
+  }, [projects])
+
   const deleteProject = async (projectId: string) => {
     const project = projects.find((entry) => entry.id === projectId)
     const confirmed = await confirm({
@@ -86,15 +98,22 @@ export const useProjectListViewModel = () => {
     if (!confirmed) return
 
     await services.getProjectService().delete(projectId)
+    removeRecentProject(projectId)
     setProjects((current) => current.filter((entry) => entry.id !== projectId))
     toast("Project deleted", {
       description: `${project?.name ?? "Project"} was removed from this workspace.`,
     })
   }
 
+  const navigateToProject = (projectId: string) => {
+    recordRecentProject(projectId)
+    navigate(`/projects/detail/${projectId}`)
+  }
+
   return {
     projects: filteredAndSortedProjects,
     allProjects: projects,
+    recentProjects,
     isLoading,
     error,
     searchQuery,
@@ -103,8 +122,7 @@ export const useProjectListViewModel = () => {
     refreshProjects: loadProjects,
     loadProjects,
     navigateToCreate: () => navigate("/projects/create"),
-    navigateToProject: (projectId: string) =>
-      navigate(`/projects/detail/${projectId}`),
+    navigateToProject,
     deleteProject,
     setSearchQuery,
     setSortBy,

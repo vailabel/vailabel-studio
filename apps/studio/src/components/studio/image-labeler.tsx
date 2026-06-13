@@ -1,4 +1,4 @@
-import { memo, useCallback, useRef } from "react"
+import { memo, useCallback, useRef, useState } from "react"
 import { ArrowLeft, ChevronLeft, ChevronRight, Download, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
@@ -11,10 +11,12 @@ import {
 import { Canvas } from "@/components/canvas/canvas"
 import { Toolbar } from "@/components/studio/toolbar"
 import { LabelListPanel } from "@/components/studio/label-list-panel"
+import { FileListPanel } from "@/components/studio/file-list-panel"
 import { ResizablePanel } from "@/components/common/resizable-panel"
 import { SettingsModal } from "@/components/settings/settings-modal"
 import { AIModelSelectModal } from "@/components/ai/ai-model-modal"
 import { ContextMenu } from "@/components/studio/context-menu"
+import { ExportDialog } from "@/components/studio/export-dialog"
 import { PredictionReviewPanel } from "@/components/ai/prediction-review-panel"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { useStudioScreenViewModel } from "@/features/studio/use-studio-screen-viewmodel"
@@ -81,6 +83,7 @@ EmptyImageState.displayName = "EmptyImageState"
 
 export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => {
   const canvasContainerRef = useRef<HTMLDivElement>(null)
+  const [showExportDialog, setShowExportDialog] = useState(false)
   const viewModel = useStudioScreenViewModel(projectId, imageId)
 
   const handleContextMenu = useCallback(
@@ -124,21 +127,25 @@ export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => 
         onNext={viewModel.goToNextImage}
         onPrevious={viewModel.goToPreviousImage}
         onOpenSettings={viewModel.openSettingsModal}
+        onExport={() => setShowExportDialog(true)}
+        isExporting={viewModel.isExporting}
       />
 
       <div className="flex flex-1 overflow-hidden">
         <ResizablePanel
           direction="horizontal"
           controlPosition="right"
-          defaultSize={280}
-          minSize={200}
-          maxSize={400}
+          defaultSize={240}
+          minSize={180}
+          maxSize={360}
           className="h-full"
         >
-          <LabelListPanel
-            onLabelSelect={handleLabelSelect}
-            labels={viewModel.data.labels}
-            isLoading={viewModel.data.isLoading}
+          <FileListPanel
+            images={viewModel.projectImages}
+            currentImageId={viewModel.currentImageId}
+            annotatedImageIds={viewModel.annotatedImageIds}
+            onSelectImage={viewModel.navigateToImage}
+            isLoading={viewModel.isProjectSummaryLoading}
           />
         </ResizablePanel>
 
@@ -229,6 +236,21 @@ export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => 
             ) : null}
           </div>
         </div>
+
+        <ResizablePanel
+          direction="horizontal"
+          controlPosition="left"
+          defaultSize={280}
+          minSize={200}
+          maxSize={400}
+          className="h-full"
+        >
+          <LabelListPanel
+            onLabelSelect={handleLabelSelect}
+            labels={viewModel.data.labels}
+            isLoading={viewModel.data.isLoading}
+          />
+        </ResizablePanel>
       </div>
 
       {viewModel.showSettingsModal ? (
@@ -237,6 +259,12 @@ export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => 
       {viewModel.showAIModelModal ? (
         <AIModelSelectModal onClose={viewModel.closeAIModelModal} />
       ) : null}
+      <ExportDialog
+        isOpen={showExportDialog}
+        onClose={() => setShowExportDialog(false)}
+        onExport={viewModel.exportProject}
+        isExporting={viewModel.isExporting}
+      />
     </div>
   )
 })
@@ -254,6 +282,8 @@ const StudioHeader = memo(
     onNext,
     onPrevious,
     onOpenSettings,
+    onExport,
+    isExporting,
   }: {
     projectName: string
     projectStats: {
@@ -268,6 +298,8 @@ const StudioHeader = memo(
     onNext: () => void
     onPrevious: () => void
     onOpenSettings: () => void
+    onExport: () => void | Promise<void>
+    isExporting: boolean
   }) => {
     const progress =
       projectStats.totalImages > 0
@@ -350,13 +382,17 @@ const StudioHeader = memo(
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" disabled>
+                <Button
+                  variant="outline"
+                  onClick={() => void onExport()}
+                  disabled={isExporting}
+                >
                   <Download className="mr-2 h-4 w-4" />
-                  Export
+                  {isExporting ? "Exporting..." : "Export"}
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                Project export is not available from the studio screen yet.
+                Export annotations to LabelMe, COCO, YOLO, or Pascal VOC.
               </TooltipContent>
             </Tooltip>
             <Tooltip>
