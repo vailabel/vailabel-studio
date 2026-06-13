@@ -23,7 +23,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { Separator } from "@/components/ui/separator"
-import { AIDetectionButton } from "@/components/ai-detection-button"
+import { AIDetectionButton } from "@/components/ai/ai-detection-button"
 import type { AIModel, ImageData } from "@/types/core"
 import type { CanvasTool } from "@/features/studio/types"
 

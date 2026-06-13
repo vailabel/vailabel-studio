@@ -1,4 +1,3 @@
-import { motion } from "framer-motion"
 import type { Annotation } from "@/types/core"
 import { memo } from "react"
 
@@ -24,9 +23,8 @@ export const TempBoxAnnotation = memo(
 
     return (
       <svg className="absolute left-0 top-0 h-full w-full pointer-events-none">
-        <motion.rect
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+        <rect
+          className="animate-in fade-in duration-300"
           x={topLeft.x}
           y={topLeft.y}
           width={bottomRight.x - topLeft.x}

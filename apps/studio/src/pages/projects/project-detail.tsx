@@ -1,5 +1,4 @@
 import { memo } from "react"
-import { motion, AnimatePresence } from "framer-motion"
 import {
   ArrowLeft,
   ImageIcon,
@@ -47,11 +46,7 @@ const ProjectDetails = memo(() => {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
+        <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
               <Button
@@ -102,11 +97,9 @@ const ProjectDetails = memo(() => {
           </div>
 
           {/* Project Stats */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6"
+          <div
+            className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 animate-in fade-in slide-in-from-bottom-2 duration-500"
+            style={{ animationDelay: "100ms" }}
           >
             <Card className="bg-card backdrop-blur-sm border-border">
               <CardContent className="p-4">
@@ -155,14 +148,13 @@ const ProjectDetails = memo(() => {
                 </div>
               </CardContent>
             </Card>
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
 
         {/* Main Content */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
+        <div
+          className="animate-in fade-in slide-in-from-bottom-2 duration-500"
+          style={{ animationDelay: "200ms" }}
         >
           {viewModel.isLoading ? (
             <div className="flex items-center justify-center h-64">
@@ -172,11 +164,7 @@ const ProjectDetails = memo(() => {
               </div>
             </div>
           ) : viewModel.error ? (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="text-center py-12"
-            >
+            <div className="text-center py-12 animate-in fade-in zoom-in-95 duration-300">
               <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-6 max-w-md mx-auto">
                 <p className="text-destructive font-medium mb-2">
                   Error Loading Project
@@ -195,7 +183,7 @@ const ProjectDetails = memo(() => {
                   Try Again
                 </Button>
               </div>
-            </motion.div>
+            </div>
           ) : (
             <Card className="bg-card backdrop-blur-sm border-border">
               <Tabs
@@ -313,18 +301,12 @@ const ProjectDetails = memo(() => {
 
                     {viewModel.labels.length > 0 ? (
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                        <AnimatePresence>
-                          {viewModel.labels.map((label, index) => (
-                            <motion.div
-                              key={label.id}
-                              initial={{ opacity: 0, scale: 0.8 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              exit={{ opacity: 0, scale: 0.8 }}
-                              transition={{
-                                duration: 0.2,
-                                delay: index * 0.05,
-                              }}
-                            >
+                        {viewModel.labels.map((label, index) => (
+                          <div
+                            key={label.id}
+                            className="animate-in fade-in zoom-in-95 duration-200 fill-mode-both"
+                            style={{ animationDelay: `${index * 50}ms` }}
+                          >
                               <Card className="bg-card border-border hover:shadow-md transition-shadow group">
                                 <CardContent className="p-4">
                                   <div className="flex items-center gap-3">
@@ -354,16 +336,11 @@ const ProjectDetails = memo(() => {
                                   </div>
                                 </CardContent>
                               </Card>
-                            </motion.div>
-                          ))}
-                        </AnimatePresence>
+                          </div>
+                        ))}
                       </div>
                     ) : (
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="text-center py-12"
-                      >
+                      <div className="text-center py-12 animate-in fade-in duration-300">
                         <Tag className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                         <h3 className="text-lg font-semibold text-foreground mb-2">
                           No labels found
@@ -371,14 +348,14 @@ const ProjectDetails = memo(() => {
                         <p className="text-muted-foreground">
                           This project doesn't have any labels yet.
                         </p>
-                      </motion.div>
+                      </div>
                     )}
                   </div>
                 </TabsContent>
               </Tabs>
             </Card>
           )}
-        </motion.div>
+        </div>
       </div>
 
       {/* Modals */}

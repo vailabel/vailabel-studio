@@ -1,4 +1,3 @@
-import { motion } from "framer-motion"
 import type { Annotation } from "@/types/core"
 import { memo } from "react"
 
@@ -44,9 +43,8 @@ export const TempFreeDrawAnnotation = memo(
 
     return (
       <svg className="absolute left-0 top-0 h-full w-full pointer-events-none">
-        <motion.path
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+        <path
+          className="animate-in fade-in duration-300"
           d={pathData}
           style={{
             fill: "rgba(59, 130, 246, 0.2)",

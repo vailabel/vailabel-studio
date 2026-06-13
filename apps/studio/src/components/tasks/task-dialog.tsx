@@ -11,14 +11,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form"
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -28,17 +20,9 @@ import {
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
-import { cn } from "@/lib/utils"
-import { format } from "date-fns"
-import { CalendarIcon, Plus, Save, X } from "lucide-react"
+import {  Plus, Save, X } from "lucide-react"
 import { Task } from "@/types/core"
 
 const taskFormSchema = z.object({
@@ -63,12 +47,7 @@ interface TaskDialogProps {
   users?: Array<{ id: string; name: string; email: string }>
 }
 
-const statusOptions = [
-  { value: "pending", label: "Pending" },
-  { value: "in-progress", label: "In Progress" },
-  { value: "completed", label: "Completed" },
-  { value: "blocked", label: "Blocked" },
-]
+
 
 export const TaskDialog: React.FC<TaskDialogProps> = ({
   open,
@@ -153,7 +132,6 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Basic Information Card */}
             <Card className="border-0 shadow-lg bg-card">
@@ -244,121 +222,6 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
                   Task Configuration
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="status"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-sm font-medium">
-                          Status
-                        </FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger className="h-10">
-                              <SelectValue placeholder="Select status" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {statusOptions.map((status) => (
-                              <SelectItem
-                                key={status.value}
-                                value={status.value}
-                              >
-                                {status.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="assignedTo"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-sm font-medium">
-                          Assigned To
-                        </FormLabel>
-                        <Select
-                          onValueChange={(value) => {
-                            field.onChange(value === "unassigned" ? "" : value)
-                          }}
-                          defaultValue={field.value || "unassigned"}
-                        >
-                          <FormControl>
-                            <SelectTrigger className="h-10">
-                              <SelectValue placeholder="Assign to..." />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="unassigned">
-                              Unassigned
-                            </SelectItem>
-                            {users.map((user) => (
-                              <SelectItem key={user.id} value={user.name}>
-                                {user.name} ({user.email})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="dueDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-sm font-medium">
-                          Due Date
-                        </FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant="outline"
-                                className={cn(
-                                  "w-full h-10 pl-3 text-left font-normal justify-start",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                              >
-                                {field.value ? (
-                                  format(field.value, "PPP")
-                                ) : (
-                                  <span>Pick a date</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              disabled={(date) =>
-                                date < new Date(new Date().setHours(0, 0, 0, 0))
-                              }
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </CardContent>
             </Card>
 
             <Separator />
@@ -388,7 +251,6 @@ export const TaskDialog: React.FC<TaskDialogProps> = ({
               </Button>
             </DialogFooter>
           </form>
-        </Form>
       </DialogContent>
     </Dialog>
   )

@@ -9,12 +9,11 @@ import {
   TableHead,
   TableCell,
 } from "@/components/ui/table"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { useAIModelViewModel } from "@/viewmodels/ai-model-viewmodel"
 
 export function ModelSelection() {
-  const { toast } = useToast()
   const { availableModels, selectedModelId, selectModel, saveModelSelection } =
     useAIModelViewModel()
   const selectedModel = useMemo(
@@ -26,22 +25,17 @@ export function ModelSelection() {
     if (selectedModel) {
       try {
         await saveModelSelection(selectedModelId)
-        toast({
-          title: "Model Saved",
+        toast("Model Saved", {
           description: `Model path saved to settings: ${selectedModel.modelPath}`,
         })
       } catch {
-        toast({
-          title: "Error",
+        toast.error("Error", {
           description: "Failed to save model settings.",
-          variant: "destructive",
         })
       }
     } else {
-      toast({
-        title: "No Model Selected",
+      toast.error("No Model Selected", {
         description: "Please select a model before saving.",
-        variant: "destructive",
       })
     }
   }

@@ -1,5 +1,5 @@
 import { memo, useMemo } from "react"
-import { ImageLabeler } from "@/components/image-labeler"
+import { ImageLabeler } from "@/components/studio/image-labeler"
 import { CanvasProvider } from "@/contexts/canvas-context"
 import { useParams } from "react-router-dom"
 

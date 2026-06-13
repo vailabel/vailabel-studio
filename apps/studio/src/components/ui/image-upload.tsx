@@ -226,18 +226,20 @@ export const ImageGrid = memo(
 
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100 bg-black/60 backdrop-blur-sm">
                     <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          className="h-10 w-10 shadow-lg hover:shadow-xl"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onRemove(index)
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                      <TooltipTrigger
+                        render={
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            className="h-10 w-10 shadow-lg hover:shadow-xl"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onRemove(index)
+                            }}
+                          />
+                        }
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </TooltipTrigger>
                       <TooltipContent>
                         <p>Remove image</p>

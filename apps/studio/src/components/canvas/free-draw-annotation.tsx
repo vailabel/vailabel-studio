@@ -1,5 +1,4 @@
 import { memo, useMemo, useCallback } from "react"
-import { motion } from "framer-motion"
 import {
   useCanvasZoom,
   useCanvasTool,
@@ -233,9 +232,7 @@ export const FreeDrawAnnotation = memo(
         {/* Bounding box for easier interaction */}
         {boundingBoxElement}
 
-        <motion.path
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+        <path
           d={pathData}
           style={{
             fill: isSelected ? styles.fill.selected : styles.fill.default,
@@ -255,8 +252,8 @@ export const FreeDrawAnnotation = memo(
           }}
           className={
             isMoveTool && !readOnly
-              ? "pointer-events-auto cursor-move"
-              : "pointer-events-none"
+              ? "animate-in fade-in duration-300 pointer-events-auto cursor-move"
+              : "animate-in fade-in duration-300 pointer-events-none"
           }
         />
 

@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { DesktopFileInput } from "@/components/desktop-file"
+import { DesktopFileInput } from "@/components/common/desktop-file"
 import { useSettingsViewModel } from "@/viewmodels/settings-viewmodel"
 
 export default function GeneralSettings() {

@@ -1,4 +1,3 @@
-import { motion } from "framer-motion"
 import type { Annotation } from "@/types/core"
 import { memo } from "react"
 
@@ -28,9 +27,8 @@ export const TempPolygonAnnotation = memo(
       <svg className="absolute left-0 top-0 h-full w-full pointer-events-none">
         {/* Main polygon */}
         {hasMultiplePoints && (
-          <motion.polygon
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+          <polygon
+            className="animate-in fade-in duration-300"
             points={coordinates.map((p) => `${p.x},${p.y}`).join(" ")}
             style={{
               fill: styles.fill,
@@ -43,27 +41,25 @@ export const TempPolygonAnnotation = memo(
 
         {/* Vertex points */}
         {coordinates.map((point, index) => (
-          <motion.circle
+          <circle
             key={`vertex-${index}`}
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: index * 0.1 }}
-            cx={point.x}
-            cy={point.y}
-            r={4}
+            className="animate-in zoom-in fade-in duration-200 fill-mode-both"
             style={{
               fill: styles.vertexFill,
               stroke: styles.vertexStroke,
               strokeWidth: 1.5,
+              animationDelay: `${index * 100}ms`,
             }}
+            cx={point.x}
+            cy={point.y}
+            r={4}
           />
         ))}
 
         {/* Close indicator - show green circle on first point when near */}
         {coordinates.length >= 3 && (
-          <motion.circle
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
+          <circle
+            className="animate-in zoom-in fade-in duration-200"
             cx={coordinates[0].x}
             cy={coordinates[0].y}
             r={8}
@@ -77,11 +73,9 @@ export const TempPolygonAnnotation = memo(
 
         {/* Point numbers for better UX */}
         {coordinates.map((point, index) => (
-          <motion.text
+          <text
             key={`label-${index}`}
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: index * 0.1 }}
+            className="animate-in zoom-in fade-in duration-200 fill-mode-both"
             x={point.x + 8}
             y={point.y - 8}
             style={{
@@ -89,10 +83,11 @@ export const TempPolygonAnnotation = memo(
               fontSize: '12px',
               fontWeight: 'bold',
               textShadow: '1px 1px 2px rgba(0,0,0,0.7)',
+              animationDelay: `${index * 100}ms`,
             }}
           >
             {index + 1}
-          </motion.text>
+          </text>
         ))}
       </svg>
     )

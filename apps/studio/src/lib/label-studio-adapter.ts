@@ -2,7 +2,6 @@ import type {
   AIModel,
   Annotation,
   ImageData,
-  LabelStudioPrediction,
   LabelStudioResult,
   LabelStudioTask,
   Prediction,

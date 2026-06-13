@@ -1,6 +1,5 @@
 import type React from "react"
 import { useState, useCallback, useEffect, useMemo, memo } from "react"
-import { AnimatePresence, motion } from "framer-motion"
 import { CornerDownLeft, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -131,14 +130,10 @@ export const CreateAnnotation = memo(
     if (!isOpen) return null
 
     return (
-      <AnimatePresence>
-        <motion.div
-          className="absolute w-full max-w-sm rounded-lg bg-white p-3 shadow-lg dark:bg-gray-800 dark:text-gray-100 top-2 left-2 z-50"
-          initial={{ scale: 0.9, y: 20 }}
-          animate={{ scale: 1, y: 0 }}
-          exit={{ scale: 0.9, y: 20 }}
-          onClick={(e) => e.stopPropagation()}
-        >
+      <div
+        className="absolute w-full max-w-sm rounded-lg bg-white p-3 shadow-lg dark:bg-gray-800 dark:text-gray-100 top-2 left-2 z-50 animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold">Annotation Editor</h3>
             <Button
@@ -197,8 +192,7 @@ export const CreateAnnotation = memo(
               )}
             </div>
           </form>
-        </motion.div>
-      </AnimatePresence>
+      </div>
     )
   }
 )

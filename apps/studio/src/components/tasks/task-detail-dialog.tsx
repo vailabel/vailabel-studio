@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
 import {
   Select,
   SelectContent,
@@ -17,22 +16,17 @@ import {
 } from "@/components/ui/select"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
-  Clock,
   Edit,
   Save,
   X,
   MessageSquare,
   FileText,
   Calendar,
-  User,
   Tag,
   AlertCircle,
   CheckCircle,
   Play,
-  Archive,
   Copy,
-  Share,
-  MoreVertical,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 

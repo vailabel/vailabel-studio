@@ -1,4 +1,3 @@
-import { Settings } from "@/types/core"
 import { studioCommands } from "@/ipc/studio"
 
 export const settingsService = {

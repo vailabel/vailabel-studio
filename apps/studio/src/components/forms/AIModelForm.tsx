@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Brain, Cpu, Info } from "lucide-react"
-import { DesktopFileInput } from "@/components/desktop-file"
+import { DesktopFileInput } from "@/components/common/desktop-file"
 import {
   Select,
   SelectContent,
@@ -115,14 +115,15 @@ export default function AIModelForm({ control, errors }: AIModelFormProps) {
             control={control}
             render={({ field: { onChange, value } }) => (
               <DesktopFileInput
-                accept=".pt,.pth,.onnx,.tflite,.h5,.pb"
+                accept=".onnx,.pt,.pth,.tflite,.h5,.pb"
                 placeholder={value || "Choose a local model file"}
                 onChange={(event) => onChange(event.target.files[0] || "")}
               />
             )}
           />
           <p className="text-xs text-muted-foreground">
-            Supported formats: `.pt`, `.pth`, `.onnx`, `.tflite`, `.h5`, `.pb`.
+            Preferred format: `.onnx` for the fastest offline local AI detect.
+            Also supports: `.pt`, `.pth`, `.tflite`, `.h5`, `.pb`.
             PyTorch checkpoints are auto-converted to `.onnx` for local AI detect
             when Ultralytics is available on this machine.
           </p>

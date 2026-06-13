@@ -133,6 +133,30 @@ export const useImageLabelerViewModel = (
     await loadData()
   }, [loadData])
 
+  const generatePredictions = useCallback(
+    async (modelId: string, threshold?: number) => {
+      if (!image) {
+        throw new Error("No image selected")
+      }
+
+      setIsGeneratingPredictions(true)
+      try {
+        await waitForNextPaint()
+        const nextPredictions = await services.getPredictionService().generate({
+          imageId: image.id,
+          modelId,
+          threshold,
+        })
+
+        setPredictions(nextPredictions)
+        return nextPredictions
+      } finally {
+        setIsGeneratingPredictions(false)
+      }
+    },
+    [image]
+  )
+
   return {
     image,
     annotations,
@@ -198,25 +222,7 @@ export const useImageLabelerViewModel = (
         current.filter((annotation) => annotation.id !== annotationId)
       )
     },
-    generatePredictions: async (modelId: string, threshold?: number) => {
-      if (!image) {
-        throw new Error("No image selected")
-      }
-
-      setIsGeneratingPredictions(true)
-      try {
-        await waitForNextPaint()
-        const nextPredictions = await services.getPredictionService().generate({
-          imageId: image.id,
-          modelId,
-          threshold,
-        })
-        setPredictions(nextPredictions)
-        return nextPredictions
-      } finally {
-        setIsGeneratingPredictions(false)
-      }
-    },
+    generatePredictions,
     acceptPrediction: async (predictionId: string) => {
       const createdAnnotation =
         await services.getPredictionService().accept(predictionId)

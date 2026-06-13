@@ -17,11 +17,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { TaskCard } from "@/components/task-card-v2"
-import { TaskDialog } from "@/components/task-dialog"
-import { TaskDetailDialog } from "@/components/task-detail-dialog"
-import { TaskStatsCards } from "@/components/task-stats-cards"
-import { TaskKanban } from "@/components/task-kanban"
+import { TaskCard } from "@/components/tasks/task-card-v2"
+import { TaskDialog } from "@/components/tasks/task-dialog"
+import { TaskDetailDialog } from "@/components/tasks/task-detail-dialog"
+import { TaskStatsCards } from "@/components/tasks/task-stats-cards"
+import { TaskKanban } from "@/components/tasks/task-kanban"
 import { useTaskPageViewModel } from "@/viewmodels/task-page-viewmodel"
 import { cn } from "@/lib/utils"
 

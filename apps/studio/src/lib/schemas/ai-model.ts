@@ -31,10 +31,10 @@ export const aiModelSchema = z.object({
     .min(1, "Model path is required")
     .refine(
       (path) => {
-        const validExtensions = ['.pt', '.pth', '.onnx', '.tflite', '.h5', '.pb']
+        const validExtensions = ['.onnx', '.pt', '.pth', '.tflite', '.h5', '.pb']
         return validExtensions.some(ext => path.toLowerCase().endsWith(ext))
       },
-      "Model path must have a valid extension (.pt, .pth, .onnx, .tflite, .h5, .pb)"
+      "Model path must have a valid extension (.onnx, .pt, .pth, .tflite, .h5, .pb)"
     ),
   configPath: z
     .string()
@@ -87,10 +87,10 @@ export const aiModelFormSchema = z.object({
     .min(1, "A local model file is required")
     .refine(
       (path) => {
-        const validExtensions = [".pt", ".pth", ".onnx", ".tflite", ".h5", ".pb"]
+        const validExtensions = [".onnx", ".pt", ".pth", ".tflite", ".h5", ".pb"]
         return validExtensions.some((ext) => path.toLowerCase().endsWith(ext))
       },
-      "Please select a valid model file (.pt, .pth, .onnx, .tflite, .h5, .pb)"
+      "Please select a valid model file (.onnx, .pt, .pth, .tflite, .h5, .pb)"
     ),
   configFilePath: z
     .string()

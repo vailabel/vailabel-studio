@@ -14,7 +14,7 @@ use std::fs;
 use std::io::copy;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use tauri::Manager;
 use uuid::Uuid;
 
@@ -106,11 +106,17 @@ const COCO_80_CLASS_NAMES: &[&str] = &[
 #[derive(Clone)]
 pub struct AiService {
     store: Arc<dyn EntityStore>,
+    #[cfg(feature = "yolo-inference")]
+    engine_cache: Arc<Mutex<Option<(String, Box<dyn InferenceEngine>)>>>,
 }
 
 impl AiService {
     pub fn new(store: Arc<dyn EntityStore>) -> Self {
-        Self { store }
+        Self {
+            store,
+            #[cfg(feature = "yolo-inference")]
+            engine_cache: Arc::new(Mutex::new(None)),
+        }
     }
 
     pub fn list_ai_models(&self) -> Result<Vec<Value>, AppError> {
@@ -323,7 +329,7 @@ impl AiService {
 
         Ok(releases
             .iter()
-            .filter_map(|release| {
+            .filter_map(|release: &Value| {
                 let id = release.get("id")?.as_i64()?;
                 let tag_name = release.get("tag_name")?.as_str()?.to_string();
                 let name = release
@@ -346,13 +352,17 @@ impl AiService {
                 let assets = release
                     .get("assets")
                     .and_then(Value::as_array)
-                    .map(|assets| {
+                    .map(|assets: &Vec<Value>| {
                         assets
                             .iter()
-                            .filter_map(|asset| {
+                            .filter_map(|asset: &Value| {
+                                let name = asset.get("name")?.as_str()?;
+                                if !name.to_lowercase().ends_with(".onnx") {
+                                    return None;
+                                }
                                 Some(json!({
                                   "id": asset.get("id")?.as_i64()?,
-                                  "name": asset.get("name")?.as_str()?,
+                                  "name": name,
                                   "browserDownloadUrl": asset.get("browser_download_url")?.as_str()?,
                                   "size": asset.get("size").and_then(Value::as_u64),
                                   "contentType": asset.get("content_type").and_then(Value::as_str),
@@ -441,15 +451,30 @@ impl AiService {
             .unwrap_or_default();
 
         #[cfg(feature = "yolo-inference")]
-        let mut engine: Box<dyn InferenceEngine> =
-            Box::new(inference::YoloEngine::new(&model_path, class_names)?);
+        let (drafts, metrics) = {
+            let mut cache = self.engine_cache.lock().map_err(|_| AppError::Message("Engine cache is unavailable".into()))?;
+            let should_rebuild = match &*cache {
+                Some((id, _)) => id != &model_id,
+                None => true,
+            };
+
+            if should_rebuild {
+                let new_engine = Box::new(inference::YoloEngine::new(&model_path, class_names)?);
+                *cache = Some((model_id.clone(), new_engine));
+            }
+
+            let engine = match &mut *cache {
+                Some((_, engine)) => engine,
+                None => return Err(AppError::Message("Failed to initialize inference engine".into())),
+            };
+
+            engine.predict(&image, &model, &labels, payload.threshold.unwrap_or(0.5))?
+        };
+
         #[cfg(not(feature = "yolo-inference"))]
         return Err(AppError::Message(
             "This desktop build does not include local ONNX inference support.".into(),
         ));
-
-        let (drafts, metrics) =
-            engine.predict(&image, &model, &labels, payload.threshold.unwrap_or(0.5))?;
 
         let existing_predictions =
             self.store

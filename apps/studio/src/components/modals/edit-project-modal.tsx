@@ -1,5 +1,4 @@
 import { memo } from "react"
-import { motion } from "framer-motion"
 import { Save, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -73,14 +72,10 @@ export const EditProjectModal = memo(({
               maxLength={100}
             />
             {errors.name && (
-              <motion.p
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-red-500 text-xs flex items-center gap-1"
-              >
+              <p className="text-red-500 text-xs flex items-center gap-1 animate-in fade-in slide-in-from-top-1 duration-200">
                 <span>⚠</span>
                 {errors.name.message}
-              </motion.p>
+              </p>
             )}
           </div>
 
@@ -96,14 +91,10 @@ export const EditProjectModal = memo(({
               maxLength={500}
             />
             {errors.description && (
-              <motion.p
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-red-500 text-xs flex items-center gap-1"
-              >
+              <p className="text-red-500 text-xs flex items-center gap-1 animate-in fade-in slide-in-from-top-1 duration-200">
                 <span>⚠</span>
                 {errors.description.message}
-              </motion.p>
+              </p>
             )}
           </div>
 

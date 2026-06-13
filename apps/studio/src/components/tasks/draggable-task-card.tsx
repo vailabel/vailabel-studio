@@ -1,7 +1,7 @@
 import React from "react"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { KanbanTaskCard } from "@/components/kanban-task-card"
+import { KanbanTaskCard } from "@/components/tasks/kanban-task-card"
 import { Task } from "@/types/core"
 import { cn } from "@/lib/utils"
 

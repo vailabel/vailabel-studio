@@ -1,5 +1,4 @@
 import { memo, useState } from "react"
-import { motion } from "framer-motion"
 import { Plus, Loader2, Palette } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -95,14 +94,10 @@ export const AddLabelModal = memo(({
               maxLength={50}
             />
             {errors.name && (
-              <motion.p
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-red-500 text-xs flex items-center gap-1"
-              >
+              <p className="text-red-500 text-xs flex items-center gap-1 animate-in fade-in slide-in-from-top-1 duration-200">
                 <span>⚠</span>
                 {errors.name.message}
-              </motion.p>
+              </p>
             )}
           </div>
 
@@ -112,41 +107,37 @@ export const AddLabelModal = memo(({
               {/* Color Palette */}
               <div className="flex gap-1 items-center">
                 {colorPalette.map((color) => (
-                  <motion.button
+                  <button
                     key={color}
                     type="button"
-                    className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${
+                    className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-transform duration-150 ease-out hover:scale-110 active:scale-95 ${
                       labelColor === color
                         ? "border-black dark:border-white scale-110 shadow-md"
-                        : "border-gray-300 hover:scale-105"
+                        : "border-gray-300"
                     }`}
                     style={{ backgroundColor: color }}
                     onClick={() => handleColorChange(color)}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
                   >
                     {labelColor === color && (
                       <span className="block w-3 h-3 rounded-full border-2 border-white bg-white/30" />
                     )}
-                  </motion.button>
+                  </button>
                 ))}
                 
                 {/* Custom Color Picker */}
                 <Popover open={showColorPicker} onOpenChange={setShowColorPicker}>
                   <PopoverTrigger asChild>
-                    <motion.button
+                    <button
                       type="button"
-                      className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${
+                      className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-transform duration-150 ease-out hover:scale-110 active:scale-95 ${
                         !colorPalette.includes(labelColor) || showColorPicker
                           ? "border-black dark:border-white scale-110 shadow-md"
-                          : "border-gray-300 hover:scale-105"
+                          : "border-gray-300"
                       }`}
                       style={{ background: labelColor }}
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.95 }}
                     >
                       <Palette className="w-3 h-3 text-white" />
-                    </motion.button>
+                    </button>
                   </PopoverTrigger>
                   <PopoverContent className="p-2 w-auto" align="start">
                     <SketchPicker
@@ -159,14 +150,10 @@ export const AddLabelModal = memo(({
               </div>
             </div>
             {errors.color && (
-              <motion.p
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-red-500 text-xs flex items-center gap-1"
-              >
+              <p className="text-red-500 text-xs flex items-center gap-1 animate-in fade-in slide-in-from-top-1 duration-200">
                 <span>⚠</span>
                 {errors.color.message}
-              </motion.p>
+              </p>
             )}
           </div>
 

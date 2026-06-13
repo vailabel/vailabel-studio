@@ -35,7 +35,6 @@ interface CanvasProps {
     updates: Partial<Annotation>
   ) => Promise<void>
   onDeleteAnnotation: (annotationId: string) => Promise<void>
-  onRefreshAnnotations?: () => Promise<void>
   onUndo?: () => Promise<void> | void
   onRedo?: () => Promise<void> | void
 }
@@ -83,7 +82,6 @@ export const Canvas = memo(
     onCreateAnnotationDraft,
     onUpdateAnnotation,
     onDeleteAnnotation,
-    onRefreshAnnotations,
     onUndo,
     onRedo,
   }: CanvasProps) => {

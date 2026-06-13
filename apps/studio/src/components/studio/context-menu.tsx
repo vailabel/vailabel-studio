@@ -134,7 +134,7 @@ export const ContextMenu = memo(
       <div
         ref={menuRef}
         className={cn(
-          "absolute z-50 w-48 rounded-md border border-border bg-background shadow-lg ring-1 ring-opacity-5 transition-all duration-200"
+          "absolute z-50 w-48 rounded-md border border-border bg-background shadow-lg ring-1 ring-opacity-5 transition-all duration-200 animate-in fade-in zoom-in-95"
         )}
         style={{ left: menuPosition.x, top: menuPosition.y }}
       >

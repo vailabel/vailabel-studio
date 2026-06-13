@@ -1,5 +1,4 @@
 import { memo, useCallback, useRef } from "react"
-import { AnimatePresence } from "framer-motion"
 import { ArrowLeft, ChevronLeft, ChevronRight, Download, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
@@ -10,14 +9,14 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { Canvas } from "@/components/canvas/canvas"
-import { Toolbar } from "@/components/toolbar"
-import { LabelListPanel } from "@/components/label-list-panel"
-import { ResizablePanel } from "@/components/resizable-panel"
-import { SettingsModal } from "@/components/settings-modal"
-import { AIModelSelectModal } from "@/components/ai-model-modal"
-import { ContextMenu } from "@/components/context-menu"
-import { PredictionReviewPanel } from "@/components/prediction-review-panel"
-import { ThemeToggle } from "./theme-toggle"
+import { Toolbar } from "@/components/studio/toolbar"
+import { LabelListPanel } from "@/components/studio/label-list-panel"
+import { ResizablePanel } from "@/components/common/resizable-panel"
+import { SettingsModal } from "@/components/settings/settings-modal"
+import { AIModelSelectModal } from "@/components/ai/ai-model-modal"
+import { ContextMenu } from "@/components/studio/context-menu"
+import { PredictionReviewPanel } from "@/components/ai/prediction-review-panel"
+import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { useStudioScreenViewModel } from "@/features/studio/use-studio-screen-viewmodel"
 import type { Annotation, ImageData, Label, Prediction } from "@/types/core"
 
@@ -32,7 +31,6 @@ const MemoizedCanvas = memo(
     annotations,
     predictions,
     labels,
-    onRefreshAnnotations,
     onCreateAnnotationDraft,
     onUpdateAnnotation,
     onDeleteAnnotation,
@@ -43,7 +41,6 @@ const MemoizedCanvas = memo(
     annotations: Annotation[]
     predictions: Prediction[]
     labels: Label[]
-    onRefreshAnnotations: () => Promise<void>
     onCreateAnnotationDraft: (draft: {
       name: string
       color: string
@@ -66,7 +63,6 @@ const MemoizedCanvas = memo(
       onCreateAnnotationDraft={onCreateAnnotationDraft}
       onUpdateAnnotation={onUpdateAnnotation}
       onDeleteAnnotation={onDeleteAnnotation}
-      onRefreshAnnotations={onRefreshAnnotations}
       onUndo={onUndo}
       onRedo={onRedo}
     />
@@ -192,7 +188,6 @@ export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => 
                 annotations={viewModel.data.annotations}
                 predictions={viewModel.data.predictions}
                 labels={viewModel.data.labels}
-                onRefreshAnnotations={viewModel.refreshAnnotations}
                 onCreateAnnotationDraft={viewModel.createAnnotationFromDraft}
                 onUpdateAnnotation={viewModel.updateAnnotation}
                 onDeleteAnnotation={viewModel.deleteAnnotation}
@@ -210,30 +205,28 @@ export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => 
               onReject={viewModel.rejectPrediction}
             />
 
-            <AnimatePresence>
-              {viewModel.contextMenu.visible ? (
-                <ContextMenu
-                  x={viewModel.contextMenu.x}
-                  y={viewModel.contextMenu.y}
-                  image={viewModel.data.image}
-                  selectedModelId={viewModel.selectedModelId}
-                  selectedModelCanAttemptPrediction={
-                    viewModel.selectedModelCanAttemptPrediction
-                  }
-                  selectedModelUnsupportedReason={
-                    viewModel.selectedModelUnsupportedReason
-                  }
-                  onGeneratePredictions={viewModel.generatePredictions}
-                  onOpenAISettings={viewModel.openAIModelModal}
-                  onSelectTool={viewModel.setSelectedTool}
-                  onResetView={viewModel.resetView}
-                  containerRect={
-                    canvasContainerRef.current?.getBoundingClientRect() || null
-                  }
-                  onClose={viewModel.closeContextMenu}
-                />
-              ) : null}
-            </AnimatePresence>
+            {viewModel.contextMenu.visible ? (
+              <ContextMenu
+                x={viewModel.contextMenu.x}
+                y={viewModel.contextMenu.y}
+                image={viewModel.data.image}
+                selectedModelId={viewModel.selectedModelId}
+                selectedModelCanAttemptPrediction={
+                  viewModel.selectedModelCanAttemptPrediction
+                }
+                selectedModelUnsupportedReason={
+                  viewModel.selectedModelUnsupportedReason
+                }
+                onGeneratePredictions={viewModel.generatePredictions}
+                onOpenAISettings={viewModel.openAIModelModal}
+                onSelectTool={viewModel.setSelectedTool}
+                onResetView={viewModel.resetView}
+                containerRect={
+                  canvasContainerRef.current?.getBoundingClientRect() || null
+                }
+                onClose={viewModel.closeContextMenu}
+              />
+            ) : null}
           </div>
         </div>
       </div>

@@ -199,6 +199,19 @@ function resolveCatalogVariant(
   }
 }
 
+/**
+ * Resolves a model's hardcoded catalog variants against no specific release and
+ * keeps only the ONNX assets. Used as the fallback when a model has no GitHub
+ * release source, or when its releases have not been fetched yet.
+ */
+function resolveOnnxCatalogVariants(
+  model: SystemModel
+): CatalogSystemModelVariant[] | undefined {
+  return model.variants
+    ?.map((variant) => resolveCatalogVariant(variant, null))
+    .filter((variant) => variant.assetName.toLowerCase().endsWith(".onnx"))
+}
+
 export const useAIModelViewModel = () => {
   const [availableModels, setAvailableModels] = useState<AIModel[]>([])
   const [selectedModelId, setSelectedModelId] = useState("")
@@ -355,41 +368,78 @@ export const useAIModelViewModel = () => {
 
   const systemModels = useMemo<CatalogSystemModel[]>(() => {
     return SYSTEM_MODELS.map((model) => {
+      let resolvedVariants: CatalogSystemModelVariant[] | undefined
+
       if (!model.releaseSource) {
+        resolvedVariants = resolveOnnxCatalogVariants(model)
+      } else {
+        const sourceKey = githubReleaseSourceKey(model.releaseSource)
+        const releases = catalogReleasesBySource[sourceKey] || []
+        const defaultRelease = getDefaultCatalogRelease(releases)
+        const selectedReleaseTag =
+          catalogReleaseSelectionBySource[sourceKey] || defaultRelease?.tagName
+        const selectedRelease =
+          releases.find((release) => release.tagName === selectedReleaseTag) ||
+          defaultRelease ||
+          null
+
+        if (selectedRelease) {
+          const onnxAssets = selectedRelease.assets.filter((a) =>
+            a.name.toLowerCase().endsWith(".onnx")
+          )
+
+          resolvedVariants = onnxAssets.map((asset) => {
+            const hardcodedVariant = model.variants?.find(
+              (v) =>
+                normalizeValue(
+                  v.assetName || extractAssetFileName(v.downloadUrl) || ""
+                ) === normalizeValue(asset.name)
+            )
+
+            if (hardcodedVariant) {
+              return resolveCatalogVariant(hardcodedVariant, selectedRelease)
+            }
+
+            return {
+              name: asset.name.replace(".onnx", ""),
+              slug: asset.name.replace(".onnx", ""),
+              assetName: asset.name,
+              downloadUrl: asset.browserDownloadUrl,
+              resolvedDownloadUrl: asset.browserDownloadUrl,
+              resolvedVersion: normalizeReleaseTag(selectedRelease.tagName),
+              releaseTag: selectedRelease.tagName,
+              available: true,
+              unavailableReason: null,
+              size: asset.size,
+              modelVersion: asset.name,
+              variant: "",
+              speed: "medium",
+            } as CatalogSystemModelVariant
+          })
+        } else {
+          resolvedVariants = resolveOnnxCatalogVariants(model)
+        }
+
         return {
           ...model,
-          variants: model.variants?.map((variant) =>
-            resolveCatalogVariant(variant, null)
-          ),
+          selectedReleaseTag,
+          releaseOptions: releases.map((release) => ({
+            tagName: release.tagName,
+            label: releaseOptionLabel(release),
+            prerelease: release.prerelease,
+            publishedAt: release.publishedAt,
+          })),
+          isReleaseLoading: catalogReleaseLoadingBySource[sourceKey] || false,
+          releaseError: catalogReleaseErrorBySource[sourceKey] || null,
+          variants: resolvedVariants,
         }
       }
 
-      const sourceKey = githubReleaseSourceKey(model.releaseSource)
-      const releases = catalogReleasesBySource[sourceKey] || []
-      const defaultRelease = getDefaultCatalogRelease(releases)
-      const selectedReleaseTag =
-        catalogReleaseSelectionBySource[sourceKey] || defaultRelease?.tagName
-      const selectedRelease =
-        releases.find((release) => release.tagName === selectedReleaseTag) ||
-        defaultRelease ||
-        null
-
       return {
         ...model,
-        selectedReleaseTag,
-        releaseOptions: releases.map((release) => ({
-          tagName: release.tagName,
-          label: releaseOptionLabel(release),
-          prerelease: release.prerelease,
-          publishedAt: release.publishedAt,
-        })),
-        isReleaseLoading: catalogReleaseLoadingBySource[sourceKey] || false,
-        releaseError: catalogReleaseErrorBySource[sourceKey] || null,
-        variants: model.variants?.map((variant) =>
-          resolveCatalogVariant(variant, selectedRelease)
-        ),
+        variants: resolvedVariants,
       }
-    })
+    }).filter((model) => model.variants && model.variants.length > 0)
   }, [
     catalogReleaseErrorBySource,
     catalogReleaseLoadingBySource,

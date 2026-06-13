@@ -1,5 +1,4 @@
 import React from "react"
-import { motion } from "framer-motion"
 import { LucideIcon } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -39,11 +38,7 @@ export const StatCard: React.FC<StatCardProps> = ({
   }
 
   return (
-    <motion.div
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      transition={{ type: "spring", stiffness: 300, damping: 30 }}
-    >
+    <div className="transition-transform duration-200 ease-out hover:scale-[1.02] active:scale-[0.98]">
       <Card className="p-6 hover:shadow-lg transition-shadow duration-200 bg-card">
         <div className="flex items-center gap-4">
           <div className={`p-3 rounded-lg ${color} text-white`}>
@@ -69,7 +64,7 @@ export const StatCard: React.FC<StatCardProps> = ({
           </div>
         </div>
       </Card>
-    </motion.div>
+    </div>
   )
 }
 
@@ -91,12 +86,12 @@ export const QuickActionCard: React.FC<QuickActionCardProps> = ({
   disabled = false,
 }) => {
   return (
-    <motion.button
+    <button
       className={`p-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 text-left w-full ${
-        disabled ? "opacity-50 cursor-not-allowed" : "hover:scale-105"
+        disabled
+          ? "opacity-50 cursor-not-allowed"
+          : "hover:scale-105 active:scale-95"
       } ${color}`}
-      whileHover={disabled ? {} : { scale: 1.05 }}
-      whileTap={disabled ? {} : { scale: 0.95 }}
       onClick={onClick}
       disabled={disabled}
     >
@@ -107,7 +102,7 @@ export const QuickActionCard: React.FC<QuickActionCardProps> = ({
           <p className="text-sm opacity-90">{description}</p>
         </div>
       </div>
-    </motion.button>
+    </button>
   )
 }
 
@@ -157,11 +152,7 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="flex items-center gap-4 p-4 rounded-lg hover:bg-muted/50 transition-colors"
-    >
+    <div className="flex items-center gap-4 p-4 rounded-lg hover:bg-muted/50 transition-colors animate-in fade-in slide-in-from-bottom-2 duration-300">
       <div className="text-2xl">{getTypeIcon(type)}</div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate text-foreground">
@@ -180,7 +171,7 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
       <div className="text-xs text-muted-foreground whitespace-nowrap">
         {formatDate(date)}
       </div>
-    </motion.div>
+    </div>
   )
 }
 

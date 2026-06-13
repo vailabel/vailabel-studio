@@ -32,9 +32,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import {
-  AlertCircle,
   Plus,
-  Settings,
   Trash2,
   Play,
   Edit,
@@ -59,7 +57,6 @@ export default function CloudStorageConfigPage() {
   const {
     configs,
     isLoading,
-    error,
     saveConfig,
     deleteConfig,
     setActiveConfig,

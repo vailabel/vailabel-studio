@@ -23,7 +23,7 @@ import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ChromePicker } from "react-color"
 import { Check } from "lucide-react"
-import { useTheme } from "@/components/theme-provider"
+import { useTheme } from "@/components/layout/theme-provider"
 import { useSettingsViewModel } from "@/viewmodels/settings-viewmodel"
 
 const PRESET_COLORS = [

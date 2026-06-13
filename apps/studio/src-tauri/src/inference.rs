@@ -58,6 +58,12 @@ struct DetectionCandidate {
     bbox: [f32; 4],
 }
 
+/// Upper bound on the number of pre-NMS candidates kept from a single model
+/// output. Caps work for pathological outputs so non-maximum suppression
+/// cannot hang on a runaway number of boxes.
+#[cfg(feature = "yolo-inference")]
+const MAX_DETECTION_CANDIDATES: usize = 3000;
+
 #[cfg(feature = "yolo-inference")]
 pub struct YoloEngine {
     backend: String,
@@ -73,11 +79,33 @@ pub struct YoloEngine {
 impl YoloEngine {
     pub fn new(model_path: &str, class_names: Vec<String>) -> Result<Self, AppError> {
         if !Path::new(model_path).exists() {
-            return Err(AppError::Message("ONNX model file not found".into()));
+            return Err(AppError::Message(format!("ONNX model file not found: {}", model_path)));
         }
 
         let started_at = Instant::now();
-        let session = Session::builder()?.commit_from_file(model_path)?;
+        let session = match Session::builder() {
+            Ok(mut builder) => {
+                // Performance optimizations
+                builder = builder.with_optimization_level(ort::session::builder::GraphOptimizationLevel::Level3)
+                                 .map_err(|e| AppError::Message(format!("Failed to set optimization level: {}", e)))?
+                                 .with_intra_threads(4)
+                                 .map_err(|e| AppError::Message(format!("Failed to set intra threads: {}", e)))?;
+                
+                #[cfg(feature = "yolo-inference")]
+                {
+                    // Try to enable CUDA if available
+                    let cuda = ort::execution_providers::CUDAExecutionProvider::default().build();
+                    builder = builder.with_execution_providers([cuda])
+                                     .map_err(|e| AppError::Message(format!("Failed to set execution providers: {}", e)))?;
+                }
+
+                match builder.commit_from_file(model_path) {
+                    Ok(s) => s,
+                    Err(e) => return Err(AppError::Message(format!("Failed to load ONNX model: {}. Check if CUDA is available if you enabled it.", e))),
+                }
+            },
+            Err(e) => return Err(AppError::Message(format!("Failed to create ONNX session builder: {}", e))),
+        };
         let input = session.inputs().first().ok_or_else(|| {
             AppError::Message("The ONNX model does not expose an input tensor".into())
         })?;
@@ -117,14 +145,25 @@ impl InferenceEngine for YoloEngine {
         let input_tensor = build_input_tensor(&prepared, self.input_layout)?;
 
         let started_at = Instant::now();
-        let outputs = self.session.run(ort::inputs![TensorRef::from_array_view(
+        let run_result = self.session.run(ort::inputs![TensorRef::from_array_view(
             input_tensor.view()
-        )?])?;
+        )?]);
+        let outputs = match run_result {
+            Ok(o) => o,
+            Err(e) => return Err(AppError::Message(format!("ONNX inference run failed: {}", e))),
+        };
         let infer_ms = started_at.elapsed().as_millis();
-        let (shape, data) = outputs[0].try_extract_tensor::<f32>()?;
+        
+        let (_, output_value) = outputs.into_iter().next().ok_or_else(|| {
+            AppError::Message("The ONNX model returned no output tensors".into())
+        })?;
+        
+        let (shape, data) = output_value.try_extract_tensor::<f32>().map_err(|e| {
+            AppError::Message(format!("Failed to extract output tensor: {}", e))
+        })?;
 
         let detections = decode_candidates(
-            &shape.iter().copied().collect::<Vec<_>>(),
+            shape,
             data,
             threshold,
             &self.class_names,
@@ -216,22 +255,20 @@ fn letterbox_image(
     let resized_height = ((original_height as f32 * scale).round() as u32)
         .max(1)
         .min(target_height);
-    let pad_x = (target_width.saturating_sub(resized_width) / 2) as f32;
-    let pad_y = (target_height.saturating_sub(resized_height) / 2) as f32;
+    let pad_x = (target_width.saturating_sub(resized_width) / 2) as u32;
+    let pad_y = (target_height.saturating_sub(resized_height) / 2) as u32;
     let resized =
         image::imageops::resize(image, resized_width, resized_height, FilterType::Triangle);
     let mut canvas = ImageBuffer::from_pixel(target_width, target_height, Rgb([114, 114, 114]));
 
-    for (x, y, pixel) in resized.enumerate_pixels() {
-        canvas.put_pixel(x + pad_x as u32, y + pad_y as u32, *pixel);
-    }
+    image::imageops::overlay(&mut canvas, &resized, pad_x as i64, pad_y as i64);
 
     (
         canvas,
         LetterboxTransform {
             scale,
-            pad_x,
-            pad_y,
+            pad_x: pad_x as f32,
+            pad_y: pad_y as f32,
             original_width: original_width as f32,
             original_height: original_height as f32,
         },
@@ -242,37 +279,30 @@ fn letterbox_image(
 fn build_input_tensor(image: &RgbImage, layout: InputLayout) -> Result<Array4<f32>, AppError> {
     let height = image.height() as usize;
     let width = image.width() as usize;
-    let mut data = match layout {
-        InputLayout::Nchw => vec![0.0f32; 3 * height * width],
-        InputLayout::Nhwc => vec![0.0f32; height * width * 3],
-    };
-
-    for (x, y, pixel) in image.enumerate_pixels() {
-        let x = x as usize;
-        let y = y as usize;
-        match layout {
-            InputLayout::Nchw => {
-                let index = y * width + x;
-                data[index] = pixel[0] as f32 / 255.0;
-                data[(height * width) + index] = pixel[1] as f32 / 255.0;
-                data[(2 * height * width) + index] = pixel[2] as f32 / 255.0;
-            }
-            InputLayout::Nhwc => {
-                let index = (y * width + x) * 3;
-                data[index] = pixel[0] as f32 / 255.0;
-                data[index + 1] = pixel[1] as f32 / 255.0;
-                data[index + 2] = pixel[2] as f32 / 255.0;
-            }
-        }
-    }
 
     match layout {
-        InputLayout::Nchw => Array4::from_shape_vec((1, 3, height, width), data).map_err(|error| {
-            AppError::Message(format!("Failed to build NCHW input tensor: {error}"))
-        }),
-        InputLayout::Nhwc => Array4::from_shape_vec((1, height, width, 3), data).map_err(|error| {
-            AppError::Message(format!("Failed to build NHWC input tensor: {error}"))
-        }),
+        InputLayout::Nchw => {
+            let mut array = Array4::zeros((1, 3, height, width));
+            for (x, y, pixel) in image.enumerate_pixels() {
+                let x = x as usize;
+                let y = y as usize;
+                array[[0, 0, y, x]] = pixel[0] as f32 / 255.0;
+                array[[0, 1, y, x]] = pixel[1] as f32 / 255.0;
+                array[[0, 2, y, x]] = pixel[2] as f32 / 255.0;
+            }
+            Ok(array)
+        }
+        InputLayout::Nhwc => {
+            let mut array = Array4::zeros((1, height, width, 3));
+            for (x, y, pixel) in image.enumerate_pixels() {
+                let x = x as usize;
+                let y = y as usize;
+                array[[0, y, x, 0]] = pixel[0] as f32 / 255.0;
+                array[[0, y, x, 1]] = pixel[1] as f32 / 255.0;
+                array[[0, y, x, 2]] = pixel[2] as f32 / 255.0;
+            }
+            Ok(array)
+        }
     }
 }
 
@@ -397,6 +427,10 @@ fn decode_nms_rows(
                 bbox: scaled,
             });
         }
+
+        if detections.len() > MAX_DETECTION_CANDIDATES {
+            break;
+        }
     }
 
     detections
@@ -435,6 +469,10 @@ fn decode_transposed_nms_rows(
                 bbox: scaled,
             });
         }
+
+        if detections.len() > MAX_DETECTION_CANDIDATES {
+            break;
+        }
     }
 
     detections
@@ -455,20 +493,30 @@ fn decode_raw_channel_first(
         ));
     }
 
+    if data.len() < fields * detections {
+        return Err(AppError::Message(format!(
+            "Model output tensor size mismatch: expected {}, got {}",
+            fields * detections,
+            data.len()
+        )));
+    }
+
     let uses_objectness = fields == class_count + 5;
     let class_offset = if uses_objectness { 5 } else { 4 };
     let mut candidates = Vec::new();
 
     for detection_index in 0..detections {
-        let cx = data[detection_index];
-        let cy = data[detections + detection_index];
-        let width = data[(2 * detections) + detection_index];
-        let height = data[(3 * detections) + detection_index];
         let objectness = if uses_objectness {
             data[(4 * detections) + detection_index]
         } else {
             1.0
         };
+
+        // Skip early when objectness alone already falls below the threshold;
+        // class scores can only lower the final confidence, never raise it.
+        if uses_objectness && objectness < threshold {
+            continue;
+        }
 
         let (class_index, class_score) = best_class_score_channel_first(
             data,
@@ -482,12 +530,21 @@ fn decode_raw_channel_first(
             continue;
         }
 
+        let cx = data[detection_index];
+        let cy = data[detections + detection_index];
+        let width = data[(2 * detections) + detection_index];
+        let height = data[(3 * detections) + detection_index];
+
         if let Some(scaled) = scale_bbox(xywh_to_xyxy(cx, cy, width, height), transform) {
             candidates.push(DetectionCandidate {
                 class_index,
                 confidence,
                 bbox: scaled,
             });
+        }
+
+        if candidates.len() > MAX_DETECTION_CANDIDATES {
+            break;
         }
     }
 
@@ -509,18 +566,29 @@ fn decode_raw_row_major(
         ));
     }
 
+    if data.len() < detections * fields {
+        return Err(AppError::Message(format!(
+            "Model output tensor size mismatch: expected {}, got {}",
+            detections * fields,
+            data.len()
+        )));
+    }
+
     let uses_objectness = fields == class_count + 5;
     let class_offset = if uses_objectness { 5 } else { 4 };
     let mut candidates = Vec::new();
 
     for detection_index in 0..detections {
         let offset = detection_index * fields;
-        if offset + fields > data.len() {
-            break;
-        }
-
         let row = &data[offset..offset + fields];
         let objectness = if uses_objectness { row[4] } else { 1.0 };
+
+        // Skip early when objectness alone already falls below the threshold;
+        // class scores can only lower the final confidence, never raise it.
+        if uses_objectness && objectness < threshold {
+            continue;
+        }
+
         let (class_index, class_score) = best_class_score_row_major(row, class_offset, class_count);
         let confidence = objectness * class_score;
         if confidence < threshold {
@@ -533,6 +601,10 @@ fn decode_raw_row_major(
                 confidence,
                 bbox: scaled,
             });
+        }
+
+        if candidates.len() > MAX_DETECTION_CANDIDATES {
+            break;
         }
     }
 

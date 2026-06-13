@@ -1,5 +1,4 @@
 import { memo, useMemo, useState, useCallback } from "react"
-import { motion, AnimatePresence } from "framer-motion"
 import {
   useReactTable,
   getCoreRowModel,
@@ -126,13 +125,9 @@ export const ImageTable = memo(({
                 loading="lazy"
               />
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-lg flex items-center justify-center">
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  whileHover={{ opacity: 1, scale: 1 }}
-                  className="bg-white/90 dark:bg-gray-800/90 rounded-full p-1"
-                >
+                <div className="bg-white/90 dark:bg-gray-800/90 rounded-full p-1 opacity-0 scale-[0.8] group-hover:opacity-100 group-hover:scale-100 transition-all duration-200">
                   <Eye className="h-3 w-3 text-gray-700 dark:text-gray-300" />
-                </motion.div>
+                </div>
               </div>
             </div>
           </div>
@@ -378,24 +373,19 @@ export const ImageTable = memo(({
               ))}
             </thead>
             <tbody>
-              <AnimatePresence>
-                {table.getRowModel().rows.map((row, index) => (
-                  <motion.tr
-                    key={row.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.2, delay: index * 0.05 }}
-                    className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-4 py-3">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    ))}
-                  </motion.tr>
-                ))}
-              </AnimatePresence>
+              {table.getRowModel().rows.map((row, index) => (
+                <tr
+                  key={row.id}
+                  className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors animate-in fade-in slide-in-from-bottom-2 fill-mode-both"
+                  style={{ animationDelay: `${index * 50}ms`, animationDuration: "200ms" }}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <td key={cell.id} className="px-4 py-3">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  ))}
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

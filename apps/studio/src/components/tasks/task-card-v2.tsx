@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
-import { TaskStatusBadge } from "@/components/task-status-badge"
-import { TaskPriorityBadge } from "@/components/task-priority-badge"
+import { TaskStatusBadge } from "@/components/tasks/task-status-badge"
+import { TaskPriorityBadge } from "@/components/tasks/task-priority-badge"
 import {
   Calendar,
   Clock,

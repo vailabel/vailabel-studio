@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { X, Trash2, Moon, Sun } from "lucide-react"
+import { Trash2, Moon, Sun } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
@@ -15,15 +15,11 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
-import { useTheme } from "./theme-provider"
+import { useTheme } from "@/components/layout/theme-provider"
 import { useSettingsViewModel } from "@/viewmodels/settings-viewmodel"
 
 interface SettingsModalProps {
   onClose: () => void
-}
-
-interface Settings {
-  [key: string]: string | number | boolean
 }
 
 export const SettingsModal = ({ onClose }: SettingsModalProps) => {

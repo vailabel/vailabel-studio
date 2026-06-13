@@ -11,7 +11,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Progress } from "@/components/ui/progress"
-import { ImageUploadArea, ImageGrid } from "@/components/ui/image-upload"
 
 interface ImageFile {
   id: string
@@ -63,11 +62,11 @@ export function DatasetUploadStep({
           </AlertDescription>
         </Alert>
 
-        <ImageUploadArea
+        {/* <ImageUploadArea
           onFiles={onFiles}
           isUploading={isUploading}
           uploadProgress={uploadProgress}
-        />
+        /> */}
 
         {isUploading && uploadProgress > 0 && (
           <div className="space-y-2">
@@ -92,7 +91,7 @@ export function DatasetUploadStep({
                   {images.length} file{images.length !== 1 ? "s" : ""}
                 </Badge>
               </div>
-              <ImageGrid images={images} onRemove={onRemoveImage} />
+              {/* <ImageGrid images={images} onRemove={onRemoveImage} /> */}
             </div>
           </>
         )}

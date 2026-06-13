@@ -115,9 +115,7 @@ export function useCanvasHandlers(
   const { selectedTool, setSelectedTool, toolState, setToolState } = useCanvasTool()
   const { isPanning, setIsPanning, lastPanPoint, setLastPanPoint } = useCanvasPanning()
   const { selectedAnnotation, setSelectedAnnotation } = useCanvasSelection()
-  const zeroPoint: Point = { x: 0, y: 0 }
   const baseOffset = layout?.baseOffset || panOffset
-  const centerOffset = layout?.centerOffset || zeroPoint
   const containerSize =
     layout?.container ||
     {
@@ -470,10 +468,6 @@ export function useCanvasHandlers(
 
           // Recompute center offset for the new zoom level
           const nextCenterOffset = getCenterOffset(containerSize, imageSize, newZoom)
-
-          // Calculate the point in image coordinates after zoom
-          const afterZoomX = (mouseX - baseOffset.x) / newZoom
-          const afterZoomY = (mouseY - baseOffset.y) / newZoom
 
           // Adjust pan offset to keep the mouse point stable
           setPanOffset({

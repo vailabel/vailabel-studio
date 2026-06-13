@@ -8,6 +8,7 @@ import {
   HardDrive,
   Import,
   Loader2,
+  RefreshCw,
   Settings,
   Trash2,
 } from "lucide-react"
@@ -21,6 +22,13 @@ import {
 } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Dialog,
   DialogContent,
@@ -40,8 +48,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import AIModelForm from "@/components/forms/AIModelForm"
 import {
   useAIModelViewModel,
-  type SystemModel,
-  type SystemModelVariant,
+  type CatalogSystemModel,
+  type CatalogSystemModelVariant,
 } from "@/viewmodels/ai-model-viewmodel"
 import {
   getAIModelMetadata,
@@ -67,34 +75,43 @@ function normalizeValue(value?: string | null) {
   return value?.trim().toLowerCase() || ""
 }
 
-function buildCatalogVariantKey(model: SystemModel, variant: SystemModelVariant) {
+function buildCatalogVariantKey(
+  model: CatalogSystemModel,
+  variant: CatalogSystemModelVariant
+) {
   return `${model.id}:${variant.slug || variant.modelVersion || variant.name}`
 }
 
 function getInstalledCatalogVariant(
   models: AIModel[],
-  model: SystemModel,
-  variant: SystemModelVariant
+  model: CatalogSystemModel,
+  variant: CatalogSystemModelVariant
 ) {
-  const expectedVersion = normalizeValue(variant.modelVersion)
+  const expectedVersion = normalizeValue(variant.resolvedVersion)
+  const expectedModelVersion = normalizeValue(variant.modelVersion)
   const expectedCategory = normalizeValue(model.category)
   const expectedFamily = normalizeValue(model.family)
   const expectedVariant = normalizeValue(variant.variant)
 
   return (
     models.find((entry) => {
-      const installedVersion = normalizeValue(
-        entry.modelVersion || entry.model_version
-      )
-
-      if (expectedVersion && installedVersion === expectedVersion) {
-        return true
-      }
-
-      return (
+      const matchesModelIdentity =
         normalizeValue(entry.category) === expectedCategory &&
         normalizeValue(entry.family) === expectedFamily &&
         normalizeValue(entry.variant) === expectedVariant
+
+      if (!matchesModelIdentity) {
+        return false
+      }
+
+      if (expectedVersion) {
+        return normalizeValue(entry.version) === expectedVersion
+      }
+
+      return (
+        !expectedModelVersion ||
+        normalizeValue(entry.modelVersion || entry.model_version) ===
+          expectedModelVersion
       )
     }) || null
   )
@@ -114,6 +131,8 @@ export default function AIModelListPage() {
     activateModel,
     importModel,
     installSystemModel,
+    selectCatalogRelease,
+    refreshCatalogReleases,
     refreshModels,
   } = useAIModelViewModel()
   const { toast } = useToast()
@@ -209,8 +228,8 @@ export default function AIModelListPage() {
   }
 
   const handleInstallVariant = async (
-    model: SystemModel,
-    variant: SystemModelVariant
+    model: CatalogSystemModel,
+    variant: CatalogSystemModelVariant
   ) => {
     try {
       const installedModel = await installSystemModel(model, variant)
@@ -233,6 +252,22 @@ export default function AIModelListPage() {
           error instanceof Error
             ? error.message
             : "The model could not be installed from the catalog.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleRefreshCatalogReleases = async (model: CatalogSystemModel) => {
+    try {
+      await refreshCatalogReleases(model)
+    } catch (error) {
+      console.error("Failed to refresh GitHub releases:", error)
+      toast({
+        title: "Release refresh failed",
+        description:
+          error instanceof Error
+            ? error.message
+            : "The GitHub release list could not be refreshed.",
         variant: "destructive",
       })
     }
@@ -320,9 +355,9 @@ export default function AIModelListPage() {
       <Alert className="border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/30">
         <Cpu className="h-4 w-4 text-blue-600 dark:text-blue-300" />
         <AlertDescription>
-          Install a curated ONNX model from the catalog or import an existing
-          local file. Once a model is added, prediction generation stays local
-          and offline.
+          Install a curated model from the catalog, choose a GitHub release for
+          YOLO families, or import an existing local file. Once a model is
+          added, prediction generation stays local and offline.
         </AlertDescription>
       </Alert>
 
@@ -466,8 +501,8 @@ export default function AIModelListPage() {
             <CardHeader>
               <CardTitle>Reference Catalog</CardTitle>
               <CardDescription>
-                Curated model families you can install directly or mirror with
-                your own local checkpoints.
+                Curated model families you can install directly, including
+                release-backed YOLO downloads from GitHub.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -511,6 +546,83 @@ export default function AIModelListPage() {
                           <span>{model.requirements.minMemory} MB</span>
                         </div>
                       )}
+                      {model.releaseSource && (
+                        <div className="space-y-3 rounded-lg border bg-background/70 p-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="space-y-1">
+                              <p className="text-xs font-medium text-foreground">
+                                GitHub Release Source
+                              </p>
+                              <p>
+                                {model.releaseSource.owner}/{model.releaseSource.repo}
+                              </p>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                void handleRefreshCatalogReleases(model)
+                              }
+                              disabled={model.isReleaseLoading}
+                            >
+                              {model.isReleaseLoading ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Loading...
+                                </>
+                              ) : (
+                                <>
+                                  <RefreshCw className="mr-2 h-4 w-4" />
+                                  Refresh
+                                </>
+                              )}
+                            </Button>
+                          </div>
+
+                          {model.releaseOptions?.length ? (
+                            <div className="space-y-2">
+                              <p className="text-xs font-medium text-foreground">
+                                Selected Release
+                              </p>
+                              <Select
+                                value={model.selectedReleaseTag || undefined}
+                                onValueChange={(value) =>
+                                  selectCatalogRelease(model, value)
+                                }
+                              >
+                                <SelectTrigger className="w-full">
+                                  <SelectValue placeholder="Choose a release" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {model.releaseOptions.map((release) => (
+                                    <SelectItem
+                                      key={release.tagName}
+                                      value={release.tagName}
+                                    >
+                                      {release.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          ) : model.isReleaseLoading ? (
+                            <p className="text-xs text-muted-foreground">
+                              Loading available releases from GitHub...
+                            </p>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">
+                              No GitHub releases were returned, so installs will
+                              fall back to the catalog URL.
+                            </p>
+                          )}
+
+                          {model.releaseError && (
+                            <p className="text-xs text-destructive">
+                              {model.releaseError}
+                            </p>
+                          )}
+                        </div>
+                      )}
                       {model.variants?.length ? (
                         <div className="space-y-3">
                           {model.variants.map((variant) => {
@@ -541,6 +653,11 @@ export default function AIModelListPage() {
                                         {variant.modelVersion || variant.name}
                                       </span>
                                       {variant.recommended && <Badge>Recommended</Badge>}
+                                      {variant.releaseTag && (
+                                        <Badge variant="outline">
+                                          {variant.releaseTag}
+                                        </Badge>
+                                      )}
                                       {installedVariant && (
                                         <Badge variant="secondary">Installed</Badge>
                                       )}
@@ -551,6 +668,10 @@ export default function AIModelListPage() {
                                       )}
                                     </div>
                                     <div className="flex flex-wrap gap-3 text-xs">
+                                      <span>Version {variant.resolvedVersion}</span>
+                                      {variant.assetName && (
+                                        <span>{variant.assetName}</span>
+                                      )}
                                       {typeof variant.size === "number" && (
                                         <span>{formatFileSize(variant.size)}</span>
                                       )}
@@ -581,6 +702,11 @@ export default function AIModelListPage() {
                                           ? "Prediction ready"
                                           : "Reference install"}
                                       </Badge>
+                                      {!variant.available && (
+                                        <p className="text-destructive">
+                                          {variant.unavailableReason}
+                                        </p>
+                                      )}
                                       {variantMetadata.unsupportedReason && (
                                         <p>{variantMetadata.unsupportedReason}</p>
                                       )}
@@ -609,13 +735,15 @@ export default function AIModelListPage() {
                                       onClick={() =>
                                         handleInstallVariant(model, variant)
                                       }
-                                      disabled={isInstalling}
+                                      disabled={isInstalling || !variant.available}
                                     >
                                       {isInstalling ? (
                                         <>
                                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                           Installing...
                                         </>
+                                      ) : !variant.available ? (
+                                        "Unavailable"
                                       ) : (
                                         "Install"
                                       )}

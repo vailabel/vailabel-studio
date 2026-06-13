@@ -11,7 +11,7 @@ import {
   Tag,
 } from "lucide-react"
 import { useNavigate, useOutlet, useLocation } from "react-router-dom"
-import { ThemeToggle } from "@/components/theme-toggle"
+import { ThemeToggle } from "@/components/layout/theme-toggle"
 import {
   Sheet,
   SheetContent,

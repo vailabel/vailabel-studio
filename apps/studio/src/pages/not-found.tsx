@@ -1,4 +1,3 @@
-import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -11,52 +10,36 @@ import { Home, ArrowLeft } from "lucide-react"
 
 const NotFound = () => (
   <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
-    <motion.div
-      initial={{ scale: 0.7, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      transition={{ type: "spring", stiffness: 200, damping: 15 }}
-      className="w-full max-w-md"
-    >
+    <div className="w-full max-w-md animate-in fade-in zoom-in-95 duration-300 ease-out">
       <Card className="text-center">
         <CardHeader>
-          <motion.div
-            className="text-6xl font-extrabold text-primary mb-4"
-            initial={{ scale: 0.7, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{
-              type: "spring",
-              stiffness: 200,
-              damping: 15,
-              delay: 0.1,
-            }}
+          <div
+            className="text-6xl font-extrabold text-primary mb-4 animate-in fade-in zoom-in-95 duration-300 ease-out fill-mode-both"
+            style={{ animationDelay: "100ms" }}
           >
             404
-          </motion.div>
+          </div>
           <CardTitle className="text-2xl">
-            <motion.span
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.2, duration: 0.5 }}
+            <span
+              className="inline-block animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both"
+              style={{ animationDelay: "200ms" }}
             >
               Page Not Found
-            </motion.span>
+            </span>
           </CardTitle>
           <CardDescription>
-            <motion.span
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.3, duration: 0.5 }}
+            <span
+              className="inline-block animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both"
+              style={{ animationDelay: "300ms" }}
             >
               The page you're looking for doesn't exist or has been moved.
-            </motion.span>
+            </span>
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.4 }}
-            className="flex flex-col sm:flex-row gap-3 justify-center"
+          <div
+            className="flex flex-col sm:flex-row gap-3 justify-center animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both"
+            style={{ animationDelay: "400ms" }}
           >
             <Button asChild className="w-full sm:w-auto">
               <a href="#/">
@@ -70,10 +53,10 @@ const NotFound = () => (
                 Go Back
               </a>
             </Button>
-          </motion.div>
+          </div>
         </CardContent>
       </Card>
-    </motion.div>
+    </div>
   </div>
 )
 

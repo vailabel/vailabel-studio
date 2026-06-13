@@ -1,5 +1,4 @@
 import { memo, useMemo } from "react"
-import { motion } from "framer-motion"
 import { cn, getContentBoxColor } from "@/lib/utils"
 import type { Annotation } from "@/types/core"
 import { useCanvasTool, useCanvasSelection } from "@/contexts/canvas-context"
@@ -56,14 +55,12 @@ export const BoxAnnotation = memo(({ annotation, readOnly = false }: BoxAnnotati
     )
   }, [isMoveTool, isSelected])
   return (
-    <motion.div
+    <div
       data-testid="box-annotation"
       className={cn(
-        "absolute border-2 bg-opacity-20",
+        "absolute border-2 bg-opacity-20 animate-in fade-in zoom-in-95 duration-200",
         isSelected && "border-red-500"
       )}
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
       style={annotationStyles}
     >
       <div
@@ -74,7 +71,7 @@ export const BoxAnnotation = memo(({ annotation, readOnly = false }: BoxAnnotati
       </div>
 
       {resizeHandles}
-    </motion.div>
+    </div>
   )
 })
 

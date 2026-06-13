@@ -22,7 +22,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Import } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import {
   getPredictionReadinessLabel,
   getModelClassCount,
@@ -37,7 +37,6 @@ interface AIModelModalProps {
 }
 
 export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
-  const { toast } = useToast()
   const navigate = useNavigate()
   const {
     availableModels,
@@ -54,16 +53,13 @@ export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
     if (!selectedModelId) return
     try {
       await saveModelSelection(selectedModelId)
-      toast({
-        title: "Model selected",
+      toast("Model selected", {
         description: "This model is ready for AI-assisted annotation.",
       })
       onClose()
     } catch {
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: "Failed to save selected model.",
-        variant: "destructive",
       })
     }
   }

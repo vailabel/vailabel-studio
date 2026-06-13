@@ -3,7 +3,7 @@ import { useDroppable } from "@dnd-kit/core"
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { DraggableTaskCard } from "@/components/draggable-task-card"
+import { DraggableTaskCard } from "@/components/tasks/draggable-task-card"
 import { Task } from "@/types/core"
 import { cn } from "@/lib/utils"
 

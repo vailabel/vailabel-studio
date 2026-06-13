@@ -14,8 +14,8 @@ import {
   useSensors,
 } from "@dnd-kit/core"
 import { sortableKeyboardCoordinates, arrayMove } from "@dnd-kit/sortable"
-import { KanbanTaskCard } from "@/components/kanban-task-card"
-import { DroppableColumn } from "@/components/droppable-column"
+import { KanbanTaskCard } from "@/components/tasks/kanban-task-card"
+import { DroppableColumn } from "@/components/tasks/droppable-column"
 import { Task } from "@/types/core"
 
 interface TaskKanbanProps {

@@ -7,7 +7,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import type { ImageData } from "@/types/core"
 
 interface AIDetectionButtonProps {
@@ -37,22 +37,18 @@ export const AIDetectionButton = ({
   onOpenModelSettings,
   onGeneratePredictions,
 }: AIDetectionButtonProps) => {
-  const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleDetection = async () => {
     if (!image) {
-      toast({
-        title: "No image selected",
+      toast.error("No image selected", {
         description: "Please select an image first",
-        variant: "destructive",
       })
       return
     }
 
     if (!selectedModelId) {
-      toast({
-        title: "Select a model first",
+      toast("Select a model first", {
         description: "Import or choose a local model before running AI annotation.",
       })
       onOpenModelSettings?.()
@@ -60,12 +56,10 @@ export const AIDetectionButton = ({
     }
 
     if (!selectedModelCanAttemptPrediction) {
-      toast({
-        title: "Selected model is not ready",
+      toast.error("Selected model is not ready", {
         description:
           selectedModelUnsupportedReason ||
           "Choose a detection-ready local model before running AI detect.",
-        variant: "destructive",
       })
       onOpenModelSettings?.()
       return
@@ -74,19 +68,16 @@ export const AIDetectionButton = ({
     setIsSubmitting(true)
     try {
       await onGeneratePredictions(selectedModelId)
-      toast({
-        title: "Pre-annotations generated",
+      toast("Pre-annotations generated", {
         description: "Review and correct the suggested labels before accepting them.",
       })
     } catch (error) {
       console.error("Prediction generation failed:", error)
-      toast({
-        title: "Prediction generation failed",
+      toast.error("Prediction generation failed", {
         description:
           error instanceof Error
             ? error.message
             : "The selected model could not process this image.",
-        variant: "destructive",
       })
     } finally {
       setIsSubmitting(false)
@@ -98,20 +89,22 @@ export const AIDetectionButton = ({
   return (
     <TooltipProvider>
       <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 w-8"
-            onClick={handleDetection}
-            disabled={disabled || busy || !image}
-          >
-            {busy ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Brain className="h-4 w-4" />
-            )}
-          </Button>
+        <TooltipTrigger
+          render={
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 w-8"
+              onClick={handleDetection}
+              disabled={disabled || busy || !image}
+            />
+          }
+        >
+          {busy ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Brain className="h-4 w-4" />
+          )}
         </TooltipTrigger>
         <TooltipContent side="bottom">
           {selectedModelName && !selectedModelCanAttemptPrediction

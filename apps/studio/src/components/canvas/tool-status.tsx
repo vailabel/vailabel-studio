@@ -1,5 +1,4 @@
 import { memo } from "react"
-import { motion, AnimatePresence } from "framer-motion"
 
 interface ToolStatusProps {
   tool: string
@@ -107,30 +106,21 @@ export const ToolStatus = memo(({
   }
 
   return (
-    <AnimatePresence>
-      {isVisible && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 20 }}
-          className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-50"
-        >
-          <div className={`${getStatusColor()} text-white px-4 py-2 rounded-lg shadow-lg border`}>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-lg">{getToolIcon()}</span>
-              <div className="text-sm font-medium">
-                {getStatusMessage()}
-              </div>
-            </div>
-            <div className="text-xs text-gray-300 space-y-1">
-              {getInstructions().map((instruction, index) => (
-                <div key={index}>{instruction}</div>
-              ))}
-            </div>
+    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
+      <div className={`${getStatusColor()} text-white px-4 py-2 rounded-lg shadow-lg border`}>
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-lg">{getToolIcon()}</span>
+          <div className="text-sm font-medium">
+            {getStatusMessage()}
           </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+        </div>
+        <div className="text-xs text-gray-300 space-y-1">
+          {getInstructions().map((instruction, index) => (
+            <div key={index}>{instruction}</div>
+          ))}
+        </div>
+      </div>
+    </div>
   )
 })
 

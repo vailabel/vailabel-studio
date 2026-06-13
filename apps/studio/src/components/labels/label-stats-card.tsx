@@ -1,5 +1,4 @@
 import React from "react"
-import { motion } from "framer-motion"
 import { LucideIcon } from "lucide-react"
 import { Card } from "@/components/ui/card"
 
@@ -38,11 +37,7 @@ export const LabelStatsCard: React.FC<LabelStatsCardProps> = ({
   }
 
   return (
-    <motion.div
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      transition={{ type: "spring", stiffness: 300, damping: 30 }}
-    >
+    <div className="transition-transform duration-200 ease-out hover:scale-[1.02] active:scale-[0.98]">
       <Card className="p-6 hover:shadow-lg transition-shadow duration-200 bg-card">
         <div className="flex items-center gap-4">
           <div className={`p-3 rounded-lg ${color} text-white`}>
@@ -68,6 +63,6 @@ export const LabelStatsCard: React.FC<LabelStatsCardProps> = ({
           </div>
         </div>
       </Card>
-    </motion.div>
+    </div>
   )
 }

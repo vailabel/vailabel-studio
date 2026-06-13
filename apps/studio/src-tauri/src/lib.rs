@@ -770,6 +770,13 @@ fn updater_status() -> Value {
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
+            #[cfg(feature = "yolo-inference")]
+            {
+                // Initialize ONNX Runtime environment once on the main thread
+                // This can help prevent hangs when creating sessions in background threads
+                ort::init().commit();
+            }
+
             let app_dir = app.path().app_data_dir()?;
             fs::create_dir_all(&app_dir)?;
             let store = DesktopStore::open(app_dir.join("vailabel-desktop.sqlite"))?;
