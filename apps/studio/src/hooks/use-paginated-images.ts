@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import type { ImageData } from "@/types/core"
 
 export interface PaginatedImageData {
@@ -48,7 +48,6 @@ export function usePaginatedImages(
   service: ImageDataService,
   options: UsePaginatedImagesOptions
 ): PaginatedImageData & PaginatedImageDataActions {
-  const { toast } = useToast()
   const {
     projectId,
     initialPageSize = 10,
@@ -105,10 +104,8 @@ export function usePaginatedImages(
         isLoading: false,
         error: "Failed to load images",
       }))
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: "Failed to load images",
-        variant: "destructive",
       })
     }
   }
@@ -158,11 +155,10 @@ export function usePaginatedImages(
   // Data operations
   const refresh = useCallback(async () => {
     await loadPage(state.pageIndex, state.pageSize)
-    toast({
-      title: "Refreshed",
+    toast("Refreshed", {
       description: "Images list has been updated",
     })
-  }, [loadPage, state.pageIndex, state.pageSize, toast])
+  }, [loadPage, state.pageIndex, state.pageSize])
 
   // Image operations
   const deleteImage = useCallback(async (imageId: string) => {
@@ -176,19 +172,16 @@ export function usePaginatedImages(
         totalCount: prev.totalCount - 1,
       }))
 
-      toast({
-        title: "Image deleted",
+      toast("Image deleted", {
         description: "Image has been removed successfully",
       })
     } catch (error) {
       console.error("Failed to delete image:", error)
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: "Failed to delete image",
-        variant: "destructive",
       })
     }
-  }, [toast])
+  }, [])
 
   const updateImage = useCallback(async (imageId: string, updates: Partial<ImageData>) => {
     try {
@@ -202,19 +195,16 @@ export function usePaginatedImages(
         ),
       }))
 
-      toast({
-        title: "Image updated",
+      toast("Image updated", {
         description: "Image has been updated successfully",
       })
     } catch (error) {
       console.error("Failed to update image:", error)
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: "Failed to update image",
-        variant: "destructive",
       })
     }
-  }, [toast])
+  }, [])
 
   return {
     ...state,

@@ -11,7 +11,7 @@ import {
   Brain,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import type { ImageData } from "@/types/core"
 import type { CanvasTool } from "@/features/studio/types"
 
@@ -46,7 +46,6 @@ export const ContextMenu = memo(
     onClose,
   }: ContextMenuProps) => {
     const menuRef = useRef<HTMLDivElement>(null)
-    const { toast } = useToast()
 
     useEffect(() => {
       const handleClickOutside = (event: MouseEvent) => {
@@ -66,18 +65,15 @@ export const ContextMenu = memo(
 
     const handleAIDetection = async () => {
       if (!image) {
-        toast({
-          title: "No image selected",
+        toast.error("No image selected", {
           description: "Please select an image first.",
-          variant: "destructive",
         })
         onClose()
         return
       }
 
       if (!selectedModelId) {
-        toast({
-          title: "Select a model first",
+        toast("Select a model first", {
           description: "Choose a local AI model before running AI detect.",
         })
         onOpenAISettings?.()
@@ -86,12 +82,10 @@ export const ContextMenu = memo(
       }
 
       if (!selectedModelCanAttemptPrediction) {
-        toast({
-          title: "Selected model is not ready",
+        toast.error("Selected model is not ready", {
           description:
             selectedModelUnsupportedReason ||
             "Choose a detection-ready local model before running AI detect.",
-          variant: "destructive",
         })
         onOpenAISettings?.()
         onClose()
@@ -102,13 +96,11 @@ export const ContextMenu = memo(
         await onGeneratePredictions(selectedModelId)
       } catch (error) {
         console.error("Prediction generation failed:", error)
-        toast({
-          title: "Prediction generation failed",
+        toast.error("Prediction generation failed", {
           description:
             error instanceof Error
               ? error.message
               : "The selected model could not process this image.",
-          variant: "destructive",
         })
       } finally {
         onClose()

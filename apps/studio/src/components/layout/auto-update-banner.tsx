@@ -55,18 +55,18 @@ export const AutoUpdateBanner = () => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  asChild
                   className="text-xs h-7"
+                  render={
+                    <a
+                      href="https://vailabel.com/updates"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1"
+                    />
+                  }
                 >
-                  <a
-                    href="https://vailabel.com/updates"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1"
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                    See what changed
-                  </a>
+                  <ExternalLink className="w-3 h-3" />
+                  See what changed
                 </Button>
               </div>
             </div>
@@ -101,18 +101,18 @@ export const AutoUpdateBanner = () => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  asChild
                   className="text-xs h-8"
+                  render={
+                    <a
+                      href="https://vailabel.com/updates"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1"
+                    />
+                  }
                 >
-                  <a
-                    href="https://vailabel.com/updates"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1"
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                    Changelog
-                  </a>
+                  <ExternalLink className="w-3 h-3" />
+                  Changelog
                 </Button>
               </div>
             </div>

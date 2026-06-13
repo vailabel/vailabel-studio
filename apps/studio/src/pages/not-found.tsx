@@ -41,17 +41,17 @@ const NotFound = () => (
             className="flex flex-col sm:flex-row gap-3 justify-center animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both"
             style={{ animationDelay: "400ms" }}
           >
-            <Button asChild className="w-full sm:w-auto">
-              <a href="#/">
-                <Home className="w-4 h-4 mr-2" />
-                Go to Home
-              </a>
+            <Button className="w-full sm:w-auto" render={<a href="#/" />}>
+              <Home className="w-4 h-4 mr-2" />
+              Go to Home
             </Button>
-            <Button variant="outline" asChild className="w-full sm:w-auto">
-              <a href="javascript:history.back()">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Go Back
-              </a>
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto"
+              render={<a href="javascript:history.back()" />}
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Go Back
             </Button>
           </div>
         </CardContent>

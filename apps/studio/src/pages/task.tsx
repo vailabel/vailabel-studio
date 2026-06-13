@@ -45,22 +45,24 @@ export default function TaskPage() {
               <div className="flex items-center gap-3">
                 <TooltipProvider>
                   <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={viewModel.refreshData}
-                        disabled={viewModel.isLoadingData}
-                        className="gap-2"
-                      >
-                        <RefreshCw
-                          className={cn(
-                            "w-4 h-4",
-                            viewModel.isLoadingData && "animate-spin"
-                          )}
+                    <TooltipTrigger
+                      render={
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={viewModel.refreshData}
+                          disabled={viewModel.isLoadingData}
+                          className="gap-2"
                         />
-                        Refresh
-                      </Button>
+                      }
+                    >
+                      <RefreshCw
+                        className={cn(
+                          "w-4 h-4",
+                          viewModel.isLoadingData && "animate-spin"
+                        )}
+                      />
+                      Refresh
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>Refresh task data</p>

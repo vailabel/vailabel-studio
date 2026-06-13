@@ -2,13 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Project } from "@/types/core"
 import { listenToStudioEvents } from "@/ipc/events"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog"
 import { services } from "@/services"
 
 export const useProjectListViewModel = () => {
   const navigate = useNavigate()
-  const { toast } = useToast()
   const confirm = useConfirmDialog()
   const [projects, setProjects] = useState<Project[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -88,8 +87,7 @@ export const useProjectListViewModel = () => {
 
     await services.getProjectService().delete(projectId)
     setProjects((current) => current.filter((entry) => entry.id !== projectId))
-    toast({
-      title: "Project deleted",
+    toast("Project deleted", {
       description: `${project?.name ?? "Project"} was removed from this workspace.`,
     })
   }

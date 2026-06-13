@@ -397,10 +397,12 @@ export default function CloudStorageConfigPage() {
             )}
 
             <DialogFooter>
-              <DialogClose asChild>
-                <Button type="button" variant="outline" onClick={handleCloseForm}>
-                  Cancel
-                </Button>
+              <DialogClose
+                render={
+                  <Button type="button" variant="outline" onClick={handleCloseForm} />
+                }
+              >
+                Cancel
               </DialogClose>
               <Button type="submit" disabled={form.formState.isSubmitting}>
                 {form.formState.isSubmitting

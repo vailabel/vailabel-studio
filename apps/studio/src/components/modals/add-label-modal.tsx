@@ -126,18 +126,20 @@ export const AddLabelModal = memo(({
                 
                 {/* Custom Color Picker */}
                 <Popover open={showColorPicker} onOpenChange={setShowColorPicker}>
-                  <PopoverTrigger asChild>
-                    <button
-                      type="button"
-                      className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-transform duration-150 ease-out hover:scale-110 active:scale-95 ${
-                        !colorPalette.includes(labelColor) || showColorPicker
-                          ? "border-black dark:border-white scale-110 shadow-md"
-                          : "border-gray-300"
-                      }`}
-                      style={{ background: labelColor }}
-                    >
-                      <Palette className="w-3 h-3 text-white" />
-                    </button>
+                  <PopoverTrigger
+                    render={
+                      <button
+                        type="button"
+                        className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-transform duration-150 ease-out hover:scale-110 active:scale-95 ${
+                          !colorPalette.includes(labelColor) || showColorPicker
+                            ? "border-black dark:border-white scale-110 shadow-md"
+                            : "border-gray-300"
+                        }`}
+                        style={{ background: labelColor }}
+                      />
+                    }
+                  >
+                    <Palette className="w-3 h-3 text-white" />
                   </PopoverTrigger>
                   <PopoverContent className="p-2 w-auto" align="start">
                     <SketchPicker

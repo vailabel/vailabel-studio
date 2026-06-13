@@ -60,7 +60,7 @@ import {
   willModelConvertOnRun,
 } from "@/lib/ai-model-metadata"
 import { aiModelFormSchema, type AIModelFormData } from "@/lib/schemas/ai-model"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import type { AIModel } from "@/types/core"
 
 function formatFileSize(bytes: number): string {
@@ -135,7 +135,6 @@ export default function AIModelListPage() {
     refreshCatalogReleases,
     refreshModels,
   } = useAIModelViewModel()
-  const { toast } = useToast()
   const [showAddModelModal, setShowAddModelModal] = useState(false)
 
   const form = useForm<AIModelFormData>({
@@ -162,8 +161,7 @@ export default function AIModelListPage() {
       })
       await activateModel(importedModel.id)
       await refreshModels()
-      toast({
-        title: "Model imported",
+      toast("Model imported", {
         description: isModelPredictionReady(importedModel)
           ? `${importedModel.name} is ready for offline prediction generation.`
           : willModelConvertOnRun(importedModel)
@@ -182,11 +180,9 @@ export default function AIModelListPage() {
       })
     } catch (error) {
       console.error("Failed to import model:", error)
-      toast({
-        title: "Import failed",
+      toast.error("Import failed", {
         description:
           error instanceof Error ? error.message : "The model could not be imported.",
-        variant: "destructive",
       })
     }
   }
@@ -196,16 +192,13 @@ export default function AIModelListPage() {
 
     try {
       await deleteModel(modelId)
-      toast({
-        title: "Model deleted",
+      toast("Model deleted", {
         description: "The local model entry was removed.",
       })
     } catch (error) {
       console.error("Failed to delete model:", error)
-      toast({
-        title: "Delete failed",
+      toast.error("Delete failed", {
         description: "The model could not be removed.",
-        variant: "destructive",
       })
     }
   }
@@ -213,16 +206,13 @@ export default function AIModelListPage() {
   const handleSetActiveModel = async (modelId: string) => {
     try {
       await activateModel(modelId)
-      toast({
-        title: "Model activated",
+      toast("Model activated", {
         description: "This model is now the default local detector.",
       })
     } catch (error) {
       console.error("Failed to activate model:", error)
-      toast({
-        title: "Activation failed",
+      toast.error("Activation failed", {
         description: "The model could not be activated.",
-        variant: "destructive",
       })
     }
   }
@@ -235,8 +225,7 @@ export default function AIModelListPage() {
       const installedModel = await installSystemModel(model, variant)
       await activateModel(installedModel.id)
       await refreshModels()
-      toast({
-        title: "Model installed",
+      toast("Model installed", {
         description: isModelPredictionReady(installedModel)
           ? `${installedModel.name} was installed and activated for offline prediction generation.`
           : willModelConvertOnRun(installedModel)
@@ -246,13 +235,11 @@ export default function AIModelListPage() {
       })
     } catch (error) {
       console.error("Failed to install model:", error)
-      toast({
-        title: "Install failed",
+      toast.error("Install failed", {
         description:
           error instanceof Error
             ? error.message
             : "The model could not be installed from the catalog.",
-        variant: "destructive",
       })
     }
   }
@@ -262,13 +249,11 @@ export default function AIModelListPage() {
       await refreshCatalogReleases(model)
     } catch (error) {
       console.error("Failed to refresh GitHub releases:", error)
-      toast({
-        title: "Release refresh failed",
+      toast.error("Release refresh failed", {
         description:
           error instanceof Error
             ? error.message
             : "The GitHub release list could not be refreshed.",
-        variant: "destructive",
       })
     }
   }

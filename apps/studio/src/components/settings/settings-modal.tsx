@@ -13,7 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { useTheme } from "@/components/layout/theme-provider"
 import { useSettingsViewModel } from "@/viewmodels/settings-viewmodel"
@@ -23,7 +23,6 @@ interface SettingsModalProps {
 }
 
 export const SettingsModal = ({ onClose }: SettingsModalProps) => {
-  const { toast } = useToast()
   const { theme, setTheme } = useTheme()
   const { settings, updateSetting } = useSettingsViewModel()
 
@@ -48,16 +47,13 @@ export const SettingsModal = ({ onClose }: SettingsModalProps) => {
   ) => {
     try {
       await updateSetting(key, value)
-      toast({
-        title: "Setting updated",
+      toast("Setting updated", {
         description: `${key} has been updated to ${value}`,
       })
     } catch (error) {
       console.error("Failed to save setting:", error)
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: "Failed to save setting",
-        variant: "destructive",
       })
     }
   }

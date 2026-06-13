@@ -19,7 +19,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
-import { VisuallyHidden } from "@radix-ui/react-visually-hidden"
+import { visuallyHidden } from "@base-ui/utils/visuallyHidden"
 
 type NavigationItem = {
   name: string
@@ -51,20 +51,18 @@ const MainLayout = () => {
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         {/* Menu button in header, only on mobile */}
         <div className="md:hidden fixed top-4 left-4 z-40">
-          <SheetTrigger asChild>
-            <Button variant="outline" size="icon" className="shadow">
-              <Menu className="h-6 w-6" />
-              <span className="sr-only">Open menu</span>
-            </Button>
+          <SheetTrigger
+            render={<Button variant="outline" size="icon" className="shadow" />}
+          >
+            <Menu className="h-6 w-6" />
+            <span className="sr-only">Open menu</span>
           </SheetTrigger>
         </div>
         <SheetContent
           side="left"
           className="p-0 w-64 bg-background left-0 top-0 h-full fixed md:hidden"
         >
-          <VisuallyHidden asChild>
-            <SheetTitle>Main navigation</SheetTitle>
-          </VisuallyHidden>
+          <SheetTitle style={visuallyHidden}>Main navigation</SheetTitle>
           <div className="flex items-center gap-2 mb-6 p-6">
             <img src="/logo.png" alt="ProjectHub Logo" className="h-7 w-7" />
             <span className="text-xl font-bold">ProjectHub</span>
