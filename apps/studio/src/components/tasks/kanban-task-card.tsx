@@ -171,7 +171,8 @@ export const KanbanTaskCard: React.FC<KanbanTaskCardProps> = ({
             <div className="flex items-center gap-2 flex-1">
               {task.assignedTo ? (
                 <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
+                  <DropdownMenuTrigger
+                    render={
                     <Button
                       variant="ghost"
                       size="sm"
@@ -193,7 +194,8 @@ export const KanbanTaskCard: React.FC<KanbanTaskCardProps> = ({
                         </span>
                       </div>
                     </Button>
-                  </DropdownMenuTrigger>
+                    }
+                  />
                   <DropdownMenuContent align="start" className="w-48">
                     <DropdownMenuItem
                       onClick={handleUnassign}
@@ -227,7 +229,8 @@ export const KanbanTaskCard: React.FC<KanbanTaskCardProps> = ({
                 </DropdownMenu>
               ) : (
                 <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
+                  <DropdownMenuTrigger
+                    render={
                     <Button
                       variant="ghost"
                       size="sm"
@@ -241,7 +244,8 @@ export const KanbanTaskCard: React.FC<KanbanTaskCardProps> = ({
                         <span>Assign</span>
                       </div>
                     </Button>
-                  </DropdownMenuTrigger>
+                    }
+                  />
                   <DropdownMenuContent align="start" className="w-48">
                     {availableUsers.map((user) => (
                       <DropdownMenuItem
@@ -298,17 +302,19 @@ export const KanbanTaskCard: React.FC<KanbanTaskCardProps> = ({
                 </Button>
               )}
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 p-0 hover:bg-muted"
-                    onClick={(e) => e.stopPropagation()}
-                    data-prevent-click="true"
-                  >
-                    <MoreVertical className="h-3 w-3" />
-                  </Button>
-                </DropdownMenuTrigger>
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 hover:bg-muted"
+                      onClick={(e) => e.stopPropagation()}
+                      data-prevent-click="true"
+                    >
+                      <MoreVertical className="h-3 w-3" />
+                    </Button>
+                  }
+                />
                 <DropdownMenuContent align="end" className="w-48">
                   <DropdownMenuItem onClick={() => onViewDetails?.(task)}>
                     <Eye className="w-4 h-4 mr-2" />
@@ -390,16 +396,6 @@ export const KanbanTaskCard: React.FC<KanbanTaskCardProps> = ({
           )}
         </div>
 
-        {/* Status indicator */}
-        <div className="flex items-center justify-end pt-2 border-t opacity-0 group-hover:opacity-100 transition-opacity">
-          <p className="text-xs text-muted-foreground">
-            {task.status === "completed"
-              ? "Completed"
-              : task.status === "in-progress"
-                ? "In Progress"
-                : "Pending"}
-          </p>
-        </div>
       </CardContent>
     </Card>
   )

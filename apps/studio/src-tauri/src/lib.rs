@@ -1,5 +1,8 @@
-﻿pub mod domain;
+﻿#![recursion_limit = "256"]
+
+pub mod domain;
 mod inference;
+mod schema;
 mod store;
 
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};

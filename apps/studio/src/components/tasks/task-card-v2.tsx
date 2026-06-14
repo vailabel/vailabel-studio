@@ -188,15 +188,17 @@ export const TaskCard: React.FC<TaskCardProps> = ({
               <User className="w-4 h-4" />
             </Button>
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 px-2 hover:bg-muted"
-                >
-                  <MoreVertical className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2 hover:bg-muted"
+                  >
+                    <MoreVertical className="w-4 h-4" />
+                  </Button>
+                }
+              />
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuItem onClick={() => onEdit(task)}>
                   <Edit className="w-4 h-4 mr-2" />

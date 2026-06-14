@@ -171,20 +171,22 @@ export const Toolbar = memo(
           <TooltipProvider>
             {annotationTools.map((tool) => (
               <Tooltip key={tool.id}>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      "relative h-8 w-8 transition-all duration-200",
-                      selectedTool === tool.id &&
-                        "border-2 border-primary bg-primary/10 text-primary"
-                    )}
-                    onClick={() => onSelectTool(tool.id)}
-                  >
-                    <tool.icon className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={cn(
+                        "relative h-8 w-8 transition-all duration-200",
+                        selectedTool === tool.id &&
+                          "border-2 border-primary bg-primary/10 text-primary"
+                      )}
+                      onClick={() => onSelectTool(tool.id)}
+                    >
+                      <tool.icon className="h-4 w-4" />
+                    </Button>
+                  }
+                />
                 <TooltipContent side="bottom">
                   <div className="flex items-center">
                     <span>{tool.name}</span>
@@ -200,19 +202,21 @@ export const Toolbar = memo(
 
             {utilityButtons.map((tool) => (
               <Tooltip key={tool.id}>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={tool.disabled}
-                    className="relative h-8 w-8 hover:bg-muted"
-                    onClick={() => {
-                      void tool.onClick()
-                    }}
-                  >
-                    <tool.icon className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={tool.disabled}
+                      className="relative h-8 w-8 hover:bg-muted"
+                      onClick={() => {
+                        void tool.onClick()
+                      }}
+                    >
+                      <tool.icon className="h-4 w-4" />
+                    </Button>
+                  }
+                />
                 <TooltipContent side="bottom">
                   <div className="flex items-center">
                     <span>{tool.name}</span>
@@ -229,46 +233,37 @@ export const Toolbar = memo(
         <div className="flex items-center space-x-1">
           <TooltipProvider>
             <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 w-8"
-                  onClick={onZoomOut}
-                >
-                  <Minus className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
+              <TooltipTrigger
+                render={
+                  <Button variant="outline" size="sm" className="h-8 w-8" onClick={onZoomOut}>
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                }
+              />
               <TooltipContent side="bottom">Zoom Out</TooltipContent>
             </Tooltip>
             <p className="text-sm text-foreground">{(zoom * 100).toFixed(0)}%</p>
             <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 w-8"
-                  onClick={onZoomIn}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
+              <TooltipTrigger
+                render={
+                  <Button variant="outline" size="sm" className="h-8 w-8" onClick={onZoomIn}>
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                }
+              />
               <TooltipContent side="bottom">Zoom In</TooltipContent>
             </Tooltip>
           </TooltipProvider>
 
           <TooltipProvider>
             <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8"
-                  onClick={onResetView}
-                >
-                  <RefreshCcw className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
+              <TooltipTrigger
+                render={
+                  <Button variant="ghost" size="sm" className="h-8 w-8" onClick={onResetView}>
+                    <RefreshCcw className="h-4 w-4" />
+                  </Button>
+                }
+              />
               <TooltipContent side="bottom">Reset Zoom</TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -278,29 +273,31 @@ export const Toolbar = memo(
           <TooltipProvider>
             {displayButtons.map((tool) => (
               <Tooltip key={tool.id}>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      "h-8 w-8",
-                      tool.active
-                        ? "border-2 border-primary bg-primary/10 text-primary"
-                        : "hover:bg-muted"
-                    )}
-                    onClick={() => {
-                      void tool.onClick()
-                    }}
-                    aria-pressed={tool.active}
-                  >
-                    <tool.icon
-                      className={cn("h-4 w-4", tool.active ? "scale-110" : "")}
-                    />
-                    {tool.active ? (
-                      <span className="absolute right-1 top-1 block h-2 w-2 animate-pulse rounded-full bg-primary" />
-                    ) : null}
-                  </Button>
-                </TooltipTrigger>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={cn(
+                        "h-8 w-8",
+                        tool.active
+                          ? "border-2 border-primary bg-primary/10 text-primary"
+                          : "hover:bg-muted"
+                      )}
+                      onClick={() => {
+                        void tool.onClick()
+                      }}
+                      aria-pressed={tool.active}
+                    >
+                      <tool.icon
+                        className={cn("h-4 w-4", tool.active ? "scale-110" : "")}
+                      />
+                      {tool.active ? (
+                        <span className="absolute right-1 top-1 block h-2 w-2 animate-pulse rounded-full bg-primary" />
+                      ) : null}
+                    </Button>
+                  }
+                />
                 <TooltipContent side="bottom">
                   <div className="flex items-center">
                     <span>{tool.name}</span>
@@ -357,16 +354,13 @@ export const Toolbar = memo(
 
           <TooltipProvider>
             <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8"
-                  onClick={onOpenAISettings}
-                >
-                  <Settings className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
+              <TooltipTrigger
+                render={
+                  <Button variant="ghost" size="sm" className="h-8 w-8" onClick={onOpenAISettings}>
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                }
+              />
               <TooltipContent side="bottom">AI Model Settings</TooltipContent>
             </Tooltip>
           </TooltipProvider>

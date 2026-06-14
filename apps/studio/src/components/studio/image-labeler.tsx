@@ -329,16 +329,13 @@ const StudioHeader = memo(
             <div className="flex items-center gap-2">
               <TooltipProvider>
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={onPrevious}
-                      disabled={!hasPrevious}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
+                  <TooltipTrigger
+                    render={
+                      <Button variant="outline" size="sm" onClick={onPrevious} disabled={!hasPrevious}>
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                    }
+                  />
                   <TooltipContent>
                     Previous image
                     <kbd className="ml-2 rounded border border-gray-200 bg-gray-100 px-1.5 text-xs dark:border-gray-700 dark:bg-gray-800">
@@ -347,16 +344,13 @@ const StudioHeader = memo(
                   </TooltipContent>
                 </Tooltip>
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={onNext}
-                      disabled={!hasNext}
-                    >
-                      <ChevronRight className="ml-1 h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
+                  <TooltipTrigger
+                    render={
+                      <Button variant="outline" size="sm" onClick={onNext} disabled={!hasNext}>
+                        <ChevronRight className="ml-1 h-4 w-4" />
+                      </Button>
+                    }
+                  />
                   <TooltipContent>
                     Next image
                     <kbd className="ml-2 rounded border border-gray-200 bg-gray-100 px-1.5 text-xs dark:border-gray-700 dark:bg-gray-800">
@@ -381,26 +375,26 @@ const StudioHeader = memo(
 
           <TooltipProvider>
             <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  onClick={() => void onExport()}
-                  disabled={isExporting}
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  {isExporting ? "Exporting..." : "Export"}
-                </Button>
-              </TooltipTrigger>
+              <TooltipTrigger
+                render={
+                  <Button variant="outline" onClick={() => void onExport()} disabled={isExporting}>
+                    <Download className="mr-2 h-4 w-4" />
+                    {isExporting ? "Exporting..." : "Export"}
+                  </Button>
+                }
+              />
               <TooltipContent>
                 Export annotations to LabelMe, COCO, YOLO, or Pascal VOC.
               </TooltipContent>
             </Tooltip>
             <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" size="icon" onClick={onOpenSettings}>
-                  <Settings className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
+              <TooltipTrigger
+                render={
+                  <Button variant="outline" size="icon" onClick={onOpenSettings}>
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                }
+              />
               <TooltipContent>Settings</TooltipContent>
             </Tooltip>
           </TooltipProvider>

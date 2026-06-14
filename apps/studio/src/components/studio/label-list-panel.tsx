@@ -178,23 +178,25 @@ const CategorySection = memo(
 
     return (
       <Collapsible open={isOpen} onOpenChange={setIsOpen} className="mb-4">
-        <CollapsibleTrigger asChild>
-          <Button
-            variant="ghost"
-            className="w-full flex items-center justify-between px-2 py-2 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2 pl-1 gap-2 hover:bg-gray-100 dark:hover:bg-gray-700"
-          >
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 flex items-center justify-center transition-transform duration-200 hover:rotate-90">
-                ▼
+        <CollapsibleTrigger
+          render={
+            <Button
+              variant="ghost"
+              className="w-full flex items-center justify-between px-2 py-2 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2 pl-1 gap-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 flex items-center justify-center transition-transform duration-200 hover:rotate-90">
+                  ▼
+                </div>
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600"></span>
+                {category}
               </div>
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600"></span>
-              {category}
-            </div>
-            <span className="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded-full">
-              {labels.length}
-            </span>
-          </Button>
-        </CollapsibleTrigger>
+              <span className="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded-full">
+                {labels.length}
+              </span>
+            </Button>
+          }
+        />
         <CollapsibleContent>
           <div className="space-y-2 transition-all duration-200">
             {labels.map((label) => (
