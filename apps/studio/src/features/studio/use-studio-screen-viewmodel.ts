@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { toast } from "sonner"
+import type { PipelinePrompt } from "@/ipc/studio"
 import {
   useCanvasContainer,
   useCanvasContextMenu,
@@ -234,6 +236,32 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
     [canvasSession, imageLabeler, setSelectedAnnotation]
   )
 
+  // Smart-segment tool: run SAM and translate the outcome into user feedback.
+  // Polygons land in the existing PredictionReviewPanel for accept/reject.
+  const smartSegment = useCallback(
+    async (prompt: PipelinePrompt) => {
+      const outcome = await imageLabeler.smartSegment(prompt)
+      if (outcome.status === "no-model") {
+        toast.error("No segmentation model installed", {
+          description:
+            "Install “Segment Anything (SAM)” on the AI Models page to use click-to-segment.",
+          action: {
+            label: "Open AI Models",
+            onClick: () => navigate("/ai-models"),
+          },
+        })
+      } else if (outcome.status === "error") {
+        toast.error("Segmentation failed", { description: outcome.message })
+      } else if (outcome.count === 0) {
+        toast.info("SAM didn’t find a region here", {
+          description:
+            "Try clicking nearer the center of the object, or drag a box around it.",
+        })
+      }
+    },
+    [imageLabeler, navigate]
+  )
+
   const toggleCrosshair = useCallback(async () => {
     const nextValue = !showCrosshair
     setShowCrosshair(nextValue)
@@ -322,6 +350,7 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
     canRedo: canvasSession.canRedo,
     historyPast: canvasSession.historyPast,
     isGeneratingPredictions: imageLabeler.isGeneratingPredictions,
+    isSegmenting: imageLabeler.isSegmenting,
     hasNext: nextImageId !== null,
     hasPrevious: previousImageId !== null,
     nextId: nextImageId,
@@ -347,6 +376,7 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
     undo: canvasSession.undo,
     redo: canvasSession.redo,
     generatePredictions: imageLabeler.generatePredictions,
+    smartSegment,
     acceptPrediction,
     rejectPrediction: imageLabeler.rejectPrediction,
     goToNextImage,

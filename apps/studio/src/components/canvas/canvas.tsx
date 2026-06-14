@@ -17,6 +17,7 @@ import {
 import { TempAnnotation } from "./temp-annotation"
 import { ToolStatus } from "./tool-status"
 import { Prediction } from "@/types/core"
+import type { PipelinePrompt } from "@/ipc/studio"
 import { getCenterOffset } from "@/tools/canvas-utils"
 import { toAssetUrl } from "@/lib/desktop"
 
@@ -38,6 +39,8 @@ interface CanvasProps {
   onDeleteAnnotation: (annotationId: string) => Promise<void>
   onUndo?: () => Promise<void> | void
   onRedo?: () => Promise<void> | void
+  /** Smart-segment (SAM) runner for the smartSegment tool. */
+  onSmartSegment?: (prompt: PipelinePrompt) => void | Promise<void>
 }
 
 // Memoize the image component to prevent unnecessary re-renders
@@ -85,6 +88,7 @@ export const Canvas = memo(
     onDeleteAnnotation,
     onUndo,
     onRedo,
+    onSmartSegment,
   }: CanvasProps) => {
     // Use Context hooks instead of Zustand
     const { zoom } = useCanvasZoom()
@@ -179,6 +183,7 @@ export const Canvas = memo(
         deleteAnnotation: onDeleteAnnotation,
         undo: onUndo,
         redo: onRedo,
+        runSmartSegment: onSmartSegment,
       },
       { id: image.id, width: image.width, height: image.height },
       {
@@ -288,6 +293,7 @@ export const Canvas = memo(
         box: "cursor-crosshair",
         polygon: "cursor-crosshair",
         freeDraw: "cursor-crosshair",
+        smartSegment: "cursor-crosshair",
         move: "cursor-move",
         delete: "cursor-pointer",
       }),

@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { Annotation, ImageData, Label, Prediction } from "@/types/core"
 import { services } from "@/services"
 import { listenToStudioEvents } from "@/ipc/events"
+import type { PipelinePrompt } from "@/ipc/studio"
+import { findSamModel } from "@/lib/ai-model-utils"
 
 interface CreateAnnotationDraftInput {
   name: string
@@ -9,6 +11,12 @@ interface CreateAnnotationDraftInput {
   type: string
   coordinates: Array<{ x: number; y: number }>
 }
+
+/** Result of a smart-segment run, so the UI layer can phrase the right toast. */
+export type SmartSegmentOutcome =
+  | { status: "ok"; count: number }
+  | { status: "no-model" }
+  | { status: "error"; message: string }
 
 function waitForNextPaint(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0))
@@ -25,6 +33,7 @@ export const useImageLabelerViewModel = (
   const [projectImages, setProjectImages] = useState<ImageData[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isGeneratingPredictions, setIsGeneratingPredictions] = useState(false)
+  const [isSegmenting, setIsSegmenting] = useState(false)
   const [error, setError] = useState<unknown>(null)
 
   const loadData = useCallback(async () => {
@@ -157,6 +166,50 @@ export const useImageLabelerViewModel = (
     [image]
   )
 
+  // Interactive SAM: resolve the installed SAM model, run the prompt through
+  // `pipeline_run`, and surface the returned polygon(s) as predictions for the
+  // review loop. Coordinates in `prompt` are already in image space. The
+  // backend appends (it doesn't wipe detector boxes), so we merge by id; the
+  // `predictions:generated` domain event reconciles the canonical set after.
+  const smartSegment = useCallback(
+    async (prompt: PipelinePrompt): Promise<SmartSegmentOutcome> => {
+      if (!image) return { status: "error", message: "No image is loaded." }
+
+      const models = await services.getAIModelService().list()
+      const sam = findSamModel(models)
+      if (!sam) return { status: "no-model" }
+
+      setIsSegmenting(true)
+      try {
+        const created = await services.getPredictionService().pipelineRun({
+          imageId: image.id,
+          modelId: sam.id,
+          prompt,
+        })
+
+        setPredictions((current) => {
+          const incoming = new Set(created.map((prediction) => prediction.id))
+          return [
+            ...created,
+            ...current.filter((prediction) => !incoming.has(prediction.id)),
+          ]
+        })
+        return { status: "ok", count: created.length }
+      } catch (segmentError) {
+        return {
+          status: "error",
+          message:
+            segmentError instanceof Error
+              ? segmentError.message
+              : String(segmentError),
+        }
+      } finally {
+        setIsSegmenting(false)
+      }
+    },
+    [image]
+  )
+
   return {
     image,
     annotations,
@@ -168,6 +221,7 @@ export const useImageLabelerViewModel = (
     hasPrevious: Boolean(prevImage),
     isLoading,
     isGeneratingPredictions,
+    isSegmenting,
     error,
     createAnnotationFromDraft: async ({
       name,
@@ -223,6 +277,7 @@ export const useImageLabelerViewModel = (
       )
     },
     generatePredictions,
+    smartSegment,
     acceptPrediction: async (predictionId: string) => {
       const createdAnnotation =
         await services.getPredictionService().accept(predictionId)

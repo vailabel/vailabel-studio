@@ -922,9 +922,11 @@ pub fn run() {
                         std::env::set_var("ORT_DYLIB_PATH", path);
                     }
                 }
-                // Initialize ONNX Runtime environment once on the main thread.
-                // This can help prevent hangs when creating sessions in
-                // background threads.
+                // Configure the global ONNX Runtime environment once on the main
+                // thread. NOTE: `commit()` only sets the env config (returns false
+                // if already set) — it does NOT load the dll, so its result is not
+                // a usable load signal. The real load happens lazily on first use
+                // and is reported by `gpu::gpu_info()` (see gpu.rs).
                 let _ = ort::init().commit();
             }
 
@@ -1010,6 +1012,7 @@ pub fn run() {
             domain::ai::commands::ai_models_catalog_releases,
             domain::ai::commands::predictions_list_by_image,
             domain::ai::commands::predictions_generate,
+            domain::ai::commands::pipeline_run,
             domain::ai::commands::predictions_accept,
             domain::ai::commands::predictions_reject,
             domain::ai::commands::ai_gpu_info,

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from "react"
 import type { Point, Annotation } from "@/types/core"
+import type { PipelinePrompt } from "@/ipc/studio"
 import {
   getCanvasCoords as utilsGetCanvasCoords,
   isPointInLabel as utilsIsPointInLabel,
@@ -26,6 +27,7 @@ import {
   LineHandler,
   LinestripHandler,
   CircleHandler,
+  SmartSegmentHandler,
 } from "@/tools/tool-handlers"
 
 export interface ToolHandlerContext {
@@ -59,6 +61,9 @@ export interface ToolHandlerContext {
   isPointInLabel: (point: Point, annotation: Annotation) => boolean
   findLabelAtPoint: (point: Point) => Annotation | null
   getResizeHandle: (point: Point, annotation: Annotation) => string | null
+  /** Run interactive SAM segmentation for the smart-segment tool. Optional so
+   *  the canvas works without an AI backend wired in. */
+  runSmartSegment?: (prompt: PipelinePrompt) => void | Promise<void>
 }
 
 const createToolHandler = (
@@ -84,6 +89,8 @@ const createToolHandler = (
       return new LinestripHandler(context)
     case "circle":
       return new CircleHandler(context)
+    case "smartSegment":
+      return new SmartSegmentHandler(context)
     default:
       throw new Error(`Unknown tool: ${tool}`)
   }
@@ -97,6 +104,7 @@ export function useCanvasHandlers(
     deleteAnnotation: (id: string) => Promise<void>
     undo?: () => Promise<void> | void
     redo?: () => Promise<void> | void
+    runSmartSegment?: (prompt: PipelinePrompt) => void | Promise<void>
   },
   currentImage?: { id: string; width?: number; height?: number },
   layout?: {
@@ -108,7 +116,8 @@ export function useCanvasHandlers(
 ) {
   const defaultCanvasRef = useRef<HTMLDivElement | null>(null)
   const actualCanvasRef = canvasRef || defaultCanvasRef
-  const annotationsStore = useMemo(() => ({ 
+  const runSmartSegment = storeMethods?.runSmartSegment
+  const annotationsStore = useMemo(() => ({
     annotations,
     updateAnnotation: storeMethods?.updateAnnotation || (async () => {}),
     deleteAnnotation: storeMethods?.deleteAnnotation || (async () => {}),
@@ -210,6 +219,7 @@ export function useCanvasHandlers(
         ),
       getResizeHandle: (point: Point, annotation: Annotation) =>
         utilsGetResizeHandle(point, annotation, zoom),
+      runSmartSegment,
     }),
     [
       actualCanvasRef,
@@ -222,6 +232,7 @@ export function useCanvasHandlers(
       zoom,
       panOffset,
       toolState,
+      runSmartSegment,
     ]
   )
 
@@ -437,6 +448,10 @@ export function useCanvasHandlers(
             return
           case "c":
             setSelectedTool("circle")
+            clearTemp()
+            return
+          case "g":
+            setSelectedTool("smartSegment")
             clearTemp()
             return
           case "=":

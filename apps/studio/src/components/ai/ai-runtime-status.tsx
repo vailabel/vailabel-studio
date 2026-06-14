@@ -16,6 +16,7 @@ import type {
   AiGpuInfo,
   RuntimeInstallProgress,
   RuntimeInstallResult,
+  RuntimeInstallStatus,
 } from "@/types/ai-assistant"
 
 const RuntimeStat = ({
@@ -33,6 +34,14 @@ const RuntimeStat = ({
 
 const PROGRESS_EVENT = "ai-runtime-install://progress"
 
+/** Pull a "1.22.0" version out of the loaded runtime's build string
+ *  ("ORT Build Info: git-branch=rel-1.22.0, …"); falls back to the raw string. */
+const runtimeVersionLabel = (buildInfo?: string | null) => {
+  if (!buildInfo) return null
+  const match = buildInfo.match(/rel-(\d+\.\d+\.\d+)/i)
+  return match ? match[1] : buildInfo
+}
+
 const formatBytes = (bytes: number) => {
   if (!bytes) return "0 B"
   const units = ["B", "KB", "MB", "GB"]
@@ -48,12 +57,15 @@ const formatBytes = (bytes: number) => {
  * Compact runtime/GPU status for the AI Assistant page. Reports the local ONNX
  * runtime and execution providers used for AI detect, so users can tell whether
  * inference will run on GPU or CPU before running predictions. When the runtime
- * isn't present, it can download and install it (Microsoft's GPU build + cuDNN)
- * on demand instead of requiring the manual setup in docs/ONNXRUNTIME_GPU_SETUP.md.
+ * isn't present, it can download and install only the missing pieces (Microsoft's
+ * GPU build and/or cuDNN) on demand, instead of the manual setup in
+ * docs/ONNXRUNTIME_GPU_SETUP.md.
  */
 export function AiRuntimeStatus() {
   const [gpu, setGpu] = useState<AiGpuInfo | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [runtimeStatus, setRuntimeStatus] =
+    useState<RuntimeInstallStatus | null>(null)
   const [installing, setInstalling] = useState(false)
   const [progress, setProgress] = useState<RuntimeInstallProgress | null>(null)
   const [result, setResult] = useState<RuntimeInstallResult | null>(null)
@@ -63,8 +75,19 @@ export function AiRuntimeStatus() {
     let active = true
     void aiAssistantService
       .getGpuInfo()
-      .then((info) => {
-        if (active) setGpu(info)
+      .then(async (info) => {
+        if (!active) return
+        setGpu(info)
+        // Only the missing-runtime case needs the on-disk status (to decide
+        // whether to offer a download or just a restart).
+        if (!info.onnxRuntimeLoaded) {
+          try {
+            const status = await aiAssistantService.getRuntimeStatus()
+            if (active) setRuntimeStatus(status)
+          } catch {
+            if (active) setRuntimeStatus(null)
+          }
+        }
       })
       .catch(() => {
         if (active) setGpu(null)
@@ -89,6 +112,12 @@ export function AiRuntimeStatus() {
     try {
       const installed = await aiAssistantService.installRuntime(true)
       setResult(installed)
+      // Refresh the on-disk view so the UI reflects what's now present.
+      try {
+        setRuntimeStatus(await aiAssistantService.getRuntimeStatus())
+      } catch {
+        // Non-fatal — the result object already drives the success UI.
+      }
     } catch (error) {
       setInstallError(error instanceof Error ? error.message : String(error))
     } finally {
@@ -107,6 +136,25 @@ export function AiRuntimeStatus() {
     progress?.totalBytes && progress.totalBytes > 0
       ? Math.min(100, (progress.receivedBytes / progress.totalBytes) * 100)
       : null
+
+  // Already downloaded but not yet loaded (the runtime only activates on
+  // restart). cuDNN may still be missing for CUDA.
+  const onDisk = runtimeStatus?.installed === true
+  const cudnnMissing = onDisk && runtimeStatus?.cudnnInstalled === false
+
+  const progressView = installing && progress && (
+    <div className="flex flex-col gap-1">
+      <Progress value={percent} />
+      <span className="text-xs text-muted-foreground">
+        {progress.message}
+        {progress.totalBytes
+          ? ` — ${formatBytes(progress.receivedBytes)} / ${formatBytes(progress.totalBytes)}`
+          : progress.receivedBytes
+            ? ` — ${formatBytes(progress.receivedBytes)}`
+            : ""}
+      </span>
+    </div>
+  )
 
   return (
     <Card>
@@ -132,11 +180,17 @@ export function AiRuntimeStatus() {
               <RuntimeStat
                 label="ONNX Runtime"
                 value={
-                  gpu?.onnxRuntimeLoaded
-                    ? "Loaded"
-                    : gpu?.onnxRuntime
-                      ? "Not loaded"
-                      : "Disabled"
+                  gpu?.onnxRuntimeLoaded ? (
+                    <span title={gpu?.loadedRuntimeBuildInfo ?? undefined}>
+                      {runtimeVersionLabel(gpu?.loadedRuntimeBuildInfo)
+                        ? `Loaded ${runtimeVersionLabel(gpu?.loadedRuntimeBuildInfo)}`
+                        : "Loaded"}
+                    </span>
+                  ) : gpu?.onnxRuntime ? (
+                    "Not loaded"
+                  ) : (
+                    "Disabled"
+                  )
                 }
               />
               <RuntimeStat
@@ -184,11 +238,54 @@ export function AiRuntimeStatus() {
                 </CardDescription>
               )}
 
-            {/* Auto-installer: offer a one-click download when the runtime is
-                missing (Windows only) and there's no install in flight yet. */}
+            {/* Auto-installer: only offered when the runtime isn't loaded
+                (Windows). It downloads just the pieces that aren't on disk. */}
             {gpu?.onnxRuntimeLoaded === false && !result && (
               <div className="flex flex-col gap-2 rounded-md border border-border/60 bg-muted/40 p-3">
-                {isWindows ? (
+                {!isWindows ? (
+                  <p className="text-sm text-muted-foreground">
+                    Automatic install is Windows-only for now. See
+                    docs/ONNXRUNTIME_GPU_SETUP.md for manual setup on this
+                    platform.
+                  </p>
+                ) : onDisk ? (
+                  // Already downloaded — just restart. Offer cuDNN if it's the
+                  // only thing still missing for CUDA.
+                  <>
+                    <p className="text-sm">
+                      ONNX Runtime {runtimeStatus?.version} is already downloaded
+                      {runtimeStatus?.cudnnInstalled
+                        ? " with cuDNN (CUDA ready)"
+                        : ""}
+                      . Restart the app to activate it.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button size="sm" onClick={handleRestart}>
+                        <RotateCw className="h-4 w-4" />
+                        Restart now
+                      </Button>
+                      {cudnnMissing && (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={handleInstall}
+                          disabled={installing}
+                        >
+                          {installing ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Download className="h-4 w-4" />
+                          )}
+                          {installing
+                            ? "Downloading…"
+                            : "Add cuDNN (CUDA acceleration)"}
+                        </Button>
+                      )}
+                    </div>
+                    {progressView}
+                  </>
+                ) : (
+                  // Nothing on disk yet — full install.
                   <>
                     <p className="text-sm">
                       Install ONNX Runtime automatically — downloads Microsoft's
@@ -211,26 +308,8 @@ export function AiRuntimeStatus() {
                           : "Download & install (GPU)"}
                       </Button>
                     </div>
-                    {installing && progress && (
-                      <div className="flex flex-col gap-1">
-                        <Progress value={percent} />
-                        <span className="text-xs text-muted-foreground">
-                          {progress.message}
-                          {progress.totalBytes
-                            ? ` — ${formatBytes(progress.receivedBytes)} / ${formatBytes(progress.totalBytes)}`
-                            : progress.receivedBytes
-                              ? ` — ${formatBytes(progress.receivedBytes)}`
-                              : ""}
-                        </span>
-                      </div>
-                    )}
+                    {progressView}
                   </>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Automatic install is Windows-only for now. See
-                    docs/ONNXRUNTIME_GPU_SETUP.md for manual setup on this
-                    platform.
-                  </p>
                 )}
                 {installError && (
                   <CardDescription className="text-destructive">
@@ -244,11 +323,10 @@ export function AiRuntimeStatus() {
             {result && (
               <div className="flex flex-col gap-2 rounded-md border border-border/60 bg-muted/40 p-3">
                 <p className="text-sm">
-                  ONNX Runtime {result.version} installed
-                  {result.cudnnInstalled
-                    ? " with cuDNN (CUDA acceleration ready)"
-                    : " (CPU)"}
-                  . Restart the app to start using it.
+                  {result.alreadyPresent
+                    ? `ONNX Runtime ${result.version} is already installed${result.cudnnInstalled ? " with cuDNN" : ""}.`
+                    : `ONNX Runtime ${result.version} installed${result.cudnnInstalled ? " with cuDNN (CUDA acceleration ready)" : " (CPU)"}.`}{" "}
+                  Restart the app to start using it.
                 </p>
                 {result.warnings.map((warning) => (
                   <CardDescription key={warning}>{warning}</CardDescription>

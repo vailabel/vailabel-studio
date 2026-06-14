@@ -599,6 +599,7 @@ export const useAIModelViewModel = () => {
           taskType,
           downloadUrl,
           fileName: variant.assetName || extractAssetFileName(downloadUrl) || undefined,
+          components: variant.components,
         })
 
         setAvailableModels((current) => {

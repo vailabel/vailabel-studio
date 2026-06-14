@@ -134,6 +134,11 @@ export const systemModelSchema = z.object({
     defaultRank: z.number().optional(),
     recommended: z.boolean().optional(),
     modelMetadata: modelMetadataSchema.optional(),
+    // Extra files for multi-file models (e.g. SAM's mask decoder), downloaded
+    // alongside the primary asset into the same model directory.
+    components: z
+      .array(z.object({ fileName: z.string().optional(), url: z.string().url() }))
+      .optional(),
   })).optional(),
   downloadUrl: z.string().url().optional(),
   size: z.number().optional(),

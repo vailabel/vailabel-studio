@@ -10,7 +10,7 @@ import type {
   LabelStudioTask,
   Prediction,
 } from "@/types/core"
-import { studioCommands } from "@/ipc/studio"
+import { studioCommands, type PipelineRunRequest } from "@/ipc/studio"
 
 export const predictionsService = {
   listByImageId: (imageId: string) =>
@@ -20,6 +20,10 @@ export const predictionsService = {
     modelId: string
     threshold?: number
   }) => studioCommands.predictionsGenerate(payload),
+  /** Prompt-driven inference (SAM click/box-to-segment). Returns the polygon
+   *  predictions produced for this prompt, persisted for the review loop. */
+  pipelineRun: (payload: PipelineRunRequest) =>
+    studioCommands.pipelineRun(payload),
   accept: (predictionId: string) =>
     studioCommands.predictionsAccept(predictionId) as Promise<Annotation>,
   reject: (predictionId: string) =>

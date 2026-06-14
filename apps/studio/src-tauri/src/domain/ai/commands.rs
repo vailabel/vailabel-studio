@@ -1,8 +1,8 @@
 use crate::domain::ai::copilot::CopilotTurnResult;
 use crate::domain::ai::model::{
     CopilotActionPayload, CopilotTurnPayload, GitHubReleaseLookupPayload, ImageIdPayload,
-    ModelActivationPayload, ModelImportPayload, ModelInstallPayload, PredictionActionPayload,
-    PredictionGeneratePayload, RuntimeInstallPayload,
+    ModelActivationPayload, ModelImportPayload, ModelInstallPayload, PipelineRunPayload,
+    PredictionActionPayload, PredictionGeneratePayload, RuntimeInstallPayload,
 };
 use crate::domain::projects::model::{EntityIdPayload, ProjectIdPayload};
 use crate::{AppError, AppState};
@@ -101,6 +101,26 @@ pub async fn predictions_generate(
     })
         .await
         .map_err(|error| AppError::Message(format!("AI detection task failed: {error}")))?
+}
+
+/// Run a prompt-driven model plugin (SAM click/box-to-segment, open-vocab
+/// prompt-to-detect, …) on one image. Like `predictions_generate` it runs on a
+/// blocking thread because it invokes ONNX inference, and its drafts land in the
+/// same predictions review loop.
+#[tauri::command]
+pub async fn pipeline_run(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    payload: PipelineRunPayload,
+) -> Result<Vec<Value>, AppError> {
+    let ai_service = state.ai_service.clone();
+    let app = app.clone();
+
+    tauri::async_runtime::spawn_blocking(move || -> Result<Vec<Value>, AppError> {
+        ai_service.pipeline_run(&app, payload)
+    })
+    .await
+    .map_err(|error| AppError::Message(format!("AI pipeline task failed: {error}")))?
 }
 
 #[tauri::command]

@@ -16,35 +16,78 @@ const ONNX_ENABLED: bool = cfg!(feature = "yolo-inference");
 /// together with the `yolo-inference` feature).
 const CUDA_COMPILED: bool = cfg!(feature = "yolo-inference");
 
-/// Actually probe the runtime: does ONNX Runtime load, and is the CUDA provider
-/// usable on this host? Returns `(onnx_loaded, cuda_available, load_error)`.
-/// This is the difference between "compiled in" and "actually works".
+/// What the runtime probe found. `build_info` is the **actually-loaded** ONNX
+/// Runtime's build string (version/commit/flags) — distinct from the compile-time
+/// version this app targets, so a version skew (e.g. a 1.22 dll vs a build that
+/// wants 1.23+ enum values) is visible instead of silent.
+#[derive(Default)]
+struct RuntimeProbe {
+    onnx_loaded: bool,
+    cuda_available: bool,
+    load_error: Option<String>,
+    build_info: Option<String>,
+}
+
+/// Actually probe the runtime: does ONNX Runtime load, is the CUDA provider usable
+/// on this host, and what version actually loaded? This is the difference between
+/// "compiled in" and "actually works".
 #[cfg(feature = "yolo-inference")]
-fn runtime_probe() -> (bool, bool, Option<String>) {
+fn runtime_probe() -> RuntimeProbe {
     use ort::execution_providers::{CUDAExecutionProvider, ExecutionProvider};
 
-    // `commit()` returns whether the ONNX Runtime dynamic library loaded.
-    if !ort::init().commit() {
-        return (
-            false,
-            false,
-            Some(
-                "ONNX Runtime did not load. Set ORT_DYLIB_PATH to a compatible onnxruntime.dll \
-                 (the Windows System32 copy is CPU-only and often a version mismatch)."
-                    .to_string(),
-            ),
-        );
-    }
+    // IMPORTANT: `commit()` does NOT report whether the dll loaded — it returns
+    // `false` if a global environment was *already* configured (the app commits
+    // one at startup), which is not a failure. So ignore its result here.
+    let _ = ort::init().commit();
 
-    let cuda = CUDAExecutionProvider::default()
-        .is_available()
-        .unwrap_or(false);
-    (true, cuda, None)
+    // Querying a provider forces ONNX Runtime's dynamic library to actually load.
+    // `ort` *panics* (rather than returning `Err`) when the dll can't be loaded or
+    // is an incompatible API version, so guard the call and turn a panic into a
+    // clean "not loaded" status instead of taking down the whole probe.
+    let probe = std::panic::catch_unwind(|| {
+        CUDAExecutionProvider::default()
+            .is_available()
+            .unwrap_or(false)
+    });
+
+    match probe {
+        Ok(cuda_available) => {
+            // The runtime is loaded now, so reading its build info is safe; still
+            // guard it since it dereferences the native API.
+            let build_info = std::panic::catch_unwind(|| ort::info().to_string())
+                .ok()
+                .filter(|info| !info.trim().is_empty());
+            RuntimeProbe {
+                onnx_loaded: true,
+                cuda_available,
+                load_error: None,
+                build_info,
+            }
+        }
+        Err(_) => {
+            // Surface what we actually tried to load so a failure is self-diagnosing.
+            let tried = match std::env::var("ORT_DYLIB_PATH") {
+                Ok(path) if !path.trim().is_empty() => format!("tried '{path}'"),
+                _ => "ORT_DYLIB_PATH is unset, so it fell back to the Windows system copy"
+                    .to_string(),
+            };
+            RuntimeProbe {
+                onnx_loaded: false,
+                cuda_available: false,
+                load_error: Some(format!(
+                    "ONNX Runtime did not load ({tried}). Install it from the panel, or set \
+                     ORT_DYLIB_PATH to a compatible onnxruntime.dll (the Windows System32 copy is \
+                     CPU-only and often a version mismatch)."
+                )),
+                build_info: None,
+            }
+        }
+    }
 }
 
 #[cfg(not(feature = "yolo-inference"))]
-fn runtime_probe() -> (bool, bool, Option<String>) {
-    (false, false, None)
+fn runtime_probe() -> RuntimeProbe {
+    RuntimeProbe::default()
 }
 
 /// Snapshot of the local inference runtime capabilities, serialized to the
@@ -54,7 +97,12 @@ pub fn gpu_info() -> Value {
         .map(|n| n.get())
         .unwrap_or(0);
 
-    let (onnx_loaded, cuda_available, load_error) = runtime_probe();
+    let RuntimeProbe {
+        onnx_loaded,
+        cuda_available,
+        load_error,
+        build_info,
+    } = runtime_probe();
 
     let mut providers: Vec<Value> = Vec::new();
 
@@ -90,6 +138,9 @@ pub fn gpu_info() -> Value {
         "onnxRuntimeLoaded": onnx_loaded,
         "cudaAvailable": cuda_available,
         "loadError": load_error,
+        // The loaded runtime's own build string (e.g. "...rel-1.22.0..."), so a
+        // version skew vs. what this build targets is visible, not silent.
+        "loadedRuntimeBuildInfo": build_info,
         "os": std::env::consts::OS,
         "arch": std::env::consts::ARCH,
         "logicalCores": logical_cores,

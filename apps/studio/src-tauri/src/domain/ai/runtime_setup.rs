@@ -23,8 +23,9 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 use tauri::{Emitter, Manager};
 
-/// ONNX Runtime version to fetch. Must match the `ort` crate's ABI (`api-24` ==
-/// ONNX Runtime 1.22). Bump this together with the `ort` dependency in Cargo.toml.
+/// ONNX Runtime version to fetch. Must match the `ort` crate's requested ABI:
+/// ONNX Runtime 1.22.x exposes ORT API version 22, so Cargo.toml uses `api-22`.
+/// Bump this together with the `ort` `api-NN` feature (1.23 -> api-23, etc.).
 const ORT_VERSION: &str = "1.22.0";
 /// Microsoft's Windows x64 GPU build (CUDA + TensorRT providers).
 const ORT_GPU_URL: &str = "https://github.com/microsoft/onnxruntime/releases/download/v1.22.0/onnxruntime-win-x64-gpu-1.22.0.zip";
@@ -207,6 +208,9 @@ pub fn ensure_runtime(app: &tauri::AppHandle, gpu: bool) -> Result<Value, AppErr
 
     if need_ort || need_cudnn {
         let staging = dir.join(".download");
+        // Clear any partial downloads left behind by an interrupted run so we
+        // don't accumulate hundreds of MB of orphaned zips.
+        let _ = fs::remove_dir_all(&staging);
         fs::create_dir_all(&staging)?;
         let client = http_client()?;
 

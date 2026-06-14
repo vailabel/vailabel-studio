@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::domain::ai::plugin::PromptInput;
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ModelImportPayload {
@@ -12,6 +14,19 @@ pub struct ModelImportPayload {
     pub model_file_path: String,
     pub config_file_path: Option<String>,
     pub project_id: Option<String>,
+}
+
+/// An extra file that belongs to a multi-file model download (e.g. SAM's
+/// `mask_decoder.onnx` alongside the primary `image_encoder.onnx`, or a
+/// `tokenizer.json`). Downloaded into the same model directory as the primary
+/// asset and resolved by the plugin via its conventional filename.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModelComponent {
+    /// Target filename. When omitted it is derived from the URL. Only the final
+    /// path component is used (no directory traversal).
+    pub file_name: Option<String>,
+    pub url: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -27,6 +42,10 @@ pub struct ModelInstallPayload {
     pub download_url: String,
     pub file_name: Option<String>,
     pub project_id: Option<String>,
+    /// Extra files for multi-file models (SAM = encoder + decoder, open-vocab =
+    /// model + tokenizer). Empty for single-file models like YOLO.
+    #[serde(default)]
+    pub components: Vec<ModelComponent>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -60,6 +79,24 @@ pub struct PredictionGeneratePayload {
 #[serde(rename_all = "camelCase")]
 pub struct PredictionActionPayload {
     pub prediction_id: String,
+}
+
+/// One prompt-driven inference run for a capability-aware model plugin
+/// (SAM click/box-to-segment, open-vocab prompt-to-detect, …). Mirrors
+/// [`PredictionGeneratePayload`] but carries a [`PromptInput`] and an optional
+/// `registry_id` so the service can dispatch to the right
+/// [`crate::domain::ai::plugin::ModelPlugin`]. When `registry_id` is omitted the
+/// service derives it from the model entity (family / category / task).
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PipelineRunPayload {
+    pub image_id: String,
+    pub model_id: String,
+    #[serde(default)]
+    pub registry_id: Option<String>,
+    pub threshold: Option<f32>,
+    #[serde(default)]
+    pub prompt: PromptInput,
 }
 
 /// Options for the on-demand ONNX Runtime installer. `gpu` defaults to true so

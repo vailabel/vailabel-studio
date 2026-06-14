@@ -323,6 +323,47 @@ export const SYSTEM_MODELS: SystemModel[] = [
     ],
   },
   {
+    id: "segment-anything-vit-b",
+    name: "Segment Anything (SAM ViT-B)",
+    description:
+      "Interactive segmentation: click an object or draw a box and SAM outlines it as a polygon. Pairs with detection — ask the copilot to \"find all cars and outline them\". Two ONNX files (encoder + decoder) download together.",
+    category: "segmentation",
+    family: "sam",
+    taskType: "segmentation",
+    defaultRank: 70,
+    supportsLabelStudioFormat: true,
+    requirements: {
+      minMemory: 2048,
+      recommendedMemory: 4096,
+      gpuRequired: false,
+    },
+    variants: [
+      {
+        name: "ViT-B (quantized)",
+        slug: "sam-vit-b-quant",
+        assetName: "segment_anything_vit_b_encoder_quant.onnx",
+        variant: "vit-b",
+        modelVersion: "SAM-ViT-B",
+        downloadUrl:
+          "https://github.com/vietanhdev/anylabeling-assets/releases/download/v0.2.0/segment_anything_vit_b_encoder_quant.onnx",
+        size: 99827815,
+        speed: "medium",
+        components: [
+          {
+            url: "https://github.com/vietanhdev/anylabeling-assets/releases/download/v0.2.0/segment_anything_vit_b_decoder_quant.onnx",
+          },
+        ],
+        modelMetadata: {
+          classCount: 0,
+          labelSource: "sam",
+          supportsPrediction: false,
+          unsupportedReason:
+            "Interactive segmentation model — outline objects by asking the copilot to “outline them”, not the Detect button.",
+        },
+      },
+    ],
+  },
+  {
     id: "yoloe-26-open-vocab",
     name: "YOLOE-26 Open Vocabulary",
     description:

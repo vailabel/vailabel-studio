@@ -1,5 +1,5 @@
 import { memo, useCallback, useMemo, useRef, useState } from "react"
-import { ArrowLeft, ChevronLeft, ChevronRight, Download, Settings, Sparkles } from "lucide-react"
+import { ArrowLeft, ChevronLeft, ChevronRight, Download, Loader2, Settings, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import {
@@ -23,6 +23,7 @@ import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { useStudioScreenViewModel } from "@/features/studio/use-studio-screen-viewmodel"
 import { getLabelingConfig } from "@/lib/labeling-config"
 import type { Annotation, ImageData, Label, Prediction } from "@/types/core"
+import type { PipelinePrompt } from "@/ipc/studio"
 
 interface ImageLabelerProps {
   projectId?: string
@@ -40,6 +41,7 @@ const MemoizedCanvas = memo(
     onDeleteAnnotation,
     onUndo,
     onRedo,
+    onSmartSegment,
   }: {
     image: ImageData
     annotations: Annotation[]
@@ -58,6 +60,7 @@ const MemoizedCanvas = memo(
     onDeleteAnnotation: (annotationId: string) => Promise<void>
     onUndo: () => Promise<void> | void
     onRedo: () => Promise<void> | void
+    onSmartSegment: (prompt: PipelinePrompt) => void | Promise<void>
   }) => (
     <Canvas
       image={image}
@@ -69,6 +72,7 @@ const MemoizedCanvas = memo(
       onDeleteAnnotation={onDeleteAnnotation}
       onUndo={onUndo}
       onRedo={onRedo}
+      onSmartSegment={onSmartSegment}
     />
   )
 )
@@ -228,9 +232,17 @@ export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => 
                 onDeleteAnnotation={viewModel.deleteAnnotation}
                 onUndo={viewModel.undo}
                 onRedo={viewModel.redo}
+                onSmartSegment={viewModel.smartSegment}
               />
             ) : (
               <EmptyImageState />
+            )}
+
+            {viewModel.isSegmenting && (
+              <div className="pointer-events-none absolute left-1/2 top-4 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-card/95 px-3 py-1.5 text-sm font-medium shadow-lg backdrop-blur">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                <span>Segmenting…</span>
+              </div>
             )}
 
             <PredictionReviewPanel

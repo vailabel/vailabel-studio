@@ -227,6 +227,13 @@ export class ModelImportPayload {
   project_id?: string
 }
 
+/** An extra file for a multi-file model download (SAM decoder, tokenizer, …),
+ *  fetched into the same model directory as the primary asset. */
+export interface ModelComponent {
+  fileName?: string
+  url: string
+}
+
 export class ModelInstallPayload {
   name!: string
   description!: string
@@ -238,4 +245,6 @@ export class ModelInstallPayload {
   fileName?: string
   projectId?: string
   project_id?: string
+  /** Extra files for multi-file models (encoder + decoder, model + tokenizer). */
+  components?: ModelComponent[]
 }

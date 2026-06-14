@@ -16,6 +16,7 @@ import {
   Slash,
   Spline,
   Circle,
+  Wand2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -73,6 +74,7 @@ const annotationTools: ToolButtonConfig[] = [
   { id: "line", name: "Line", icon: Slash, shortcut: "L" },
   { id: "linestrip", name: "Line Strip", icon: Spline, shortcut: "S" },
   { id: "circle", name: "Circle", icon: Circle, shortcut: "C" },
+  { id: "smartSegment", name: "Smart Segment (SAM)", icon: Wand2, shortcut: "G" },
   { id: "delete", name: "Delete", icon: Trash2, shortcut: "D" },
 ]
 

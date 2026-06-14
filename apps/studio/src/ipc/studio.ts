@@ -53,6 +53,38 @@ interface PredictionGenerateRequest {
   threshold?: number
 }
 
+/** A foreground/background click for interactive segmentation. */
+export interface PipelinePromptPoint {
+  x: number
+  y: number
+  positive?: boolean
+}
+
+/** A box prompt (SAM box, or a region to segment) in image-space coordinates. */
+export interface PipelinePromptBox {
+  x1: number
+  y1: number
+  x2: number
+  y2: number
+}
+
+export interface PipelinePrompt {
+  points?: PipelinePromptPoint[]
+  boxes?: PipelinePromptBox[]
+  text?: string
+}
+
+/** Prompt-driven inference run (SAM segment, open-vocab detect). Mirrors the
+ *  Rust `PipelineRunPayload`. `registryId` overrides plugin selection; when
+ *  omitted the backend derives it from the model entity. */
+export interface PipelineRunRequest {
+  imageId: string
+  modelId: string
+  registryId?: string
+  threshold?: number
+  prompt?: PipelinePrompt
+}
+
 interface GitHubReleaseLookupRequest {
   owner: string
   repo: string
@@ -130,6 +162,8 @@ export const studioCommands = {
     call<Prediction[]>("predictions_list_by_image", { payload: { imageId } }),
   predictionsGenerate: (payload: PredictionGenerateRequest) =>
     call<Prediction[]>("predictions_generate", { payload }),
+  pipelineRun: (payload: PipelineRunRequest) =>
+    call<Prediction[]>("pipeline_run", { payload }),
   predictionsAccept: (predictionId: string) =>
     call<Annotation>("predictions_accept", { payload: { predictionId } }),
   predictionsReject: (predictionId: string) =>

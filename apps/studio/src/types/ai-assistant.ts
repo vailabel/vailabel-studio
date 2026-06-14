@@ -19,6 +19,9 @@ export interface AiGpuInfo {
   cudaAvailable?: boolean
   /** Why the runtime failed to load, when it did. */
   loadError?: string | null
+  /** The actually-loaded ONNX Runtime's build string (version/commit/flags),
+   *  when loaded — distinct from the version this build targets. */
+  loadedRuntimeBuildInfo?: string | null
   os: string
   arch: string
   logicalCores: number

@@ -67,16 +67,51 @@ pub fn chat_completion(
         ]),
         None => Value::String(user_text.to_string()),
     };
+    chat_send(config, api_key, system, user_content, 0.2, false)
+}
 
-    let body = json!({
+/// Ask the local model for a JSON object (temperature 0, `response_format` JSON).
+/// Used by the copilot's orchestrator to plan a turn; the caller validates the
+/// result and falls back to deterministic routing if it fails or is non-JSON.
+pub fn chat_json(
+    config: &CopilotLlmConfig,
+    api_key: Option<&str>,
+    system: &str,
+    user_text: &str,
+) -> Result<String, AppError> {
+    chat_send(
+        config,
+        api_key,
+        system,
+        Value::String(user_text.to_string()),
+        0.0,
+        true,
+    )
+}
+
+/// Shared `/chat/completions` request: builds the body, posts, extracts the
+/// assistant text. `json_mode` sets `response_format` so servers that honor it
+/// constrain the output to a JSON object.
+fn chat_send(
+    config: &CopilotLlmConfig,
+    api_key: Option<&str>,
+    system: &str,
+    user_content: Value,
+    temperature: f32,
+    json_mode: bool,
+) -> Result<String, AppError> {
+    let mut body = json!({
         "model": config.model,
         "messages": [
             { "role": "system", "content": system },
             { "role": "user", "content": user_content },
         ],
-        "temperature": 0.2,
+        "temperature": temperature,
         "stream": false,
     });
+    if json_mode {
+        body["response_format"] = json!({ "type": "json_object" });
+    }
 
     let client = Client::builder()
         .connect_timeout(Duration::from_secs(5))

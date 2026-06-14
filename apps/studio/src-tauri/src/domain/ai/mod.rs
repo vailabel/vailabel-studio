@@ -1,5 +1,6 @@
 pub mod commands;
 pub mod copilot;
+pub mod engines;
 pub mod llm;
 pub mod model;
 pub mod plugin;

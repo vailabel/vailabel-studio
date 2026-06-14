@@ -85,8 +85,13 @@ impl YoloEngine {
         let started_at = Instant::now();
         let session = match Session::builder() {
             Ok(mut builder) => {
-                // Performance optimizations
-                builder = builder.with_optimization_level(ort::session::builder::GraphOptimizationLevel::Level3)
+                // Performance optimizations. Use `All` (ORT_ENABLE_ALL = 99), not
+                // `Level3`: in ort 2.0-rc.12 `Level3` maps to ORT_ENABLE_LAYOUT (3),
+                // a value that only exists in ONNX Runtime 1.23+. Our bundled
+                // runtime is 1.22 (see Cargo.toml `api-22`), which rejects 3 with
+                // "graph_optimization_level is not valid". `All` is valid in every
+                // version and is the full-optimization default.
+                builder = builder.with_optimization_level(ort::session::builder::GraphOptimizationLevel::All)
                                  .map_err(|e| AppError::Message(format!("Failed to set optimization level: {}", e)))?
                                  .with_intra_threads(4)
                                  .map_err(|e| AppError::Message(format!("Failed to set intra threads: {}", e)))?;
