@@ -9,7 +9,7 @@ export default function Footer() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
-            <h3 className="font-bold text-lg mb-4 text-gradient">
+            <h3 className="font-bold text-lg mb-4 brand-accent">
               Vision AI Label Studio
             </h3>
             <p className="text-gray-600 dark:text-gray-400 mb-4">

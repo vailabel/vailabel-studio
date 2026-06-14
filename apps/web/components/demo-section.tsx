@@ -15,7 +15,7 @@ const DemoSection = () => {
           transition={{ duration: 0.5 }}
         >
           <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
-            See It In <span className="text-gradient">Action</span>
+            See It In <span className="brand-accent">Action</span>
           </h2>
           <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
             Watch how Vision AI Label Studio makes image annotation fast and
@@ -39,7 +39,7 @@ const DemoSection = () => {
               allowFullScreen
             />
           </div>
-          <div className="glass p-4 flex justify-between items-center">
+          <div className="surface p-4 flex justify-between items-center">
             <div className="text-sm text-gray-600 dark:text-gray-400">
               Demo: AI-assisted annotation workflow
             </div>

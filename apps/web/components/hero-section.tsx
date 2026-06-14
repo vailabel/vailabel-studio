@@ -11,9 +11,8 @@ const HeroSection = () => {
   const { activeToolIndex, setActiveToolIndex, controls } = useToolAnimation()
 
   return (
-    <section className="relative py-20 md:py-28 overflow-hidden" id="download">
-      <div className="cloud-aurora" aria-hidden="true" />
-      <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="py-20 md:py-28 overflow-hidden" id="download">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           className="text-center max-w-4xl mx-auto"
           initial={{ opacity: 0, y: 20 }}
