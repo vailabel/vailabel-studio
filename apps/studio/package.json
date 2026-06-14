@@ -63,6 +63,7 @@
     "@types/uuid": "^11.0.0",
     "@vitejs/plugin-react": "^6.0.2",
     "babel-jest": "^30.4.1",
+    "esbuild": "^0.25.10",
     "eslint": "^10.5.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.3",
