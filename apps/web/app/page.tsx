@@ -1,9 +1,9 @@
-import HeroSection from "@/components/HeroSection"
-import FeatureHighlights from "@/components/FeatureHighlights"
-import DocumentationBlog from "@/components/DocumentationBlog"
-import DemoSection from "@/components/DemoSection"
-import RoadmapSection from "@/components/RoadmapSection"
-import CTASection from "@/components/CTASection"
+import HeroSection from "@/components/hero-section"
+import FeatureHighlights from "@/components/feature-highlights"
+import DocumentationBlog from "@/components/documentation-blog"
+import DemoSection from "@/components/demo-section"
+import RoadmapSection from "@/components/roadmap-section"
+import CTASection from "@/components/cta-section"
 
 export const metadata = {
   title: "VAI Labeling - Smart Image Annotation Platform",
