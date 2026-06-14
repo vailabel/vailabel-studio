@@ -399,9 +399,15 @@ server that the copilot auto-discovers** — there is no manual model configurat
   the copilot asks for a vision model instead of answering blind.
 - A failed/missing server is surfaced as the chat reply, never a hard error.
 
-**Still placeholder / next:** an interactive **click/box-to-segment canvas tool** (the
-backend `pipeline_run` + `SamSegmenter` are ready; the canvas tool that sends a click as a
-`PromptInput` is the remaining UI). Grounding DINO (true open-vocab, needs a BERT
+- **`smartSegment` canvas tool — now wired.** A toolbar tool (`Wand2`, shortcut `G`,
+  `tools/handlers/smart-segment-handler.ts`) where a click sends a point prompt and a drag
+  sends a box prompt — both in image space — through `studioCommands.pipelineRun`. The
+  installed SAM model is resolved via `aiModelsList` + `isSamModel` (`lib/ai-model-utils.ts`,
+  mirroring the backend's `registry_id_for_model` heuristic); the returned polygon lands in
+  the `PredictionReviewPanel`. A spinner shows while running, and "no SAM model installed"
+  toasts a pointer to `/ai-models`.
+
+**Still placeholder / next:** Grounding DINO (true open-vocab, needs a BERT
 tokenizer), Florence-2 (4-graph seq2seq), RT-DETR, FastSAM/SAM 2-heavy, and OCR remain
 `planned`. Florence-2 as an in-process ONNX engine (§3) is still an alternative to the LLM
 for users who prefer no separate server — wiring it = implement its `ModelPlugin` and flip
