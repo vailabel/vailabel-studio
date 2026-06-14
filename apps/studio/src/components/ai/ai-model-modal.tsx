@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -21,7 +22,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Import } from "lucide-react"
+import { Download, Import, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import {
   getPredictionReadinessLabel,
@@ -30,10 +31,25 @@ import {
   isModelPredictionReady,
   willModelConvertOnRun,
 } from "@/lib/ai-model-metadata"
-import { useAIModelViewModel } from "@/viewmodels/ai-model-viewmodel"
+import {
+  useAIModelViewModel,
+  type CatalogSystemModel,
+  type CatalogSystemModelVariant,
+} from "@/viewmodels/ai-model-viewmodel"
 
 interface AIModelModalProps {
   onClose: () => void
+}
+
+function getRecommendedVariant(
+  model?: CatalogSystemModel | null
+): CatalogSystemModelVariant | null {
+  if (!model?.variants?.length) return null
+  return (
+    model.variants.find((variant) => variant.recommended && variant.available) ||
+    model.variants.find((variant) => variant.available) ||
+    null
+  )
 }
 
 export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
@@ -47,7 +63,12 @@ export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
     systemModels,
     selectModel,
     saveModelSelection,
+    installSystemModel,
+    activateModel,
   } = useAIModelViewModel()
+  const [isInstallingRecommended, setIsInstallingRecommended] = useState(false)
+
+  const recommendedVariant = getRecommendedVariant(recommendedSystemModel)
 
   const handleSave = async () => {
     if (!selectedModelId) return
@@ -61,6 +82,37 @@ export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
       toast.error("Error", {
         description: "Failed to save selected model.",
       })
+    }
+  }
+
+  const handleInstallRecommended = async () => {
+    if (!recommendedSystemModel || !recommendedVariant) {
+      toast.error("No installable model available", {
+        description: "Open the model manager to choose a model to install.",
+      })
+      return
+    }
+
+    setIsInstallingRecommended(true)
+    try {
+      const installed = await installSystemModel(
+        recommendedSystemModel,
+        recommendedVariant
+      )
+      await activateModel(installed.id)
+      toast("Model installed", {
+        description: `${installed.name} is installed, activated, and ready for AI detect.`,
+      })
+      onClose()
+    } catch (error) {
+      toast.error("Install failed", {
+        description:
+          error instanceof Error
+            ? error.message
+            : "The recommended model could not be installed.",
+      })
+    } finally {
+      setIsInstallingRecommended(false)
     }
   }
 
@@ -157,7 +209,8 @@ export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
                           colSpan={7}
                           className="py-6 text-center text-muted-foreground"
                         >
-                          No local models imported yet.
+                          No local models imported yet. Use “Install recommended
+                          model” below to download a ready-to-run detector.
                         </TableCell>
                       </TableRow>
                     )}
@@ -195,11 +248,11 @@ export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
                 variant="outline"
                 onClick={() => {
                   onClose()
-                  navigate("/ai-model")
+                  navigate("/ai-models")
                 }}
               >
                 <Import className="mr-2 h-4 w-4" />
-                Manage Models
+                Open AI Assistant
               </Button>
             </div>
             <ScrollArea className="h-[340px] rounded-md border p-4">
@@ -244,6 +297,26 @@ export const AIModelSelectModal = ({ onClose }: AIModelModalProps) => {
           </div>
         </div>
         <DialogFooter>
+          {recommendedVariant ? (
+            <Button
+              variant="secondary"
+              className="mr-auto"
+              onClick={handleInstallRecommended}
+              disabled={isInstallingRecommended}
+            >
+              {isInstallingRecommended ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Installing {recommendedVariant.modelVersion || recommendedVariant.name}...
+                </>
+              ) : (
+                <>
+                  <Download className="mr-2 h-4 w-4" />
+                  Install recommended model
+                </>
+              )}
+            </Button>
+          ) : null}
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>

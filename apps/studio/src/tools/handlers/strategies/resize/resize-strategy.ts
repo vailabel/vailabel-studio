@@ -1,5 +1,5 @@
 import { Point } from "@/types/core"
-import { ToolHandlerContext } from "../../../canvas-handler"
+import { ToolHandlerContext } from "@/hooks/use-canvas-handlers-context"
 import { MouseMoveStrategy } from "../interfaces/mouse-move-strategy"
 import { ResizeStrategyManager } from "../managers/resize-strategy-manager"
 

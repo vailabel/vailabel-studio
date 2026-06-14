@@ -1,322 +1,178 @@
 import { useRef } from "react"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import {
-  Search,
-  Settings,
+  Settings as SettingsIcon,
   Palette,
   Brain,
   Keyboard,
   Cog,
-  Save,
   RotateCcw,
   Download,
   Upload,
   AlertCircle,
-  Clock,
+  Check,
 } from "lucide-react"
-import { useSettingsViewModel } from "@/viewmodels/settings-viewmodel"
+import { SettingsProvider, useSettings } from "@/contexts/settings-context"
 import GeneralSettings from "@/components/settings/general-settings"
 import AppearanceSettings from "@/components/settings/appearance-settings"
 import { KeyboardShortcuts } from "@/components/settings/keyboard-shortcuts"
 import { ModelSelection } from "@/components/settings/model-selection"
 import AdvancedSettings from "@/components/settings/advanced-settings"
 
-const categoryIcons = {
-  general: Settings,
+const CATEGORY_ICONS = {
+  general: SettingsIcon,
   appearance: Palette,
   model: Brain,
   shortcuts: Keyboard,
   advanced: Cog,
-}
+} as const
 
 export default function Setting() {
+  return (
+    <SettingsProvider>
+      <SettingsView />
+    </SettingsProvider>
+  )
+}
+
+function SettingsView() {
   const {
     categories,
     activeTab,
-    searchQuery,
-    keyboardShortcutsList,
     isSaving,
-    hasUnsavedChanges,
     lastSaved,
     error,
     setActiveTab,
-    setSearchQuery,
-    saveSettings,
     resetToDefaults,
+    keyboardShortcutsList,
     updateKeyboardShortcuts,
     exportSettings,
     importSettings,
-  } = useSettingsViewModel()
+  } = useSettings()
+
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const handleImportSettings = async (
+  const handleImportFile = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = event.target.files?.[0]
-    if (file) {
-      await importSettings(file)
-    }
-  }
-
-  const handleSave = async () => {
-    await saveSettings()
-  }
-
-  const handleReset = async () => {
-    await resetToDefaults()
-  }
-
-  const handleExport = async () => {
-    await exportSettings()
-  }
-
-  const handleImport = () => {
-    fileInputRef.current?.click()
+    if (file) await importSettings(file)
+    event.target.value = ""
   }
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-6 max-w-7xl">
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
         {/* Header */}
-        <div className="mb-8 transition-all duration-500 opacity-100">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground dark:text-white mb-2">
-                Settings
-              </h1>
-              <p className="text-muted-foreground">
-                Customize your application preferences and configuration
-              </p>
-            </div>
-
-            {/* Status Indicators */}
-            <div className="flex items-center gap-4">
-              {hasUnsavedChanges && (
-                <Badge
-                  variant="outline"
-                  className="text-amber-600 border-amber-600"
-                >
-                  <AlertCircle className="w-3 h-3 mr-1" />
-                  Unsaved Changes
-                </Badge>
-              )}
-
-              {lastSaved && (
-                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                  <Clock className="w-3 h-3" />
-                  Last saved: {lastSaved.toLocaleTimeString()}
-                </div>
-              )}
-            </div>
+        <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Settings</h1>
+            <p className="text-muted-foreground">
+              Customize your application preferences and configuration
+            </p>
           </div>
 
-          {/* Search Bar */}
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-            <Input
-              placeholder="Search settings..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+          <div className="flex items-center gap-2">
+            <span className="hidden sm:flex items-center gap-1.5 text-sm text-muted-foreground mr-1">
+              {isSaving ? (
+                <RotateCcw className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Check className="h-3.5 w-3.5 text-emerald-500" />
+              )}
+              {isSaving
+                ? "Saving…"
+                : lastSaved
+                  ? `Saved ${lastSaved.toLocaleTimeString()}`
+                  : "Changes save automatically"}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => exportSettings()}
+              className="gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Export
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              className="gap-2"
+            >
+              <Upload className="h-4 w-4" />
+              Import
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => resetToDefaults()}
+              className="gap-2"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Reset
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              onChange={handleImportFile}
+              className="hidden"
             />
           </div>
         </div>
 
-        {/* Error Display */}
         {error && (
-          <div className="mb-6 transition-all duration-200 opacity-100">
-            <Card className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
-                  <AlertCircle className="w-4 h-4" />
-                  <span className="font-medium">Error</span>
-                </div>
-                <p className="text-red-600 dark:text-red-400 mt-1">{error}</p>
-              </CardContent>
-            </Card>
+          <div className="mb-6 flex items-start gap-2 rounded-lg border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive">
+            <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+            <div>
+              <p className="font-medium">Something went wrong</p>
+              <p className="text-destructive/80">{error}</p>
+            </div>
           </div>
         )}
 
-        {/* Action Buttons */}
-        <div className="flex flex-wrap gap-3 mb-8 transition-all duration-500 opacity-100">
-          <Button
-            onClick={handleSave}
-            disabled={isSaving || !hasUnsavedChanges}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            <Save className="w-4 h-4 mr-2" />
-            {isSaving ? "Saving..." : "Save Changes"}
-          </Button>
-
-          <Button
-            onClick={handleReset}
-            variant="outline"
-            className="border-input hover:bg-muted dark:hover:bg-gray-800"
-          >
-            <RotateCcw className="w-4 h-4 mr-2" />
-            Reset to Defaults
-          </Button>
-
-          <Button
-            onClick={handleExport}
-            variant="outline"
-            className="border-input hover:bg-muted dark:hover:bg-gray-800"
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Export Settings
-          </Button>
-
-          <Button
-            onClick={handleImport}
-            variant="outline"
-            className="border-input hover:bg-muted dark:hover:bg-gray-800"
-          >
-            <Upload className="w-4 h-4 mr-2" />
-            Import Settings
-          </Button>
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".json"
-            onChange={handleImportSettings}
-            className="hidden"
-          />
-        </div>
-
-        {/* Settings Tabs */}
-        <div className="transition-all duration-500 opacity-100">
-          <Tabs
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className="w-full"
-          >
-            <TabsList className="grid w-full grid-cols-5 mb-8 bg-card shadow-sm">
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <div className="overflow-x-auto pb-2">
+            <TabsList className="grid w-full min-w-[520px] grid-cols-5">
               {categories.map((category) => {
-                const IconComponent =
-                  categoryIcons[category.id as keyof typeof categoryIcons]
+                const Icon =
+                  CATEGORY_ICONS[category.id as keyof typeof CATEGORY_ICONS]
                 return (
                   <TabsTrigger
                     key={category.id}
                     value={category.id}
-                    className="flex items-center gap-2 data-active:bg-blue-600 data-active:text-white"
+                    className="gap-2"
                   >
-                    <IconComponent className="w-4 h-4" />
+                    {Icon && <Icon className="h-4 w-4" />}
                     <span className="hidden sm:inline">{category.name}</span>
                   </TabsTrigger>
                 )
               })}
             </TabsList>
+          </div>
 
-            <TabsContent value="general" className="mt-0">
-              <div className="transition-all duration-300 opacity-100">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Settings className="w-5 h-5" />
-                      General Settings
-                    </CardTitle>
-                    <CardDescription>
-                      Basic application settings and preferences
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <GeneralSettings />
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="appearance" className="mt-0">
-              <div className="transition-all duration-300 opacity-100">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Palette className="w-5 h-5" />
-                      Appearance Settings
-                    </CardTitle>
-                    <CardDescription>
-                      Customize the look and feel of the application
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <AppearanceSettings />
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="model" className="mt-0">
-              <div className="transition-all duration-300 opacity-100">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Brain className="w-5 h-5" />
-                      Model Selection
-                    </CardTitle>
-                    <CardDescription>
-                      Choose your default AI model for detection and analysis
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ModelSelection />
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="shortcuts" className="mt-0">
-              <div className="transition-all duration-300 opacity-100">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Keyboard className="w-5 h-5" />
-                      Keyboard Shortcuts
-                    </CardTitle>
-                    <CardDescription>
-                      Customize your keyboard shortcuts for faster workflow
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <KeyboardShortcuts
-                      shortcuts={keyboardShortcutsList}
-                      onChange={updateKeyboardShortcuts}
-                    />
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="advanced" className="mt-0">
-              <div className="transition-all duration-300 opacity-100">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Cog className="w-5 h-5" />
-                      Advanced Settings
-                    </CardTitle>
-                    <CardDescription>
-                      Configure advanced settings and options
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <AdvancedSettings />
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </div>
+          <TabsContent value="general" className="mt-6">
+            <GeneralSettings />
+          </TabsContent>
+          <TabsContent value="appearance" className="mt-6">
+            <AppearanceSettings />
+          </TabsContent>
+          <TabsContent value="model" className="mt-6">
+            <ModelSelection />
+          </TabsContent>
+          <TabsContent value="shortcuts" className="mt-6">
+            <KeyboardShortcuts
+              shortcuts={keyboardShortcutsList}
+              onChange={updateKeyboardShortcuts}
+            />
+          </TabsContent>
+          <TabsContent value="advanced" className="mt-6">
+            <AdvancedSettings />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   )

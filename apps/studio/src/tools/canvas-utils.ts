@@ -195,20 +195,13 @@ export function findLabelAtPoint(
 }
 
 export function getResizeHandle(
-  e: React.MouseEvent,
+  point: Point,
   annotation: Annotation,
-  container: HTMLDivElement | null,
   zoom: number
 ): string | null {
-  if (!container) return null
-
-  const point = getImageCoords(
-    container,
-    e.clientX,
-    e.clientY
-  )
-
-  const handleSize = Math.max(8 / zoom, 4) // Ensure minimum handle size of 4 pixels
+  // `point` must be in IMAGE space (same space as annotation.coordinates).
+  // The tolerance scales with zoom so the grab area stays ~constant on screen.
+  const handleSize = Math.max(8 / zoom, 4)
 
   // Handle box annotations
   if (annotation.type === "box") {

@@ -58,10 +58,7 @@ export interface ToolHandlerContext {
   getCanvasCoords: (clientX: number, clientY: number) => Point
   isPointInLabel: (point: Point, annotation: Annotation) => boolean
   findLabelAtPoint: (point: Point) => Annotation | null
-  getResizeHandle: (
-    e: React.MouseEvent,
-    annotation: Annotation
-  ) => string | null
+  getResizeHandle: (point: Point, annotation: Annotation) => string | null
 }
 
 const createToolHandler = (
@@ -211,13 +208,8 @@ export function useCanvasHandlers(
           selectedAnnotation,
           utilsIsPointInLabel
         ),
-      getResizeHandle: (e: React.MouseEvent, annotation: Annotation) =>
-        utilsGetResizeHandle(
-          e,
-          annotation,
-          actualCanvasRef.current,
-          zoom
-        ),
+      getResizeHandle: (point: Point, annotation: Annotation) =>
+        utilsGetResizeHandle(point, annotation, zoom),
     }),
     [
       actualCanvasRef,

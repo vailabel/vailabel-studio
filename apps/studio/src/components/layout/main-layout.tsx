@@ -1,14 +1,14 @@
 import * as React from "react"
 import {
   Brain,
+  Clapperboard,
   Cloud,
   Folder,
   Home,
-  Layers2,
+  ScanSearch,
   Settings2,
   ArrowLeft,
   Menu,
-  Sparkles,
   Tag,
 } from "lucide-react"
 import { useNavigate, useOutlet, useLocation } from "react-router-dom"
@@ -32,10 +32,14 @@ const navigation: NavigationItem[] = [
   { name: "Overview", href: "/", icon: Home },
   { name: "Projects", href: "/projects", icon: Folder },
   { name: "Labels", href: "/labels", icon: Tag },
-  { name: "Task", href: "/tasks", icon: Layers2 },
+  {
+    name: "Dataset Intelligence",
+    href: "/dataset-intelligence",
+    icon: ScanSearch,
+  },
+  { name: "Video Annotation", href: "/video-annotation", icon: Clapperboard },
   { name: "Cloud Storage", href: "/cloud-storage", icon: Cloud },
-  { name: "AI Models", href: "/ai-models", icon: Brain },
-  { name: "AI Assistant", href: "/ai-assistant", icon: Sparkles },
+  { name: "AI Assistant", href: "/ai-models", icon: Brain },
   { name: "Settings", href: "/settings", icon: Settings2 },
 ]
 

@@ -2,9 +2,28 @@ use crate::domain::common::repository::CrudRepository;
 use crate::{emit_domain_event, AppError};
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::{json, Value};
+use uuid::Uuid;
 
 pub trait HasId {
     fn id(&self) -> &str;
+}
+
+/// Ensure the incoming payload carries a non-empty `id` before it is
+/// deserialized into a typed entity. The frontend omits `id` when creating a
+/// new entity and relies on the backend to mint one (the same contract the
+/// untyped `normalize_entity` path honors). Without this, `serde` fails with
+/// "missing field `id`" for create requests.
+fn ensure_id(payload: &mut Value) {
+    if let Value::Object(object) = payload {
+        let has_id = object
+            .get("id")
+            .and_then(Value::as_str)
+            .map(|id| !id.is_empty())
+            .unwrap_or(false);
+        if !has_id {
+            object.insert("id".into(), Value::String(Uuid::new_v4().to_string()));
+        }
+    }
 }
 
 pub fn list_entities<T, R>(repo: &R) -> Result<Vec<T>, AppError>
@@ -33,12 +52,13 @@ pub fn save_entity<T, R>(
     repo: &R,
     app: &tauri::AppHandle,
     event_entity: &str,
-    payload: Value,
+    mut payload: Value,
 ) -> Result<T, AppError>
 where
     T: DeserializeOwned + Serialize + HasId,
     R: CrudRepository<T> + ?Sized,
 {
+    ensure_id(&mut payload);
     let entity: T = serde_json::from_value(payload)?;
     let (entity, action) = if repo.get(entity.id())?.is_some() {
         (repo.update(&entity)?, "updated")

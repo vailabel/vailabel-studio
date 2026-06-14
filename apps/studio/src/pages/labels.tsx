@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useMemo, useState } from "react"
 import {
   Tag,
   Search,
@@ -7,9 +7,8 @@ import {
   Edit,
   Trash2,
   Copy,
-  Eye,
   BarChart3,
-  Calendar,
+  Hash,
   User,
   Folder,
 } from "lucide-react"
@@ -26,13 +25,19 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Label } from "@/components/ui/label"
+import type { Label as LabelType } from "@/types/core"
 import { useLabelsViewModel } from "@/viewmodels/labels-viewmodel"
-import { LabelCreateForm } from "@/components/labels/label-forms"
+import {
+  LabelCreateForm,
+  LabelEditForm,
+} from "@/components/labels/label-forms"
 import { LabelStatsCard } from "@/components/labels/label-stats-card"
 
 const LabelsPage: React.FC = () => {
   const {
     labels,
+    allLabels,
+    usageByLabelId,
     projects,
     isLoading,
     error,
@@ -47,20 +52,31 @@ const LabelsPage: React.FC = () => {
     refreshLabels,
   } = useLabelsViewModel()
 
-  const filteredLabels = labels.filter((label) => {
-    const matchesSearch = label.name
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase())
-    const matchesProject =
-      !selectedProject || label.projectId === selectedProject
-    return matchesSearch && matchesProject
-  })
+  const [editingLabel, setEditingLabel] = useState<LabelType | null>(null)
+
+  // Derived, real overview metrics (no placeholders).
+  const { totalAnnotations, mostUsedLabel } = useMemo(() => {
+    let total = 0
+    let topId: string | null = null
+    let topCount = 0
+    for (const [id, count] of Object.entries(usageByLabelId)) {
+      total += count
+      if (count > topCount) {
+        topCount = count
+        topId = id
+      }
+    }
+    const top = topId
+      ? allLabels.find((label) => label.id === topId)
+      : undefined
+    return { totalAnnotations: total, mostUsedLabel: top?.name ?? "—" }
+  }, [usageByLabelId, allLabels])
 
   if (error) {
     return (
       <div className="p-6 min-h-screen">
         <div className="text-center py-16">
-          <div className="text-destructive mb-4">{error}</div>
+          <div className="text-destructive mb-4">{String(error)}</div>
           <Button onClick={refreshLabels} variant="outline">
             Try Again
           </Button>
@@ -99,31 +115,31 @@ const LabelsPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <LabelStatsCard
             title="Total Labels"
-            value={labels.length}
+            value={allLabels.length}
             icon={Tag}
             color="bg-primary"
-            trend={{ value: 12, isPositive: true }}
+            isLoading={isLoading}
           />
           <LabelStatsCard
             title="Active Projects"
             value={projects.length}
             icon={Folder}
             color="bg-green-600"
-            trend={{ value: 3, isPositive: true }}
+            isLoading={isLoading}
           />
           <LabelStatsCard
             title="Most Used"
-            value="Person"
+            value={mostUsedLabel}
             icon={User}
             color="bg-purple-600"
-            trend={{ value: 45, isPositive: true }}
+            isLoading={isLoading}
           />
           <LabelStatsCard
-            title="Recent Activity"
-            value="24h"
-            icon={Calendar}
+            title="Total Annotations"
+            value={totalAnnotations}
+            icon={Hash}
             color="bg-orange-600"
-            trend={{ value: 8, isPositive: true }}
+            isLoading={isLoading}
           />
         </div>
       </section>
@@ -177,7 +193,7 @@ const LabelsPage: React.FC = () => {
       <section>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-semibold text-foreground">
-            Labels ({filteredLabels.length})
+            Labels ({labels.length})
           </h2>
         </div>
 
@@ -195,7 +211,7 @@ const LabelsPage: React.FC = () => {
               </Card>
             ))}
           </div>
-        ) : filteredLabels.length === 0 ? (
+        ) : labels.length === 0 ? (
           <div className="text-center py-16">
             <Tag className="h-24 w-24 mx-auto mb-6 text-muted-foreground opacity-50" />
             <h3 className="text-2xl font-semibold mb-4 text-foreground">
@@ -214,11 +230,8 @@ const LabelsPage: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredLabels.map((label) => (
-              <Card
-                key={label.id}
-                className="hover:shadow-lg transition-shadow duration-200"
-              >
+            {labels.map((label) => (
+              <Card key={label.id}>
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
@@ -231,15 +244,22 @@ const LabelsPage: React.FC = () => {
                           {label.name}
                         </h3>
                         <p className="text-sm text-muted-foreground">
-                          {projects.find((p) => p.id === label.projectId)
-                            ?.name || "Unknown Project"}
+                          {projects.find(
+                            (p) =>
+                              p.id === label.projectId ||
+                              p.id === label.project_id
+                          )?.name || "Unknown Project"}
                         </p>
                       </div>
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger
                         render={
-                          <Button variant="ghost" size="icon" className="h-8 w-8" />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                          />
                         }
                       >
                         <MoreHorizontal className="h-4 w-4" />
@@ -247,9 +267,7 @@ const LabelsPage: React.FC = () => {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => updateLabel(label.id, {})}
-                        >
+                        <DropdownMenuItem onClick={() => setEditingLabel(label)}>
                           <Edit className="mr-2 h-4 w-4" />
                           Edit
                         </DropdownMenuItem>
@@ -258,10 +276,6 @@ const LabelsPage: React.FC = () => {
                         >
                           <Copy className="mr-2 h-4 w-4" />
                           Duplicate
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Eye className="mr-2 h-4 w-4" />
-                          View Usage
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
@@ -294,14 +308,16 @@ const LabelsPage: React.FC = () => {
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">Usage</span>
                       <span className="text-foreground font-medium">
-                        {Math.floor(Math.random() * 100)} annotations
+                        {usageByLabelId[label.id] ?? 0} annotations
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">Created</span>
                       <span className="text-foreground">
-                        {new Date().toLocaleDateString()}
+                        {label.createdAt
+                          ? new Date(label.createdAt).toLocaleDateString()
+                          : "—"}
                       </span>
                     </div>
                   </div>
@@ -311,6 +327,18 @@ const LabelsPage: React.FC = () => {
           </div>
         )}
       </section>
+
+      {editingLabel && (
+        <LabelEditForm
+          key={editingLabel.id}
+          label={editingLabel}
+          onUpdateLabel={updateLabel}
+          open
+          onOpenChange={(open) => {
+            if (!open) setEditingLabel(null)
+          }}
+        />
+      )}
     </div>
   )
 }

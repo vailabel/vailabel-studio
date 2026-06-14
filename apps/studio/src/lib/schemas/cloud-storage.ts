@@ -77,34 +77,9 @@ export type GCPConfig = z.infer<typeof gcpConfigSchema>
 
 export type CloudProvider = "aws" | "azure" | "gcp"
 
-export type CloudStorageConfig =
-  | {
-      id: string
-      name: string
-      provider: "aws"
-      config: AWSConfig
-      isActive: boolean
-      createdAt: Date
-      updatedAt: Date
-    }
-  | {
-      id: string
-      name: string
-      provider: "azure"
-      config: AzureConfig
-      isActive: boolean
-      createdAt: Date
-      updatedAt: Date
-    }
-  | {
-      id: string
-      name: string
-      provider: "gcp"
-      config: GCPConfig
-      isActive: boolean
-      createdAt: Date
-      updatedAt: Date
-    }
+// The persisted config shape lives in `viewmodels/cloud-storage-viewmodel.ts`
+// (`CloudStorageConfig`) — secrets are stripped before persistence, so it is
+// not the same shape as the form/schema types above.
 
 // Form data types
 export type CloudConfigFormData = {

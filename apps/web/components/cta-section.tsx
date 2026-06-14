@@ -1,7 +1,8 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { ArrowRight, Github } from "lucide-react"
+import { ArrowRight } from "lucide-react"
+import { GithubIcon } from "@/components/icons/github-icon"
 import React from "react"
 
 const CTASection = () => {
@@ -38,7 +39,7 @@ const CTASection = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              <Github size={18} /> Star on GitHub
+              <GithubIcon size={18} /> Star on GitHub
             </motion.a>
           </div>
         </motion.div>

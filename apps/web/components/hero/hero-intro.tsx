@@ -1,7 +1,8 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { ArrowRight, Github } from "lucide-react"
+import { ArrowRight } from "lucide-react"
+import { GithubIcon } from "@/components/icons/github-icon"
 import { data } from "@/app/data"
 import DownloadButton from "@/components/download-button"
 
@@ -31,7 +32,7 @@ export function HeroIntro() {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
-          <Github size={18} /> View on GitHub
+          <GithubIcon size={18} /> View on GitHub
         </motion.a>
       </div>
     </>

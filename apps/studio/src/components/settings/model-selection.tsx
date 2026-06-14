@@ -1,4 +1,5 @@
 import { useMemo } from "react"
+import { Brain, Info } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import {
@@ -12,6 +13,7 @@ import {
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { useAIModelViewModel } from "@/viewmodels/ai-model-viewmodel"
+import { SettingsSection } from "@/components/settings/settings-ui"
 
 export function ModelSelection() {
   const { availableModels, selectedModelId, selectModel, saveModelSelection } =
@@ -22,99 +24,94 @@ export function ModelSelection() {
   )
 
   const handleSave = async () => {
-    if (selectedModel) {
-      try {
-        await saveModelSelection(selectedModelId)
-        toast("Model Saved", {
-          description: `Model path saved to settings: ${selectedModel.modelPath}`,
-        })
-      } catch {
-        toast.error("Error", {
-          description: "Failed to save model settings.",
-        })
-      }
-    } else {
-      toast.error("No Model Selected", {
+    if (!selectedModel) {
+      toast.error("No model selected", {
         description: "Please select a model before saving.",
       })
+      return
+    }
+    try {
+      await saveModelSelection(selectedModelId)
+      toast("Model saved", {
+        description: `Model path saved to settings: ${selectedModel.modelPath}`,
+      })
+    } catch {
+      toast.error("Error", { description: "Failed to save model settings." })
     }
   }
 
   return (
-    <div>
-      <div className="flex flex-col md:flex-row gap-8 flex-1">
-        <div className="flex-1 min-w-[300px]">
-          <p className="text-base text-muted-foreground mb-4">
-            Select a pre-trained model from the list below.
-          </p>
-
-          <RadioGroup value={selectedModelId} onValueChange={selectModel}>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted">
-                    <TableHead className="p-2 font-semibold text-left">
-                      Select
-                    </TableHead>
-                    <TableHead className="p-2 font-semibold text-left">
-                      Name
-                    </TableHead>
-                    <TableHead className="p-2 font-semibold text-left">
-                      File Path
-                    </TableHead>
+    <SettingsSection
+      icon={Brain}
+      title="Model Selection"
+      description="Choose the default AI model for detection and analysis"
+      action={
+        <Button onClick={handleSave} disabled={!selectedModelId} size="sm">
+          Save
+        </Button>
+      }
+    >
+      <div className="space-y-4">
+        <RadioGroup value={selectedModelId} onValueChange={selectModel}>
+          <div className="overflow-hidden rounded-lg border border-border">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="w-16">Select</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>File Path</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {availableModels.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={3}
+                      className="text-center text-muted-foreground"
+                    >
+                      No models installed yet.
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {availableModels.map((model) => (
+                ) : (
+                  availableModels.map((model) => (
                     <TableRow
                       key={model.id}
                       className={
-                        selectedModelId === model.id ? "bg-primary/10" : ""
+                        selectedModelId === model.id ? "bg-primary/5" : ""
                       }
                     >
-                      <TableCell className="p-2 align-middle">
+                      <TableCell>
                         <RadioGroupItem
                           value={model.id}
                           id={model.id}
                           aria-label={`Select ${model.name}`}
-                          className="mt-0.5"
                         />
                       </TableCell>
-                      <TableCell className="p-2 align-middle">
+                      <TableCell>
                         <Label htmlFor={model.id} className="cursor-pointer">
                           {model.name}
                         </Label>
                       </TableCell>
-                      <TableCell className="p-2 align-middle">
+                      <TableCell className="text-muted-foreground">
                         {model.modelPath || "-"}
                       </TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-            <p className="mt-2 text-xs text-yellow-600 dark:text-yellow-400">
-              <strong>Note:</strong> All models must remain in their specific
-              file path. If you delete or move a model file, it will no longer
-              work in the app.
-            </p>
-          </RadioGroup>
-
-          <div className="mt-8">
-            <Label htmlFor="model-save" className="flex items-center">
-              Save custom model path
-            </Label>
-            <div className="text-muted-foreground text-xs mt-2">
-              Custom model upload is not available in this build.
-            </div>
+                  ))
+                )}
+              </TableBody>
+            </Table>
           </div>
+        </RadioGroup>
+
+        <div className="flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
+          <Info className="mt-0.5 h-4 w-4 shrink-0" />
+          <p>
+            Models must remain at their original file path. Moving or deleting a
+            model file will stop it from working in the app. Custom model upload
+            is not available in this build.
+          </p>
         </div>
       </div>
-      <div className="mt-4 flex justify-end">
-        <Button onClick={handleSave} disabled={!selectedModelId}>
-          Save
-        </Button>
-      </div>
-    </div>
+    </SettingsSection>
   )
 }

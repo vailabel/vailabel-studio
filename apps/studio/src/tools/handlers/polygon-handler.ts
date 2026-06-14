@@ -21,6 +21,7 @@ export class PolygonHandler implements ToolHandler {
         const newPoints = toolState.polygonPoints.slice(0, -1)
         this.context.setToolState({
           polygonPoints: newPoints,
+          isDrawing: newPoints.length > 0,
           tempAnnotation: newPoints.length > 0 ? {
             type: "polygon",
             coordinates: newPoints,
@@ -55,6 +56,9 @@ export class PolygonHandler implements ToolHandler {
 
     this.context.setToolState({
       polygonPoints: newPoints,
+      // Mark drawing active so the canvas dispatcher keeps forwarding mousemove
+      // events — that's what renders the rubber-band preview line to the cursor.
+      isDrawing: true,
       tempAnnotation: {
         type: "polygon",
         coordinates: newPoints,
@@ -93,6 +97,7 @@ export class PolygonHandler implements ToolHandler {
     if (toolState.polygonPoints && toolState.polygonPoints.length >= 3) {
       this.context.setToolState({
         showLabelInput: true,
+        isDrawing: false,
         tempAnnotation: {
           type: "polygon",
           coordinates: toolState.polygonPoints,
@@ -106,6 +111,7 @@ export class PolygonHandler implements ToolHandler {
   clearState() {
     this.context.setToolState({
       polygonPoints: [],
+      isDrawing: false,
       tempAnnotation: null,
       showLabelInput: false,
     })
@@ -119,6 +125,7 @@ export class PolygonHandler implements ToolHandler {
       // Cancel current polygon
       this.context.setToolState({
         polygonPoints: [],
+        isDrawing: false,
         tempAnnotation: null,
       })
     } else if (e.key === "Backspace" || e.key === "Delete") {
@@ -127,6 +134,7 @@ export class PolygonHandler implements ToolHandler {
         const newPoints = toolState.polygonPoints.slice(0, -1)
         this.context.setToolState({
           polygonPoints: newPoints,
+          isDrawing: newPoints.length > 0,
           tempAnnotation: newPoints.length > 0 ? {
             type: "polygon",
             coordinates: newPoints,

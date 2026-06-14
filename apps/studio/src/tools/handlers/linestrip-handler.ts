@@ -23,6 +23,7 @@ export class LinestripHandler implements ToolHandler {
         const newPoints = toolState.polygonPoints.slice(0, -1)
         this.context.setToolState({
           polygonPoints: newPoints,
+          isDrawing: newPoints.length > 0,
           tempAnnotation:
             newPoints.length > 0
               ? {
@@ -44,6 +45,8 @@ export class LinestripHandler implements ToolHandler {
 
     this.context.setToolState({
       polygonPoints: newPoints,
+      // Keep mousemove forwarding alive so the preview segment to the cursor renders.
+      isDrawing: true,
       tempAnnotation: {
         type: "linestrip",
         coordinates: newPoints,
@@ -76,6 +79,7 @@ export class LinestripHandler implements ToolHandler {
     if (toolState.polygonPoints && toolState.polygonPoints.length >= 2) {
       this.context.setToolState({
         showLabelInput: true,
+        isDrawing: false,
         tempAnnotation: {
           id: crypto.randomUUID(),
           name: "New Line",
@@ -93,12 +97,17 @@ export class LinestripHandler implements ToolHandler {
   onKeyDown(e: KeyboardEvent) {
     const { toolState } = this.context
     if (e.key === "Escape") {
-      this.context.setToolState({ polygonPoints: [], tempAnnotation: null })
+      this.context.setToolState({
+        polygonPoints: [],
+        isDrawing: false,
+        tempAnnotation: null,
+      })
     } else if (e.key === "Backspace" || e.key === "Delete") {
       if (toolState.polygonPoints && toolState.polygonPoints.length > 0) {
         const newPoints = toolState.polygonPoints.slice(0, -1)
         this.context.setToolState({
           polygonPoints: newPoints,
+          isDrawing: newPoints.length > 0,
           tempAnnotation:
             newPoints.length > 0
               ? {
