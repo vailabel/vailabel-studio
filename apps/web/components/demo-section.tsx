@@ -5,7 +5,7 @@ import React from "react"
 
 const DemoSection = () => {
   return (
-    <section className="py-16 bg-gradient-to-b from-gray-100 to-white dark:from-gray-800 dark:to-gray-900">
+    <section className="relative py-20">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           className="text-center mb-12"
@@ -14,8 +14,8 @@ const DemoSection = () => {
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            See It In Action
+          <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
+            See It In <span className="text-gradient">Action</span>
           </h2>
           <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
             Watch how Vision AI Label Studio makes image annotation fast and
@@ -24,7 +24,7 @@ const DemoSection = () => {
         </motion.div>
 
         <motion.div
-          className="max-w-4xl mx-auto rounded-xl overflow-hidden shadow-2xl border border-gray-200 dark:border-gray-700"
+          className="max-w-4xl mx-auto rounded-2xl overflow-hidden shadow-2xl shadow-blue-500/10 ring-1 ring-black/5 dark:ring-white/10"
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -39,7 +39,7 @@ const DemoSection = () => {
               allowFullScreen
             />
           </div>
-          <div className="bg-white dark:bg-gray-800 p-4 flex justify-between items-center">
+          <div className="glass p-4 flex justify-between items-center">
             <div className="text-sm text-gray-600 dark:text-gray-400">
               Demo: AI-assisted annotation workflow
             </div>

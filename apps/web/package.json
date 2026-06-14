@@ -10,6 +10,7 @@
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\" --ignore-path .gitignore --ignore-path .prettierignore"
   },
   "dependencies": {
+    "@base-ui/react": "^1.5.0",
     "@octokit/core": "^7.0.6",
     "@tailwindcss/typography": "latest",
     "autoprefixer": "^10.5.0",

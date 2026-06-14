@@ -6,7 +6,7 @@ import React from "react"
 
 const FeatureHighlights = () => {
   return (
-    <section className="py-16 bg-gray-100 dark:bg-gray-800/50">
+    <section className="relative py-20">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           className="text-center mb-16"
@@ -15,8 +15,8 @@ const FeatureHighlights = () => {
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Powerful Features
+          <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
+            Powerful <span className="text-gradient">Features</span>
           </h2>
           <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
             Everything you need for efficient image annotation and labeling
@@ -32,10 +32,10 @@ const FeatureHighlights = () => {
         >
           {/* Feature 1 */}
           <motion.div
-            className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-md border border-gray-200 dark:border-gray-700"
+            className="glass cloud-card rounded-2xl p-6 shadow-lg shadow-slate-200/40 dark:shadow-none hover:shadow-xl hover:shadow-blue-500/10"
             variants={item}
           >
-            <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center text-blue-600 dark:text-blue-400 mb-4">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/30 mb-4 bg-gradient-to-br from-blue-500 to-indigo-600">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -60,10 +60,10 @@ const FeatureHighlights = () => {
 
           {/* Feature 2 */}
           <motion.div
-            className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-md border border-gray-200 dark:border-gray-700"
+            className="glass cloud-card rounded-2xl p-6 shadow-lg shadow-slate-200/40 dark:shadow-none hover:shadow-xl hover:shadow-blue-500/10"
             variants={item}
           >
-            <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center text-indigo-600 dark:text-indigo-400 mb-4">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/30 mb-4 bg-gradient-to-br from-indigo-500 to-violet-600">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -89,10 +89,10 @@ const FeatureHighlights = () => {
 
           {/* Feature 3 */}
           <motion.div
-            className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-md border border-gray-200 dark:border-gray-700"
+            className="glass cloud-card rounded-2xl p-6 shadow-lg shadow-slate-200/40 dark:shadow-none hover:shadow-xl hover:shadow-blue-500/10"
             variants={item}
           >
-            <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center text-green-600 dark:text-green-400 mb-4">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/30 mb-4 bg-gradient-to-br from-emerald-500 to-teal-600">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -116,10 +116,10 @@ const FeatureHighlights = () => {
 
           {/* Feature 4 */}
           <motion.div
-            className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-md border border-gray-200 dark:border-gray-700"
+            className="glass cloud-card rounded-2xl p-6 shadow-lg shadow-slate-200/40 dark:shadow-none hover:shadow-xl hover:shadow-blue-500/10"
             variants={item}
           >
-            <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center text-purple-600 dark:text-purple-400 mb-4">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-lg shadow-purple-500/30 mb-4 bg-gradient-to-br from-purple-500 to-fuchsia-600">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -145,10 +145,10 @@ const FeatureHighlights = () => {
 
           {/* Feature 5 */}
           <motion.div
-            className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-md border border-gray-200 dark:border-gray-700"
+            className="glass cloud-card rounded-2xl p-6 shadow-lg shadow-slate-200/40 dark:shadow-none hover:shadow-xl hover:shadow-blue-500/10"
             variants={item}
           >
-            <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center text-orange-600 dark:text-orange-400 mb-4">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-lg shadow-orange-500/30 mb-4 bg-gradient-to-br from-orange-500 to-amber-600">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -174,10 +174,10 @@ const FeatureHighlights = () => {
 
           {/* Feature 6 */}
           <motion.div
-            className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-md border border-gray-200 dark:border-gray-700"
+            className="glass cloud-card rounded-2xl p-6 shadow-lg shadow-slate-200/40 dark:shadow-none hover:shadow-xl hover:shadow-blue-500/10"
             variants={item}
           >
-            <div className="w-12 h-12 bg-pink-100 dark:bg-pink-900/30 rounded-lg flex items-center justify-center text-pink-600 dark:text-pink-400 mb-4">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-lg shadow-pink-500/30 mb-4 bg-gradient-to-br from-pink-500 to-rose-600">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
