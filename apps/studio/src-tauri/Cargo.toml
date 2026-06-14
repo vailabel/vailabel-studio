@@ -35,8 +35,10 @@ thiserror = "2"
 uuid = { version = "1", features = ["v4", "serde"] }
 ort = { version = "2.0.0-rc.12", optional = true, default-features = false, features = ["load-dynamic", "cuda", "api-24"] }
 ndarray = { version = "0.17", optional = true, features = ["serde"] }
+# Used by the on-demand ONNX Runtime installer to unpack the downloaded packages.
+zip = { version = "2", optional = true, default-features = false, features = ["deflate"] }
 
 [features]
 default = ["yolo-inference"]
 # Enable to build with YOLO/ONNX inference and CUDA provider (requires CUDA 12 runtime on host)
-yolo-inference = ["ort", "ndarray"]
+yolo-inference = ["ort", "ndarray", "zip"]

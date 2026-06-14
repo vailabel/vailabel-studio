@@ -1,6 +1,8 @@
+use crate::domain::ai::copilot::{self, Capability, CopilotTurnResult};
+use crate::domain::ai::llm;
 use crate::domain::ai::model::{
-    GitHubReleaseLookupPayload, InferenceAnnotationDraft, ModelImportPayload,
-    ModelInstallPayload, PredictionGeneratePayload,
+    CopilotActionPayload, CopilotLlmConfig, CopilotTurnPayload, GitHubReleaseLookupPayload,
+    InferenceAnnotationDraft, ModelImportPayload, ModelInstallPayload, PredictionGeneratePayload,
 };
 use crate::inference::{self, InferenceEngine};
 use crate::store::EntityStore;
@@ -15,11 +17,21 @@ use std::io::copy;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 use tauri::Manager;
 use uuid::Uuid;
 
 const APP_NAME: &str = "Vailabel Studio";
 const DEFAULT_AI_LABEL_COLOR: &str = "#22c55e";
+/// How long an auto-discovered local LLM is trusted before the copilot re-probes
+/// for one. Short enough to notice a server starting/stopping mid-session.
+const LLM_CACHE_TTL: Duration = Duration::from_secs(30);
+const COPILOT_SYSTEM_PROMPT: &str = "You are the AI labeling copilot inside VaiLabel Studio, an \
+image annotation tool that runs entirely on the user's machine. When an image is provided, look at \
+it and answer concisely and concretely to help the user label it \u{2014} objects present, their \
+attributes, and any readable text. You cannot draw boxes yourself: if the user wants annotations \
+created, tell them to ask you to \u{201c}detect objects\u{201d} or \u{201c}check what I missed\u{201d}, \
+which run the local detector. Keep answers short and practical.";
 const COCO_80_CLASS_NAMES: &[&str] = &[
     "person",
     "bicycle",
@@ -103,11 +115,21 @@ const COCO_80_CLASS_NAMES: &[&str] = &[
     "toothbrush",
 ];
 
+/// A cached result of auto-discovering a local LLM, with the time it was probed
+/// so the copilot can re-check periodically.
+struct LlmCacheEntry {
+    config: Option<CopilotLlmConfig>,
+    checked_at: Instant,
+}
+
 #[derive(Clone)]
 pub struct AiService {
     store: Arc<dyn EntityStore>,
     #[cfg(feature = "yolo-inference")]
     engine_cache: Arc<Mutex<Option<(String, Box<dyn InferenceEngine>)>>>,
+    /// Last auto-discovered local LLM/VLM (or `None` if none was reachable),
+    /// cached so the copilot doesn't re-probe local servers on every turn.
+    llm_cache: Arc<Mutex<Option<LlmCacheEntry>>>,
 }
 
 impl AiService {
@@ -116,6 +138,37 @@ impl AiService {
             store,
             #[cfg(feature = "yolo-inference")]
             engine_cache: Arc::new(Mutex::new(None)),
+            llm_cache: Arc::new(Mutex::new(None)),
+        }
+    }
+
+    /// Auto-discover a local OpenAI-compatible LLM/VLM the copilot can use,
+    /// caching the result briefly so we don't re-probe on every turn. The
+    /// copilot picks the model itself — there is no manual configuration.
+    fn resolve_llm(&self) -> Option<CopilotLlmConfig> {
+        if let Ok(guard) = self.llm_cache.lock() {
+            if let Some(entry) = guard.as_ref() {
+                if entry.checked_at.elapsed() < LLM_CACHE_TTL {
+                    return entry.config.clone();
+                }
+            }
+        }
+
+        let discovered = llm::discover_local_llm();
+        if let Ok(mut guard) = self.llm_cache.lock() {
+            *guard = Some(LlmCacheEntry {
+                config: discovered.clone(),
+                checked_at: Instant::now(),
+            });
+        }
+        discovered
+    }
+
+    /// Drop the cached LLM so the next turn re-discovers one — called when a
+    /// request to the local server fails (server stopped, model unloaded, …).
+    fn invalidate_llm(&self) {
+        if let Ok(mut guard) = self.llm_cache.lock() {
+            *guard = None;
         }
     }
 
@@ -627,6 +680,431 @@ impl AiService {
         emit_domain_event(app, "predictions", "rejected", &prediction)?;
         Ok(json!({ "success": true }))
     }
+
+    /// Pick a detection model: the active one if set, otherwise the first
+    /// installed model. This removes the "activate one first" friction — if a
+    /// model exists at all, the copilot just uses it.
+    fn resolve_model_id(&self) -> Result<Option<String>, AppError> {
+        let models = self.store.list_entities("ai_models")?;
+        if let Some(model) = models.iter().find(|model| {
+            model
+                .get("isActive")
+                .and_then(Value::as_bool)
+                .unwrap_or(false)
+        }) {
+            return Ok(value_string(model, "id", "id"));
+        }
+        Ok(models.first().and_then(|model| value_string(model, "id", "id")))
+    }
+
+    /// Rephrase a deterministic detector result through the local LLM so the
+    /// copilot "responds" conversationally. The detection itself is always YOLO;
+    /// the LLM only narrates. Falls back to `fallback` if no LLM is configured or
+    /// the call fails.
+    fn narrate(
+        &self,
+        llm: Option<&CopilotLlmConfig>,
+        instruction: &str,
+        fallback: String,
+    ) -> String {
+        let Some(config) = llm else {
+            return fallback;
+        };
+        let api_key = crate::read_secret("copilot", "apiKey").ok().flatten();
+        match llm::chat_completion(
+            config,
+            api_key.as_deref(),
+            COPILOT_SYSTEM_PROMPT,
+            instruction,
+            None,
+        ) {
+            Ok(text) => text,
+            Err(_) => {
+                if !llm::server_reachable(&config.base_url) {
+                    self.invalidate_llm();
+                }
+                fallback
+            }
+        }
+    }
+
+    /// One copilot chat turn: route the message to a capability and dispatch.
+    pub fn copilot_turn(
+        &self,
+        app: &tauri::AppHandle,
+        payload: CopilotTurnPayload,
+    ) -> Result<CopilotTurnResult, AppError> {
+        let image = get_entity_or_error(
+            self.store.as_ref(),
+            "images",
+            &payload.image_id,
+            "Image not found",
+        )?;
+        let project_id = payload
+            .project_id
+            .clone()
+            .filter(|value| !value.is_empty())
+            .or_else(|| value_string(&image, "projectId", "project_id"))
+            .unwrap_or_default();
+        let labels = if project_id.is_empty() {
+            Vec::new()
+        } else {
+            self.store.list_by_field("labels", "project_id", &project_id)?
+        };
+        let label_names: Vec<String> = labels
+            .iter()
+            .filter_map(|label| value_string(label, "name", "name"))
+            .collect();
+
+        let intent = copilot::route(&payload.message, &label_names);
+        // The copilot auto-discovers a local LLM/VLM and picks the model itself.
+        let llm = self.resolve_llm();
+        let llm = llm.as_ref();
+
+        match intent.capability {
+            // Grounding stays deterministic — the detector, never the LLM.
+            Capability::Detect => self.copilot_detect(app, &intent, &payload.image_id, llm),
+            Capability::Qa => self.copilot_qa(app, &intent, &payload.image_id, llm),
+            Capability::Segment => Ok(CopilotTurnResult::reply_only(
+                &intent.capability,
+                "Interactive segmentation needs a SAM model, which isn't wired into this build \
+                 yet. I can still detect objects and review your labels.",
+            )),
+            Capability::Summarize => Ok(CopilotTurnResult::reply_only(
+                &intent.capability,
+                "Open the Dataset Intelligence page to run a full dataset analysis \u{2014} class \
+                 balance, image counts, and quality checks.",
+            )),
+            // Conversational + vision: route to the local LLM when configured,
+            // otherwise point the user at the detector / model settings.
+            Capability::Describe | Capability::Ocr | Capability::Help => match llm {
+                Some(config)
+                    if config.vision
+                        || matches!(intent.capability, Capability::Help) =>
+                {
+                    self.copilot_chat(&intent, &image, &payload.message, config)
+                }
+                // A local model is up but can't see images: don't let a text-only
+                // model hallucinate a description/OCR — ask for a vision model.
+                Some(_) => Ok(CopilotTurnResult::reply_only(
+                    &intent.capability,
+                    "I found a local model, but it can\u{2019}t see images. Load a vision model \
+                     (look for a \u{201c}-VL\u{201d}, LLaVA, or Moondream model in LM Studio or \
+                     Ollama) and I\u{2019}ll describe the image and read its text. For now I can \
+                     still run the detector \u{2014} try \u{201c}detect objects\u{201d} or \
+                     \u{201c}check what I missed\u{201d}.",
+                )),
+                None => Ok(CopilotTurnResult::reply_only(
+                    &intent.capability,
+                    match &intent.capability {
+                        Capability::Help => "I can label this image with your local detector \u{2014} \
+                            try \u{201c}detect objects\u{201d}, \u{201c}find all cars\u{201d}, or \
+                            \u{201c}check what I missed\u{201d}. To describe images, read text, or \
+                            chat, start a local model server (LM Studio, Ollama, or llama.cpp) and \
+                            I\u{2019}ll pick it up automatically.",
+                        _ => "Describing images and reading text needs a local vision model. Start a \
+                            local model server (LM Studio, Ollama, or llama.cpp) and I\u{2019}ll use \
+                            it automatically \u{2014} or run your detector now with \u{201c}detect \
+                            objects\u{201d} or \u{201c}check what I missed\u{201d}.",
+                    },
+                )),
+            },
+        }
+    }
+
+    /// Conversational/vision reply via the configured local LLM. Includes the
+    /// current image as a vision part when the model supports it.
+    fn copilot_chat(
+        &self,
+        intent: &copilot::RoutedIntent,
+        image: &Value,
+        message: &str,
+        config: &CopilotLlmConfig,
+    ) -> Result<CopilotTurnResult, AppError> {
+        let api_key = crate::read_secret("copilot", "apiKey").ok().flatten();
+        let image_url = if config.vision {
+            value_string(image, "path", "path").and_then(|path| llm::image_data_url(&path))
+        } else {
+            None
+        };
+
+        // A failed LLM call is surfaced as the reply text, not a hard error, so
+        // the chat keeps working when the local server is down or misconfigured.
+        let reply = match llm::chat_completion(
+            config,
+            api_key.as_deref(),
+            COPILOT_SYSTEM_PROMPT,
+            message,
+            image_url.as_deref(),
+        ) {
+            Ok(text) => text,
+            Err(error) => {
+                // Only forget the server if it's actually gone; an HTTP or content
+                // error from a healthy server shouldn't force a re-discovery sweep.
+                if !llm::server_reachable(&config.base_url) {
+                    self.invalidate_llm();
+                }
+                error.to_string()
+            }
+        };
+        Ok(CopilotTurnResult::reply_only(&intent.capability, reply))
+    }
+
+    fn copilot_detect(
+        &self,
+        app: &tauri::AppHandle,
+        intent: &copilot::RoutedIntent,
+        image_id: &str,
+        llm: Option<&CopilotLlmConfig>,
+    ) -> Result<CopilotTurnResult, AppError> {
+        let model_id = match self.resolve_model_id()? {
+            Some(id) => id,
+            None => {
+                return Ok(CopilotTurnResult::reply_only(
+                    &intent.capability,
+                    "I don't have a detection model to use yet. Open the AI Models page and import \
+                     or install one (e.g. a YOLO model), then ask me to detect again.",
+                ))
+            }
+        };
+
+        let predictions = match self.generate_predictions(
+            app,
+            PredictionGeneratePayload {
+                image_id: image_id.to_string(),
+                model_id,
+                threshold: None,
+            },
+        ) {
+            Ok(predictions) => predictions,
+            Err(error) => {
+                return Ok(CopilotTurnResult::reply_only(
+                    &intent.capability,
+                    format!("I couldn't run the detector: {error}"),
+                ))
+            }
+        };
+
+        let count = predictions.len();
+        let summary = summarize_by_class(&predictions);
+        let fallback = if count == 0 {
+            "The detector didn't find anything above the confidence threshold.".to_string()
+        } else {
+            format!(
+                "Detected {count} objects ({summary}). They're on the canvas as predictions \u{2014} \
+                 accept the ones you want to keep."
+            )
+        };
+        // YOLO did the detection; let the copilot model phrase the result.
+        let instruction = format!(
+            "The local YOLO detector ran on the current image and found {count} objects: {summary}. \
+             In one or two short sentences, tell the user what was detected and that the boxes are \
+             on the canvas as predictions to accept or reject. If the count is 0, say nothing was \
+             found above the confidence threshold. Do not invent objects beyond this list."
+        );
+        let reply = self.narrate(llm, &instruction, fallback);
+
+        Ok(CopilotTurnResult {
+            reply,
+            capability: intent.capability.as_str().to_string(),
+            predictions_added: count,
+            findings: Vec::new(),
+            proposed_actions: Vec::new(),
+        })
+    }
+
+    fn copilot_qa(
+        &self,
+        app: &tauri::AppHandle,
+        intent: &copilot::RoutedIntent,
+        image_id: &str,
+        llm: Option<&CopilotLlmConfig>,
+    ) -> Result<CopilotTurnResult, AppError> {
+        let model_id = match self.resolve_model_id()? {
+            Some(id) => id,
+            None => {
+                return Ok(CopilotTurnResult::reply_only(
+                    &intent.capability,
+                    "QA review compares your annotations against the detector, but I don't have a \
+                     model yet. Import or install one on the AI Models page first.",
+                ))
+            }
+        };
+
+        let detections = match self.generate_predictions(
+            app,
+            PredictionGeneratePayload {
+                image_id: image_id.to_string(),
+                model_id,
+                threshold: None,
+            },
+        ) {
+            Ok(predictions) => predictions,
+            Err(error) => {
+                return Ok(CopilotTurnResult::reply_only(
+                    &intent.capability,
+                    format!("I couldn't run the detector for QA: {error}"),
+                ))
+            }
+        };
+
+        let annotations = self
+            .store
+            .list_by_field("annotations", "image_id", image_id)?;
+        let (findings, proposed_actions) = copilot::qa_findings(&detections, &annotations);
+
+        let missed = findings.iter().filter(|f| f.kind == "missed").count();
+        let mislabels = proposed_actions
+            .iter()
+            .filter(|a| matches!(a, copilot::ProposedAction::Relabel { .. }))
+            .count();
+        let duplicates = proposed_actions
+            .iter()
+            .filter(|a| matches!(a, copilot::ProposedAction::Delete { .. }))
+            .count();
+
+        let fallback = if findings.is_empty() {
+            "Looks good \u{2014} the detector didn't surface any missed objects, mislabels, or \
+             duplicate boxes on this image."
+                .to_string()
+        } else {
+            format!(
+                "QA review: {missed} possible missed object(s) (added as predictions to review), \
+                 {mislabels} possible mislabel(s), and {duplicates} near-duplicate box(es). \
+                 Approve the fixes you agree with below."
+            )
+        };
+        // The detector + diff produced the findings; the copilot model phrases them.
+        let instruction = format!(
+            "A QA pass compared the local detector against the user's existing labels on this \
+             image. Findings: {missed} possible missed objects (added as predictions), {mislabels} \
+             possible mislabels, {duplicates} near-duplicate boxes. In one or two short sentences, \
+             summarize this for the user and, if there are any fixes, tell them to approve the \
+             suggested fixes shown below. If everything is zero, reassure them it looks good."
+        );
+        let reply = self.narrate(llm, &instruction, fallback);
+
+        Ok(CopilotTurnResult {
+            reply,
+            capability: intent.capability.as_str().to_string(),
+            predictions_added: detections.len(),
+            findings,
+            proposed_actions,
+        })
+    }
+
+    /// Apply a copilot action the user approved (relabel / delete / new label).
+    pub fn copilot_apply_action(
+        &self,
+        app: &tauri::AppHandle,
+        payload: CopilotActionPayload,
+    ) -> Result<Value, AppError> {
+        match payload {
+            CopilotActionPayload::Delete { annotation_id } => {
+                let existing = delete_entity(
+                    self.store.as_ref(),
+                    "annotations",
+                    &annotation_id,
+                    "Annotation not found",
+                )?;
+                emit_domain_event(app, "annotations", "deleted", &existing)?;
+                Ok(json!({ "success": true }))
+            }
+            CopilotActionPayload::Relabel {
+                annotation_id,
+                to_label,
+            } => {
+                let mut annotation = get_entity_or_error(
+                    self.store.as_ref(),
+                    "annotations",
+                    &annotation_id,
+                    "Annotation not found",
+                )?;
+                let project_id =
+                    value_string(&annotation, "projectId", "project_id").unwrap_or_default();
+                let (label, created) = self.find_or_create_label(&project_id, &to_label)?;
+                let label_id = value_string(&label, "id", "id");
+                let color = value_string(&label, "color", "color")
+                    .unwrap_or_else(|| DEFAULT_AI_LABEL_COLOR.to_string());
+                {
+                    let object = as_object_mut(&mut annotation)?;
+                    object.insert("name".into(), Value::String(to_label.clone()));
+                    if let Some(id) = &label_id {
+                        object.insert("labelId".into(), Value::String(id.clone()));
+                        object.insert("label_id".into(), Value::String(id.clone()));
+                    }
+                    object.insert("color".into(), Value::String(color));
+                }
+                let normalized = normalize_entity("annotations", annotation)?;
+                let saved = self.store.upsert_entity("annotations", normalized)?;
+                if created {
+                    emit_domain_event(app, "labels", "created", &label)?;
+                }
+                emit_domain_event(app, "annotations", "updated", &saved)?;
+                Ok(saved)
+            }
+            CopilotActionPayload::CreateLabel {
+                name,
+                color: _,
+                project_id,
+            } => {
+                let (label, created) = self.find_or_create_label(&project_id, &name)?;
+                if created {
+                    emit_domain_event(app, "labels", "created", &label)?;
+                }
+                Ok(label)
+            }
+        }
+    }
+
+    /// Find a project label by name (case-insensitive) or create one.
+    fn find_or_create_label(
+        &self,
+        project_id: &str,
+        name: &str,
+    ) -> Result<(Value, bool), AppError> {
+        let labels = self.store.list_by_field("labels", "project_id", project_id)?;
+        if let Some(existing) = labels.iter().find(|label| {
+            value_string(label, "name", "name")
+                .map(|existing_name| existing_name.eq_ignore_ascii_case(name))
+                .unwrap_or(false)
+        }) {
+            return Ok((existing.clone(), false));
+        }
+
+        let label = normalize_entity(
+            "labels",
+            json!({
+                "name": name,
+                "projectId": project_id,
+                "project_id": project_id,
+                "color": DEFAULT_AI_LABEL_COLOR,
+                "isAIGenerated": true,
+            }),
+        )?;
+        let saved = self.store.upsert_entity("labels", label)?;
+        Ok((saved, true))
+    }
+}
+
+/// Compact "3 car, 1 person" style summary of prediction classes.
+fn summarize_by_class(predictions: &[Value]) -> String {
+    use std::collections::BTreeMap;
+
+    let mut counts: BTreeMap<String, usize> = BTreeMap::new();
+    for prediction in predictions {
+        let name = value_string(prediction, "labelName", "label_name")
+            .or_else(|| value_string(prediction, "name", "name"))
+            .unwrap_or_else(|| "object".to_string());
+        *counts.entry(name).or_insert(0) += 1;
+    }
+
+    counts
+        .into_iter()
+        .take(6)
+        .map(|(name, count)| format!("{count} {name}"))
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 fn get_entity_or_error(

@@ -10,18 +10,10 @@ import {
   useCanvasZoom,
 } from "@/contexts/canvas-context"
 import { listenToStudioEvents } from "@/ipc/events"
-import {
-  canAttemptModelPrediction,
-  getModelUnsupportedReason,
-  getPredictionReadinessLabel,
-  isModelPredictionReady,
-  willModelConvertOnRun,
-} from "@/lib/ai-model-metadata"
 import { services } from "@/services"
 import type { Annotation, ImageData, Label, Project } from "@/types/core"
 import { openPathDialog } from "@/lib/desktop"
 import { exportDataset, type ExportFormat } from "@/lib/export"
-import { useAIModelViewModel } from "@/viewmodels/ai-model-viewmodel"
 import { useImageLabelerViewModel } from "@/viewmodels/image-labeler-viewmodel"
 import { useSettingsViewModel } from "@/viewmodels/settings-viewmodel"
 import { useCanvasSession } from "./use-canvas-session"
@@ -30,7 +22,6 @@ import type { StudioHeaderStats } from "./types"
 export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
   const navigate = useNavigate()
   const imageLabeler = useImageLabelerViewModel(projectId, imageId)
-  const aiModels = useAIModelViewModel()
   const settings = useSettingsViewModel()
   const { contextMenu, setContextMenu } = useCanvasContextMenu()
   const { container, setContainer } = useCanvasContainer()
@@ -53,7 +44,6 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
   })
   const [isProjectSummaryLoading, setIsProjectSummaryLoading] = useState(true)
   const [showSettingsModal, setShowSettingsModal] = useState(false)
-  const [showAIModelModal, setShowAIModelModal] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
 
   const effectiveProjectId = useMemo(
@@ -308,9 +298,6 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
     [effectiveProjectId]
   )
 
-  const selectedModel = aiModels.selectedModel
-  const selectedModelCanAttemptPrediction = canAttemptModelPrediction(selectedModel)
-
   return {
     data: {
       image: imageLabeler.image,
@@ -341,14 +328,6 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
     prevId: previousImageId,
     currentImageIndex,
     showSettingsModal,
-    showAIModelModal,
-    selectedModel,
-    selectedModelId: aiModels.selectedModelId,
-    selectedModelPredictionReady: isModelPredictionReady(selectedModel),
-    selectedModelCanAttemptPrediction,
-    selectedModelWillConvertOnRun: willModelConvertOnRun(selectedModel),
-    selectedModelUnsupportedReason: getModelUnsupportedReason(selectedModel),
-    selectedModelReadinessLabel: getPredictionReadinessLabel(selectedModel),
     setContainer,
     setSelectedTool,
     zoomIn,
@@ -360,8 +339,6 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
     closeContextMenu,
     openSettingsModal: () => setShowSettingsModal(true),
     closeSettingsModal: () => setShowSettingsModal(false),
-    openAIModelModal: () => setShowAIModelModal(true),
-    closeAIModelModal: () => setShowAIModelModal(false),
     refreshProjectSummary,
     refreshAnnotations: imageLabeler.refreshAnnotations,
     createAnnotationFromDraft: canvasSession.createAnnotationFromDraft,

@@ -62,6 +62,15 @@ pub struct PredictionActionPayload {
     pub prediction_id: String,
 }
 
+/// Options for the on-demand ONNX Runtime installer. `gpu` defaults to true so
+/// the GPU package (which also runs on CPU) is fetched and cuDNN is attempted.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeInstallPayload {
+    #[serde(default)]
+    pub gpu: Option<bool>,
+}
+
 #[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct InferencePoint {
@@ -81,4 +90,50 @@ pub struct InferenceAnnotationDraft {
     pub label_name: Option<String>,
     pub label_color: Option<String>,
     pub is_ai_generated: bool,
+}
+
+/// A local OpenAI-compatible LLM/VLM the copilot auto-discovers and uses for its
+/// conversational + vision replies (LM Studio, Ollama, llama.cpp). It is built on
+/// the backend by `llm::discover_local_llm` — there is no client-side config, so
+/// this is constructed in Rust, never deserialized from the webview.
+#[derive(Debug, Clone)]
+pub struct CopilotLlmConfig {
+    /// Discovery source tag, e.g. "auto".
+    pub provider: String,
+    /// Base URL including the `/v1` suffix, e.g. http://localhost:1234/v1.
+    pub base_url: String,
+    pub model: String,
+    /// Whether the picked model accepts image input (VLM).
+    pub vision: bool,
+}
+
+/// One chat turn for the local AI copilot. The copilot auto-discovers the local
+/// model itself, so the client sends no LLM configuration.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CopilotTurnPayload {
+    pub project_id: Option<String>,
+    pub image_id: String,
+    pub message: String,
+}
+
+/// A human-approved mutation the copilot proposed (relabel / delete / new label).
+/// Tagged by `kind` so the frontend can round-trip a `ProposedAction` back.
+#[derive(Debug, Deserialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum CopilotActionPayload {
+    #[serde(rename_all = "camelCase")]
+    Relabel {
+        annotation_id: String,
+        to_label: String,
+    },
+    #[serde(rename_all = "camelCase")]
+    Delete { annotation_id: String },
+    #[serde(rename_all = "camelCase")]
+    CreateLabel {
+        name: String,
+        #[serde(default)]
+        color: Option<String>,
+        project_id: String,
+    },
 }

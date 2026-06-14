@@ -2,12 +2,15 @@ import { Check, Sparkles, X } from "lucide-react"
 import type { Label, Prediction } from "@/types/core"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { cn } from "@/lib/utils"
 
 interface PredictionReviewPanelProps {
   predictions: Prediction[]
   labels: Label[]
   onAccept: (predictionId: string) => Promise<void>
   onReject: (predictionId: string) => Promise<void>
+  /** Shift left so the panel clears the docked copilot when it's open. */
+  offset?: boolean
 }
 
 function willCreateLabel(prediction: Prediction, labels: Label[]) {
@@ -29,11 +32,17 @@ export function PredictionReviewPanel({
   labels,
   onAccept,
   onReject,
+  offset = false,
 }: PredictionReviewPanelProps) {
   if (predictions.length === 0) return null
 
   return (
-    <div className="absolute right-4 top-4 z-20 w-80 rounded-xl border border-emerald-200 bg-card/95 p-4 shadow-xl backdrop-blur dark:border-emerald-900/95">
+    <div
+      className={cn(
+        "absolute top-4 z-20 w-80 rounded-xl border border-emerald-200 bg-card/95 p-4 shadow-xl backdrop-blur dark:border-emerald-900/95",
+        offset ? "right-[25rem]" : "right-4"
+      )}
+    >
       <div className="mb-3 flex items-center gap-2">
         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
           <Sparkles className="h-4 w-4" />

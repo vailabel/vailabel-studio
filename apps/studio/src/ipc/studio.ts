@@ -1,6 +1,14 @@
 import { invokeWithLogging } from "@/ipc/invoke"
 import type { GitHubRelease } from "@/lib/github-releases"
-import type { AiGpuInfo, AiRegistryModel } from "@/types/ai-assistant"
+import type {
+  AiGpuInfo,
+  AiRegistryModel,
+  CopilotApplyAction,
+  CopilotTurnRequest,
+  CopilotTurnResult,
+  RuntimeInstallResult,
+  RuntimeInstallStatus,
+} from "@/types/ai-assistant"
 import type {
   AnalysisConfig,
   AnalysisJob,
@@ -132,6 +140,18 @@ export const studioCommands = {
   // Local AI assistant (Phase 1): GPU/runtime detection + model registry.
   aiGpuInfo: () => call<AiGpuInfo>("ai_gpu_info"),
   aiModelRegistry: () => call<AiRegistryModel[]>("ai_model_registry"),
+
+  // ONNX Runtime auto-installer: download onnxruntime.dll (+ cuDNN) on demand.
+  aiRuntimeStatus: () => call<RuntimeInstallStatus>("ai_runtime_status"),
+  aiRuntimeInstall: (gpu = true) =>
+    call<RuntimeInstallResult>("ai_runtime_install", { payload: { gpu } }),
+  aiRuntimeRestart: () => call<void>("ai_runtime_restart"),
+
+  // Local AI copilot: chat-driven labeling assistant over the local detector.
+  aiCopilotTurn: (payload: CopilotTurnRequest) =>
+    call<CopilotTurnResult>("ai_copilot_turn", { payload }),
+  aiCopilotApplyAction: (payload: CopilotApplyAction) =>
+    call<unknown>("ai_copilot_apply_action", { payload }),
 
   // Dataset Intelligence (Phase 2): analysis jobs + persisted reports.
   analysisRun: (payload: { projectId: string; config?: AnalysisConfig }) =>
