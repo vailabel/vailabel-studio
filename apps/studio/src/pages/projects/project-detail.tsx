@@ -376,7 +376,7 @@ const ProjectDetails = memo(() => {
         onSave={viewModel.updateProject}
         isLoading={viewModel.isEditingProject}
         projectName={viewModel.projectName}
-        projectDescription=""
+        projectDescription={viewModel.project?.description ?? ""}
       />
 
       <AddLabelModal

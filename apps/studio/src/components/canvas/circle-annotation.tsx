@@ -69,7 +69,6 @@ export const CircleAnnotation = memo(
             strokeWidth: isSelected ? 3 : 2,
             strokeDasharray: readOnly ? "6 4" : "none",
           }}
-          className="animate-in fade-in duration-200"
         />
         <text
           x={center.x}

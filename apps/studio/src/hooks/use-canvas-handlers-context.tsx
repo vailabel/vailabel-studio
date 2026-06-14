@@ -8,7 +8,7 @@ import {
   getCenterOffset,
 } from "@/tools/canvas-utils"
 import {
-  useCanvasCursor,
+  useSetCanvasCursor,
   useCanvasPan,
   useCanvasZoom,
   useCanvasTool,
@@ -121,7 +121,7 @@ export function useCanvasHandlers(
   }), [annotations, storeMethods, currentImage])
   
   // Use selective hooks for better performance
-  const { setCursorPosition } = useCanvasCursor()
+  const setCursorPosition = useSetCanvasCursor()
   const { panOffset, setPanOffset } = useCanvasPan()
   const { zoom, setZoom } = useCanvasZoom()
   const { selectedTool, setSelectedTool, toolState, setToolState } = useCanvasTool()

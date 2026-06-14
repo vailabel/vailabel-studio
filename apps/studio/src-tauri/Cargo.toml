@@ -20,7 +20,6 @@ keyring = { version = "3", default-features = false, features = ["apple-native",
 open = "5"
 rfd = "0.15"
 diesel = { version = "2", features = ["sqlite"] }
-diesel_migrations = "2"
 libsqlite3-sys = { version = "0.28", features = ["bundled"] }
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls", "json"] }
 serde = { version = "1", features = ["derive"] }

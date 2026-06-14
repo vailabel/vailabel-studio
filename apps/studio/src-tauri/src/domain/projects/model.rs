@@ -7,6 +7,8 @@ use serde_json::Value;
 pub struct Project {
     pub id: String,
     pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
     #[serde(rename = "type")]
     pub project_type: String,
     pub status: String,

@@ -140,3 +140,43 @@
     @apply bg-background text-foreground;
   }
 }
+
+/*
+ * Performance: make the UI feel instant by neutralizing decorative entrance
+ * and transition animations app-wide (fade-in / slide-in / zoom-in / accordion /
+ * shimmer / all hover & state transitions). Functional loading indicators are
+ * intentionally preserved so progress stays visible — see the overrides below.
+ *
+ * This is a single global lever: individual `animate-*` / `transition-*` utility
+ * classes can stay in the markup; they simply resolve to ~0ms here.
+ */
+*,
+*::before,
+*::after {
+  animation-duration: 0.001ms !important;
+  animation-delay: 0ms !important;
+  transition-duration: 0.001ms !important;
+  transition-delay: 0ms !important;
+}
+
+/* Keep continuous, functional feedback running at normal speed. */
+.animate-spin {
+  animation-duration: 1s !important;
+}
+.animate-pulse {
+  animation-duration: 2s !important;
+}
+.animate-caret-blink {
+  animation-duration: 1.25s !important;
+}
+
+/* Respect users who explicitly want motion (overrides the blanket kill above). */
+@media (prefers-reduced-motion: no-preference) {
+  .motion-safe\:allow-animations,
+  .motion-safe\:allow-animations *,
+  [data-allow-animations],
+  [data-allow-animations] * {
+    animation-duration: revert !important;
+    transition-duration: revert !important;
+  }
+}

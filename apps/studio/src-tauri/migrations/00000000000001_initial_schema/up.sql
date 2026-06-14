@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS projects (
     id          TEXT PRIMARY KEY NOT NULL,
     name        TEXT NOT NULL,
-    description TEXT,
+    description TEXT NOT NULL DEFAULT '',
     project_type TEXT NOT NULL DEFAULT 'classification',
     status      TEXT NOT NULL DEFAULT 'active',
     settings_json TEXT,

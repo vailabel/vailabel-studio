@@ -58,7 +58,7 @@ export const BoxAnnotation = memo(({ annotation, readOnly = false }: BoxAnnotati
     <div
       data-testid="box-annotation"
       className={cn(
-        "absolute border-2 bg-opacity-20 animate-in fade-in zoom-in-95 duration-200",
+        "absolute border-2 bg-opacity-20",
         isSelected && "border-red-500"
       )}
       style={annotationStyles}

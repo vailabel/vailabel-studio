@@ -24,7 +24,6 @@ export const TempBoxAnnotation = memo(
     return (
       <svg className="absolute left-0 top-0 h-full w-full pointer-events-none">
         <rect
-          className="animate-in fade-in duration-300"
           x={topLeft.x}
           y={topLeft.y}
           width={bottomRight.x - topLeft.x}

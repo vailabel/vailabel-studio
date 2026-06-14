@@ -44,7 +44,6 @@ export const TempFreeDrawAnnotation = memo(
     return (
       <svg className="absolute left-0 top-0 h-full w-full pointer-events-none">
         <path
-          className="animate-in fade-in duration-300"
           d={pathData}
           style={{
             fill: "rgba(59, 130, 246, 0.2)",

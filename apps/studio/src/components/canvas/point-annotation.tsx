@@ -26,7 +26,6 @@ export const PointAnnotation = memo(
             strokeWidth: 2,
             strokeDasharray: readOnly ? "3 2" : "none",
           }}
-          className="animate-in fade-in zoom-in-95 duration-200"
         />
         <text
           x={point.x + 8}

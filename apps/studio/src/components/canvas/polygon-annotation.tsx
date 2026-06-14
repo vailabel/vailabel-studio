@@ -230,8 +230,8 @@ export const PolygonAnnotation = memo(
           }}
           className={
             isMoveTool && !readOnly
-              ? "animate-in fade-in duration-300 pointer-events-auto cursor-move"
-              : "animate-in fade-in duration-300 pointer-events-none"
+              ? "pointer-events-auto cursor-move"
+              : "pointer-events-none"
           }
         />
         <text

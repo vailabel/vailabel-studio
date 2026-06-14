@@ -28,7 +28,6 @@ type ToolState = {
 interface CanvasContextType {
   zoom: number
   panOffset: Point
-  cursorPosition: Point | null
   selectedTool: string
   toolState: ToolState
   selectedAnnotation: any
@@ -44,7 +43,6 @@ interface CanvasContextType {
   setPanOffset: (pan: Point) => void
   panTo: (x: number, y: number) => void
   resetView: () => void
-  setCursorPosition: (cursor: Point | null) => void
   setSelectedTool: (tool: string) => void
   setToolState: (state: Partial<ToolState>) => void
   setSelectedAnnotation: (annotation: any) => void
@@ -66,10 +64,30 @@ interface CanvasContextType {
 
 const CanvasContext = createContext<CanvasContextType | undefined>(undefined)
 
+// ── Cursor position (high-frequency) ─────────────────────────────────────────
+// The cursor moves on virtually every mousemove event. Keeping it inside the
+// main canvas context would re-render every consumer (all annotations, the
+// toolbar, panels…) on each move. We isolate it in its own provider and split
+// the value from the setter: components that only WRITE the cursor (the event
+// handlers) read the setter — whose identity is stable — so they never
+// re-render, while only the crosshair/coordinate overlays subscribe to the value.
+const CursorValueContext = createContext<Point | null>(null)
+const CursorSetContext = createContext<(cursor: Point | null) => void>(() => {})
+
+const CursorProvider = ({ children }: { children: ReactNode }) => {
+  const [cursorPosition, setCursorPosition] = useState<Point | null>(null)
+  return (
+    <CursorSetContext.Provider value={setCursorPosition}>
+      <CursorValueContext.Provider value={cursorPosition}>
+        {children}
+      </CursorValueContext.Provider>
+    </CursorSetContext.Provider>
+  )
+}
+
 export const CanvasProvider = ({ children }: { children: ReactNode }) => {
   const [zoom, setInternalZoom] = useState(1)
   const [panOffset, setPanOffset] = useState<Point>({ x: 0, y: 0 })
-  const [cursorPosition, setCursorPosition] = useState<Point | null>(null)
   const [selectedTool, setSelectedTool] = useState("move")
   const [toolState, setInternalToolState] = useState<ToolState>({})
   const [selectedAnnotation, setSelectedAnnotation] = useState<any>(null)
@@ -109,7 +127,6 @@ export const CanvasProvider = ({ children }: { children: ReactNode }) => {
   const resetView = useCallback(() => {
     setZoom(1)
     setPanOffset({ x: 0, y: 0 })
-    setCursorPosition(null)
     setIsPanning(false)
     setLastPanPoint(null)
   }, [setZoom])
@@ -149,7 +166,6 @@ export const CanvasProvider = ({ children }: { children: ReactNode }) => {
     () => ({
       zoom,
       panOffset,
-      cursorPosition,
       selectedTool,
       toolState,
       selectedAnnotation,
@@ -165,7 +181,6 @@ export const CanvasProvider = ({ children }: { children: ReactNode }) => {
       setPanOffset,
       panTo,
       resetView,
-      setCursorPosition,
       setSelectedTool,
       setToolState,
       setSelectedAnnotation,
@@ -182,7 +197,6 @@ export const CanvasProvider = ({ children }: { children: ReactNode }) => {
     [
       zoom,
       panOffset,
-      cursorPosition,
       selectedTool,
       toolState,
       selectedAnnotation,
@@ -206,7 +220,9 @@ export const CanvasProvider = ({ children }: { children: ReactNode }) => {
   )
 
   return (
-    <CanvasContext.Provider value={value}>{children}</CanvasContext.Provider>
+    <CanvasContext.Provider value={value}>
+      <CursorProvider>{children}</CursorProvider>
+    </CanvasContext.Provider>
   )
 }
 
@@ -240,10 +256,17 @@ export const useCanvasPan = () => {
   return { panOffset, setPanOffset, panTo, resetView }
 }
 
+// Readers of the cursor position (crosshair, coordinate overlay). These DO
+// re-render as the cursor moves — that is their job.
 export const useCanvasCursor = () => {
-  const { cursorPosition, setCursorPosition } = useCanvas()
+  const cursorPosition = useContext(CursorValueContext)
+  const setCursorPosition = useContext(CursorSetContext)
   return { cursorPosition, setCursorPosition }
 }
+
+// Writer-only access for event handlers. The setter identity is stable, so
+// subscribing here never triggers a re-render when the cursor moves.
+export const useSetCanvasCursor = () => useContext(CursorSetContext)
 
 export const useCanvasSelection = () => {
   const { selectedAnnotation, setSelectedAnnotation } = useCanvas()

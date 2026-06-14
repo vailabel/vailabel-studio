@@ -28,7 +28,6 @@ export const TempPolygonAnnotation = memo(
         {/* Main polygon */}
         {hasMultiplePoints && (
           <polygon
-            className="animate-in fade-in duration-300"
             points={coordinates.map((p) => `${p.x},${p.y}`).join(" ")}
             style={{
               fill: styles.fill,
@@ -43,7 +42,6 @@ export const TempPolygonAnnotation = memo(
         {coordinates.map((point, index) => (
           <circle
             key={`vertex-${index}`}
-            className="animate-in zoom-in fade-in duration-200 fill-mode-both"
             style={{
               fill: styles.vertexFill,
               stroke: styles.vertexStroke,
@@ -59,7 +57,6 @@ export const TempPolygonAnnotation = memo(
         {/* Close indicator - show green circle on first point when near */}
         {coordinates.length >= 3 && (
           <circle
-            className="animate-in zoom-in fade-in duration-200"
             cx={coordinates[0].x}
             cy={coordinates[0].y}
             r={8}
@@ -75,7 +72,6 @@ export const TempPolygonAnnotation = memo(
         {coordinates.map((point, index) => (
           <text
             key={`label-${index}`}
-            className="animate-in zoom-in fade-in duration-200 fill-mode-both"
             x={point.x + 8}
             y={point.y - 8}
             style={{

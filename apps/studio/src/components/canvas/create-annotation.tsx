@@ -131,7 +131,7 @@ export const CreateAnnotation = memo(
 
     return (
       <div
-        className="absolute w-full max-w-sm rounded-lg bg-white p-3 shadow-lg dark:bg-gray-800 dark:text-gray-100 top-2 left-2 z-50 animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-200"
+        className="absolute w-full max-w-sm rounded-lg bg-white p-3 shadow-lg dark:bg-gray-800 dark:text-gray-100 top-2 left-2 z-50"
         onClick={(e) => e.stopPropagation()}
       >
           <div className="flex items-center justify-between">

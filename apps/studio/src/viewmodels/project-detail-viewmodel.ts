@@ -16,7 +16,6 @@ import { recordRecentProject } from "@/lib/recent-projects"
 export const ProjectEditSchema = z.object({
   name: z.string().min(1).max(100),
   description: z.string().max(500).optional(),
-  type: z.string().min(1),
   settings: z.record(z.unknown()).optional(),
 })
 
