@@ -2,7 +2,65 @@
 
 import { container, item } from "@/lib/motion"
 import { motion } from "framer-motion"
-import React from "react"
+import {
+  Shapes,
+  Wand2,
+  FileDown,
+  Database,
+  Cloud,
+  Laptop,
+  type LucideIcon,
+} from "lucide-react"
+
+type Feature = {
+  icon: LucideIcon
+  title: string
+  description: string
+  tint: string
+}
+
+const features: Feature[] = [
+  {
+    icon: Shapes,
+    title: "Annotation Tools",
+    description:
+      "Draw boxes, polygons, points, lines, circles, and free-form masks with precise editing.",
+    tint: "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400",
+  },
+  {
+    icon: Wand2,
+    title: "AI-Assisted Labeling",
+    description:
+      "Auto-detect objects with local ONNX models (YOLO-family) — GPU-accelerated and fully offline.",
+    tint: "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400",
+  },
+  {
+    icon: FileDown,
+    title: "Multi-Format Export",
+    description: "Export annotations to LabelMe, COCO, YOLO, and Pascal VOC.",
+    tint: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400",
+  },
+  {
+    icon: Database,
+    title: "Local-First & Offline",
+    description:
+      "Projects are stored locally in SQLite — your data never leaves your machine.",
+    tint: "bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400",
+  },
+  {
+    icon: Cloud,
+    title: "Cloud Storage",
+    description:
+      "Optionally connect your own S3, Azure, or GCS bucket for image storage.",
+    tint: "bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400",
+  },
+  {
+    icon: Laptop,
+    title: "Cross-Platform Desktop",
+    description: "Runs natively on Windows, macOS, and Linux — built with Tauri.",
+    tint: "bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400",
+  },
+]
 
 const FeatureHighlights = () => {
   return (
@@ -16,7 +74,7 @@ const FeatureHighlights = () => {
           transition={{ duration: 0.5 }}
         >
           <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
-            Powerful <span className="text-gradient">Features</span>
+            Powerful <span className="brand-accent">Features</span>
           </h2>
           <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
             Everything you need for efficient image annotation and labeling
@@ -30,177 +88,23 @@ const FeatureHighlights = () => {
           whileInView="show"
           viewport={{ once: true }}
         >
-          {/* Feature 1 */}
-          <motion.div
-            className="glass cloud-card rounded-2xl p-6 shadow-lg shadow-slate-200/40 dark:shadow-none hover:shadow-xl hover:shadow-blue-500/10"
-            variants={item}
-          >
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/30 mb-4 bg-gradient-to-br from-blue-500 to-indigo-600">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-                stroke="currentColor"
-                className="w-6 h-6"
+          {features.map((feature) => (
+            <motion.div
+              key={feature.title}
+              className="surface cloud-card rounded-2xl p-6 shadow-sm hover:shadow-md"
+              variants={item}
+            >
+              <div
+                className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${feature.tint}`}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9.53 16.122a3 3 0 0 0-5.78 1.128 2.25 2.25 0 0 1-2.4 2.245 4.5 4.5 0 0 0 8.4-2.245c0-.399-.078-.78-.22-1.128Zm0 0a15.998 15.998 0 0 0 3.388-1.62m-5.043-.025a15.994 15.994 0 0 1 1.622-3.395m3.42 3.42a15.995 15.995 0 0 0 4.764-4.648l3.876-5.814a1.151 1.151 0 0 0-1.597-1.597L14.146 6.32a15.996 15.996 0 0 0-4.649 4.763m3.42 3.42a6.776 6.776 0 0 0-3.42-3.42"
-                />
-              </svg>
-            </div>
-            <h3 className="text-xl font-semibold mb-2">Manual Annotations</h3>
-            <p className="text-gray-600 dark:text-gray-400">
-              Create boxes, polygons, and free-form drawings with precision
-              tools.
-            </p>
-          </motion.div>
-
-          {/* Feature 2 */}
-          <motion.div
-            className="glass cloud-card rounded-2xl p-6 shadow-lg shadow-slate-200/40 dark:shadow-none hover:shadow-xl hover:shadow-blue-500/10"
-            variants={item}
-          >
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/30 mb-4 bg-gradient-to-br from-indigo-500 to-violet-600">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-                stroke="currentColor"
-                className="w-6 h-6"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z"
-                />
-              </svg>
-            </div>
-            <h3 className="text-xl font-semibold mb-2">
-              AI Labeling with YOLOv8
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400">
-              Accelerate your workflow with AI-assisted auto-labeling.
-            </p>
-          </motion.div>
-
-          {/* Feature 3 */}
-          <motion.div
-            className="glass cloud-card rounded-2xl p-6 shadow-lg shadow-slate-200/40 dark:shadow-none hover:shadow-xl hover:shadow-blue-500/10"
-            variants={item}
-          >
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/30 mb-4 bg-gradient-to-br from-emerald-500 to-teal-600">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-                stroke="currentColor"
-                className="w-6 h-6"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"
-                />
-              </svg>
-            </div>
-            <h3 className="text-xl font-semibold mb-2">Multi-Format Export</h3>
-            <p className="text-gray-600 dark:text-gray-400">
-              Export to COCO, YOLO, Pascal VOC, and JSON formats.
-            </p>
-          </motion.div>
-
-          {/* Feature 4 */}
-          <motion.div
-            className="glass cloud-card rounded-2xl p-6 shadow-lg shadow-slate-200/40 dark:shadow-none hover:shadow-xl hover:shadow-blue-500/10"
-            variants={item}
-          >
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-lg shadow-purple-500/30 mb-4 bg-gradient-to-br from-purple-500 to-fuchsia-600">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-                stroke="currentColor"
-                className="w-6 h-6"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125"
-                />
-              </svg>
-            </div>
-            <h3 className="text-xl font-semibold mb-2">
-              Offline Project Storage
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400">
-              Store projects locally with Dexie.js for complete offline support.
-            </p>
-          </motion.div>
-
-          {/* Feature 5 */}
-          <motion.div
-            className="glass cloud-card rounded-2xl p-6 shadow-lg shadow-slate-200/40 dark:shadow-none hover:shadow-xl hover:shadow-blue-500/10"
-            variants={item}
-          >
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-lg shadow-orange-500/30 mb-4 bg-gradient-to-br from-orange-500 to-amber-600">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-                stroke="currentColor"
-                className="w-6 h-6"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9 17.25v1.007a3 3 0 0 1-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0 1 15 18.257V17.25m6-12V15a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 15V5.25m18 0A2.25 2.25 0 0 0 18.75 3H5.25A2.25 2.25 0 0 0 3 5.25m18 0V12a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 12V5.25"
-                />
-              </svg>
-            </div>
-            <h3 className="text-xl font-semibold mb-2">
-              Cross-platform Desktop App
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400">
-              Use on Windows, macOS, or Linux with the same great experience.
-            </p>
-          </motion.div>
-
-          {/* Feature 6 */}
-          <motion.div
-            className="glass cloud-card rounded-2xl p-6 shadow-lg shadow-slate-200/40 dark:shadow-none hover:shadow-xl hover:shadow-blue-500/10"
-            variants={item}
-          >
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-lg shadow-pink-500/30 mb-4 bg-gradient-to-br from-pink-500 to-rose-600">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-                stroke="currentColor"
-                className="w-6 h-6"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75"
-                />
-              </svg>
-            </div>
-            <h3 className="text-xl font-semibold mb-2">
-              Responsive Light/Dark UI
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400">
-              Beautiful interface that adapts to your preferences and
-              environment.
-            </p>
-          </motion.div>
+                <feature.icon className="w-6 h-6" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                {feature.description}
+              </p>
+            </motion.div>
+          ))}
         </motion.div>
       </div>
     </section>

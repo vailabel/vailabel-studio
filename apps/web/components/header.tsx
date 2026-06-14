@@ -36,7 +36,7 @@ export default function Header() {
       : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
 
   return (
-    <header className="sticky top-0 z-50 glass border-b border-black/5 dark:border-white/10">
+    <header className="sticky top-0 z-50 surface border-b border-black/5 dark:border-white/10">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
           <Link href="/" className="flex items-center space-x-2">
@@ -47,7 +47,7 @@ export default function Header() {
               height={32}
               className="h-8 w-8"
             />
-            <span className="text-xl font-bold text-gradient">
+            <span className="text-xl font-bold brand-accent">
               Vision AI Label Studio
             </span>
           </Link>
@@ -63,7 +63,7 @@ export default function Header() {
             {mounted && (
               <button
                 onClick={toggleDarkMode}
-                className="p-2 rounded-full glass text-gray-700 dark:text-gray-300 hover:shadow-md transition-shadow"
+                className="p-2 rounded-full surface text-gray-700 dark:text-gray-300 hover:shadow-md transition-shadow"
                 aria-label="Toggle dark mode"
               >
                 {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
@@ -87,7 +87,7 @@ export default function Header() {
                   sideOffset={8}
                   className="z-50"
                 >
-                  <Popover.Popup className="glass rounded-2xl shadow-xl p-4 w-56 flex flex-col gap-2 animate-fade-in">
+                  <Popover.Popup className="surface rounded-2xl shadow-xl p-4 w-56 flex flex-col gap-2 animate-fade-in">
                     {navLinks.map((link) => (
                       <Link
                         key={link.href}

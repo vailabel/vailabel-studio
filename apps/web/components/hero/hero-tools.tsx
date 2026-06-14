@@ -37,7 +37,8 @@ export const labelingTools: LabelingTool[] = [
     icon: <Wand2 className="w-5 h-5" />,
     image: "/demo-warehouse.svg",
     color: "bg-amber-500",
-    description: "Auto-label with YOLOv8 AI detection for 5x faster workflow",
+    description:
+      "Auto-label with local ONNX models (YOLO-family), GPU-accelerated",
   },
   {
     name: "Layer Manager",

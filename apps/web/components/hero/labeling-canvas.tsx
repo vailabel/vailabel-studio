@@ -114,7 +114,7 @@ export function LabelingCanvas({
             initial={{ opacity: 0, scale: 0.8 }}
             animate={controls.ai}
           >
-            <div className="w-full h-full bg-gradient-to-r from-amber-500/10 to-amber-500/30 rounded-full flex items-center justify-center">
+            <div className="w-full h-full bg-amber-500/20 rounded-full flex items-center justify-center">
               <Wand2 className="w-16 h-16 text-amber-500" />
             </div>
           </motion.div>
@@ -152,7 +152,7 @@ export function LabelingCanvas({
           </motion.div>
         </div>
 
-        <div className="absolute inset-0 bg-gradient-to-t from-gray-900/30 to-transparent"></div>
+        <div className="absolute inset-0 bg-gray-900/15"></div>
       </div>
 
       {/* Interface Controls Mockup */}
