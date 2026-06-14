@@ -75,11 +75,25 @@ export const useOverviewViewModel = () => {
         (count, project) => count + Number(project.metadata?.labelCount ?? 0),
         0
       ),
-      pendingTasks: projects.reduce(
-        (count, project) => count + Number(project.metadata?.pendingTaskCount ?? 0),
-        0
-      ),
     }
+  }, [projects])
+
+  // Real breakdown of projects by status (no fabricated numbers).
+  const statusBreakdown = useMemo(() => {
+    const counts = projects.reduce((acc, project) => {
+      const status = project.status?.trim() || "unknown"
+      acc[status] = (acc[status] ?? 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+
+    const total = projects.length
+    return Object.entries(counts)
+      .map(([status, count]) => ({
+        status,
+        count,
+        percentage: total ? Math.round((count / total) * 100) : 0,
+      }))
+      .sort((left, right) => right.count - left.count)
   }, [projects])
 
   return {
@@ -122,16 +136,8 @@ export const useOverviewViewModel = () => {
         action: () => navigate("/labels"),
         disabled: false,
       },
-      {
-        id: "tasks",
-        label: "Review Tasks",
-        description: "Track outstanding labeling work",
-        icon: "check-square",
-        color: "bg-amber-600",
-        action: () => navigate("/tasks"),
-        disabled: false,
-      },
     ],
+    statusBreakdown,
     isEmpty: projects.length === 0,
     lastUpdated,
     refreshData,
