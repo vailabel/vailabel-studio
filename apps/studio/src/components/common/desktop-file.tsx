@@ -1,5 +1,7 @@
 import { useRef, useState } from "react"
 import { File as FileIcon } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
 import { isDesktopApp, openPathDialog } from "@/lib/desktop"
 
 interface OpenDialogOptions {
@@ -64,20 +66,20 @@ export const DesktopFileInput = ({
   }
 
   return (
-    <div className={`w-full flex flex-col gap-2 ${className}`}>
-      <div
-        className="flex items-center gap-2 px-4 py-2 rounded-lg border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-primary/60 transition-colors duration-150 cursor-pointer font-semibold text-sm min-h-[40px]"
-        tabIndex={0}
+    <div className={cn("flex w-full flex-col gap-2", className)}>
+      <Button
+        type="button"
+        variant="outline"
+        size="lg"
         onClick={handleClick}
-        onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && handleClick()}
-        role="button"
         aria-label="Select file"
+        className="w-full justify-start font-semibold"
       >
-        <FileIcon className="w-4 h-4 text-primary/80" />
+        <FileIcon className="text-primary/80" />
         <span className="truncate">
           {selectedFiles.length > 0 ? selectedFiles.join(", ") : placeholder}
         </span>
-      </div>
+      </Button>
       <input
         ref={inputRef}
         type="file"

@@ -65,7 +65,7 @@ CanvasImage.displayName = "CanvasImage"
 const EmptyImageState = memo(() => (
   <div className="flex h-full items-center justify-center">
     <div className="text-center">
-      <p className="text-lg font-medium text-gray-500 dark:text-gray-300">
+      <p className="text-lg font-medium text-muted-foreground">
         No image loaded
       </p>
     </div>
@@ -343,7 +343,7 @@ export const Canvas = memo(
 
     return (
       <>
-        <div className="relative h-full w-full overflow-hidden bg-gray-100 dark:bg-gray-900">
+        <div className="relative h-full w-full overflow-hidden bg-muted">
           <div className="relative h-full w-full overflow-hidden">
             {!image ? (
               <EmptyImageState />

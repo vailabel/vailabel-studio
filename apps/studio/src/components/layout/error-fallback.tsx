@@ -12,7 +12,7 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({
   resetErrorBoundary,
 }) => {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-white dark:bg-gray-900 text-gray-900 dark:text-white p-6">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground dark:text-white p-6">
       <div className="mb-6 flex flex-col items-center">
         <svg
           width="96"
@@ -55,7 +55,7 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({
         <Button
           variant="outline"
           onClick={() => window.history.back()}
-          className="text-gray-900 dark:text-white border-gray-300 dark:border-white hover:bg-gray-100 dark:hover:bg-white/10"
+          className="text-foreground dark:text-white border-input dark:border-white hover:bg-muted dark:hover:bg-card/10"
         >
           ← Back
         </Button>
@@ -69,7 +69,7 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({
           </Button>
         )}
       </div>
-      <p className="mt-8 text-gray-500 dark:text-gray-300 text-base">
+      <p className="mt-8 text-muted-foreground text-base">
         If this keeps happening, please{" "}
         <a
           href="https://github.com/vailabel/vailabel-studio/issues"

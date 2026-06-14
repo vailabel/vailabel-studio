@@ -8,6 +8,7 @@ import {
   Settings2,
   ArrowLeft,
   Menu,
+  Sparkles,
   Tag,
 } from "lucide-react"
 import { useNavigate, useOutlet, useLocation } from "react-router-dom"
@@ -34,6 +35,7 @@ const navigation: NavigationItem[] = [
   { name: "Task", href: "/tasks", icon: Layers2 },
   { name: "Cloud Storage", href: "/cloud-storage", icon: Cloud },
   { name: "AI Models", href: "/ai-models", icon: Brain },
+  { name: "AI Assistant", href: "/ai-assistant", icon: Sparkles },
   { name: "Settings", href: "/settings", icon: Settings2 },
 ]
 

@@ -1,6 +1,7 @@
 ﻿#![recursion_limit = "256"]
 
 pub mod domain;
+mod gpu;
 mod inference;
 mod schema;
 mod store;
@@ -952,6 +953,8 @@ pub fn run() {
             domain::ai::commands::predictions_generate,
             domain::ai::commands::predictions_accept,
             domain::ai::commands::predictions_reject,
+            domain::ai::commands::ai_gpu_info,
+            domain::ai::commands::ai_model_registry,
             system_info,
             open_path_dialog,
             open_external,

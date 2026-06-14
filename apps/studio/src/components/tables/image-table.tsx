@@ -124,12 +124,12 @@ export const ImageTable = memo(({
               <img
                 src={row.original.thumbnail}
                 alt={row.original.name}
-                className="w-12 h-12 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
+                className="w-12 h-12 object-cover rounded-lg border border-border"
                 loading="lazy"
               />
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-lg flex items-center justify-center">
-                <div className="bg-white/90 dark:bg-gray-800/90 rounded-full p-1 opacity-0 scale-[0.8] group-hover:opacity-100 group-hover:scale-100 transition-all duration-200">
-                  <Eye className="h-3 w-3 text-gray-700 dark:text-gray-300" />
+                <div className="bg-card/90/90 rounded-full p-1 opacity-0 scale-[0.8] group-hover:opacity-100 group-hover:scale-100 transition-all duration-200">
+                  <Eye className="h-3 w-3 text-muted-foreground" />
                 </div>
               </div>
             </div>
@@ -161,8 +161,8 @@ export const ImageTable = memo(({
         ),
         cell: ({ row }) => (
           <div className="flex items-center gap-2">
-            <ImageIcon className="h-4 w-4 text-gray-500" />
-            <span className="font-medium text-gray-900 dark:text-white truncate max-w-[200px]">
+            <ImageIcon className="h-4 w-4 text-muted-foreground" />
+            <span className="font-medium text-foreground dark:text-white truncate max-w-[200px]">
               {row.original.name}
             </span>
           </div>
@@ -218,7 +218,7 @@ export const ImageTable = memo(({
           </Button>
         ),
         cell: ({ row }) => (
-          <span className="text-sm text-gray-600 dark:text-gray-400">
+          <span className="text-sm text-muted-foreground">
             {formatDateValue(row.original.createdAt)}
           </span>
         ),
@@ -319,7 +319,7 @@ export const ImageTable = memo(({
           <div className="flex items-center justify-center h-64">
             <div className="flex flex-col items-center gap-4">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-gray-600 dark:text-gray-400">Loading images...</p>
+              <p className="text-muted-foreground">Loading images...</p>
             </div>
           </div>
         </CardContent>
@@ -339,7 +339,7 @@ export const ImageTable = memo(({
           {/* Global filter */}
           <div className="flex items-center gap-2">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search images..."
                 value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
@@ -356,13 +356,13 @@ export const ImageTable = memo(({
       <CardContent className="p-0">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="border-b border-gray-200 dark:border-gray-700">
+            <thead className="border-b border-border">
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
                     <th
                       key={header.id}
-                      className="px-4 py-3 text-left text-sm font-medium text-gray-900 dark:text-white"
+                      className="px-4 py-3 text-left text-sm font-medium text-foreground dark:text-white"
                     >
                       {header.isPlaceholder
                         ? null
@@ -379,7 +379,7 @@ export const ImageTable = memo(({
               {table.getRowModel().rows.map((row, index) => (
                 <tr
                   key={row.id}
-                  className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors animate-in fade-in slide-in-from-bottom-2 fill-mode-both"
+                  className="border-b border-border hover:bg-muted/50 transition-colors animate-in fade-in slide-in-from-bottom-2 fill-mode-both"
                   style={{ animationDelay: `${index * 50}ms`, animationDuration: "200ms" }}
                 >
                   {row.getVisibleCells().map((cell) => (
@@ -395,9 +395,9 @@ export const ImageTable = memo(({
 
         {/* Pagination */}
         {showPagination && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between px-4 py-3 border-t border-border">
             <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600 dark:text-gray-400">
+              <span className="text-sm text-muted-foreground">
                 Showing {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{" "}
                 {Math.min(
                   (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
@@ -409,7 +409,7 @@ export const ImageTable = memo(({
               <select
                 value={table.getState().pagination.pageSize}
                 onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                className="ml-2 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800"
+                className="ml-2 px-2 py-1 text-sm border border-input rounded bg-card"
               >
                 {[5, 10, 20, 30, 40, 50].map((pageSize) => (
                   <option key={pageSize} value={pageSize}>
@@ -438,7 +438,7 @@ export const ImageTable = memo(({
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <span className="px-3 text-sm text-gray-600 dark:text-gray-400">
+              <span className="px-3 text-sm text-muted-foreground">
                 Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
               </span>
               <Button

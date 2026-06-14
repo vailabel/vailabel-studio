@@ -123,3 +123,17 @@ pub fn predictions_reject(
         .ai_service
         .reject_prediction(&app, &payload.prediction_id)
 }
+
+/// Local AI assistant: report ONNX Runtime execution providers and host info
+/// (GPU detection / runtime capabilities).
+#[tauri::command]
+pub fn ai_gpu_info() -> Result<Value, AppError> {
+    Ok(crate::gpu::gpu_info())
+}
+
+/// Local AI assistant: the model registry (catalog of models, their task,
+/// capabilities, required ONNX components, and whether the engine is wired).
+#[tauri::command]
+pub fn ai_model_registry() -> Result<Vec<Value>, AppError> {
+    Ok(crate::domain::ai::registry::registry_json())
+}

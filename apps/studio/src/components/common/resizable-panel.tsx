@@ -75,12 +75,12 @@ export const ResizablePanel = memo(
     }, [isResizing, minSize, maxSize, direction, controlPosition, onResize])
 
     const handleClassMap: Record<string, string> = {
-      left: "cursor-col-resize left-0 top-0 bottom-0 w-1 border-r border-gray-300",
+      left: "cursor-col-resize left-0 top-0 bottom-0 w-1 border-r border-input",
       right:
-        "cursor-col-resize right-0 top-0 bottom-0 w-1 border-l border-gray-300",
-      top: "cursor-row-resize top-0 left-0 right-0 h-1 border-b border-gray-300",
+        "cursor-col-resize right-0 top-0 bottom-0 w-1 border-l border-input",
+      top: "cursor-row-resize top-0 left-0 right-0 h-1 border-b border-input",
       bottom:
-        "cursor-row-resize bottom-0 left-0 right-0 h-1 border-t border-gray-300",
+        "cursor-row-resize bottom-0 left-0 right-0 h-1 border-t border-input",
     }
     return (
       <div

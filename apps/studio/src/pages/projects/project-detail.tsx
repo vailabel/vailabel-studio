@@ -43,12 +43,35 @@ const ProjectDetails = memo(() => {
     }
   }
 
+  const stats = [
+    {
+      label: "Images",
+      value: viewModel.totalCount,
+      icon: ImageIcon,
+      iconClass: "bg-primary/10 text-primary",
+    },
+    {
+      label: "Labels",
+      value: viewModel.labelCount,
+      icon: Tag,
+      iconClass:
+        "bg-green-100 text-green-600 dark:bg-green-900/20 dark:text-green-400",
+    },
+    {
+      label: "Created",
+      value: formatDate(viewModel.project?.createdAt),
+      icon: Calendar,
+      iconClass:
+        "bg-purple-100 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400",
+    },
+  ]
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
-          <div className="flex items-center justify-between mb-6">
+        <div className="mb-8">
+          <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
             <div className="flex items-center gap-4">
               <Button
                 variant="outline"
@@ -98,107 +121,71 @@ const ProjectDetails = memo(() => {
           </div>
 
           {/* Project Stats */}
-          <div
-            className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 animate-in fade-in slide-in-from-bottom-2 duration-500"
-            style={{ animationDelay: "100ms" }}
-          >
-            <Card className="bg-card backdrop-blur-sm border-border">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-primary/10 rounded-lg">
-                    <ImageIcon className="h-5 w-5 text-primary" />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {stats.map((stat) => (
+              <Card key={stat.label} className="bg-card border-border">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className={cn("p-2 rounded-lg", stat.iconClass)}>
+                      <stat.icon className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm text-muted-foreground">
+                        {stat.label}
+                      </p>
+                      <p className="text-xl font-bold text-foreground truncate">
+                        {stat.value}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Images</p>
-                    <p className="text-2xl font-bold text-foreground">
-                      {viewModel.totalCount}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-card backdrop-blur-sm border-border">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
-                    <Tag className="h-5 w-5 text-green-600 dark:text-green-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Labels</p>
-                    <p className="text-2xl font-bold text-foreground">
-                      {viewModel.labelCount}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-card backdrop-blur-sm border-border">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
-                    <Calendar className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Created</p>
-                    <p className="text-sm font-semibold text-foreground">
-                      {formatDate(viewModel.project?.createdAt)}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
 
         {/* Main Content */}
-        <div
-          className="animate-in fade-in slide-in-from-bottom-2 duration-500"
-          style={{ animationDelay: "200ms" }}
-        >
-          {viewModel.isLoading ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="flex flex-col items-center gap-4">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="text-muted-foreground">Loading project data...</p>
-              </div>
+        {viewModel.isLoading ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="flex flex-col items-center gap-4">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-muted-foreground">Loading project data...</p>
             </div>
-          ) : viewModel.error ? (
-            <div className="text-center py-12 animate-in fade-in zoom-in-95 duration-300">
-              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-6 max-w-md mx-auto">
-                <p className="text-destructive font-medium mb-2">
-                  Error Loading Project
-                </p>
-                <p className="text-destructive/80 text-sm mb-4">
-                  {typeof viewModel.error === "string"
-                    ? viewModel.error
-                    : "An error occurred"}
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={viewModel.loadProjectData}
-                  className="border-destructive/30 text-destructive hover:bg-destructive/10"
-                >
-                  Try Again
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <Card className="bg-card backdrop-blur-sm border-border">
-              <Tabs
-                value={viewModel.activeTab}
-                onValueChange={(value) =>
-                  viewModel.setActiveTab(
-                    value as "images" | "upload" | "labels"
-                  )
-                }
+          </div>
+        ) : viewModel.error ? (
+          <div className="text-center py-12">
+            <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-6 max-w-md mx-auto">
+              <p className="text-destructive font-medium mb-2">
+                Error Loading Project
+              </p>
+              <p className="text-destructive/80 text-sm mb-4">
+                {typeof viewModel.error === "string"
+                  ? viewModel.error
+                  : "An error occurred"}
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={viewModel.loadProjectData}
+                className="border-destructive/30 text-destructive hover:bg-destructive/10"
               >
-                <TabsList className="grid w-full grid-cols-3 bg-muted">
+                Try Again
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <Card className="bg-card border-border overflow-hidden">
+            <Tabs
+              value={viewModel.activeTab}
+              onValueChange={(value) =>
+                viewModel.setActiveTab(value as "images" | "upload" | "labels")
+              }
+            >
+              <div className="border-b border-border px-4 pt-4">
+                <TabsList className="grid w-full max-w-md grid-cols-3">
                   <TabsTrigger value="images" className="gap-2">
                     <ImageIcon className="h-4 w-4" />
-                    Images ({viewModel.totalCount})
+                    Images
                   </TabsTrigger>
                   <TabsTrigger value="upload" className="gap-2">
                     <Upload className="h-4 w-4" />
@@ -206,167 +193,159 @@ const ProjectDetails = memo(() => {
                   </TabsTrigger>
                   <TabsTrigger value="labels" className="gap-2">
                     <Tag className="h-4 w-4" />
-                    Labels ({viewModel.labelCount})
+                    Labels
                   </TabsTrigger>
                 </TabsList>
+              </div>
 
-                <TabsContent value="images" className="p-6">
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-xl font-semibold">Images</h2>
-                      <Badge variant="secondary">
-                        {viewModel.totalCount} total
-                      </Badge>
-                    </div>
-
-                    <ImageTable
-                      images={viewModel.images}
-                      isLoading={viewModel.isLoading}
-                      onImageClick={viewModel.navigateToImage}
-                      onImageDelete={viewModel.deleteImage}
-                      showActions={true}
-                      showPagination={true}
-                      pageSize={viewModel.pageSize}
-                    />
+              <TabsContent value="images" className="p-6">
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-semibold">Images</h2>
+                    <Badge variant="secondary">
+                      {viewModel.totalCount} total
+                    </Badge>
                   </div>
-                </TabsContent>
 
-                <TabsContent value="upload" className="p-6">
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h2 className="text-xl font-semibold">Upload Images</h2>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Add new images to your project for annotation
-                        </p>
-                      </div>
-                      <Badge variant="secondary">
-                        {viewModel.newImages.length} selected
-                      </Badge>
+                  <ImageTable
+                    images={viewModel.images}
+                    isLoading={viewModel.isLoading}
+                    onImageClick={viewModel.navigateToImage}
+                    onImageDelete={viewModel.deleteImage}
+                    showActions={true}
+                    showPagination={true}
+                    pageSize={viewModel.pageSize}
+                  />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="upload" className="p-6">
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-xl font-semibold">Upload Images</h2>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Add new images to your project for annotation
+                      </p>
                     </div>
-
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={viewModel.addImagesFromFolder}
-                      disabled={viewModel.isUploading}
-                    >
-                      {viewModel.isUploading ? (
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      ) : (
-                        <FolderOpen className="mr-2 h-5 w-5" />
-                      )}
-                      {viewModel.isUploading
-                        ? "Scanning folder..."
-                        : "Open Image Folder"}
-                    </Button>
-
-                    <ImageGrid
-                      images={viewModel.newImages}
-                      onRemove={viewModel.handleRemoveImage}
-                    />
-
-                    {viewModel.newImages.length > 0 && (
-                      <div className="flex justify-end pt-4 border-t border-border/50">
-                        <Button
-                          onClick={viewModel.saveImages}
-                          disabled={viewModel.isUploading || viewModel.isSaving}
-                          className="px-8 py-3 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 shadow-lg hover:shadow-xl transition-all duration-200"
-                        >
-                          {viewModel.isSaving ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Saving Images...
-                            </>
-                          ) : (
-                            <>
-                              <Plus className="mr-2 h-4 w-4" />
-                              Save {viewModel.newImages.length} Image
-                              {viewModel.newImages.length !== 1 ? "s" : ""}
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    )}
+                    <Badge variant="secondary">
+                      {viewModel.newImages.length} selected
+                    </Badge>
                   </div>
-                </TabsContent>
 
-                <TabsContent value="labels" className="p-6">
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-xl font-semibold">Labels</h2>
-                      <div className="flex items-center gap-3">
-                        <Badge variant="secondary">
-                          {viewModel.labelCount} total
-                        </Badge>
-                        <Button
-                          size="sm"
-                          onClick={viewModel.openAddLabelModal}
-                          className="gap-2"
-                        >
-                          <Plus className="h-4 w-4" />
-                          Add Label
-                        </Button>
-                      </div>
-                    </div>
-
-                    {viewModel.labels.length > 0 ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                        {viewModel.labels.map((label, index) => (
-                          <div
-                            key={label.id}
-                            className="animate-in fade-in zoom-in-95 duration-200 fill-mode-both"
-                            style={{ animationDelay: `${index * 50}ms` }}
-                          >
-                              <Card className="bg-card border-border hover:shadow-md transition-shadow group">
-                                <CardContent className="p-4">
-                                  <div className="flex items-center gap-3">
-                                    <div
-                                      className="w-4 h-4 rounded-full border-2 border-white shadow-sm"
-                                      style={{ backgroundColor: label.color }}
-                                    />
-                                    <div className="flex-1 min-w-0">
-                                      <p className="font-medium text-foreground truncate">
-                                        {label.name}
-                                      </p>
-                                      <p className="text-xs text-muted-foreground">
-                                        {label.color}
-                                      </p>
-                                    </div>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() =>
-                                        viewModel.deleteLabel(label.id)
-                                      }
-                                      disabled={viewModel.isCreatingLabel}
-                                      className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                </CardContent>
-                              </Card>
-                          </div>
-                        ))}
-                      </div>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={viewModel.addImagesFromFolder}
+                    disabled={viewModel.isUploading}
+                  >
+                    {viewModel.isUploading ? (
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                     ) : (
-                      <div className="text-center py-12 animate-in fade-in duration-300">
-                        <Tag className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold text-foreground mb-2">
-                          No labels found
-                        </h3>
-                        <p className="text-muted-foreground">
-                          This project doesn't have any labels yet.
-                        </p>
-                      </div>
+                      <FolderOpen className="mr-2 h-5 w-5" />
                     )}
+                    {viewModel.isUploading
+                      ? "Scanning folder..."
+                      : "Open Image Folder"}
+                  </Button>
+
+                  <ImageGrid
+                    images={viewModel.newImages}
+                    onRemove={viewModel.handleRemoveImage}
+                  />
+
+                  {viewModel.newImages.length > 0 && (
+                    <div className="flex justify-end pt-4 border-t border-border/50">
+                      <Button
+                        onClick={viewModel.saveImages}
+                        disabled={viewModel.isUploading || viewModel.isSaving}
+                        className="gap-2"
+                      >
+                        {viewModel.isSaving ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Saving Images...
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="h-4 w-4" />
+                            Save {viewModel.newImages.length} Image
+                            {viewModel.newImages.length !== 1 ? "s" : ""}
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="labels" className="p-6">
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-semibold">Labels</h2>
+                    <div className="flex items-center gap-3">
+                      <Badge variant="secondary">
+                        {viewModel.labelCount} total
+                      </Badge>
+                      <Button
+                        size="sm"
+                        onClick={viewModel.openAddLabelModal}
+                        className="gap-2"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Add Label
+                      </Button>
+                    </div>
                   </div>
-                </TabsContent>
-              </Tabs>
-            </Card>
-          )}
-        </div>
+
+                  {viewModel.labels.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                      {viewModel.labels.map((label) => (
+                        <Card key={label.id} className="bg-card border-border">
+                          <CardContent className="p-4">
+                            <div className="flex items-center gap-3">
+                              <div
+                                className="w-4 h-4 rounded-full border-2 border-white shadow-sm shrink-0"
+                                style={{ backgroundColor: label.color }}
+                              />
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-foreground truncate">
+                                  {label.name}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {label.color}
+                                </p>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => viewModel.deleteLabel(label.id)}
+                                disabled={viewModel.isCreatingLabel}
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <Tag className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-foreground mb-2">
+                        No labels found
+                      </h3>
+                      <p className="text-muted-foreground">
+                        This project doesn't have any labels yet.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+            </Tabs>
+          </Card>
+        )}
       </div>
 
       {/* Modals */}

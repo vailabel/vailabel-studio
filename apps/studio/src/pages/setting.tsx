@@ -91,10 +91,10 @@ export default function Setting() {
         <div className="mb-8 transition-all duration-500 opacity-100">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+              <h1 className="text-3xl font-bold text-foreground dark:text-white mb-2">
                 Settings
               </h1>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-muted-foreground">
                 Customize your application preferences and configuration
               </p>
             </div>
@@ -112,7 +112,7 @@ export default function Setting() {
               )}
 
               {lastSaved && (
-                <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
+                <div className="flex items-center gap-1 text-sm text-muted-foreground">
                   <Clock className="w-3 h-3" />
                   Last saved: {lastSaved.toLocaleTimeString()}
                 </div>
@@ -122,7 +122,7 @@ export default function Setting() {
 
           {/* Search Bar */}
           <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <Input
               placeholder="Search settings..."
               value={searchQuery}
@@ -161,7 +161,7 @@ export default function Setting() {
           <Button
             onClick={handleReset}
             variant="outline"
-            className="border-gray-300 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800"
+            className="border-input hover:bg-muted dark:hover:bg-gray-800"
           >
             <RotateCcw className="w-4 h-4 mr-2" />
             Reset to Defaults
@@ -170,7 +170,7 @@ export default function Setting() {
           <Button
             onClick={handleExport}
             variant="outline"
-            className="border-gray-300 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800"
+            className="border-input hover:bg-muted dark:hover:bg-gray-800"
           >
             <Download className="w-4 h-4 mr-2" />
             Export Settings
@@ -179,7 +179,7 @@ export default function Setting() {
           <Button
             onClick={handleImport}
             variant="outline"
-            className="border-gray-300 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800"
+            className="border-input hover:bg-muted dark:hover:bg-gray-800"
           >
             <Upload className="w-4 h-4 mr-2" />
             Import Settings
@@ -201,7 +201,7 @@ export default function Setting() {
             onValueChange={setActiveTab}
             className="w-full"
           >
-            <TabsList className="grid w-full grid-cols-5 mb-8 bg-white dark:bg-gray-800 shadow-sm">
+            <TabsList className="grid w-full grid-cols-5 mb-8 bg-card shadow-sm">
               {categories.map((category) => {
                 const IconComponent =
                   categoryIcons[category.id as keyof typeof categoryIcons]
@@ -209,7 +209,7 @@ export default function Setting() {
                   <TabsTrigger
                     key={category.id}
                     value={category.id}
-                    className="flex items-center gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white"
+                    className="flex items-center gap-2 data-active:bg-blue-600 data-active:text-white"
                   >
                     <IconComponent className="w-4 h-4" />
                     <span className="hidden sm:inline">{category.name}</span>

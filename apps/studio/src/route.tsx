@@ -10,6 +10,7 @@ import ProjectList from "./pages/projects/project-list"
 import ProjectDetails from "./pages/projects/project-detail"
 import { AutoUpdateBanner } from "./components/layout/auto-update-banner"
 import AIModelListPage from "./pages/ai-model"
+import AiAssistantPage from "./pages/ai-assistant"
 import CloudStorageConfigPage from "./pages/cloud-storage"
 import TaskPage from "./pages/task"
 import { ProjectCreate } from "./pages/projects/project-create"
@@ -27,6 +28,7 @@ const AppRoutes = () => {
             element={<ProjectDetails />}
           />
           <Route path="/ai-models" element={<AIModelListPage />} />
+          <Route path="/ai-assistant" element={<AiAssistantPage />} />
           <Route path="/tasks" element={<TaskPage />} />
           <Route path="/labels" element={<LabelsPage />} />
           <Route path="/cloud-storage" element={<CloudStorageConfigPage />} />

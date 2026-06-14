@@ -33,7 +33,7 @@ export function PredictionReviewPanel({
   if (predictions.length === 0) return null
 
   return (
-    <div className="absolute right-4 top-4 z-20 w-80 rounded-xl border border-emerald-200 bg-white/95 p-4 shadow-xl backdrop-blur dark:border-emerald-900 dark:bg-gray-900/95">
+    <div className="absolute right-4 top-4 z-20 w-80 rounded-xl border border-emerald-200 bg-card/95 p-4 shadow-xl backdrop-blur dark:border-emerald-900/95">
       <div className="mb-3 flex items-center gap-2">
         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
           <Sparkles className="h-4 w-4" />

@@ -101,7 +101,7 @@ export const LabelManager = memo(({ labels, onAddLabel, onRemoveLabel, className
                         }
                       >
                         {labelColor === color && (
-                          <span className="block w-2 h-2 rounded-full border border-white bg-white/50" />
+                          <span className="block w-2 h-2 rounded-full border border-white bg-card/50" />
                         )}
                       </TooltipTrigger>
                       <TooltipContent>
@@ -199,7 +199,7 @@ export const LabelManager = memo(({ labels, onAddLabel, onRemoveLabel, className
                               type="button"
                               size="icon"
                               variant="ghost"
-                              className="h-4 w-4 p-0 text-white hover:bg-white/20 rounded-full"
+                              className="h-4 w-4 p-0 text-white hover:bg-card/20 rounded-full"
                               onClick={() => onRemoveLabel(idx)}
                             />
                           }

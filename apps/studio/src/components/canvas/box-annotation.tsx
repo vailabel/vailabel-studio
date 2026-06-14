@@ -43,14 +43,14 @@ export const BoxAnnotation = memo(({ annotation, readOnly = false }: BoxAnnotati
     
     return (
       <>
-        <div className={`absolute -top-1 -left-1 ${handleSize} cursor-nwse-resize bg-white border border-gray-400 ${handleOpacity} hover:opacity-100 transition-opacity`} />
-        <div className={`absolute -top-1 -right-1 ${handleSize} cursor-nesw-resize bg-white border border-gray-400 ${handleOpacity} hover:opacity-100 transition-opacity`} />
-        <div className={`absolute -bottom-1 -left-1 ${handleSize} cursor-nesw-resize bg-white border border-gray-400 ${handleOpacity} hover:opacity-100 transition-opacity`} />
-        <div className={`absolute -bottom-1 -right-1 ${handleSize} cursor-nwse-resize bg-white border border-gray-400 ${handleOpacity} hover:opacity-100 transition-opacity`} />
-        <div className={`absolute top-1/2 -left-1 ${handleSize} -translate-y-1/2 cursor-ew-resize bg-white border border-gray-400 ${handleOpacity} hover:opacity-100 transition-opacity`} />
-        <div className={`absolute top-1/2 -right-1 ${handleSize} -translate-y-1/2 cursor-ew-resize bg-white border border-gray-400 ${handleOpacity} hover:opacity-100 transition-opacity`} />
-        <div className={`absolute -top-1 left-1/2 ${handleSize} -translate-x-1/2 cursor-ns-resize bg-white border border-gray-400 ${handleOpacity} hover:opacity-100 transition-opacity`} />
-        <div className={`absolute -bottom-1 left-1/2 ${handleSize} -translate-x-1/2 cursor-ns-resize bg-white border border-gray-400 ${handleOpacity} hover:opacity-100 transition-opacity`} />
+        <div className={`absolute -top-1 -left-1 ${handleSize} cursor-nwse-resize bg-card border border-gray-400 ${handleOpacity} hover:opacity-100 transition-opacity`} />
+        <div className={`absolute -top-1 -right-1 ${handleSize} cursor-nesw-resize bg-card border border-gray-400 ${handleOpacity} hover:opacity-100 transition-opacity`} />
+        <div className={`absolute -bottom-1 -left-1 ${handleSize} cursor-nesw-resize bg-card border border-gray-400 ${handleOpacity} hover:opacity-100 transition-opacity`} />
+        <div className={`absolute -bottom-1 -right-1 ${handleSize} cursor-nwse-resize bg-card border border-gray-400 ${handleOpacity} hover:opacity-100 transition-opacity`} />
+        <div className={`absolute top-1/2 -left-1 ${handleSize} -translate-y-1/2 cursor-ew-resize bg-card border border-gray-400 ${handleOpacity} hover:opacity-100 transition-opacity`} />
+        <div className={`absolute top-1/2 -right-1 ${handleSize} -translate-y-1/2 cursor-ew-resize bg-card border border-gray-400 ${handleOpacity} hover:opacity-100 transition-opacity`} />
+        <div className={`absolute -top-1 left-1/2 ${handleSize} -translate-x-1/2 cursor-ns-resize bg-card border border-gray-400 ${handleOpacity} hover:opacity-100 transition-opacity`} />
+        <div className={`absolute -bottom-1 left-1/2 ${handleSize} -translate-x-1/2 cursor-ns-resize bg-card border border-gray-400 ${handleOpacity} hover:opacity-100 transition-opacity`} />
       </>
     )
   }, [isMoveTool, isSelected])

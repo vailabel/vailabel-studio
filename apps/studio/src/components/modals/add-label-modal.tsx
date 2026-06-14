@@ -113,13 +113,13 @@ export const AddLabelModal = memo(({
                     className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-transform duration-150 ease-out hover:scale-110 active:scale-95 ${
                       labelColor === color
                         ? "border-black dark:border-white scale-110 shadow-md"
-                        : "border-gray-300"
+                        : "border-input"
                     }`}
                     style={{ backgroundColor: color }}
                     onClick={() => handleColorChange(color)}
                   >
                     {labelColor === color && (
-                      <span className="block w-3 h-3 rounded-full border-2 border-white bg-white/30" />
+                      <span className="block w-3 h-3 rounded-full border-2 border-white bg-card/30" />
                     )}
                   </button>
                 ))}
@@ -133,7 +133,7 @@ export const AddLabelModal = memo(({
                         className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-transform duration-150 ease-out hover:scale-110 active:scale-95 ${
                           !colorPalette.includes(labelColor) || showColorPicker
                             ? "border-black dark:border-white scale-110 shadow-md"
-                            : "border-gray-300"
+                            : "border-input"
                         }`}
                         style={{ background: labelColor }}
                       />
@@ -160,12 +160,12 @@ export const AddLabelModal = memo(({
           </div>
 
           {/* Color Preview */}
-          <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+          <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
             <div
               className="w-4 h-4 rounded-full border-2 border-white shadow-sm"
               style={{ backgroundColor: labelColor }}
             />
-            <span className="text-sm text-gray-600 dark:text-gray-400">
+            <span className="text-sm text-muted-foreground">
               Preview: {labelColor}
             </span>
           </div>

@@ -161,13 +161,29 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
     [effectiveProjectId, navigate]
   )
 
+  // Derive prev/next from the project's image list + the current image id —
+  // the SAME list the file panel renders — so the header navigation can never
+  // drift out of sync with what's actually loaded.
+  const currentImageIndex = useMemo(
+    () => projectImages.findIndex((entry) => entry.id === imageId),
+    [projectImages, imageId]
+  )
+  const previousImageId =
+    currentImageIndex > 0
+      ? projectImages[currentImageIndex - 1]?.id ?? null
+      : null
+  const nextImageId =
+    currentImageIndex >= 0 && currentImageIndex < projectImages.length - 1
+      ? projectImages[currentImageIndex + 1]?.id ?? null
+      : null
+
   const goToNextImage = useCallback(() => {
-    navigateToImage(imageLabeler.nextId || imageLabeler.goToNextImage())
-  }, [imageLabeler, navigateToImage])
+    navigateToImage(nextImageId)
+  }, [nextImageId, navigateToImage])
 
   const goToPreviousImage = useCallback(() => {
-    navigateToImage(imageLabeler.prevId || imageLabeler.goToPreviousImage())
-  }, [imageLabeler, navigateToImage])
+    navigateToImage(previousImageId)
+  }, [previousImageId, navigateToImage])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -319,10 +335,11 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
     canRedo: canvasSession.canRedo,
     historyPast: canvasSession.historyPast,
     isGeneratingPredictions: imageLabeler.isGeneratingPredictions,
-    hasNext: imageLabeler.hasNext,
-    hasPrevious: imageLabeler.hasPrevious,
-    nextId: imageLabeler.nextId,
-    prevId: imageLabeler.prevId,
+    hasNext: nextImageId !== null,
+    hasPrevious: previousImageId !== null,
+    nextId: nextImageId,
+    prevId: previousImageId,
+    currentImageIndex,
     showSettingsModal,
     showAIModelModal,
     selectedModel,

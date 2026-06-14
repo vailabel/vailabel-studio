@@ -37,13 +37,13 @@ export const LabelButton = memo(
       <button
         onClick={() => onClick(label.name, label.color)}
         key={label.id}
-        className="flex items-center justify-between p-2 border rounded-md cursor-pointer hover:shadow-md dark:border-gray-600"
+        className="flex items-center justify-between p-2 border rounded-md cursor-pointer hover:shadow-md"
         style={{
           backgroundColor: rgbToRgba(label.color, 0.2),
           borderColor: label.color,
         }}
       >
-        <span className="truncate text-sm font-medium text-gray-800 dark:text-gray-200">
+        <span className="truncate text-sm font-medium text-foreground">
           {label.name}
         </span>
       </button>
@@ -131,7 +131,7 @@ export const CreateAnnotation = memo(
 
     return (
       <div
-        className="absolute w-full max-w-sm rounded-lg bg-white p-3 shadow-lg dark:bg-gray-800 dark:text-gray-100 top-2 left-2 z-50"
+        className="absolute w-full max-w-sm rounded-lg bg-card p-3 shadow-lg top-2 left-2 z-50"
         onClick={(e) => e.stopPropagation()}
       >
           <div className="flex items-center justify-between">
@@ -156,7 +156,7 @@ export const CreateAnnotation = memo(
                   onChange={(e) => handleChangeName(e.target.value)}
                   placeholder="Enter a label name"
                   autoFocus
-                  className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 placeholder-gray-400"
+                  className="placeholder-gray-400"
                 />
               </div>
               <div className="flex justify-end space-x-2">
@@ -178,13 +178,13 @@ export const CreateAnnotation = memo(
                   <button
                     type="button"
                     onClick={handleSubmit}
-                    className="flex items-center justify-between p-2 border rounded-md cursor-pointer hover:shadow-md dark:border-gray-600"
+                    className="flex items-center justify-between p-2 border rounded-md cursor-pointer hover:shadow-md"
                     style={{
                       backgroundColor: rgbToRgba(color, 0.2),
                       borderColor: color,
                     }}
                   >
-                    <span className="truncate text-sm font-medium text-gray-800 dark:text-gray-200">
+                    <span className="truncate text-sm font-medium text-foreground">
                       Create New {labelName}
                     </span>
                   </button>

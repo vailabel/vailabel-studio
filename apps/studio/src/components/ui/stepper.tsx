@@ -30,7 +30,7 @@ export const Stepper = memo(({ steps, currentStep, className }: StepperProps) =>
                   ? "border-primary bg-gradient-to-br from-primary to-primary/80 text-white shadow-lg shadow-primary/25"
                   : idx === currentStep
                     ? "border-primary text-primary bg-gradient-to-br from-primary/10 to-primary/5 shadow-md shadow-primary/10"
-                    : "border-gray-300 text-gray-400 bg-gray-50 dark:bg-gray-800/50 dark:border-gray-600"
+                    : "border-input text-muted-foreground bg-muted/50"
               )}
             >
               {idx < currentStep ? (
@@ -44,7 +44,7 @@ export const Stepper = memo(({ steps, currentStep, className }: StepperProps) =>
                 <span
                   className={cn(
                     "font-semibold",
-                    idx === currentStep ? "text-primary" : "text-gray-400"
+                    idx === currentStep ? "text-primary" : "text-muted-foreground"
                   )}
                 >
                   {idx + 1}
@@ -63,13 +63,13 @@ export const Stepper = memo(({ steps, currentStep, className }: StepperProps) =>
                   "text-sm md:text-base font-semibold transition-colors duration-300 whitespace-nowrap",
                   idx <= currentStep
                     ? "text-foreground"
-                    : "text-gray-500 dark:text-gray-400"
+                    : "text-muted-foreground"
                 )}
               >
                 {step.label}
               </span>
               {step.description && (
-                <span className="text-xs md:text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                <span className="text-xs md:text-sm text-muted-foreground whitespace-nowrap">
                   {step.description}
                 </span>
               )}

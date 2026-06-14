@@ -74,8 +74,8 @@ const MemoizedCanvas = memo(
 MemoizedCanvas.displayName = "MemoizedCanvas"
 
 const EmptyImageState = memo(() => (
-  <div className="flex h-full items-center justify-center bg-gray-100 dark:bg-gray-900">
-    <p className="text-gray-500 dark:text-gray-400">No images in this project</p>
+  <div className="flex h-full items-center justify-center bg-muted">
+    <p className="text-muted-foreground">No images in this project</p>
   </div>
 ))
 
@@ -116,10 +116,11 @@ export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => 
   )
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-hidden bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+    <div className="flex h-screen w-full flex-col overflow-hidden bg-muted text-foreground">
       <StudioHeader
         projectName={viewModel.project?.name || "Project"}
         projectStats={viewModel.projectStats}
+        currentImageIndex={viewModel.currentImageIndex}
         hasNext={viewModel.hasNext}
         hasPrevious={viewModel.hasPrevious}
         isLoading={viewModel.isProjectSummaryLoading}
@@ -275,6 +276,7 @@ const StudioHeader = memo(
   ({
     projectName,
     projectStats,
+    currentImageIndex,
     hasNext,
     hasPrevious,
     isLoading,
@@ -291,6 +293,7 @@ const StudioHeader = memo(
       labeledImages: number
       totalLabels: number
     }
+    currentImageIndex: number
     hasNext: boolean
     hasPrevious: boolean
     isLoading: boolean
@@ -307,16 +310,16 @@ const StudioHeader = memo(
         : 0
 
     return (
-      <header className="flex justify-between border-b border-gray-200 bg-white px-4 py-1 dark:border-gray-700 dark:bg-gray-800">
+      <header className="flex justify-between border-b border-border bg-card px-4 py-1">
         <div className="flex min-w-[250px] items-center gap-4">
           <Button variant="ghost" size="icon" onClick={onBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">
+            <h1 className="text-xl font-bold text-foreground">
               {projectName}
             </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-muted-foreground">
               {isLoading
                 ? "Loading project stats..."
                 : `${projectStats.labeledImages} of ${projectStats.totalImages} images labeled`}
@@ -338,7 +341,7 @@ const StudioHeader = memo(
                   />
                   <TooltipContent>
                     Previous image
-                    <kbd className="ml-2 rounded border border-gray-200 bg-gray-100 px-1.5 text-xs dark:border-gray-700 dark:bg-gray-800">
+                    <kbd className="ml-2 rounded border border-border bg-muted px-1.5 text-xs">
                       Left Arrow
                     </kbd>
                   </TooltipContent>
@@ -353,15 +356,21 @@ const StudioHeader = memo(
                   />
                   <TooltipContent>
                     Next image
-                    <kbd className="ml-2 rounded border border-gray-200 bg-gray-100 px-1.5 text-xs dark:border-gray-700 dark:bg-gray-800">
+                    <kbd className="ml-2 rounded border border-border bg-muted px-1.5 text-xs">
                       Right Arrow
                     </kbd>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
+
+              {currentImageIndex >= 0 && projectStats.totalImages > 0 && (
+                <span className="ml-2 text-sm text-muted-foreground">
+                  Image {currentImageIndex + 1} of {projectStats.totalImages}
+                </span>
+              )}
             </div>
 
-            <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span>
                 {projectStats.totalLabels} labels / {progress}% complete
               </span>

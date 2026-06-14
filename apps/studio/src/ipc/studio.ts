@@ -1,5 +1,6 @@
 import { invokeWithLogging } from "@/ipc/invoke"
 import type { GitHubRelease } from "@/lib/github-releases"
+import type { AiGpuInfo, AiRegistryModel } from "@/types/ai-assistant"
 import type {
   AIModel,
   Annotation,
@@ -121,6 +122,10 @@ export const studioCommands = {
     call<SuccessResponse>("predictions_reject", {
       payload: { predictionId },
     }),
+
+  // Local AI assistant (Phase 1): GPU/runtime detection + model registry.
+  aiGpuInfo: () => call<AiGpuInfo>("ai_gpu_info"),
+  aiModelRegistry: () => call<AiRegistryModel[]>("ai_model_registry"),
 }
 
 export type StudioCommands = typeof studioCommands

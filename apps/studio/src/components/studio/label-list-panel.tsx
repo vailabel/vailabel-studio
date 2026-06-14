@@ -34,19 +34,19 @@ export const LabelListPanel = memo(
       <div
         className={cn(
           "h-full border-l",
-          "dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100",
-          "bg-white border-gray-200"
+          "dark:bg-gray-800",
+          "bg-card border-border"
         )}
       >
         <div
           className={cn(
             "px-4 py-3 border-b",
             "dark:border-gray-700",
-            "border-gray-200"
+            "border-border"
           )}
         >
           <h2 className="text-lg font-semibold">Labels</h2>
-          <p className={cn("text-sm", "dark:text-gray-400", "text-gray-500")}>
+          <p className={cn("text-sm", "dark:text-muted-foreground", "text-muted-foreground")}>
             {isLoading ? "Loading..." : `${labels.length} total`}
           </p>
         </div>
@@ -86,12 +86,12 @@ const LoadingSkeleton = memo(() => (
   <div className="p-4 space-y-4">
     {Array.from({ length: 3 }).map((_, i) => (
       <div key={i} className="space-y-2">
-        <div className="h-6 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+        <div className="h-6 w-32 bg-muted rounded animate-pulse" />
         <div className="space-y-2 pl-4">
           {Array.from({ length: 2 }).map((_, j) => (
             <div
               key={j}
-              className="h-16 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"
+              className="h-16 bg-muted rounded-lg animate-pulse"
             />
           ))}
         </div>
@@ -120,7 +120,7 @@ const LabelItem = memo(
         key={label.id}
         className={cn(
           "rounded-lg border p-3 cursor-pointer flex flex-col gap-1 transition-all duration-200 hover:scale-[1.02]",
-          "dark:border-gray-700 dark:hover:bg-gray-700 border-gray-200 hover:bg-gray-50",
+          "dark:hover:bg-gray-700 border-border hover:bg-muted",
           "hover:shadow-sm dark:hover:shadow-gray-900/20",
           label.isAIGenerated
             ? "ring-2 ring-green-200 dark:ring-green-700 bg-green-50/50 dark:bg-green-900/10"
@@ -182,16 +182,16 @@ const CategorySection = memo(
           render={
             <Button
               variant="ghost"
-              className="w-full flex items-center justify-between px-2 py-2 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2 pl-1 gap-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+              className="w-full flex items-center justify-between px-2 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 pl-1 gap-2 hover:bg-muted"
             >
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 flex items-center justify-center transition-transform duration-200 hover:rotate-90">
                   ▼
                 </div>
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600"></span>
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-gray-300"></span>
                 {category}
               </div>
-              <span className="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded-full">
+              <span className="text-xs bg-muted px-2 py-0.5 rounded-full">
                 {labels.length}
               </span>
             </Button>
@@ -252,23 +252,23 @@ const EmptyState = memo(() => (
   <div
     className={cn(
       "mt-8 rounded-lg border border-dashed p-8 text-center transition-all duration-200",
-      "dark:border-gray-700 dark:bg-gray-800/50",
-      "border-gray-300 bg-gray-50/50"
+      "dark:border-gray-700/50",
+      "border-input bg-muted/50"
     )}
   >
-    <div className="mx-auto w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center mb-4">
+    <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
       <span className="text-2xl">🏷️</span>
     </div>
     <h3
       className={cn(
         "text-sm font-medium mb-2",
         "dark:text-gray-300",
-        "text-gray-700"
+        "text-foreground"
       )}
     >
       No labels created yet
     </h3>
-    <p className={cn("text-xs", "dark:text-gray-500", "text-gray-400")}>
+    <p className={cn("text-xs", "dark:text-muted-foreground", "text-muted-foreground")}>
       Use the drawing tools to create your first label
     </p>
   </div>
