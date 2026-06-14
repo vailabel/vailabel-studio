@@ -4,7 +4,7 @@ import { Sun, Moon } from "lucide-react"
 import { useTheme } from "next-themes"
 import { data } from "@/app/data"
 import { usePathname } from "next/navigation"
-import GitHubButton from "./GitHubButton"
+import GitHubButton from "./github-button"
 import { useEffect, useState } from "react"
 import Image from "next/image"
 

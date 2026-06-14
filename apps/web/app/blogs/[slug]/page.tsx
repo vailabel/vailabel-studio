@@ -2,7 +2,7 @@ import { promises as fs } from "fs"
 import path from "path"
 import matter from "gray-matter"
 import { Metadata } from "next"
-import BlogSidebar from "../BlogSidebar"
+import BlogSidebar from "../blog-sidebar"
 import { MarkdownRenderer } from "@/components/markdown-renderer"
 
 export async function generateMetadata({ params: { slug } }: { params: { slug: string } }): Promise<Metadata> {

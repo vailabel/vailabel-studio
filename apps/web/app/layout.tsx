@@ -2,9 +2,9 @@ import type React from "react"
 import "./globals.css"
 import { Inter } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
-import Header from "@/components/Header"
-import Footer from "@/components/Footer"
-import ScrollToTop from "@/components/ScrollToTop"
+import Header from "@/components/header"
+import Footer from "@/components/footer"
+import ScrollToTop from "@/components/scroll-to-top"
 
 const inter = Inter({ subsets: ["latin"] })
 
