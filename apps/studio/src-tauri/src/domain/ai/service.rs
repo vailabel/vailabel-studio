@@ -35,6 +35,14 @@ it and answer concisely and concretely to help the user label it \u{2014} object
 attributes, and any readable text. You cannot draw boxes yourself: if the user wants annotations \
 created, tell them to ask you to \u{201c}detect objects\u{201d} or \u{201c}check what I missed\u{201d}, \
 which run the local detector. Keep answers short and practical.";
+/// System prompt for *narration* — rephrasing a deterministic status line, not
+/// chatting. Constrained so weak local models don't add greetings/preambles
+/// (e.g. "Okay, I'm ready. Let's begin!") or invent objects/actions.
+const NARRATION_SYSTEM_PROMPT: &str = "You rewrite one short status line from an image \
+labeling tool into plain language for the user. Output ONLY the rewritten status as one or two \
+sentences \u{2014} no greeting, no preamble, no \u{201c}Okay\u{201d}/\u{201c}Sure\u{201d}/\u{201c}Let's \
+begin\u{201d}, no markdown, no follow-up question. State only what the status says; never invent \
+objects, counts, or that boxes exist when the status says none were found.";
 const COCO_80_CLASS_NAMES: &[&str] = &[
     "person",
     "bicycle",
@@ -938,7 +946,7 @@ impl AiService {
         match llm::chat_completion(
             config,
             api_key.as_deref(),
-            COPILOT_SYSTEM_PROMPT,
+            NARRATION_SYSTEM_PROMPT,
             instruction,
             None,
         ) {
@@ -1297,8 +1305,16 @@ impl AiService {
             }
         };
 
-        // "find all cars" carries a class target → narrow to it; "detect objects"
-        // has none → keep every class.
+        // A *specific* class narrows the detector ("find all cars" → cars only);
+        // a generic word ("detect objects", "everything") must NOT filter — the
+        // orchestrator sometimes emits target "object(s)", which matches no real
+        // class and would otherwise drop every detection to zero.
+        let effective_target = intent
+            .target
+            .as_deref()
+            .map(str::trim)
+            .filter(|target| !target.is_empty() && !is_generic_detect_target(target));
+
         let predictions = match self.generate_predictions_filtered(
             app,
             PredictionGeneratePayload {
@@ -1306,7 +1322,7 @@ impl AiService {
                 model_id,
                 threshold: None,
             },
-            intent.target.as_deref(),
+            effective_target,
         ) {
             Ok(predictions) => predictions,
             Err(error) => {
@@ -1318,21 +1334,39 @@ impl AiService {
         };
 
         let count = predictions.len();
+        if count == 0 {
+            // Don't narrate the empty case: a weak local model tends to hallucinate
+            // "boxes are on the canvas" even when nothing was found. Return a clear,
+            // deterministic message instead.
+            let reply = match effective_target {
+                Some(target) => format!(
+                    "I didn't find any \u{201c}{target}\u{201d} above the confidence threshold on \
+                     this image."
+                ),
+                None => "I didn't find any objects above the confidence threshold. This detector \
+                         recognizes the 80 common COCO classes (people, vehicles, animals, everyday \
+                         objects) \u{2014} try an image with those, or a different model."
+                    .to_string(),
+            };
+            return Ok(CopilotTurnResult {
+                reply,
+                capability: intent.capability.as_str().to_string(),
+                predictions_added: 0,
+                findings: Vec::new(),
+                proposed_actions: Vec::new(),
+            });
+        }
+
         let summary = summarize_by_class(&predictions);
-        let fallback = if count == 0 {
-            "The detector didn't find anything above the confidence threshold.".to_string()
-        } else {
-            format!(
-                "Detected {count} objects ({summary}). They're on the canvas as predictions \u{2014} \
-                 accept the ones you want to keep."
-            )
-        };
-        // YOLO did the detection; let the copilot model phrase the result.
+        let fallback = format!(
+            "Detected {count} object(s) ({summary}). They're on the canvas as predictions \u{2014} \
+             accept the ones you want to keep."
+        );
+        // YOLO did the detection; let the copilot model phrase the (non-empty) result.
         let instruction = format!(
-            "The local YOLO detector ran on the current image and found {count} objects: {summary}. \
-             In one or two short sentences, tell the user what was detected and that the boxes are \
-             on the canvas as predictions to accept or reject. If the count is 0, say nothing was \
-             found above the confidence threshold. Do not invent objects beyond this list."
+            "The local detector found {count} objects on the image: {summary}. They are now on the \
+             canvas as predictions to accept or reject. Rewrite that as one short sentence. Do not \
+             invent objects beyond this list."
         );
         let reply = self.narrate(llm, &instruction, fallback);
 
@@ -2167,6 +2201,22 @@ fn draft_matches_class(draft: &InferenceAnnotationDraft, target: &str) -> bool {
     .any(|value| class_token_matches(value.trim(), &target))
 }
 
+/// Whether a "detect target" is a generic catch-all rather than a real class
+/// (e.g. "objects", "everything", "all objects"). Such targets must not be used as
+/// a class filter — no detector class matches them, so they'd zero out every
+/// detection. Treated as generic when every word is a filler/catch-all token.
+fn is_generic_detect_target(target: &str) -> bool {
+    const GENERIC: &[&str] = &[
+        "object", "objects", "thing", "things", "item", "items", "stuff", "everything", "anything",
+        "something", "all", "any", "every", "the", "a", "an",
+    ];
+    let trimmed = target.trim().to_lowercase();
+    if trimmed.is_empty() {
+        return true;
+    }
+    trimmed.split_whitespace().all(|word| GENERIC.contains(&word))
+}
+
 /// Singular/plural-tolerant equality for two already-lowercased class tokens.
 fn class_token_matches(a: &str, b: &str) -> bool {
     if a.is_empty() || b.is_empty() {
@@ -2602,6 +2652,18 @@ mod tests {
         // ...but re-inserting an existing key never grows past the cap.
         cache_insert_bounded(&mut cache, "c".into(), stub());
         assert_eq!(cache.len(), MAX_CACHED_ENGINES);
+    }
+
+    #[test]
+    fn generic_detect_targets_are_not_class_filters() {
+        // These must NOT filter (they'd zero out every detection) — "detect objects".
+        for generic in ["object", "objects", "everything", "anything", "all", "all objects", "any object", "  "] {
+            assert!(is_generic_detect_target(generic), "should be generic: {generic:?}");
+        }
+        // Real classes still filter.
+        for specific in ["car", "person", "traffic light", "dog"] {
+            assert!(!is_generic_detect_target(specific), "should be specific: {specific:?}");
+        }
     }
 
     #[test]

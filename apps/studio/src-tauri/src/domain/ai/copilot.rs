@@ -280,13 +280,17 @@ no prose, no markdown fences.\n\
 Schema: {\"steps\":[{\"capability\": one of [prompt_to_detect, detect_all, segment_each_detection, \
 segment_at_points, qa_review, describe, ocr, help], \"target\": optional object class like \"car\"}]}\n\
 Rules:\n\
-- \"find/label all X\" \u{2192} prompt_to_detect with target X.\n\
-- \"detect everything\" \u{2192} detect_all.\n\
+- prompt_to_detect is ONLY for a specific named object class (car, dog, person). Its `target` must \
+be that class word \u{2014} never \"object\", \"objects\", \"everything\", or \"all\".\n\
+- \"find/label all X\" where X is a specific class \u{2192} prompt_to_detect with target X.\n\
+- \"detect objects\"/\"detect all\"/\"detect everything\"/\"label everything\" (no specific class) \
+\u{2192} detect_all with NO target.\n\
 - if the user also says outline/segment/mask them after detecting \u{2192} add segment_each_detection.\n\
 - \"what did I miss\"/\"review\"/\"check\" \u{2192} qa_review.\n\
 - \"describe\" \u{2192} describe; \"read text\" \u{2192} ocr; anything else \u{2192} help.\n\
 - At most 3 steps. Only use capabilities from the list.\n\
 Examples:\n\
+\"detect objects\" \u{2192} {\"steps\":[{\"capability\":\"detect_all\"}]}\n\
 \"find all cars\" \u{2192} {\"steps\":[{\"capability\":\"prompt_to_detect\",\"target\":\"car\"}]}\n\
 \"find all cars and outline them\" \u{2192} {\"steps\":[{\"capability\":\"prompt_to_detect\",\"target\":\"car\"},{\"capability\":\"segment_each_detection\"}]}\n\
 \"detect everything\" \u{2192} {\"steps\":[{\"capability\":\"detect_all\"}]}\n\
