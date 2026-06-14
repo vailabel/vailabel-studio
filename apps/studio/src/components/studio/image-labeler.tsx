@@ -1,4 +1,4 @@
-import { memo, useCallback, useRef, useState } from "react"
+import { memo, useCallback, useMemo, useRef, useState } from "react"
 import { ArrowLeft, ChevronLeft, ChevronRight, Download, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/tooltip"
 import { Canvas } from "@/components/canvas/canvas"
 import { Toolbar } from "@/components/studio/toolbar"
+import { ClassificationPanel } from "@/components/studio/classification-panel"
 import { LabelListPanel } from "@/components/studio/label-list-panel"
 import { FileListPanel } from "@/components/studio/file-list-panel"
 import { ResizablePanel } from "@/components/common/resizable-panel"
@@ -20,6 +21,7 @@ import { ExportDialog } from "@/components/studio/export-dialog"
 import { PredictionReviewPanel } from "@/components/ai/prediction-review-panel"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { useStudioScreenViewModel } from "@/features/studio/use-studio-screen-viewmodel"
+import { getLabelingConfig } from "@/lib/labeling-config"
 import type { Annotation, ImageData, Label, Prediction } from "@/types/core"
 
 interface ImageLabelerProps {
@@ -85,6 +87,49 @@ export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => 
   const canvasContainerRef = useRef<HTMLDivElement>(null)
   const [showExportDialog, setShowExportDialog] = useState(false)
   const viewModel = useStudioScreenViewModel(projectId, imageId)
+
+  // The project's template decides which tools show and whether we're in
+  // region-drawing or whole-image classification mode.
+  const config = useMemo(
+    () => getLabelingConfig(viewModel.project?.type),
+    [viewModel.project?.type]
+  )
+
+  const classificationAnnotation = useMemo(
+    () =>
+      viewModel.data.annotations.find(
+        (annotation) => annotation.type === "classification"
+      ),
+    [viewModel.data.annotations]
+  )
+
+  const assignImageClass = useCallback(
+    async (label: Label) => {
+      // Single-label classification: replace any existing image class.
+      const existing = viewModel.data.annotations.filter(
+        (annotation) => annotation.type === "classification"
+      )
+      await Promise.all(
+        existing.map((annotation) => viewModel.deleteAnnotation(annotation.id))
+      )
+      await viewModel.createAnnotationFromDraft({
+        name: label.name,
+        color: label.color,
+        type: "classification",
+        coordinates: [],
+      })
+    },
+    [viewModel]
+  )
+
+  const clearImageClass = useCallback(async () => {
+    const existing = viewModel.data.annotations.filter(
+      (annotation) => annotation.type === "classification"
+    )
+    await Promise.all(
+      existing.map((annotation) => viewModel.deleteAnnotation(annotation.id))
+    )
+  }, [viewModel])
 
   const handleContextMenu = useCallback(
     (event: React.MouseEvent) => {
@@ -159,6 +204,7 @@ export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => 
         >
           <Toolbar
             currentImage={viewModel.data.image}
+            allowedTools={config.tools}
             selectedTool={viewModel.selectedTool}
             onSelectTool={viewModel.setSelectedTool}
             zoom={viewModel.zoom}
@@ -212,6 +258,15 @@ export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => 
               onAccept={viewModel.acceptPrediction}
               onReject={viewModel.rejectPrediction}
             />
+
+            {config.allowsClassification && viewModel.data.image ? (
+              <ClassificationPanel
+                labels={viewModel.data.labels}
+                active={classificationAnnotation}
+                onAssign={(label) => void assignImageClass(label)}
+                onClear={() => void clearImageClass()}
+              />
+            ) : null}
 
             {viewModel.contextMenu.visible ? (
               <ContextMenu

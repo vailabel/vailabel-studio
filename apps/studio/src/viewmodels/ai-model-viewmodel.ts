@@ -230,20 +230,6 @@ export const useAIModelViewModel = () => {
     Record<string, string | null>
   >({})
 
-  const releaseSources = useMemo(() => {
-    const uniqueSources = new Map<string, GitHubReleaseSource>()
-
-    for (const model of SYSTEM_MODELS) {
-      if (!model.releaseSource) continue
-      uniqueSources.set(
-        githubReleaseSourceKey(model.releaseSource),
-        model.releaseSource
-      )
-    }
-
-    return Array.from(uniqueSources.values())
-  }, [])
-
   const loadData = useCallback(async () => {
     setIsLoading(true)
     try {
@@ -335,11 +321,9 @@ export const useAIModelViewModel = () => {
     void loadData()
   }, [loadData])
 
-  useEffect(() => {
-    for (const source of releaseSources) {
-      void loadCatalogReleases(source)
-    }
-  }, [loadCatalogReleases, releaseSources])
+  // GitHub release catalogs are fetched on demand (per-family "refresh"), not on
+  // mount — so the page never blocks on the network. Built-in catalog variants
+  // render immediately.
 
   useEffect(() => {
     let unlisten: (() => void) | undefined
@@ -452,6 +436,47 @@ export const useAIModelViewModel = () => {
     [systemModels]
   )
 
+  // ── Derived state (kept out of the view for MVVM) ──────────────────────────
+  const totalModelSize = useMemo(
+    () => availableModels.reduce((sum, model) => sum + (model.modelSize || 0), 0),
+    [availableModels]
+  )
+
+  const findInstalledCatalogVariant = useCallback(
+    (model: CatalogSystemModel, variant: CatalogSystemModelVariant) => {
+      const expectedVersion = normalizeValue(variant.resolvedVersion)
+      const expectedModelVersion = normalizeValue(variant.modelVersion)
+      const expectedCategory = normalizeValue(model.category)
+      const expectedFamily = normalizeValue(model.family)
+      const expectedVariant = normalizeValue(variant.variant)
+
+      return (
+        availableModels.find((entry) => {
+          const matchesIdentity =
+            normalizeValue(entry.category) === expectedCategory &&
+            normalizeValue(entry.family) === expectedFamily &&
+            normalizeValue(entry.variant) === expectedVariant
+          if (!matchesIdentity) return false
+          if (expectedVersion) {
+            return normalizeValue(entry.version) === expectedVersion
+          }
+          return (
+            !expectedModelVersion ||
+            normalizeValue(entry.modelVersion || entry.model_version) ===
+              expectedModelVersion
+          )
+        }) || null
+      )
+    },
+    [availableModels]
+  )
+
+  const isInstallingVariant = useCallback(
+    (model: CatalogSystemModel, variant: CatalogSystemModelVariant) =>
+      installingCatalogVariantKey === buildCatalogVariantKey(model, variant),
+    [installingCatalogVariantKey]
+  )
+
   const selectModel = (modelId: string) => {
     const nextModel =
       availableModels.find((model) => model.id === modelId) || null
@@ -487,6 +512,9 @@ export const useAIModelViewModel = () => {
     selectedModelId,
     recommendedInstalledModel,
     recommendedSystemModel,
+    totalModelSize,
+    findInstalledCatalogVariant,
+    isInstallingVariant,
     modelPath,
     isLoading,
     isImportingModel,

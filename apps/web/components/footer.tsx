@@ -1,5 +1,6 @@
 import { data } from "@/app/data"
-import { Github, Mail, MessageSquare } from "lucide-react"
+import { Mail, MessageSquare } from "lucide-react"
+import { GithubIcon } from "@/components/icons/github-icon"
 import Link from "next/link"
 
 export default function Footer() {
@@ -17,7 +18,7 @@ export default function Footer() {
                 href={data.repoUrl}
                 className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
               >
-                <Github size={20} />
+                <GithubIcon size={20} />
               </a>
               <a
                 href="https://discord.gg/vailabel"

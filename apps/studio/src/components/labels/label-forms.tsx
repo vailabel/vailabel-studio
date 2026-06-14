@@ -270,14 +270,26 @@ interface LabelEditFormProps {
   label: LabelType
   onUpdateLabel: (labelId: string, updates: Partial<LabelType>) => Promise<void>
   trigger?: React.ReactNode
+  /** Controlled open state. When provided, the form renders no trigger and the
+   * parent drives visibility (e.g. opened from a dropdown menu item). */
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
 export const LabelEditForm: React.FC<LabelEditFormProps> = ({
   label,
   onUpdateLabel,
   trigger,
+  open: controlledOpen,
+  onOpenChange,
 }) => {
-  const [open, setOpen] = useState(false)
+  const isControlled = controlledOpen !== undefined
+  const [internalOpen, setInternalOpen] = useState(false)
+  const open = isControlled ? controlledOpen : internalOpen
+  const setOpen = (next: boolean) => {
+    if (isControlled) onOpenChange?.(next)
+    else setInternalOpen(next)
+  }
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
     name: label.name,
@@ -307,13 +319,15 @@ export const LabelEditForm: React.FC<LabelEditFormProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger || (
-          <Button variant="ghost" size="sm">
-            Edit
-          </Button>
-        )}
-      </DialogTrigger>
+      {!isControlled && (
+        <DialogTrigger asChild>
+          {trigger || (
+            <Button variant="ghost" size="sm">
+              Edit
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

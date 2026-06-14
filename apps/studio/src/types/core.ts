@@ -13,7 +13,6 @@ export class Project {
   metadata?: Record<string, any>
   labels?: Label[]
   images?: ImageData[]
-  tasks?: Task[]
   createdAt?: Date
   updatedAt?: Date
 }
@@ -123,24 +122,6 @@ export class History {
   projectId?: string
   project_id?: string
   project?: Project
-  createdAt?: Date
-  updatedAt?: Date
-}
-
-export class Task {
-  id!: string
-  name!: string
-  description!: string
-  projectId?: string
-  project_id?: string
-  project?: Project
-  assignedTo?: string
-  assigned_to?: string
-  status!: string
-  dueDate?: Date
-  due_date?: Date
-  labels?: Label[]
-  annotations?: Annotation[]
   createdAt?: Date
   updatedAt?: Date
 }

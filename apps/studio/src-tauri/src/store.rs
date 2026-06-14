@@ -216,6 +216,14 @@ struct SecretKeyRow {
     name: String,
 }
 
+/// Generic single-column row for raw `SELECT ... AS json` queries over the
+/// JSON-blob tables (videos, tracks).
+#[derive(QueryableByName)]
+struct JsonRow {
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    json: String,
+}
+
 // ── JSON helpers ──────────────────────────────────────────────────────────────
 
 fn now_iso() -> String {
@@ -934,6 +942,55 @@ impl DesktopStore {
             )",
         ).execute(&mut conn)?;
 
+        // Dataset Intelligence reports. The full report is stored as a JSON blob
+        // (`report_json`); `summary_json` is a lighter slice for list views.
+        diesel::sql_query(
+            "CREATE TABLE IF NOT EXISTS analysis_reports (
+                id           TEXT PRIMARY KEY NOT NULL,
+                project_id   TEXT NOT NULL,
+                created_at   TEXT NOT NULL,
+                summary_json TEXT NOT NULL,
+                report_json  TEXT NOT NULL
+            )",
+        ).execute(&mut conn)?;
+        diesel::sql_query(
+            "CREATE INDEX IF NOT EXISTS idx_analysis_reports_project
+                ON analysis_reports (project_id, created_at)",
+        ).execute(&mut conn)?;
+
+        // Video Annotation (Phase 5). Videos and tracks are stored as JSON blobs
+        // (`video_json` / `track_json`) keyed by indexed columns, mirroring the
+        // analysis-report store — the keyframe/scene shape can evolve without a
+        // schema migration.
+        diesel::sql_query(
+            "CREATE TABLE IF NOT EXISTS videos (
+                id          TEXT PRIMARY KEY NOT NULL,
+                project_id  TEXT NOT NULL,
+                created_at  TEXT NOT NULL,
+                updated_at  TEXT NOT NULL,
+                video_json  TEXT NOT NULL
+            )",
+        ).execute(&mut conn)?;
+        diesel::sql_query(
+            "CREATE INDEX IF NOT EXISTS idx_videos_project
+                ON videos (project_id, created_at)",
+        ).execute(&mut conn)?;
+
+        diesel::sql_query(
+            "CREATE TABLE IF NOT EXISTS tracks (
+                id          TEXT PRIMARY KEY NOT NULL,
+                video_id    TEXT NOT NULL,
+                project_id  TEXT NOT NULL,
+                created_at  TEXT NOT NULL,
+                updated_at  TEXT NOT NULL,
+                track_json  TEXT NOT NULL
+            )",
+        ).execute(&mut conn)?;
+        diesel::sql_query(
+            "CREATE INDEX IF NOT EXISTS idx_tracks_video
+                ON tracks (video_id, created_at)",
+        ).execute(&mut conn)?;
+
         diesel::sql_query("PRAGMA foreign_keys=ON").execute(&mut conn)?;
 
         Ok(DesktopStore {
@@ -943,6 +1000,193 @@ impl DesktopStore {
 
     fn conn(&self) -> std::cell::RefMut<'_, SqliteConnection> {
         self.connection.borrow_mut()
+    }
+
+    // ── Analysis reports (Dataset Intelligence) ───────────────────────────────
+
+    pub fn upsert_analysis_report(
+        &self,
+        id: &str,
+        project_id: &str,
+        created_at: &str,
+        summary_json: &str,
+        report_json: &str,
+    ) -> Result<(), StoreError> {
+        diesel::sql_query(
+            "INSERT OR REPLACE INTO analysis_reports \
+             (id, project_id, created_at, summary_json, report_json) VALUES (?, ?, ?, ?, ?)",
+        )
+        .bind::<diesel::sql_types::Text, _>(id)
+        .bind::<diesel::sql_types::Text, _>(project_id)
+        .bind::<diesel::sql_types::Text, _>(created_at)
+        .bind::<diesel::sql_types::Text, _>(summary_json)
+        .bind::<diesel::sql_types::Text, _>(report_json)
+        .execute(&mut *self.conn())?;
+        Ok(())
+    }
+
+    pub fn list_analysis_reports(&self, project_id: &str) -> Result<Vec<Value>, StoreError> {
+        #[derive(QueryableByName)]
+        struct SummaryRow {
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            summary_json: String,
+        }
+        let rows = diesel::sql_query(
+            "SELECT summary_json FROM analysis_reports \
+             WHERE project_id = ? ORDER BY created_at DESC",
+        )
+        .bind::<diesel::sql_types::Text, _>(project_id)
+        .load::<SummaryRow>(&mut *self.conn())?;
+
+        let mut out = Vec::with_capacity(rows.len());
+        for row in rows {
+            out.push(serde_json::from_str(&row.summary_json)?);
+        }
+        Ok(out)
+    }
+
+    pub fn get_analysis_report(&self, id: &str) -> Result<Option<Value>, StoreError> {
+        self.load_report("SELECT report_json FROM analysis_reports WHERE id = ? LIMIT 1", id)
+    }
+
+    pub fn latest_analysis_report(&self, project_id: &str) -> Result<Option<Value>, StoreError> {
+        self.load_report(
+            "SELECT report_json FROM analysis_reports \
+             WHERE project_id = ? ORDER BY created_at DESC LIMIT 1",
+            project_id,
+        )
+    }
+
+    fn load_report(&self, query: &str, bind: &str) -> Result<Option<Value>, StoreError> {
+        #[derive(QueryableByName)]
+        struct ReportRow {
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            report_json: String,
+        }
+        let row = diesel::sql_query(query)
+            .bind::<diesel::sql_types::Text, _>(bind)
+            .load::<ReportRow>(&mut *self.conn())?
+            .into_iter()
+            .next();
+        match row {
+            Some(row) => Ok(Some(serde_json::from_str(&row.report_json)?)),
+            None => Ok(None),
+        }
+    }
+
+    pub fn delete_analysis_report(&self, id: &str) -> Result<(), StoreError> {
+        diesel::sql_query("DELETE FROM analysis_reports WHERE id = ?")
+            .bind::<diesel::sql_types::Text, _>(id)
+            .execute(&mut *self.conn())?;
+        Ok(())
+    }
+
+    // ── Videos & tracks (Video Annotation) ────────────────────────────────────
+
+    pub fn upsert_video(
+        &self,
+        id: &str,
+        project_id: &str,
+        created_at: &str,
+        updated_at: &str,
+        video_json: &str,
+    ) -> Result<(), StoreError> {
+        diesel::sql_query(
+            "INSERT OR REPLACE INTO videos \
+             (id, project_id, created_at, updated_at, video_json) VALUES (?, ?, ?, ?, ?)",
+        )
+        .bind::<diesel::sql_types::Text, _>(id)
+        .bind::<diesel::sql_types::Text, _>(project_id)
+        .bind::<diesel::sql_types::Text, _>(created_at)
+        .bind::<diesel::sql_types::Text, _>(updated_at)
+        .bind::<diesel::sql_types::Text, _>(video_json)
+        .execute(&mut *self.conn())?;
+        Ok(())
+    }
+
+    pub fn list_videos(&self, project_id: &str) -> Result<Vec<Value>, StoreError> {
+        let rows = diesel::sql_query(
+            "SELECT video_json AS json FROM videos \
+             WHERE project_id = ? ORDER BY created_at DESC",
+        )
+        .bind::<diesel::sql_types::Text, _>(project_id)
+        .load::<JsonRow>(&mut *self.conn())?;
+        rows.into_iter()
+            .map(|row| serde_json::from_str(&row.json).map_err(StoreError::from))
+            .collect()
+    }
+
+    pub fn get_video(&self, id: &str) -> Result<Option<Value>, StoreError> {
+        self.load_json("SELECT video_json AS json FROM videos WHERE id = ? LIMIT 1", id)
+    }
+
+    pub fn delete_video(&self, id: &str) -> Result<(), StoreError> {
+        diesel::sql_query("DELETE FROM videos WHERE id = ?")
+            .bind::<diesel::sql_types::Text, _>(id)
+            .execute(&mut *self.conn())?;
+        Ok(())
+    }
+
+    pub fn upsert_track(
+        &self,
+        id: &str,
+        video_id: &str,
+        project_id: &str,
+        created_at: &str,
+        updated_at: &str,
+        track_json: &str,
+    ) -> Result<(), StoreError> {
+        diesel::sql_query(
+            "INSERT OR REPLACE INTO tracks \
+             (id, video_id, project_id, created_at, updated_at, track_json) \
+             VALUES (?, ?, ?, ?, ?, ?)",
+        )
+        .bind::<diesel::sql_types::Text, _>(id)
+        .bind::<diesel::sql_types::Text, _>(video_id)
+        .bind::<diesel::sql_types::Text, _>(project_id)
+        .bind::<diesel::sql_types::Text, _>(created_at)
+        .bind::<diesel::sql_types::Text, _>(updated_at)
+        .bind::<diesel::sql_types::Text, _>(track_json)
+        .execute(&mut *self.conn())?;
+        Ok(())
+    }
+
+    pub fn list_tracks(&self, video_id: &str) -> Result<Vec<Value>, StoreError> {
+        let rows = diesel::sql_query(
+            "SELECT track_json AS json FROM tracks \
+             WHERE video_id = ? ORDER BY created_at ASC",
+        )
+        .bind::<diesel::sql_types::Text, _>(video_id)
+        .load::<JsonRow>(&mut *self.conn())?;
+        rows.into_iter()
+            .map(|row| serde_json::from_str(&row.json).map_err(StoreError::from))
+            .collect()
+    }
+
+    pub fn delete_track(&self, id: &str) -> Result<(), StoreError> {
+        diesel::sql_query("DELETE FROM tracks WHERE id = ?")
+            .bind::<diesel::sql_types::Text, _>(id)
+            .execute(&mut *self.conn())?;
+        Ok(())
+    }
+
+    pub fn delete_tracks_for_video(&self, video_id: &str) -> Result<(), StoreError> {
+        diesel::sql_query("DELETE FROM tracks WHERE video_id = ?")
+            .bind::<diesel::sql_types::Text, _>(video_id)
+            .execute(&mut *self.conn())?;
+        Ok(())
+    }
+
+    fn load_json(&self, query: &str, bind: &str) -> Result<Option<Value>, StoreError> {
+        let row = diesel::sql_query(query)
+            .bind::<diesel::sql_types::Text, _>(bind)
+            .load::<JsonRow>(&mut *self.conn())?
+            .into_iter()
+            .next();
+        match row {
+            Some(row) => Ok(Some(serde_json::from_str(&row.json)?)),
+            None => Ok(None),
+        }
     }
 
     // ── Public dispatch (matches EntityStore signature) ───────────────────────

@@ -1,16 +1,17 @@
 import { aiModelsService } from "./ai-models-service"
+import { analysisService } from "./analysis-service"
 import { annotationsService } from "./annotations-service"
+import { cloudStorageService } from "./cloud-service"
 import { historyService } from "./history-service"
 import { imagesService } from "./images-service"
 import { labelsService } from "./labels-service"
 import { predictionsService } from "./predictions-service"
 import { projectsService } from "./projects-service"
 import { settingsService } from "./settings-service"
-import { tasksService } from "./tasks-service"
+import { videoService } from "./video-service"
 
 export const services = {
   getProjectService: () => projectsService,
-  getTaskService: () => tasksService,
   getLabelService: () => labelsService,
   getImageService: () => imagesService,
   getAnnotationService: () => annotationsService,
@@ -18,4 +19,7 @@ export const services = {
   getAIModelService: () => aiModelsService,
   getHistoryService: () => historyService,
   getPredictionService: () => predictionsService,
+  getAnalysisService: () => analysisService,
+  getVideoService: () => videoService,
+  getCloudStorageService: () => cloudStorageService,
 }

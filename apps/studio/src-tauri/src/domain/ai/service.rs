@@ -311,6 +311,10 @@ impl AiService {
     ) -> Result<Vec<Value>, AppError> {
         let client = Client::builder()
             .user_agent(format!("{APP_NAME}/{}", env!("CARGO_PKG_VERSION")))
+            // Fail fast instead of hanging the UI forever when GitHub is
+            // unreachable / offline / rate-limited.
+            .connect_timeout(std::time::Duration::from_secs(8))
+            .timeout(std::time::Duration::from_secs(15))
             .build()?;
         let url = format!(
             "https://api.github.com/repos/{}/{}/releases?per_page=20",

@@ -37,32 +37,30 @@ export const LabelStatsCard: React.FC<LabelStatsCardProps> = ({
   }
 
   return (
-    <div className="transition-transform duration-200 ease-out hover:scale-[1.02] active:scale-[0.98]">
-      <Card className="p-6 hover:shadow-lg transition-shadow duration-200 bg-card">
-        <div className="flex items-center gap-4">
-          <div className={`p-3 rounded-lg ${color} text-white`}>
-            <Icon className="w-6 h-6" />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-sm font-medium text-muted-foreground mb-1">
-              {title}
-            </h3>
-            <div className="flex items-baseline gap-2">
-              <p className="text-2xl font-bold text-foreground">{value}</p>
-              {trend && (
-                <span
-                  className={`text-sm font-medium ${
-                    trend.isPositive ? "text-green-600" : "text-destructive"
-                  }`}
-                >
-                  {trend.isPositive ? "+" : ""}
-                  {trend.value}%
-                </span>
-              )}
-            </div>
+    <Card className="p-6 bg-card">
+      <div className="flex items-center gap-4">
+        <div className={`p-3 rounded-lg ${color} text-white`}>
+          <Icon className="w-6 h-6" />
+        </div>
+        <div className="flex-1">
+          <h3 className="text-sm font-medium text-muted-foreground mb-1">
+            {title}
+          </h3>
+          <div className="flex items-baseline gap-2">
+            <p className="text-2xl font-bold text-foreground">{value}</p>
+            {trend && (
+              <span
+                className={`text-sm font-medium ${
+                  trend.isPositive ? "text-green-600" : "text-destructive"
+                }`}
+              >
+                {trend.isPositive ? "+" : ""}
+                {trend.value}%
+              </span>
+            )}
           </div>
         </div>
-      </Card>
-    </div>
+      </div>
+    </Card>
   )
 }
