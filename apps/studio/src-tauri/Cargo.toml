@@ -1,6 +1,6 @@
 [package]
 name = "vailabel-studio"
-version = "1.0.11"
+version = "1.0.12"
 description = "Vailabel Studio Desktop"
 authors = ["Vichea Nath <nathvichea1@gmail.com>"]
 edition = "2021"
