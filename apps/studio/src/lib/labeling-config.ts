@@ -24,6 +24,7 @@ const ALL_TOOLS: CanvasTool[] = [
   "line",
   "linestrip",
   "circle",
+  "smartSegment",
   "delete",
 ]
 
@@ -40,7 +41,7 @@ export function getLabelingConfig(projectType?: string): LabelingConfig {
     case "segmentation":
       return {
         mode: "regions",
-        tools: ["move", "polygon", "freeDraw", "delete"],
+        tools: ["move", "polygon", "freeDraw", "smartSegment", "delete"],
         defaultTool: "polygon",
         allowsRegions: true,
         allowsClassification: false,

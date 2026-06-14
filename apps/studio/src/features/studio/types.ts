@@ -9,6 +9,7 @@ export type CanvasTool =
   | "line"
   | "linestrip"
   | "circle"
+  | "smartSegment"
   | "delete"
 
 export type CanvasHistoryKind = "create" | "update" | "delete"

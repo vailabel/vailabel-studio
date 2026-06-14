@@ -1,6 +1,14 @@
 import { invokeWithLogging } from "@/ipc/invoke"
 import type { GitHubRelease } from "@/lib/github-releases"
-import type { AiGpuInfo, AiRegistryModel } from "@/types/ai-assistant"
+import type {
+  AiGpuInfo,
+  AiRegistryModel,
+  CopilotApplyAction,
+  CopilotTurnRequest,
+  CopilotTurnResult,
+  RuntimeInstallResult,
+  RuntimeInstallStatus,
+} from "@/types/ai-assistant"
 import type {
   AnalysisConfig,
   AnalysisJob,
@@ -43,6 +51,38 @@ interface PredictionGenerateRequest {
   imageId: string
   modelId: string
   threshold?: number
+}
+
+/** A foreground/background click for interactive segmentation. */
+export interface PipelinePromptPoint {
+  x: number
+  y: number
+  positive?: boolean
+}
+
+/** A box prompt (SAM box, or a region to segment) in image-space coordinates. */
+export interface PipelinePromptBox {
+  x1: number
+  y1: number
+  x2: number
+  y2: number
+}
+
+export interface PipelinePrompt {
+  points?: PipelinePromptPoint[]
+  boxes?: PipelinePromptBox[]
+  text?: string
+}
+
+/** Prompt-driven inference run (SAM segment, open-vocab detect). Mirrors the
+ *  Rust `PipelineRunPayload`. `registryId` overrides plugin selection; when
+ *  omitted the backend derives it from the model entity. */
+export interface PipelineRunRequest {
+  imageId: string
+  modelId: string
+  registryId?: string
+  threshold?: number
+  prompt?: PipelinePrompt
 }
 
 interface GitHubReleaseLookupRequest {
@@ -122,6 +162,8 @@ export const studioCommands = {
     call<Prediction[]>("predictions_list_by_image", { payload: { imageId } }),
   predictionsGenerate: (payload: PredictionGenerateRequest) =>
     call<Prediction[]>("predictions_generate", { payload }),
+  pipelineRun: (payload: PipelineRunRequest) =>
+    call<Prediction[]>("pipeline_run", { payload }),
   predictionsAccept: (predictionId: string) =>
     call<Annotation>("predictions_accept", { payload: { predictionId } }),
   predictionsReject: (predictionId: string) =>
@@ -132,6 +174,18 @@ export const studioCommands = {
   // Local AI assistant (Phase 1): GPU/runtime detection + model registry.
   aiGpuInfo: () => call<AiGpuInfo>("ai_gpu_info"),
   aiModelRegistry: () => call<AiRegistryModel[]>("ai_model_registry"),
+
+  // ONNX Runtime auto-installer: download onnxruntime.dll (+ cuDNN) on demand.
+  aiRuntimeStatus: () => call<RuntimeInstallStatus>("ai_runtime_status"),
+  aiRuntimeInstall: (gpu = true) =>
+    call<RuntimeInstallResult>("ai_runtime_install", { payload: { gpu } }),
+  aiRuntimeRestart: () => call<void>("ai_runtime_restart"),
+
+  // Local AI copilot: chat-driven labeling assistant over the local detector.
+  aiCopilotTurn: (payload: CopilotTurnRequest) =>
+    call<CopilotTurnResult>("ai_copilot_turn", { payload }),
+  aiCopilotApplyAction: (payload: CopilotApplyAction) =>
+    call<unknown>("ai_copilot_apply_action", { payload }),
 
   // Dataset Intelligence (Phase 2): analysis jobs + persisted reports.
   analysisRun: (payload: { projectId: string; config?: AnalysisConfig }) =>

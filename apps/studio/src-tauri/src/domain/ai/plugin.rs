@@ -115,10 +115,58 @@ pub fn plugin_for(registry_id: &str) -> Box<dyn ModelPlugin> {
         None => (registry_id.to_string(), "unknown"),
     };
 
-    // As concrete engines are implemented, branch here, e.g.:
-    //   "mobile-sam" | "sam2" => Box::new(SamSegmenter::new(...)?),
+    // Interactive segmentation (SAM): lazily builds its ONNX sessions from the
+    // model entity on the first run, so it constructs here with no file paths.
+    #[cfg(feature = "local-inference")]
+    if matches!(registry_id, "mobile-sam" | "sam2") {
+        return Box::new(crate::domain::ai::engines::sam::SamSegmenter::new());
+    }
+
     Box::new(NotImplementedPlugin {
         model_name: name,
         task,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn not_implemented_plugin_reports_clear_error_through_dispatch() {
+        let model = json!({});
+        let labels: Vec<serde_json::Value> = Vec::new();
+        let request = PipelineRequest {
+            image_path: "unused.png",
+            model: &model,
+            labels: &labels,
+            threshold: 0.5,
+            prompt: PromptInput::default(),
+        };
+
+        // A registered-but-unwired model (Florence-2 has no engine yet) resolves to
+        // the scaffold plugin and must surface a clear, named error (not silently
+        // return zero drafts).
+        let error = plugin_for("florence-2")
+            .run(&request)
+            .expect_err("scaffold plugin should error");
+        let message = error.to_string();
+        assert!(message.contains("Florence-2"), "got: {message}");
+        assert!(message.contains("not implemented yet"), "got: {message}");
+    }
+
+    #[test]
+    fn unknown_registry_id_still_resolves_to_a_plugin() {
+        let model = json!({});
+        let labels: Vec<serde_json::Value> = Vec::new();
+        let request = PipelineRequest {
+            image_path: "unused.png",
+            model: &model,
+            labels: &labels,
+            threshold: 0.5,
+            prompt: PromptInput::default(),
+        };
+        assert!(plugin_for("does-not-exist").run(&request).is_err());
+    }
 }

@@ -8,23 +8,14 @@ import {
   Trash2,
   ZoomIn,
   Pencil,
-  Brain,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { toast } from "sonner"
-import type { ImageData } from "@/types/core"
 import type { CanvasTool } from "@/features/studio/types"
 
 interface ContextMenuProps {
   x: number
   y: number
   containerRect: DOMRect | null
-  image: ImageData | null
-  selectedModelId?: string
-  selectedModelCanAttemptPrediction?: boolean
-  selectedModelUnsupportedReason?: string
-  onGeneratePredictions: (modelId: string) => Promise<unknown>
-  onOpenAISettings?: () => void
   onSelectTool: (tool: CanvasTool) => void
   onResetView: () => void
   onClose: () => void
@@ -35,12 +26,6 @@ export const ContextMenu = memo(
     x,
     y,
     containerRect,
-    image,
-    selectedModelId,
-    selectedModelCanAttemptPrediction = false,
-    selectedModelUnsupportedReason,
-    onGeneratePredictions,
-    onOpenAISettings,
     onSelectTool,
     onResetView,
     onClose,
@@ -61,50 +46,6 @@ export const ContextMenu = memo(
     const handleToolSelect = (tool: CanvasTool) => {
       onSelectTool(tool)
       onClose()
-    }
-
-    const handleAIDetection = async () => {
-      if (!image) {
-        toast.error("No image selected", {
-          description: "Please select an image first.",
-        })
-        onClose()
-        return
-      }
-
-      if (!selectedModelId) {
-        toast("Select a model first", {
-          description: "Choose a local AI model before running AI detect.",
-        })
-        onOpenAISettings?.()
-        onClose()
-        return
-      }
-
-      if (!selectedModelCanAttemptPrediction) {
-        toast.error("Selected model is not ready", {
-          description:
-            selectedModelUnsupportedReason ||
-            "Choose a detection-ready local model before running AI detect.",
-        })
-        onOpenAISettings?.()
-        onClose()
-        return
-      }
-
-      try {
-        await onGeneratePredictions(selectedModelId)
-      } catch (error) {
-        console.error("Prediction generation failed:", error)
-        toast.error("Prediction generation failed", {
-          description:
-            error instanceof Error
-              ? error.message
-              : "The selected model could not process this image.",
-        })
-      } finally {
-        onClose()
-      }
     }
 
     const menuPosition = useMemo(() => {
@@ -131,15 +72,6 @@ export const ContextMenu = memo(
         style={{ left: menuPosition.x, top: menuPosition.y }}
       >
         <div className="py-1">
-          <button
-            className="flex w-full items-center px-4 py-2 text-sm text-foreground hover:bg-muted"
-            onClick={() => {
-              void handleAIDetection()
-            }}
-          >
-            <Brain className="mr-2 h-4 w-4" />
-            AI Detection
-          </button>
           <button
             className="flex w-full items-center px-4 py-2 text-sm text-foreground hover:bg-muted"
             onClick={() => handleToolSelect("move")}

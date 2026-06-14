@@ -33,10 +33,20 @@ serde_yaml = "0.9"
 tauri = { version = "2", features = ["protocol-asset"] }
 thiserror = "2"
 uuid = { version = "1", features = ["v4", "serde"] }
-ort = { version = "2.0.0-rc.12", optional = true, default-features = false, features = ["load-dynamic", "cuda", "api-24"] }
+# `api-22` must match the native onnxruntime.dll version fetched by the installer
+# (ONNX Runtime 1.22.x exposes ORT API version 22). Bump both together.
+ort = { version = "2.0.0-rc.12", optional = true, default-features = false, features = ["load-dynamic", "cuda", "api-22"] }
 ndarray = { version = "0.17", optional = true, features = ["serde"] }
+# Mask → contour → polygon tracing for SAM segmentation.
+imageproc = { version = "0.25", optional = true, default-features = false }
+# Used by the on-demand ONNX Runtime installer to unpack the downloaded packages.
+zip = { version = "2", optional = true, default-features = false, features = ["deflate"] }
 
 [features]
 default = ["yolo-inference"]
-# Enable to build with YOLO/ONNX inference and CUDA provider (requires CUDA 12 runtime on host)
-yolo-inference = ["ort", "ndarray"]
+# Local ONNX inference: detector (YOLO), SAM segmentation, open-vocab. Pulls the
+# ORT runtime + array/image-processing crates. `yolo-inference` is kept as an
+# alias so existing `#[cfg(feature = "yolo-inference")]` gates and the default
+# build are unchanged; new engines (SAM, …) gate on `local-inference`.
+local-inference = ["ort", "ndarray", "zip", "imageproc"]
+yolo-inference = ["local-inference"]

@@ -860,14 +860,74 @@ fn updater_status() -> Value {
     })
 }
 
+/// Locate an ONNX Runtime shared library bundled with the app (next to the
+/// executable, or under app data) so `ORT_DYLIB_PATH` can point at it instead of
+/// the system copy. Returns the first existing candidate.
+#[cfg(feature = "yolo-inference")]
+fn resolve_bundled_ort(app: &tauri::AppHandle) -> Option<PathBuf> {
+    let lib = if cfg!(target_os = "windows") {
+        "onnxruntime.dll"
+    } else if cfg!(target_os = "macos") {
+        "libonnxruntime.dylib"
+    } else {
+        "libonnxruntime.so"
+    };
+
+    let mut candidates: Vec<PathBuf> = Vec::new();
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(dir) = exe.parent() {
+            candidates.push(dir.join(lib));
+            candidates.push(dir.join("onnxruntime").join(lib));
+        }
+    }
+    if let Ok(dir) = app.path().app_data_dir() {
+        candidates.push(dir.join("onnxruntime").join(lib));
+    }
+
+    candidates.into_iter().find(|path| path.exists())
+}
+
+/// Prepend `dir` to the process `PATH` so DLLs alongside `onnxruntime.dll` (the
+/// CUDA execution provider and cuDNN) resolve when the runtime is loaded.
+#[cfg(feature = "yolo-inference")]
+fn prepend_to_path(dir: &Path) {
+    let mut entries: Vec<PathBuf> = std::env::var_os("PATH")
+        .map(|value| std::env::split_paths(&value).collect())
+        .unwrap_or_default();
+    if entries.iter().any(|entry| entry == dir) {
+        return;
+    }
+    entries.insert(0, dir.to_path_buf());
+    if let Ok(joined) = std::env::join_paths(entries) {
+        std::env::set_var("PATH", joined);
+    }
+}
+
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
             #[cfg(feature = "yolo-inference")]
             {
-                // Initialize ONNX Runtime environment once on the main thread
-                // This can help prevent hangs when creating sessions in background threads
-                ort::init().commit();
+                // Prefer an ONNX Runtime bundled with the app over whatever
+                // Windows ships in System32 (CPU/DirectML-only, often a version
+                // mismatch). Only set the path when we actually find one.
+                if std::env::var_os("ORT_DYLIB_PATH").is_none() {
+                    if let Some(path) = resolve_bundled_ort(app.handle()) {
+                        // Make the runtime's own folder the first place the OS
+                        // looks for the CUDA provider + cuDNN DLLs that sit next
+                        // to onnxruntime.dll (the auto-installer drops them here).
+                        if let Some(dir) = path.parent() {
+                            prepend_to_path(dir);
+                        }
+                        std::env::set_var("ORT_DYLIB_PATH", path);
+                    }
+                }
+                // Configure the global ONNX Runtime environment once on the main
+                // thread. NOTE: `commit()` only sets the env config (returns false
+                // if already set) — it does NOT load the dll, so its result is not
+                // a usable load signal. The real load happens lazily on first use
+                // and is reported by `gpu::gpu_info()` (see gpu.rs).
+                let _ = ort::init().commit();
             }
 
             let app_dir = app.path().app_data_dir()?;
@@ -952,10 +1012,16 @@ pub fn run() {
             domain::ai::commands::ai_models_catalog_releases,
             domain::ai::commands::predictions_list_by_image,
             domain::ai::commands::predictions_generate,
+            domain::ai::commands::pipeline_run,
             domain::ai::commands::predictions_accept,
             domain::ai::commands::predictions_reject,
             domain::ai::commands::ai_gpu_info,
             domain::ai::commands::ai_model_registry,
+            domain::ai::commands::ai_runtime_install,
+            domain::ai::commands::ai_runtime_status,
+            domain::ai::commands::ai_runtime_restart,
+            domain::ai::commands::ai_copilot_turn,
+            domain::ai::commands::ai_copilot_apply_action,
             domain::analysis::commands::analysis_run,
             domain::analysis::commands::analysis_job_status,
             domain::analysis::commands::analysis_reports_list,

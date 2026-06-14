@@ -9,7 +9,6 @@ import {
   RotateCw,
   Crosshair,
   Pencil,
-  Settings,
   Plus,
   Minus,
   RefreshCcw,
@@ -17,6 +16,7 @@ import {
   Slash,
   Spline,
   Circle,
+  Wand2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -27,12 +27,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { Separator } from "@/components/ui/separator"
-import { AIDetectionButton } from "@/components/ai/ai-detection-button"
-import type { AIModel, ImageData } from "@/types/core"
 import type { CanvasTool } from "@/features/studio/types"
 
 interface ToolbarProps {
-  currentImage: ImageData | null
   /** Tools to expose for the current project template. Omit to show all. */
   allowedTools?: CanvasTool[]
   selectedTool: CanvasTool
@@ -49,16 +46,6 @@ interface ToolbarProps {
   canRedo: boolean
   onUndo: () => void | Promise<void>
   onRedo: () => void | Promise<void>
-  selectedModel: AIModel | null
-  selectedModelId?: string
-  selectedModelPredictionReady: boolean
-  selectedModelCanAttemptPrediction: boolean
-  selectedModelWillConvertOnRun: boolean
-  selectedModelUnsupportedReason?: string
-  selectedModelReadinessLabel: string
-  onOpenAISettings: () => void
-  onGeneratePredictions: (modelId: string) => Promise<unknown>
-  isGeneratingPredictions?: boolean
 }
 
 interface ToolButtonConfig {
@@ -87,12 +74,12 @@ const annotationTools: ToolButtonConfig[] = [
   { id: "line", name: "Line", icon: Slash, shortcut: "L" },
   { id: "linestrip", name: "Line Strip", icon: Spline, shortcut: "S" },
   { id: "circle", name: "Circle", icon: Circle, shortcut: "C" },
+  { id: "smartSegment", name: "Smart Segment (SAM)", icon: Wand2, shortcut: "G" },
   { id: "delete", name: "Delete", icon: Trash2, shortcut: "D" },
 ]
 
 export const Toolbar = memo(
   ({
-    currentImage,
     allowedTools,
     selectedTool,
     onSelectTool,
@@ -108,16 +95,6 @@ export const Toolbar = memo(
     canRedo,
     onUndo,
     onRedo,
-    selectedModel,
-    selectedModelId,
-    selectedModelPredictionReady,
-    selectedModelCanAttemptPrediction,
-    selectedModelWillConvertOnRun,
-    selectedModelUnsupportedReason,
-    selectedModelReadinessLabel,
-    onOpenAISettings,
-    onGeneratePredictions,
-    isGeneratingPredictions = false,
   }: ToolbarProps) => {
     const utilityButtons = useMemo<UtilityButtonConfig[]>(
       () => [
@@ -315,61 +292,6 @@ export const Toolbar = memo(
                 </TooltipContent>
               </Tooltip>
             ))}
-          </TooltipProvider>
-
-          <Separator orientation="vertical" className="mx-2 h-6" />
-
-          {selectedModel ? (
-            <div className="hidden items-center space-x-2 text-xs text-muted-foreground md:flex">
-              <span>
-                Model:{" "}
-                <span className="font-medium text-foreground">
-                  {selectedModel.name}
-                </span>
-              </span>
-              <span className="rounded-full bg-muted px-2 py-0.5 text-[11px]">
-                {selectedModel.modelVersion ||
-                  selectedModel.model_version ||
-                  selectedModel.version}
-              </span>
-              <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-foreground">
-                {selectedModel.backend?.toUpperCase() || "CPU"}
-              </span>
-              <span className="rounded-full bg-muted px-2 py-0.5 text-[11px]">
-                {selectedModelReadinessLabel}
-              </span>
-              {selectedModel.status ? (
-                <span className="rounded-full bg-muted px-2 py-0.5 text-[11px]">
-                  {selectedModel.status}
-                </span>
-              ) : null}
-            </div>
-          ) : null}
-
-          <AIDetectionButton
-            image={currentImage}
-            selectedModelId={selectedModelId}
-            selectedModelName={selectedModel?.name}
-            selectedModelPredictionReady={selectedModelPredictionReady}
-            selectedModelCanAttemptPrediction={selectedModelCanAttemptPrediction}
-            selectedModelWillConvertOnRun={selectedModelWillConvertOnRun}
-            selectedModelUnsupportedReason={selectedModelUnsupportedReason}
-            isGenerating={isGeneratingPredictions}
-            onOpenModelSettings={onOpenAISettings}
-            onGeneratePredictions={onGeneratePredictions}
-          />
-
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <Button variant="ghost" size="sm" className="h-8 w-8" onClick={onOpenAISettings}>
-                    <Settings className="h-4 w-4" />
-                  </Button>
-                }
-              />
-              <TooltipContent side="bottom">AI Model Settings</TooltipContent>
-            </Tooltip>
           </TooltipProvider>
         </div>
       </div>

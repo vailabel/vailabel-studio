@@ -22,6 +22,10 @@ export {
   CircleHandler,
   type CircleHandlerUIState,
 } from "./handlers/circle-handler"
+export {
+  SmartSegmentHandler,
+  type SmartSegmentHandlerUIState,
+} from "./handlers/smart-segment-handler"
 
 import type { Point } from "@/types/core"
 
@@ -35,6 +39,7 @@ export type ToolHandlerUIState =
   | import("./handlers/line-handler").LineHandlerUIState
   | import("./handlers/linestrip-handler").LinestripHandlerUIState
   | import("./handlers/circle-handler").CircleHandlerUIState
+  | import("./handlers/smart-segment-handler").SmartSegmentHandlerUIState
 
 export interface ToolHandler {
   onMouseDown(e: React.MouseEvent): void

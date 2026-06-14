@@ -337,3 +337,83 @@ Principles:
 - `components/studio/image-labeler.tsx` — dock the panel; reuse `PredictionReviewPanel`
   for proposed geometry.
 - `ipc/events.ts` — subscribe to `studio://copilot-token` for streaming.
+
+---
+
+## 13. Implementation status (shipped)
+
+A first working slice is implemented. It deliberately orchestrates the **existing,
+already-wired YOLO detector** rather than depending on a from-scratch Florence-2
+seq2seq engine — so the copilot does real work today, and the VLM paths are honest
+placeholders until their ONNX engines land.
+
+**Wired and working:**
+- `domain/ai/copilot.rs` — deterministic `route()` + pure `qa_findings()` diff logic
+  (unit-tested: routing precedence, class-target extraction, missed/mislabel/duplicate).
+- `AiService::copilot_turn` / `copilot_apply_action` + `active_model_id` /
+  `find_or_create_label` helpers (in `domain/ai/service.rs`).
+- Commands `ai_copilot_turn` / `ai_copilot_apply_action` (registered in `lib.rs`).
+- Frontend: `ai-copilot-panel.tsx`, `ai-copilot-viewmodel.ts`, `ai-copilot-service.ts`,
+  `studioCommands.aiCopilotTurn/aiCopilotApplyAction`, copilot types, and the docked
+  panel + toggle in `image-labeler.tsx`.
+
+**Capabilities live now:**
+- `detect` / `find <class>` → runs the active model via `generate_predictions`; boxes
+  appear in the existing `PredictionReviewPanel` for accept/reject. **Prompt-to-detect**
+  ("find all cars") narrows to the requested class via a draft class-filter — works on
+  the closed-vocab YOLO the user already has, and on an open-vocab export (YOLO-World).
+- `qa_review` ("check what I missed") → detector + diff vs existing annotations →
+  missed objects (as predictions) + relabel/delete fixes behind in-chat approve/deny.
+- **`segment` (SAM) — now wired.** `domain/ai/engines/sam.rs` (`SamSegmenter`, a
+  `ModelPlugin`): image-encoder → mask-decoder → mask → polygon (imageproc contours +
+  RDP). Runs through the new prompt path (`pipeline_run` command / `AiService::pipeline_run`),
+  caches the per-image embedding, and lands polygons in the predictions review loop.
+  MobileSAM/SAM `status` is `available`; the SAM ViT-B catalog entry downloads its two
+  ONNX files via the multi-file installer (`ModelInstallPayload.components`).
+- **Orchestrator (LLM as router/chainer).** `copilot.rs` `plan_with_llm`-style planning:
+  `PLANNER_SYSTEM_PROMPT` + `chat_json()` ask the local LLM for a validated JSON plan
+  (`parse_plan`, closed `PlanCapability` set); `AiService::execute_plan` chains steps so
+  "find all cars **and outline them**" runs detect → segment-each (boxes feed SAM, fan-out
+  capped). With no LLM or unusable output it falls back to the deterministic keyword
+  `route()` — the orchestrator can only improve on, never regress, the baseline.
+- `describe` / `ocr` / `help` / free-form chat → answered by a **local LLM/VLM** when one
+  is auto-discovered (see Hybrid below); otherwise a pointer to start one or use the
+  detector.
+
+**Hybrid: local LLM/VLM brain (LM Studio, Ollama, llama.cpp).**
+Grounding (detect/QA) stays deterministic on the ONNX detector — never the LLM — so
+boxes are reliable. Conversation and vision route to an **OpenAI-compatible local
+server that the copilot auto-discovers** — there is no manual model configuration
+(the user just runs LM Studio/Ollama/llama.cpp):
+- `domain/ai/llm.rs` — `chat_completion()` (reqwest, `/chat/completions`, vision via
+  base64 `data:` URL) + `image_data_url()`. Calls run in Rust (key stays out of the
+  webview; optional bearer key read from the keychain namespace `copilot`).
+- `discover_local_llm()` probes the default local endpoints (LM Studio `:1234`, Ollama
+  `:11434`, llama.cpp `:8080`, Jan `:1337`), prefers a vision-capable model, and returns
+  a `CopilotLlmConfig` (`provider:"auto"` / `baseUrl` / `model` / `vision`) constructed
+  in Rust. `AiService::resolve_llm()` caches it for 30s; `server_reachable()` decides
+  whether a failed call means "re-discover" vs. a bad request to a healthy server. The
+  client sends **no** LLM config on `ai_copilot_turn`. Still fully offline — the server
+  runs on the user's machine.
+- Describe/OCR only run when the discovered model can see images; with a text-only model
+  the copilot asks for a vision model instead of answering blind.
+- A failed/missing server is surfaced as the chat reply, never a hard error.
+
+**Still placeholder / next:** an interactive **click/box-to-segment canvas tool** (the
+backend `pipeline_run` + `SamSegmenter` are ready; the canvas tool that sends a click as a
+`PromptInput` is the remaining UI). Grounding DINO (true open-vocab, needs a BERT
+tokenizer), Florence-2 (4-graph seq2seq), RT-DETR, FastSAM/SAM 2-heavy, and OCR remain
+`planned`. Florence-2 as an in-process ONNX engine (§3) is still an alternative to the LLM
+for users who prefer no separate server — wiring it = implement its `ModelPlugin` and flip
+the registry `status` (§12).
+
+**Build/runtime notes:**
+- Real inference requires building with `--features yolo-inference` (needs the
+  onnxruntime dylib) **and** an active model on `/ai-models`. Without the feature or a
+  model, the copilot replies with an actionable message instead of failing — the chat,
+  routing, QA-diff, and HITL flow all still work.
+- Verified: `cargo check` (default features) clean, `cargo test --lib copilot` 4/4,
+  `tsc --noEmit` clean, eslint clean.
+- Streaming (§6.4) is not built yet — the working capabilities aren't token-generating,
+  so the turn returns a structured result synchronously. Add the token channel when the
+  VLM text path lands.

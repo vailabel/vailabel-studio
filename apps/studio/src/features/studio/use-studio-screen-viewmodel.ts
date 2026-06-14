@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { toast } from "sonner"
+import type { PipelinePrompt } from "@/ipc/studio"
 import {
   useCanvasContainer,
   useCanvasContextMenu,
@@ -10,18 +12,10 @@ import {
   useCanvasZoom,
 } from "@/contexts/canvas-context"
 import { listenToStudioEvents } from "@/ipc/events"
-import {
-  canAttemptModelPrediction,
-  getModelUnsupportedReason,
-  getPredictionReadinessLabel,
-  isModelPredictionReady,
-  willModelConvertOnRun,
-} from "@/lib/ai-model-metadata"
 import { services } from "@/services"
 import type { Annotation, ImageData, Label, Project } from "@/types/core"
 import { openPathDialog } from "@/lib/desktop"
 import { exportDataset, type ExportFormat } from "@/lib/export"
-import { useAIModelViewModel } from "@/viewmodels/ai-model-viewmodel"
 import { useImageLabelerViewModel } from "@/viewmodels/image-labeler-viewmodel"
 import { useSettingsViewModel } from "@/viewmodels/settings-viewmodel"
 import { useCanvasSession } from "./use-canvas-session"
@@ -30,7 +24,6 @@ import type { StudioHeaderStats } from "./types"
 export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
   const navigate = useNavigate()
   const imageLabeler = useImageLabelerViewModel(projectId, imageId)
-  const aiModels = useAIModelViewModel()
   const settings = useSettingsViewModel()
   const { contextMenu, setContextMenu } = useCanvasContextMenu()
   const { container, setContainer } = useCanvasContainer()
@@ -53,7 +46,6 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
   })
   const [isProjectSummaryLoading, setIsProjectSummaryLoading] = useState(true)
   const [showSettingsModal, setShowSettingsModal] = useState(false)
-  const [showAIModelModal, setShowAIModelModal] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
 
   const effectiveProjectId = useMemo(
@@ -244,6 +236,32 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
     [canvasSession, imageLabeler, setSelectedAnnotation]
   )
 
+  // Smart-segment tool: run SAM and translate the outcome into user feedback.
+  // Polygons land in the existing PredictionReviewPanel for accept/reject.
+  const smartSegment = useCallback(
+    async (prompt: PipelinePrompt) => {
+      const outcome = await imageLabeler.smartSegment(prompt)
+      if (outcome.status === "no-model") {
+        toast.error("No segmentation model installed", {
+          description:
+            "Install “Segment Anything (SAM)” on the AI Models page to use click-to-segment.",
+          action: {
+            label: "Open AI Models",
+            onClick: () => navigate("/ai-models"),
+          },
+        })
+      } else if (outcome.status === "error") {
+        toast.error("Segmentation failed", { description: outcome.message })
+      } else if (outcome.count === 0) {
+        toast.info("SAM didn’t find a region here", {
+          description:
+            "Try clicking nearer the center of the object, or drag a box around it.",
+        })
+      }
+    },
+    [imageLabeler, navigate]
+  )
+
   const toggleCrosshair = useCallback(async () => {
     const nextValue = !showCrosshair
     setShowCrosshair(nextValue)
@@ -308,9 +326,6 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
     [effectiveProjectId]
   )
 
-  const selectedModel = aiModels.selectedModel
-  const selectedModelCanAttemptPrediction = canAttemptModelPrediction(selectedModel)
-
   return {
     data: {
       image: imageLabeler.image,
@@ -335,20 +350,13 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
     canRedo: canvasSession.canRedo,
     historyPast: canvasSession.historyPast,
     isGeneratingPredictions: imageLabeler.isGeneratingPredictions,
+    isSegmenting: imageLabeler.isSegmenting,
     hasNext: nextImageId !== null,
     hasPrevious: previousImageId !== null,
     nextId: nextImageId,
     prevId: previousImageId,
     currentImageIndex,
     showSettingsModal,
-    showAIModelModal,
-    selectedModel,
-    selectedModelId: aiModels.selectedModelId,
-    selectedModelPredictionReady: isModelPredictionReady(selectedModel),
-    selectedModelCanAttemptPrediction,
-    selectedModelWillConvertOnRun: willModelConvertOnRun(selectedModel),
-    selectedModelUnsupportedReason: getModelUnsupportedReason(selectedModel),
-    selectedModelReadinessLabel: getPredictionReadinessLabel(selectedModel),
     setContainer,
     setSelectedTool,
     zoomIn,
@@ -360,8 +368,6 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
     closeContextMenu,
     openSettingsModal: () => setShowSettingsModal(true),
     closeSettingsModal: () => setShowSettingsModal(false),
-    openAIModelModal: () => setShowAIModelModal(true),
-    closeAIModelModal: () => setShowAIModelModal(false),
     refreshProjectSummary,
     refreshAnnotations: imageLabeler.refreshAnnotations,
     createAnnotationFromDraft: canvasSession.createAnnotationFromDraft,
@@ -370,6 +376,7 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
     undo: canvasSession.undo,
     redo: canvasSession.redo,
     generatePredictions: imageLabeler.generatePredictions,
+    smartSegment,
     acceptPrediction,
     rejectPrediction: imageLabeler.rejectPrediction,
     goToNextImage,

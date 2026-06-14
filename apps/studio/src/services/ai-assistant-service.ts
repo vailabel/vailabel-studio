@@ -5,4 +5,8 @@ import { studioCommands } from "@/ipc/studio"
 export const aiAssistantService = {
   getGpuInfo: () => studioCommands.aiGpuInfo(),
   getModelRegistry: () => studioCommands.aiModelRegistry(),
+  // ONNX Runtime auto-installer.
+  getRuntimeStatus: () => studioCommands.aiRuntimeStatus(),
+  installRuntime: (gpu = true) => studioCommands.aiRuntimeInstall(gpu),
+  restartForRuntime: () => studioCommands.aiRuntimeRestart(),
 }

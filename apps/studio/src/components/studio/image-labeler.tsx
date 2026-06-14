@@ -1,5 +1,5 @@
 import { memo, useCallback, useMemo, useRef, useState } from "react"
-import { ArrowLeft, ChevronLeft, ChevronRight, Download, Settings } from "lucide-react"
+import { ArrowLeft, ChevronLeft, ChevronRight, Download, Loader2, Settings, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import {
@@ -15,14 +15,15 @@ import { LabelListPanel } from "@/components/studio/label-list-panel"
 import { FileListPanel } from "@/components/studio/file-list-panel"
 import { ResizablePanel } from "@/components/common/resizable-panel"
 import { SettingsModal } from "@/components/settings/settings-modal"
-import { AIModelSelectModal } from "@/components/ai/ai-model-modal"
 import { ContextMenu } from "@/components/studio/context-menu"
 import { ExportDialog } from "@/components/studio/export-dialog"
 import { PredictionReviewPanel } from "@/components/ai/prediction-review-panel"
+import { AiCopilotPanel } from "@/components/ai/ai-copilot-panel"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { useStudioScreenViewModel } from "@/features/studio/use-studio-screen-viewmodel"
 import { getLabelingConfig } from "@/lib/labeling-config"
 import type { Annotation, ImageData, Label, Prediction } from "@/types/core"
+import type { PipelinePrompt } from "@/ipc/studio"
 
 interface ImageLabelerProps {
   projectId?: string
@@ -40,6 +41,7 @@ const MemoizedCanvas = memo(
     onDeleteAnnotation,
     onUndo,
     onRedo,
+    onSmartSegment,
   }: {
     image: ImageData
     annotations: Annotation[]
@@ -58,6 +60,7 @@ const MemoizedCanvas = memo(
     onDeleteAnnotation: (annotationId: string) => Promise<void>
     onUndo: () => Promise<void> | void
     onRedo: () => Promise<void> | void
+    onSmartSegment: (prompt: PipelinePrompt) => void | Promise<void>
   }) => (
     <Canvas
       image={image}
@@ -69,6 +72,7 @@ const MemoizedCanvas = memo(
       onDeleteAnnotation={onDeleteAnnotation}
       onUndo={onUndo}
       onRedo={onRedo}
+      onSmartSegment={onSmartSegment}
     />
   )
 )
@@ -86,6 +90,7 @@ EmptyImageState.displayName = "EmptyImageState"
 export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => {
   const canvasContainerRef = useRef<HTMLDivElement>(null)
   const [showExportDialog, setShowExportDialog] = useState(false)
+  const [showCopilot, setShowCopilot] = useState(false)
   const viewModel = useStudioScreenViewModel(projectId, imageId)
 
   // The project's template decides which tools show and whether we're in
@@ -165,13 +170,8 @@ export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => 
       <StudioHeader
         projectName={viewModel.project?.name || "Project"}
         projectStats={viewModel.projectStats}
-        currentImageIndex={viewModel.currentImageIndex}
-        hasNext={viewModel.hasNext}
-        hasPrevious={viewModel.hasPrevious}
         isLoading={viewModel.isProjectSummaryLoading}
         onBack={viewModel.navigateBackToProjects}
-        onNext={viewModel.goToNextImage}
-        onPrevious={viewModel.goToPreviousImage}
         onOpenSettings={viewModel.openSettingsModal}
         onExport={() => setShowExportDialog(true)}
         isExporting={viewModel.isExporting}
@@ -203,7 +203,6 @@ export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => 
           onClick={viewModel.closeContextMenu}
         >
           <Toolbar
-            currentImage={viewModel.data.image}
             allowedTools={config.tools}
             selectedTool={viewModel.selectedTool}
             onSelectTool={viewModel.setSelectedTool}
@@ -219,20 +218,6 @@ export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => 
             canRedo={viewModel.canRedo}
             onUndo={viewModel.undo}
             onRedo={viewModel.redo}
-            selectedModel={viewModel.selectedModel}
-            selectedModelId={viewModel.selectedModelId}
-            selectedModelPredictionReady={viewModel.selectedModelPredictionReady}
-            selectedModelCanAttemptPrediction={
-              viewModel.selectedModelCanAttemptPrediction
-            }
-            selectedModelWillConvertOnRun={viewModel.selectedModelWillConvertOnRun}
-            selectedModelUnsupportedReason={
-              viewModel.selectedModelUnsupportedReason
-            }
-            selectedModelReadinessLabel={viewModel.selectedModelReadinessLabel}
-            onOpenAISettings={viewModel.openAIModelModal}
-            onGeneratePredictions={viewModel.generatePredictions}
-            isGeneratingPredictions={viewModel.isGeneratingPredictions}
           />
 
           <div className="relative flex-1 overflow-hidden">
@@ -247,9 +232,17 @@ export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => 
                 onDeleteAnnotation={viewModel.deleteAnnotation}
                 onUndo={viewModel.undo}
                 onRedo={viewModel.redo}
+                onSmartSegment={viewModel.smartSegment}
               />
             ) : (
               <EmptyImageState />
+            )}
+
+            {viewModel.isSegmenting && (
+              <div className="pointer-events-none absolute left-1/2 top-4 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-card/95 px-3 py-1.5 text-sm font-medium shadow-lg backdrop-blur">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                <span>Segmenting…</span>
+              </div>
             )}
 
             <PredictionReviewPanel
@@ -257,6 +250,7 @@ export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => 
               labels={viewModel.data.labels}
               onAccept={viewModel.acceptPrediction}
               onReject={viewModel.rejectPrediction}
+              offset={showCopilot}
             />
 
             {config.allowsClassification && viewModel.data.image ? (
@@ -272,16 +266,6 @@ export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => 
               <ContextMenu
                 x={viewModel.contextMenu.x}
                 y={viewModel.contextMenu.y}
-                image={viewModel.data.image}
-                selectedModelId={viewModel.selectedModelId}
-                selectedModelCanAttemptPrediction={
-                  viewModel.selectedModelCanAttemptPrediction
-                }
-                selectedModelUnsupportedReason={
-                  viewModel.selectedModelUnsupportedReason
-                }
-                onGeneratePredictions={viewModel.generatePredictions}
-                onOpenAISettings={viewModel.openAIModelModal}
                 onSelectTool={viewModel.setSelectedTool}
                 onResetView={viewModel.resetView}
                 containerRect={
@@ -290,7 +274,36 @@ export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => 
                 onClose={viewModel.closeContextMenu}
               />
             ) : null}
+
+            {!showCopilot && (
+              <Button
+                size="sm"
+                className="absolute bottom-4 right-4 z-20 gap-1.5 shadow-lg"
+                onClick={() => setShowCopilot(true)}
+              >
+                <Sparkles className="h-4 w-4" />
+                AI Copilot
+              </Button>
+            )}
+            {showCopilot && (
+              <AiCopilotPanel
+                key={viewModel.data.image?.id}
+                projectId={viewModel.effectiveProjectId}
+                imageId={viewModel.data.image?.id}
+                imageName={viewModel.data.image?.name}
+                onClose={() => setShowCopilot(false)}
+              />
+            )}
           </div>
+
+          <StudioBottomBar
+            currentImageIndex={viewModel.currentImageIndex}
+            projectStats={viewModel.projectStats}
+            hasNext={viewModel.hasNext}
+            hasPrevious={viewModel.hasPrevious}
+            onNext={viewModel.goToNextImage}
+            onPrevious={viewModel.goToPreviousImage}
+          />
         </div>
 
         <ResizablePanel
@@ -312,9 +325,6 @@ export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => 
       {viewModel.showSettingsModal ? (
         <SettingsModal onClose={viewModel.closeSettingsModal} />
       ) : null}
-      {viewModel.showAIModelModal ? (
-        <AIModelSelectModal onClose={viewModel.closeAIModelModal} />
-      ) : null}
       <ExportDialog
         isOpen={showExportDialog}
         onClose={() => setShowExportDialog(false)}
@@ -331,13 +341,8 @@ const StudioHeader = memo(
   ({
     projectName,
     projectStats,
-    currentImageIndex,
-    hasNext,
-    hasPrevious,
     isLoading,
     onBack,
-    onNext,
-    onPrevious,
     onOpenSettings,
     onExport,
     isExporting,
@@ -348,89 +353,27 @@ const StudioHeader = memo(
       labeledImages: number
       totalLabels: number
     }
-    currentImageIndex: number
-    hasNext: boolean
-    hasPrevious: boolean
     isLoading: boolean
     onBack: () => void
-    onNext: () => void
-    onPrevious: () => void
     onOpenSettings: () => void
     onExport: () => void | Promise<void>
     isExporting: boolean
   }) => {
-    const progress =
-      projectStats.totalImages > 0
-        ? Math.round((projectStats.labeledImages / projectStats.totalImages) * 100)
-        : 0
-
     return (
-      <header className="flex justify-between border-b border-border bg-card px-4 py-1">
-        <div className="flex min-w-[250px] items-center gap-4">
+      <header className="flex items-center justify-between border-b border-border bg-card px-4 py-2">
+        <div className="flex min-w-0 items-center gap-3">
           <Button variant="ghost" size="icon" onClick={onBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">
+          <div className="min-w-0">
+            <h1 className="truncate text-lg font-bold text-foreground">
               {projectName}
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               {isLoading
-                ? "Loading project stats..."
-                : `${projectStats.labeledImages} of ${projectStats.totalImages} images labeled`}
+                ? "Loading project stats…"
+                : `${projectStats.labeledImages} of ${projectStats.totalImages} images labeled · ${projectStats.totalLabels} labels`}
             </p>
-          </div>
-        </div>
-
-        <div className="w-full p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <Button variant="outline" size="sm" onClick={onPrevious} disabled={!hasPrevious}>
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                    }
-                  />
-                  <TooltipContent>
-                    Previous image
-                    <kbd className="ml-2 rounded border border-border bg-muted px-1.5 text-xs">
-                      Left Arrow
-                    </kbd>
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <Button variant="outline" size="sm" onClick={onNext} disabled={!hasNext}>
-                        <ChevronRight className="ml-1 h-4 w-4" />
-                      </Button>
-                    }
-                  />
-                  <TooltipContent>
-                    Next image
-                    <kbd className="ml-2 rounded border border-border bg-muted px-1.5 text-xs">
-                      Right Arrow
-                    </kbd>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              {currentImageIndex >= 0 && projectStats.totalImages > 0 && (
-                <span className="ml-2 text-sm text-muted-foreground">
-                  Image {currentImageIndex + 1} of {projectStats.totalImages}
-                </span>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span>
-                {projectStats.totalLabels} labels / {progress}% complete
-              </span>
-              <Separator orientation="vertical" className="h-4" />
-            </div>
           </div>
         </div>
 
@@ -469,3 +412,96 @@ const StudioHeader = memo(
 )
 
 StudioHeader.displayName = "StudioHeader"
+
+// Bottom action bar (Label Studio style): image navigation + progress sit below
+// the canvas, keeping the header free for project-level actions.
+const StudioBottomBar = memo(
+  ({
+    currentImageIndex,
+    projectStats,
+    hasNext,
+    hasPrevious,
+    onNext,
+    onPrevious,
+  }: {
+    currentImageIndex: number
+    projectStats: {
+      totalImages: number
+      labeledImages: number
+      totalLabels: number
+    }
+    hasNext: boolean
+    hasPrevious: boolean
+    onNext: () => void
+    onPrevious: () => void
+  }) => {
+    const progress =
+      projectStats.totalImages > 0
+        ? Math.round(
+            (projectStats.labeledImages / projectStats.totalImages) * 100
+          )
+        : 0
+
+    return (
+      <footer className="flex items-center justify-between border-t border-border bg-card px-4 py-2">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onPrevious}
+                  disabled={!hasPrevious}
+                >
+                  <ChevronLeft className="mr-1 h-4 w-4" />
+                  Previous
+                </Button>
+              }
+            />
+            <TooltipContent side="top">
+              Previous image
+              <kbd className="ml-2 rounded border border-border bg-muted px-1.5 text-xs">
+                Left Arrow
+              </kbd>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
+        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+          {currentImageIndex >= 0 && projectStats.totalImages > 0 ? (
+            <span className="font-medium text-foreground">
+              Image {currentImageIndex + 1} of {projectStats.totalImages}
+            </span>
+          ) : null}
+          <Separator orientation="vertical" className="h-4" />
+          <span>
+            {projectStats.labeledImages}/{projectStats.totalImages} labeled ·{" "}
+            {progress}%
+          </span>
+        </div>
+
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button size="sm" onClick={onNext} disabled={!hasNext}>
+                  Next
+                  <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
+              }
+            />
+            <TooltipContent side="top">
+              Next image
+              <kbd className="ml-2 rounded border border-border bg-muted px-1.5 text-xs">
+                Right Arrow
+              </kbd>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </footer>
+    )
+  }
+)
+
+StudioBottomBar.displayName = "StudioBottomBar"

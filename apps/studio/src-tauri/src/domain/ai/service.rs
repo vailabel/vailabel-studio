@@ -1,7 +1,11 @@
+use crate::domain::ai::copilot::{self, Capability, CopilotTurnResult};
+use crate::domain::ai::llm;
 use crate::domain::ai::model::{
-    GitHubReleaseLookupPayload, InferenceAnnotationDraft, ModelImportPayload,
-    ModelInstallPayload, PredictionGeneratePayload,
+    CopilotActionPayload, CopilotLlmConfig, CopilotTurnPayload, GitHubReleaseLookupPayload,
+    InferenceAnnotationDraft, ModelImportPayload, ModelInstallPayload, PipelineRunPayload,
+    PredictionGeneratePayload,
 };
+use crate::domain::ai::plugin;
 use crate::inference::{self, InferenceEngine};
 use crate::store::EntityStore;
 use crate::{
@@ -10,16 +14,27 @@ use crate::{
 };
 use reqwest::blocking::Client;
 use serde_json::{json, Map, Value};
+use std::collections::HashMap;
 use std::fs;
 use std::io::copy;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 use tauri::Manager;
 use uuid::Uuid;
 
 const APP_NAME: &str = "Vailabel Studio";
 const DEFAULT_AI_LABEL_COLOR: &str = "#22c55e";
+/// How long an auto-discovered local LLM is trusted before the copilot re-probes
+/// for one. Short enough to notice a server starting/stopping mid-session.
+const LLM_CACHE_TTL: Duration = Duration::from_secs(30);
+const COPILOT_SYSTEM_PROMPT: &str = "You are the AI labeling copilot inside VaiLabel Studio, an \
+image annotation tool that runs entirely on the user's machine. When an image is provided, look at \
+it and answer concisely and concretely to help the user label it \u{2014} objects present, their \
+attributes, and any readable text. You cannot draw boxes yourself: if the user wants annotations \
+created, tell them to ask you to \u{201c}detect objects\u{201d} or \u{201c}check what I missed\u{201d}, \
+which run the local detector. Keep answers short and practical.";
 const COCO_80_CLASS_NAMES: &[&str] = &[
     "person",
     "bicycle",
@@ -103,19 +118,89 @@ const COCO_80_CLASS_NAMES: &[&str] = &[
     "toothbrush",
 ];
 
+/// A cached result of auto-discovering a local LLM, with the time it was probed
+/// so the copilot can re-check periodically.
+struct LlmCacheEntry {
+    config: Option<CopilotLlmConfig>,
+    checked_at: Instant,
+}
+
+/// One loaded inference engine, keyed by model id in [`AiService::engine_cache`].
+/// Holding distinct engines side by side lets a detect→segment turn keep both the
+/// detector and the SAM plugin (with its per-image embedding) resident at once.
+#[allow(dead_code)] // `Detector` is only built under the inference feature.
+enum CachedEngine {
+    Detector(Box<dyn InferenceEngine>),
+    Plugin(Box<dyn plugin::ModelPlugin>),
+}
+
+/// Max engines kept resident (detector + one prompt plugin). Bounds RAM/VRAM.
+const MAX_CACHED_ENGINES: usize = 2;
+
+/// Cap on detections auto-segmented in a chained detect → segment-each turn, so a
+/// crowded image can't fan out into hundreds of decoder runs.
+const MAX_SEGMENT_FANOUT: usize = 20;
+
+/// Insert an engine under `key`, first evicting an unrelated entry if the cache is
+/// at capacity. Not strict LRU — with a cap of 2 and at most a detector + a plugin
+/// in flight, this only evicts when a genuinely different model is loaded.
+fn cache_insert_bounded(cache: &mut HashMap<String, CachedEngine>, key: String, engine: CachedEngine) {
+    if !cache.contains_key(&key) && cache.len() >= MAX_CACHED_ENGINES {
+        if let Some(evict) = cache.keys().find(|existing| *existing != &key).cloned() {
+            cache.remove(&evict);
+        }
+    }
+    cache.insert(key, engine);
+}
+
 #[derive(Clone)]
 pub struct AiService {
     store: Arc<dyn EntityStore>,
-    #[cfg(feature = "yolo-inference")]
-    engine_cache: Arc<Mutex<Option<(String, Box<dyn InferenceEngine>)>>>,
+    /// Loaded ONNX engines keyed by model id (detector + prompt plugins), kept
+    /// resident so repeated runs — and detect→segment chaining — reuse sessions
+    /// and SAM's per-image embedding instead of rebuilding them.
+    engine_cache: Arc<Mutex<HashMap<String, CachedEngine>>>,
+    /// Last auto-discovered local LLM/VLM (or `None` if none was reachable),
+    /// cached so the copilot doesn't re-probe local servers on every turn.
+    llm_cache: Arc<Mutex<Option<LlmCacheEntry>>>,
 }
 
 impl AiService {
     pub fn new(store: Arc<dyn EntityStore>) -> Self {
         Self {
             store,
-            #[cfg(feature = "yolo-inference")]
-            engine_cache: Arc::new(Mutex::new(None)),
+            engine_cache: Arc::new(Mutex::new(HashMap::new())),
+            llm_cache: Arc::new(Mutex::new(None)),
+        }
+    }
+
+    /// Auto-discover a local OpenAI-compatible LLM/VLM the copilot can use,
+    /// caching the result briefly so we don't re-probe on every turn. The
+    /// copilot picks the model itself — there is no manual configuration.
+    fn resolve_llm(&self) -> Option<CopilotLlmConfig> {
+        if let Ok(guard) = self.llm_cache.lock() {
+            if let Some(entry) = guard.as_ref() {
+                if entry.checked_at.elapsed() < LLM_CACHE_TTL {
+                    return entry.config.clone();
+                }
+            }
+        }
+
+        let discovered = llm::discover_local_llm();
+        if let Ok(mut guard) = self.llm_cache.lock() {
+            *guard = Some(LlmCacheEntry {
+                config: discovered.clone(),
+                checked_at: Instant::now(),
+            });
+        }
+        discovered
+    }
+
+    /// Drop the cached LLM so the next turn re-discovers one — called when a
+    /// request to the local server fails (server stopped, model unloaded, …).
+    fn invalidate_llm(&self) {
+        if let Ok(mut guard) = self.llm_cache.lock() {
+            *guard = None;
         }
     }
 
@@ -276,6 +361,22 @@ impl AiService {
         let install_result = (|| -> Result<Value, AppError> {
             download_model_asset(&payload.download_url, &target_model_path)?;
 
+            // Multi-file models (SAM = encoder + decoder, open-vocab = model +
+            // tokenizer) pull their extra components into the same directory; the
+            // plugin resolves them later by their conventional filenames. A failure
+            // here drops into the cleanup below, which removes the whole dir.
+            for component in &payload.components {
+                let component_file_name =
+                    resolve_component_file_name(component.file_name.as_deref(), &component.url)
+                        .ok_or_else(|| {
+                            AppError::Message(format!(
+                                "Model component download URL did not include a valid file name: {}",
+                                component.url
+                            ))
+                        })?;
+                download_model_asset(&component.url, &models_dir.join(&component_file_name))?;
+            }
+
             let model = build_ai_model_entity(AiModelEntityInput {
                 model_id: &model_id,
                 name: &payload.name,
@@ -400,6 +501,20 @@ impl AiService {
         app: &tauri::AppHandle,
         payload: PredictionGeneratePayload,
     ) -> Result<Vec<Value>, AppError> {
+        self.generate_predictions_filtered(app, payload, None)
+    }
+
+    /// Run the active detector, optionally keeping only detections whose class
+    /// matches `class_filter` (case-insensitive, singular/plural tolerant). The
+    /// filter powers prompt-to-detect ("find all cars") on a closed-vocabulary
+    /// model — and on an open-vocabulary one (YOLO-World) it narrows the broad
+    /// vocabulary to the requested phrase. `None` keeps every detection.
+    fn generate_predictions_filtered(
+        &self,
+        app: &tauri::AppHandle,
+        payload: PredictionGeneratePayload,
+        class_filter: Option<&str>,
+    ) -> Result<Vec<Value>, AppError> {
         let image_id = payload.image_id.clone();
         let model_id = payload.model_id.clone();
         let image =
@@ -456,23 +571,23 @@ impl AiService {
 
         #[cfg(feature = "yolo-inference")]
         let (drafts, metrics) = {
-            let mut cache = self.engine_cache.lock().map_err(|_| AppError::Message("Engine cache is unavailable".into()))?;
-            let should_rebuild = match &*cache {
-                Some((id, _)) => id != &model_id,
-                None => true,
-            };
+            let mut cache = self
+                .engine_cache
+                .lock()
+                .map_err(|_| AppError::Message("Engine cache is unavailable".into()))?;
 
-            if should_rebuild {
-                let new_engine = Box::new(inference::YoloEngine::new(&model_path, class_names)?);
-                *cache = Some((model_id.clone(), new_engine));
+            let needs_build = !matches!(cache.get(&model_id), Some(CachedEngine::Detector(_)));
+            if needs_build {
+                let engine = Box::new(inference::YoloEngine::new(&model_path, class_names)?);
+                cache_insert_bounded(&mut cache, model_id.clone(), CachedEngine::Detector(engine));
             }
 
-            let engine = match &mut *cache {
-                Some((_, engine)) => engine,
-                None => return Err(AppError::Message("Failed to initialize inference engine".into())),
-            };
-
-            engine.predict(&image, &model, &labels, payload.threshold.unwrap_or(0.5))?
+            match cache.get_mut(&model_id) {
+                Some(CachedEngine::Detector(engine)) => {
+                    engine.predict(&image, &model, &labels, payload.threshold.unwrap_or(0.5))?
+                }
+                _ => return Err(AppError::Message("Failed to initialize inference engine".into())),
+            }
         };
 
         #[cfg(not(feature = "yolo-inference"))]
@@ -480,21 +595,69 @@ impl AiService {
             "This desktop build does not include local ONNX inference support.".into(),
         ));
 
-        let existing_predictions =
-            self.store
-                .list_by_field("predictions", "image_id", &image_id)?;
-        for prediction_id in prediction_ids_for_replacement(&existing_predictions, &model_id) {
-            self.store.delete_entity("predictions", &prediction_id)?;
+        // Prompt-to-detect: keep only the requested class. On an open-vocab model
+        // this narrows its broad vocabulary; on a closed-vocab one it filters COCO.
+        let drafts = match class_filter {
+            Some(target) => drafts
+                .into_iter()
+                .filter(|draft| draft_matches_class(draft, target))
+                .collect(),
+            None => drafts,
+        };
+
+        self.persist_drafts(
+            app,
+            &image_id,
+            &project_id,
+            &model,
+            &model_id,
+            &labels,
+            drafts,
+            &metrics.backend,
+            metrics.infer_ms,
+            true,
+        )
+    }
+
+    /// Write inference drafts (boxes/polygons) as `predictions` for the canvas
+    /// review loop, then emit the `predictions:generated` domain event. Shared by
+    /// the closed-vocab detector ([`Self::generate_predictions`]) and the
+    /// prompt-driven plugin path ([`Self::pipeline_run`]).
+    ///
+    /// When `replace_for_model` is true, existing predictions from the same
+    /// `model_id` on this image are cleared first (the detector replaces its prior
+    /// run); when false the drafts are appended (e.g. click-to-segment adds a
+    /// polygon without wiping detection boxes).
+    #[allow(clippy::too_many_arguments)]
+    fn persist_drafts(
+        &self,
+        app: &tauri::AppHandle,
+        image_id: &str,
+        project_id: &str,
+        model: &Value,
+        model_id: &str,
+        labels: &[Value],
+        drafts: Vec<InferenceAnnotationDraft>,
+        backend: &str,
+        infer_ms: u128,
+        replace_for_model: bool,
+    ) -> Result<Vec<Value>, AppError> {
+        if replace_for_model {
+            let existing_predictions =
+                self.store.list_by_field("predictions", "image_id", image_id)?;
+            for prediction_id in prediction_ids_for_replacement(&existing_predictions, model_id) {
+                self.store.delete_entity("predictions", &prediction_id)?;
+            }
         }
 
         let mut predictions = Vec::new();
-        let model_version = value_string(&model, "modelVersion", "model_version")
-            .unwrap_or_else(|| value_string(&model, "version", "version").unwrap_or_default());
-        let model_family = value_string(&model, "family", "family").unwrap_or_default();
-        let model_variant = value_string(&model, "variant", "variant").unwrap_or_default();
+        let model_version = value_string(model, "modelVersion", "model_version")
+            .unwrap_or_else(|| value_string(model, "version", "version").unwrap_or_default());
+        let model_family = value_string(model, "family", "family").unwrap_or_default();
+        let model_variant = value_string(model, "variant", "variant").unwrap_or_default();
 
         for draft in drafts {
-            let resolved_label = resolve_prediction_label(&labels, &draft);
+            let resolved_label = resolve_prediction_label(labels, &draft);
             let label_id = resolved_label.label_id.clone();
             let label_name = resolved_label.label_name.clone();
             let label_color = resolved_label.label_color.clone();
@@ -522,15 +685,15 @@ impl AiService {
                   "labelColor": label_color.clone(),
                   "label_color": label_color,
                   "color": prediction_color,
-                  "modelId": model_id.clone(),
-                  "model_id": model_id.clone(),
-                  "imageId": image_id.clone(),
-                  "image_id": image_id.clone(),
-                  "projectId": if project_id.is_empty() { Value::Null } else { Value::String(project_id.clone()) },
-                  "project_id": if project_id.is_empty() { Value::Null } else { Value::String(project_id.clone()) },
+                  "modelId": model_id.to_string(),
+                  "model_id": model_id.to_string(),
+                  "imageId": image_id.to_string(),
+                  "image_id": image_id.to_string(),
+                  "projectId": if project_id.is_empty() { Value::Null } else { Value::String(project_id.to_string()) },
+                  "project_id": if project_id.is_empty() { Value::Null } else { Value::String(project_id.to_string()) },
                   "isAIGenerated": true,
-                  "backend": metrics.backend.clone(),
-                  "inferenceMs": metrics.infer_ms,
+                  "backend": backend,
+                  "inferenceMs": infer_ms,
                   "modelVersion": model_version.clone(),
                   "model_version": model_version.clone(),
                   "family": model_family.clone(),
@@ -551,16 +714,110 @@ impl AiService {
             app,
             "predictions",
             "generated",
-            image_id.clone(),
+            image_id.to_string(),
             if project_id.is_empty() {
                 None
             } else {
-                Some(project_id)
+                Some(project_id.to_string())
             },
-            Some(image_id),
+            Some(image_id.to_string()),
         )?;
 
         Ok(predictions)
+    }
+
+    /// Run a prompt-driven model plugin (SAM segment, open-vocab detect, …) on one
+    /// image and persist its drafts as predictions. This is the capability-aware
+    /// counterpart to [`Self::generate_predictions`]: it resolves a
+    /// [`crate::domain::ai::plugin::ModelPlugin`] via [`plugin::plugin_for`] and
+    /// passes the user's [`PromptInput`] (points/boxes/text) through to it.
+    pub fn pipeline_run(
+        &self,
+        app: &tauri::AppHandle,
+        payload: PipelineRunPayload,
+    ) -> Result<Vec<Value>, AppError> {
+        let image_id = payload.image_id.clone();
+        let model_id = payload.model_id.clone();
+        let image =
+            get_entity_or_error(self.store.as_ref(), "images", &image_id, "Image not found")?;
+        let model = hydrate_ai_model_entity(
+            self.store.as_ref(),
+            get_entity_or_error(
+                self.store.as_ref(),
+                "ai_models",
+                &model_id,
+                "Selected AI model was not found",
+            )?,
+        )?;
+
+        let image_path = value_string(&image, "path", "path").ok_or_else(|| {
+            AppError::Message("Image path is unavailable for AI annotation".into())
+        })?;
+
+        let project_id = value_string(&image, "projectId", "project_id").unwrap_or_default();
+        let labels = if project_id.is_empty() {
+            Vec::new()
+        } else {
+            self.store.list_by_field("labels", "project_id", &project_id)?
+        };
+
+        let registry_id = payload
+            .registry_id
+            .clone()
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or_else(|| registry_id_for_model(&model));
+
+        let request = plugin::PipelineRequest {
+            image_path: &image_path,
+            model: &model,
+            labels: &labels,
+            threshold: payload.threshold.unwrap_or(0.5),
+            prompt: payload.prompt,
+        };
+
+        let started_at = Instant::now();
+        let drafts = {
+            let mut cache = self
+                .engine_cache
+                .lock()
+                .map_err(|_| AppError::Message("Engine cache is unavailable".into()))?;
+
+            // Reuse the cached plugin instance for this model so SAM's per-image
+            // embedding survives between clicks; build it on first use.
+            let needs_build = !matches!(cache.get(&model_id), Some(CachedEngine::Plugin(_)));
+            if needs_build {
+                cache_insert_bounded(
+                    &mut cache,
+                    model_id.clone(),
+                    CachedEngine::Plugin(plugin::plugin_for(&registry_id)),
+                );
+            }
+
+            match cache.get_mut(&model_id) {
+                Some(CachedEngine::Plugin(engine)) => engine.run(&request)?,
+                _ => {
+                    return Err(AppError::Message(
+                        "Failed to initialize the model plugin".into(),
+                    ))
+                }
+            }
+        };
+        let infer_ms = started_at.elapsed().as_millis();
+
+        // Prompt-driven runs append (a click adds one polygon); they don't wipe the
+        // detector's boxes on the image.
+        self.persist_drafts(
+            app,
+            &image_id,
+            &project_id,
+            &model,
+            &model_id,
+            &labels,
+            drafts,
+            "ort",
+            infer_ms,
+            false,
+        )
     }
 
     pub fn accept_prediction(
@@ -627,6 +884,659 @@ impl AiService {
         emit_domain_event(app, "predictions", "rejected", &prediction)?;
         Ok(json!({ "success": true }))
     }
+
+    /// Pick a detection model: the active one if set, otherwise the first
+    /// installed model. This removes the "activate one first" friction — if a
+    /// model exists at all, the copilot just uses it.
+    /// Class names of the active detection model, for routing-vocab class
+    /// extraction. Best-effort: returns empty when there's no model or metadata.
+    fn active_detector_class_names(&self) -> Vec<String> {
+        let Ok(Some(model_id)) = self.resolve_model_id() else {
+            return Vec::new();
+        };
+        let Ok(model) =
+            get_entity_or_error(self.store.as_ref(), "ai_models", &model_id, "AI model not found")
+        else {
+            return Vec::new();
+        };
+        let Ok(model) = hydrate_ai_model_entity(self.store.as_ref(), model) else {
+            return Vec::new();
+        };
+        model
+            .get("modelMetadata")
+            .and_then(extract_class_names_from_value)
+            .unwrap_or_default()
+    }
+
+    fn resolve_model_id(&self) -> Result<Option<String>, AppError> {
+        let models = self.store.list_entities("ai_models")?;
+        if let Some(model) = models.iter().find(|model| {
+            model
+                .get("isActive")
+                .and_then(Value::as_bool)
+                .unwrap_or(false)
+        }) {
+            return Ok(value_string(model, "id", "id"));
+        }
+        Ok(models.first().and_then(|model| value_string(model, "id", "id")))
+    }
+
+    /// Rephrase a deterministic detector result through the local LLM so the
+    /// copilot "responds" conversationally. The detection itself is always YOLO;
+    /// the LLM only narrates. Falls back to `fallback` if no LLM is configured or
+    /// the call fails.
+    fn narrate(
+        &self,
+        llm: Option<&CopilotLlmConfig>,
+        instruction: &str,
+        fallback: String,
+    ) -> String {
+        let Some(config) = llm else {
+            return fallback;
+        };
+        let api_key = crate::read_secret("copilot", "apiKey").ok().flatten();
+        match llm::chat_completion(
+            config,
+            api_key.as_deref(),
+            COPILOT_SYSTEM_PROMPT,
+            instruction,
+            None,
+        ) {
+            Ok(text) => text,
+            Err(_) => {
+                if !llm::server_reachable(&config.base_url) {
+                    self.invalidate_llm();
+                }
+                fallback
+            }
+        }
+    }
+
+    /// One copilot chat turn: route the message to a capability and dispatch.
+    pub fn copilot_turn(
+        &self,
+        app: &tauri::AppHandle,
+        payload: CopilotTurnPayload,
+    ) -> Result<CopilotTurnResult, AppError> {
+        let image = get_entity_or_error(
+            self.store.as_ref(),
+            "images",
+            &payload.image_id,
+            "Image not found",
+        )?;
+        let project_id = payload
+            .project_id
+            .clone()
+            .filter(|value| !value.is_empty())
+            .or_else(|| value_string(&image, "projectId", "project_id"))
+            .unwrap_or_default();
+        let labels = if project_id.is_empty() {
+            Vec::new()
+        } else {
+            self.store.list_by_field("labels", "project_id", &project_id)?
+        };
+        let label_names: Vec<String> = labels
+            .iter()
+            .filter_map(|label| value_string(label, "name", "name"))
+            .collect();
+
+        // Route against project labels *and* the active detector's class names, so
+        // "find all cars" extracts the "car" target even before the project has a
+        // matching label (closed-vocab COCO or an open-vocab model's vocabulary).
+        let mut vocab = label_names.clone();
+        vocab.extend(self.active_detector_class_names());
+        // The copilot auto-discovers a local LLM/VLM and picks the model itself.
+        let llm = self.resolve_llm();
+        let llm = llm.as_ref();
+
+        // Orchestrate: the local LLM turns the message into a validated plan (which
+        // may chain steps, e.g. detect → segment-each). When the LLM is absent or
+        // its output is unusable, fall back to the deterministic keyword router, so
+        // the orchestrator can only ever improve on today's behavior.
+        let plan = self
+            .plan_message(&payload.message, &vocab, llm)
+            .unwrap_or_else(|| copilot::route_to_plan(&payload.message, &vocab));
+
+        if plan.steps.len() <= 1 {
+            // Single step → reuse the existing per-capability dispatch unchanged.
+            let intent = plan
+                .steps
+                .first()
+                .map(copilot::PlanStep::to_routed_intent)
+                .unwrap_or_else(|| copilot::route(&payload.message, &vocab));
+            return self.dispatch_intent(app, &intent, &image, &payload.image_id, &payload.message, llm);
+        }
+
+        self.execute_plan(app, &plan, &image, &payload.image_id, &payload.message, llm)
+    }
+
+    /// Ask the local LLM to plan the turn as validated steps. Returns `None` when
+    /// no LLM is configured/reachable or its output isn't a usable plan, so the
+    /// caller falls back to deterministic routing.
+    fn plan_message(
+        &self,
+        message: &str,
+        vocab: &[String],
+        llm: Option<&CopilotLlmConfig>,
+    ) -> Option<copilot::Plan> {
+        let config = llm?;
+        let api_key = crate::read_secret("copilot", "apiKey").ok().flatten();
+        let user = copilot::planner_user_prompt(message, vocab);
+        let raw = match llm::chat_json(
+            config,
+            api_key.as_deref(),
+            copilot::PLANNER_SYSTEM_PROMPT,
+            &user,
+        ) {
+            Ok(text) => text,
+            Err(_) => {
+                if !llm::server_reachable(&config.base_url) {
+                    self.invalidate_llm();
+                }
+                return None;
+            }
+        };
+        copilot::parse_plan(&raw)
+    }
+
+    /// Dispatch one routed capability to its handler (the deterministic per-turn
+    /// path, shared by single-step plans and the multi-step executor).
+    fn dispatch_intent(
+        &self,
+        app: &tauri::AppHandle,
+        intent: &copilot::RoutedIntent,
+        image: &Value,
+        image_id: &str,
+        message: &str,
+        llm: Option<&CopilotLlmConfig>,
+    ) -> Result<CopilotTurnResult, AppError> {
+        match intent.capability {
+            // Grounding stays deterministic — the detector, never the LLM.
+            Capability::Detect => self.copilot_detect(app, intent, image_id, llm),
+            Capability::Qa => self.copilot_qa(app, intent, image_id, llm),
+            Capability::Segment => Ok(CopilotTurnResult::reply_only(
+                &intent.capability,
+                "Click an object (or draw a box) on the canvas and I\u{2019}ll outline it with \
+                 SAM. To outline detections in one go, ask me to \u{201c}find all cars and outline \
+                 them\u{201d}.",
+            )),
+            Capability::Summarize => Ok(CopilotTurnResult::reply_only(
+                &intent.capability,
+                "Open the Dataset Intelligence page to run a full dataset analysis \u{2014} class \
+                 balance, image counts, and quality checks.",
+            )),
+            // Conversational + vision: route to the local LLM when configured,
+            // otherwise point the user at the detector / model settings.
+            Capability::Describe | Capability::Ocr | Capability::Help => match llm {
+                Some(config) if config.vision || matches!(intent.capability, Capability::Help) => {
+                    self.copilot_chat(intent, image, message, config)
+                }
+                // A local model is up but can't see images: don't let a text-only
+                // model hallucinate a description/OCR — ask for a vision model.
+                Some(_) => Ok(CopilotTurnResult::reply_only(
+                    &intent.capability,
+                    "I found a local model, but it can\u{2019}t see images. Load a vision model \
+                     (look for a \u{201c}-VL\u{201d}, LLaVA, or Moondream model in LM Studio or \
+                     Ollama) and I\u{2019}ll describe the image and read its text. For now I can \
+                     still run the detector \u{2014} try \u{201c}detect objects\u{201d} or \
+                     \u{201c}check what I missed\u{201d}.",
+                )),
+                None => Ok(CopilotTurnResult::reply_only(
+                    &intent.capability,
+                    match &intent.capability {
+                        Capability::Help => "I can label this image with your local detector \u{2014} \
+                            try \u{201c}detect objects\u{201d}, \u{201c}find all cars\u{201d}, or \
+                            \u{201c}check what I missed\u{201d}. To describe images, read text, or \
+                            chat, start a local model server (LM Studio, Ollama, or llama.cpp) and \
+                            I\u{2019}ll pick it up automatically.",
+                        _ => "Describing images and reading text needs a local vision model. Start a \
+                            local model server (LM Studio, Ollama, or llama.cpp) and I\u{2019}ll use \
+                            it automatically \u{2014} or run your detector now with \u{201c}detect \
+                            objects\u{201d} or \u{201c}check what I missed\u{201d}.",
+                    },
+                )),
+            },
+        }
+    }
+
+    /// Run a multi-step plan, chaining detect → segment-each (boxes from the detect
+    /// step feed SAM). Accumulates predictions, findings and actions into one
+    /// result; other capabilities reuse [`Self::dispatch_intent`].
+    fn execute_plan(
+        &self,
+        app: &tauri::AppHandle,
+        plan: &copilot::Plan,
+        image: &Value,
+        image_id: &str,
+        message: &str,
+        llm: Option<&CopilotLlmConfig>,
+    ) -> Result<CopilotTurnResult, AppError> {
+        let mut predictions_added = 0usize;
+        let mut findings = Vec::new();
+        let mut proposed_actions = Vec::new();
+        let mut reply_parts: Vec<String> = Vec::new();
+        let mut last_detection_target: Option<String> = None;
+
+        for step in &plan.steps {
+            if matches!(
+                step.capability,
+                copilot::PlanCapability::SegmentEachDetection
+            ) {
+                let boxes = self.detection_boxes(image_id)?;
+                if boxes.is_empty() {
+                    reply_parts.push("There were no detections to outline.".into());
+                    continue;
+                }
+                match self.segment_boxes(app, image_id, boxes, last_detection_target.as_deref()) {
+                    Ok(polygons) => {
+                        predictions_added += polygons.len();
+                        reply_parts
+                            .push(format!("Outlined {} detection(s) as polygons.", polygons.len()));
+                    }
+                    Err(error) => {
+                        reply_parts.push(format!("I couldn't outline the detections: {error}"))
+                    }
+                }
+                continue;
+            }
+
+            let intent = step.to_routed_intent();
+            if step.is_detect() {
+                last_detection_target = intent.target.clone();
+            }
+            let result = self.dispatch_intent(app, &intent, image, image_id, message, llm)?;
+            predictions_added += result.predictions_added;
+            findings.extend(result.findings);
+            proposed_actions.extend(result.proposed_actions);
+            if !result.reply.trim().is_empty() {
+                reply_parts.push(result.reply);
+            }
+        }
+
+        Ok(CopilotTurnResult {
+            reply: if reply_parts.is_empty() {
+                "Done.".to_string()
+            } else {
+                reply_parts.join(" ")
+            },
+            capability: "plan".to_string(),
+            predictions_added,
+            findings,
+            proposed_actions,
+        })
+    }
+
+    /// The image's current detection boxes (highest-confidence first, capped), for
+    /// feeding a segment-each step. Polygons are skipped.
+    fn detection_boxes(&self, image_id: &str) -> Result<Vec<plugin::BoxPrompt>, AppError> {
+        let predictions = self.store.list_by_field("predictions", "image_id", image_id)?;
+        let mut scored: Vec<(f32, plugin::BoxPrompt)> = predictions
+            .iter()
+            .filter(|prediction| {
+                value_string(prediction, "type", "type").as_deref() != Some("polygon")
+            })
+            .filter_map(|prediction| {
+                let bbox = copilot::bbox_from_value(prediction)?;
+                let confidence = prediction
+                    .get("confidence")
+                    .and_then(Value::as_f64)
+                    .unwrap_or(0.0) as f32;
+                Some((
+                    confidence,
+                    plugin::BoxPrompt {
+                        x1: bbox[0],
+                        y1: bbox[1],
+                        x2: bbox[2],
+                        y2: bbox[3],
+                    },
+                ))
+            })
+            .collect();
+        scored.sort_by(|a, b| b.0.total_cmp(&a.0));
+        Ok(scored
+            .into_iter()
+            .take(MAX_SEGMENT_FANOUT)
+            .map(|(_, bbox)| bbox)
+            .collect())
+    }
+
+    /// Segment each box with the installed SAM model, surfacing polygon predictions.
+    fn segment_boxes(
+        &self,
+        app: &tauri::AppHandle,
+        image_id: &str,
+        boxes: Vec<plugin::BoxPrompt>,
+        target: Option<&str>,
+    ) -> Result<Vec<Value>, AppError> {
+        let sam_model_id = self.resolve_segmentation_model_id()?.ok_or_else(|| {
+            AppError::Message(
+                "No segmentation model is installed. Install MobileSAM on the AI Models page to \
+                 outline detections."
+                    .into(),
+            )
+        })?;
+        let prompt = plugin::PromptInput {
+            points: Vec::new(),
+            boxes,
+            text: target.map(ToString::to_string),
+        };
+        self.pipeline_run(
+            app,
+            PipelineRunPayload {
+                image_id: image_id.to_string(),
+                model_id: sam_model_id,
+                registry_id: None,
+                threshold: None,
+                prompt,
+            },
+        )
+    }
+
+    /// Id of an installed segmentation (SAM) model, if any.
+    fn resolve_segmentation_model_id(&self) -> Result<Option<String>, AppError> {
+        let models = self.store.list_entities("ai_models")?;
+        Ok(models
+            .iter()
+            .find(|model| matches!(registry_id_for_model(model).as_str(), "mobile-sam" | "sam2"))
+            .and_then(|model| value_string(model, "id", "id")))
+    }
+
+    /// Conversational/vision reply via the configured local LLM. Includes the
+    /// current image as a vision part when the model supports it.
+    fn copilot_chat(
+        &self,
+        intent: &copilot::RoutedIntent,
+        image: &Value,
+        message: &str,
+        config: &CopilotLlmConfig,
+    ) -> Result<CopilotTurnResult, AppError> {
+        let api_key = crate::read_secret("copilot", "apiKey").ok().flatten();
+        let image_url = if config.vision {
+            value_string(image, "path", "path").and_then(|path| llm::image_data_url(&path))
+        } else {
+            None
+        };
+
+        // A failed LLM call is surfaced as the reply text, not a hard error, so
+        // the chat keeps working when the local server is down or misconfigured.
+        let reply = match llm::chat_completion(
+            config,
+            api_key.as_deref(),
+            COPILOT_SYSTEM_PROMPT,
+            message,
+            image_url.as_deref(),
+        ) {
+            Ok(text) => text,
+            Err(error) => {
+                // Only forget the server if it's actually gone; an HTTP or content
+                // error from a healthy server shouldn't force a re-discovery sweep.
+                if !llm::server_reachable(&config.base_url) {
+                    self.invalidate_llm();
+                }
+                error.to_string()
+            }
+        };
+        Ok(CopilotTurnResult::reply_only(&intent.capability, reply))
+    }
+
+    fn copilot_detect(
+        &self,
+        app: &tauri::AppHandle,
+        intent: &copilot::RoutedIntent,
+        image_id: &str,
+        llm: Option<&CopilotLlmConfig>,
+    ) -> Result<CopilotTurnResult, AppError> {
+        let model_id = match self.resolve_model_id()? {
+            Some(id) => id,
+            None => {
+                return Ok(CopilotTurnResult::reply_only(
+                    &intent.capability,
+                    "I don't have a detection model to use yet. Open the AI Models page and import \
+                     or install one (e.g. a YOLO model), then ask me to detect again.",
+                ))
+            }
+        };
+
+        // "find all cars" carries a class target → narrow to it; "detect objects"
+        // has none → keep every class.
+        let predictions = match self.generate_predictions_filtered(
+            app,
+            PredictionGeneratePayload {
+                image_id: image_id.to_string(),
+                model_id,
+                threshold: None,
+            },
+            intent.target.as_deref(),
+        ) {
+            Ok(predictions) => predictions,
+            Err(error) => {
+                return Ok(CopilotTurnResult::reply_only(
+                    &intent.capability,
+                    format!("I couldn't run the detector: {error}"),
+                ))
+            }
+        };
+
+        let count = predictions.len();
+        let summary = summarize_by_class(&predictions);
+        let fallback = if count == 0 {
+            "The detector didn't find anything above the confidence threshold.".to_string()
+        } else {
+            format!(
+                "Detected {count} objects ({summary}). They're on the canvas as predictions \u{2014} \
+                 accept the ones you want to keep."
+            )
+        };
+        // YOLO did the detection; let the copilot model phrase the result.
+        let instruction = format!(
+            "The local YOLO detector ran on the current image and found {count} objects: {summary}. \
+             In one or two short sentences, tell the user what was detected and that the boxes are \
+             on the canvas as predictions to accept or reject. If the count is 0, say nothing was \
+             found above the confidence threshold. Do not invent objects beyond this list."
+        );
+        let reply = self.narrate(llm, &instruction, fallback);
+
+        Ok(CopilotTurnResult {
+            reply,
+            capability: intent.capability.as_str().to_string(),
+            predictions_added: count,
+            findings: Vec::new(),
+            proposed_actions: Vec::new(),
+        })
+    }
+
+    fn copilot_qa(
+        &self,
+        app: &tauri::AppHandle,
+        intent: &copilot::RoutedIntent,
+        image_id: &str,
+        llm: Option<&CopilotLlmConfig>,
+    ) -> Result<CopilotTurnResult, AppError> {
+        let model_id = match self.resolve_model_id()? {
+            Some(id) => id,
+            None => {
+                return Ok(CopilotTurnResult::reply_only(
+                    &intent.capability,
+                    "QA review compares your annotations against the detector, but I don't have a \
+                     model yet. Import or install one on the AI Models page first.",
+                ))
+            }
+        };
+
+        let detections = match self.generate_predictions(
+            app,
+            PredictionGeneratePayload {
+                image_id: image_id.to_string(),
+                model_id,
+                threshold: None,
+            },
+        ) {
+            Ok(predictions) => predictions,
+            Err(error) => {
+                return Ok(CopilotTurnResult::reply_only(
+                    &intent.capability,
+                    format!("I couldn't run the detector for QA: {error}"),
+                ))
+            }
+        };
+
+        let annotations = self
+            .store
+            .list_by_field("annotations", "image_id", image_id)?;
+        let (findings, proposed_actions) = copilot::qa_findings(&detections, &annotations);
+
+        let missed = findings.iter().filter(|f| f.kind == "missed").count();
+        let mislabels = proposed_actions
+            .iter()
+            .filter(|a| matches!(a, copilot::ProposedAction::Relabel { .. }))
+            .count();
+        let duplicates = proposed_actions
+            .iter()
+            .filter(|a| matches!(a, copilot::ProposedAction::Delete { .. }))
+            .count();
+
+        let fallback = if findings.is_empty() {
+            "Looks good \u{2014} the detector didn't surface any missed objects, mislabels, or \
+             duplicate boxes on this image."
+                .to_string()
+        } else {
+            format!(
+                "QA review: {missed} possible missed object(s) (added as predictions to review), \
+                 {mislabels} possible mislabel(s), and {duplicates} near-duplicate box(es). \
+                 Approve the fixes you agree with below."
+            )
+        };
+        // The detector + diff produced the findings; the copilot model phrases them.
+        let instruction = format!(
+            "A QA pass compared the local detector against the user's existing labels on this \
+             image. Findings: {missed} possible missed objects (added as predictions), {mislabels} \
+             possible mislabels, {duplicates} near-duplicate boxes. In one or two short sentences, \
+             summarize this for the user and, if there are any fixes, tell them to approve the \
+             suggested fixes shown below. If everything is zero, reassure them it looks good."
+        );
+        let reply = self.narrate(llm, &instruction, fallback);
+
+        Ok(CopilotTurnResult {
+            reply,
+            capability: intent.capability.as_str().to_string(),
+            predictions_added: detections.len(),
+            findings,
+            proposed_actions,
+        })
+    }
+
+    /// Apply a copilot action the user approved (relabel / delete / new label).
+    pub fn copilot_apply_action(
+        &self,
+        app: &tauri::AppHandle,
+        payload: CopilotActionPayload,
+    ) -> Result<Value, AppError> {
+        match payload {
+            CopilotActionPayload::Delete { annotation_id } => {
+                let existing = delete_entity(
+                    self.store.as_ref(),
+                    "annotations",
+                    &annotation_id,
+                    "Annotation not found",
+                )?;
+                emit_domain_event(app, "annotations", "deleted", &existing)?;
+                Ok(json!({ "success": true }))
+            }
+            CopilotActionPayload::Relabel {
+                annotation_id,
+                to_label,
+            } => {
+                let mut annotation = get_entity_or_error(
+                    self.store.as_ref(),
+                    "annotations",
+                    &annotation_id,
+                    "Annotation not found",
+                )?;
+                let project_id =
+                    value_string(&annotation, "projectId", "project_id").unwrap_or_default();
+                let (label, created) = self.find_or_create_label(&project_id, &to_label)?;
+                let label_id = value_string(&label, "id", "id");
+                let color = value_string(&label, "color", "color")
+                    .unwrap_or_else(|| DEFAULT_AI_LABEL_COLOR.to_string());
+                {
+                    let object = as_object_mut(&mut annotation)?;
+                    object.insert("name".into(), Value::String(to_label.clone()));
+                    if let Some(id) = &label_id {
+                        object.insert("labelId".into(), Value::String(id.clone()));
+                        object.insert("label_id".into(), Value::String(id.clone()));
+                    }
+                    object.insert("color".into(), Value::String(color));
+                }
+                let normalized = normalize_entity("annotations", annotation)?;
+                let saved = self.store.upsert_entity("annotations", normalized)?;
+                if created {
+                    emit_domain_event(app, "labels", "created", &label)?;
+                }
+                emit_domain_event(app, "annotations", "updated", &saved)?;
+                Ok(saved)
+            }
+            CopilotActionPayload::CreateLabel {
+                name,
+                color: _,
+                project_id,
+            } => {
+                let (label, created) = self.find_or_create_label(&project_id, &name)?;
+                if created {
+                    emit_domain_event(app, "labels", "created", &label)?;
+                }
+                Ok(label)
+            }
+        }
+    }
+
+    /// Find a project label by name (case-insensitive) or create one.
+    fn find_or_create_label(
+        &self,
+        project_id: &str,
+        name: &str,
+    ) -> Result<(Value, bool), AppError> {
+        let labels = self.store.list_by_field("labels", "project_id", project_id)?;
+        if let Some(existing) = labels.iter().find(|label| {
+            value_string(label, "name", "name")
+                .map(|existing_name| existing_name.eq_ignore_ascii_case(name))
+                .unwrap_or(false)
+        }) {
+            return Ok((existing.clone(), false));
+        }
+
+        let label = normalize_entity(
+            "labels",
+            json!({
+                "name": name,
+                "projectId": project_id,
+                "project_id": project_id,
+                "color": DEFAULT_AI_LABEL_COLOR,
+                "isAIGenerated": true,
+            }),
+        )?;
+        let saved = self.store.upsert_entity("labels", label)?;
+        Ok((saved, true))
+    }
+}
+
+/// Compact "3 car, 1 person" style summary of prediction classes.
+fn summarize_by_class(predictions: &[Value]) -> String {
+    use std::collections::BTreeMap;
+
+    let mut counts: BTreeMap<String, usize> = BTreeMap::new();
+    for prediction in predictions {
+        let name = value_string(prediction, "labelName", "label_name")
+            .or_else(|| value_string(prediction, "name", "name"))
+            .unwrap_or_else(|| "object".to_string());
+        *counts.entry(name).or_insert(0) += 1;
+    }
+
+    counts
+        .into_iter()
+        .take(6)
+        .map(|(name, count)| format!("{count} {name}"))
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 fn get_entity_or_error(
@@ -1242,6 +2152,80 @@ fn prediction_ids_for_replacement(predictions: &[Value], model_id: &str) -> Vec<
         .collect()
 }
 
+/// Whether a detection draft's class matches a requested target phrase,
+/// case-insensitively and tolerant of simple singular/plural ("car" ~ "cars").
+fn draft_matches_class(draft: &InferenceAnnotationDraft, target: &str) -> bool {
+    let target = target.trim().to_lowercase();
+    if target.is_empty() {
+        return true;
+    }
+    [
+        draft.name.to_lowercase(),
+        draft.label_name.clone().unwrap_or_default().to_lowercase(),
+    ]
+    .iter()
+    .any(|value| class_token_matches(value.trim(), &target))
+}
+
+/// Singular/plural-tolerant equality for two already-lowercased class tokens.
+fn class_token_matches(a: &str, b: &str) -> bool {
+    if a.is_empty() || b.is_empty() {
+        return false;
+    }
+    a == b || format!("{a}s") == b || format!("{b}s") == a
+}
+
+/// Best-effort mapping from an installed `ai_models` entity to a registry plugin
+/// id (see [`crate::domain::ai::registry`]), used when the caller didn't pass an
+/// explicit `registryId`. The frontend normally passes the id of the catalog
+/// entry it invoked; this fallback lets the backend (e.g. copilot detect→segment
+/// chaining) resolve a plugin from the active model alone. Unknown values resolve
+/// to a `NotImplementedPlugin` that reports a clear error.
+fn registry_id_for_model(model: &Value) -> String {
+    let family = value_string(model, "family", "family")
+        .unwrap_or_default()
+        .to_lowercase();
+    let category = value_string(model, "category", "category")
+        .unwrap_or_default()
+        .to_lowercase();
+    let task = value_string(model, "taskType", "task_type")
+        .unwrap_or_default()
+        .to_lowercase();
+    let name = value_string(model, "name", "name")
+        .unwrap_or_default()
+        .to_lowercase();
+    let path = value_string(model, "modelPath", "model_path")
+        .unwrap_or_default()
+        .to_lowercase();
+    let mentions = |needle: &str| {
+        family.contains(needle)
+            || category.contains(needle)
+            || task.contains(needle)
+            || name.contains(needle)
+            || path.contains(needle)
+    };
+
+    // Recognize SAM by family/name/filename, including the "Segment Anything"
+    // wording (its files/names don't always contain "sam").
+    let is_sam = mentions("sam")
+        || name.contains("segment anything")
+        || path.contains("segment_anything");
+
+    if family.contains("sam2") || name.contains("sam2") || name.contains("sam 2") {
+        "sam2".to_string()
+    } else if is_sam {
+        "mobile-sam".to_string()
+    } else if mentions("yolo-world") || family.contains("yoloworld") || family.contains("yoloe") {
+        "yolo-world".to_string()
+    } else if mentions("yolo") || mentions("detection") {
+        "yolo-detection".to_string()
+    } else if !family.is_empty() {
+        family
+    } else {
+        "unknown".to_string()
+    }
+}
+
 fn infer_model_family_and_variant(name: &str, model_path: &Path) -> (String, String) {
     let haystack = format!(
         "{} {}",
@@ -1352,6 +2336,22 @@ fn file_name_from_url(url: &str) -> Option<String> {
         .ok()?
         .path_segments()?
         .next_back()
+        .filter(|value| !value.is_empty())
+        .map(ToString::to_string)
+}
+
+/// Resolve the on-disk filename for a model component: the explicit `file_name`
+/// when given, otherwise derived from the URL. Only the final path component is
+/// kept, so a malicious `../` name can't write outside the model directory.
+fn resolve_component_file_name(file_name: Option<&str>, url: &str) -> Option<String> {
+    let raw = file_name
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToString::to_string)
+        .or_else(|| file_name_from_url(url))?;
+    Path::new(&raw)
+        .file_name()
+        .and_then(|name| name.to_str())
         .filter(|value| !value.is_empty())
         .map(ToString::to_string)
 }
@@ -1580,6 +2580,72 @@ mod tests {
 
         assert_eq!(class_names, vec!["person", "bicycle", "car"]);
         let _ = fs::remove_file(config_path);
+    }
+
+    #[test]
+    fn cache_insert_bounded_evicts_at_capacity() {
+        use crate::domain::ai::plugin::NotImplementedPlugin;
+        let stub = || {
+            CachedEngine::Plugin(Box::new(NotImplementedPlugin {
+                model_name: "stub".into(),
+                task: "test",
+            }))
+        };
+        let mut cache: HashMap<String, CachedEngine> = HashMap::new();
+        cache_insert_bounded(&mut cache, "a".into(), stub());
+        cache_insert_bounded(&mut cache, "b".into(), stub());
+        assert_eq!(cache.len(), MAX_CACHED_ENGINES);
+        // A third distinct model evicts one to stay at the cap...
+        cache_insert_bounded(&mut cache, "c".into(), stub());
+        assert_eq!(cache.len(), MAX_CACHED_ENGINES);
+        assert!(cache.contains_key("c"));
+        // ...but re-inserting an existing key never grows past the cap.
+        cache_insert_bounded(&mut cache, "c".into(), stub());
+        assert_eq!(cache.len(), MAX_CACHED_ENGINES);
+    }
+
+    #[test]
+    fn class_filter_matches_case_and_plural() {
+        let draft = |name: &str| InferenceAnnotationDraft {
+            name: name.into(),
+            annotation_type: "box".into(),
+            coordinates: vec![],
+            confidence: 0.9,
+            label_id: None,
+            label_name: Some(name.into()),
+            label_color: None,
+            is_ai_generated: true,
+        };
+
+        assert!(draft_matches_class(&draft("car"), "Cars")); // plural + case
+        assert!(draft_matches_class(&draft("Car"), "car"));
+        assert!(draft_matches_class(&draft("person"), "people") == false); // irregular: no false match
+        assert!(!draft_matches_class(&draft("dog"), "car"));
+        assert!(draft_matches_class(&draft("dog"), "")); // empty target keeps everything
+    }
+
+    #[test]
+    fn resolves_component_file_name_from_explicit_url_and_traversal() {
+        // Explicit name wins.
+        assert_eq!(
+            resolve_component_file_name(Some("mask_decoder.onnx"), "https://x/y/enc.onnx")
+                .as_deref(),
+            Some("mask_decoder.onnx")
+        );
+        // Empty/None falls back to the URL's last segment.
+        assert_eq!(
+            resolve_component_file_name(None, "https://host/path/image_encoder.onnx").as_deref(),
+            Some("image_encoder.onnx")
+        );
+        assert_eq!(
+            resolve_component_file_name(Some("   "), "https://host/path/tokenizer.json").as_deref(),
+            Some("tokenizer.json")
+        );
+        // A traversal attempt is reduced to its final component.
+        assert_eq!(
+            resolve_component_file_name(Some("../../evil.onnx"), "https://x/y").as_deref(),
+            Some("evil.onnx")
+        );
     }
 
     #[test]
