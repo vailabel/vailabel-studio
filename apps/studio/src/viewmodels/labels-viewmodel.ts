@@ -6,6 +6,9 @@ import { services } from "@/services"
 export const useLabelsViewModel = (projectId?: string) => {
   const [projects, setProjects] = useState<Project[]>([])
   const [labels, setLabels] = useState<Label[]>([])
+  const [usageByLabelId, setUsageByLabelId] = useState<Record<string, number>>(
+    {}
+  )
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<unknown>(null)
   const [searchQuery, setSearchQuery] = useState("")
@@ -22,12 +25,29 @@ export const useLabelsViewModel = (projectId?: string) => {
       const scopedProjects = projectId
         ? nextProjects.filter((project) => project.id === projectId)
         : nextProjects
-      const results = await Promise.all(
-        scopedProjects.map((project) =>
-          services.getLabelService().getLabelsByProjectId(project.id)
-        )
-      )
-      setLabels(results.flat())
+      const [labelLists, annotationLists] = await Promise.all([
+        Promise.all(
+          scopedProjects.map((project) =>
+            services.getLabelService().getLabelsByProjectId(project.id)
+          )
+        ),
+        Promise.all(
+          scopedProjects.map((project) =>
+            services.getAnnotationService().getAnnotationsByProjectId(project.id)
+          )
+        ),
+      ])
+      setLabels(labelLists.flat())
+
+      // Real per-label usage = number of annotations referencing each label.
+      const counts: Record<string, number> = {}
+      for (const annotation of annotationLists.flat()) {
+        const labelId = annotation.labelId ?? annotation.label_id
+        if (labelId) {
+          counts[labelId] = (counts[labelId] ?? 0) + 1
+        }
+      }
+      setUsageByLabelId(counts)
     } catch (nextError) {
       setError(nextError)
     } finally {
@@ -48,7 +68,7 @@ export const useLabelsViewModel = (projectId?: string) => {
         return
       }
       void loadLabels()
-    }, ["labels", "projects"]).then((cleanup) => {
+    }, ["labels", "projects", "annotations"]).then((cleanup) => {
       unlisten = cleanup
     })
 
@@ -74,6 +94,7 @@ export const useLabelsViewModel = (projectId?: string) => {
   return {
     labels: filteredLabels,
     allLabels: labels,
+    usageByLabelId,
     projects,
     isLoading,
     error,

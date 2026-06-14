@@ -41,10 +41,14 @@ import {
   Cloud,
   Shield,
 } from "lucide-react"
+import { toast } from "sonner"
 import AWSConfigForm from "@/components/forms/AWSConfigForm"
 import AzureConfigForm from "@/components/forms/AzureConfigForm"
 import GCPConfigForm from "@/components/forms/GCPConfigForm"
-import { useCloudStorageViewModel } from "@/viewmodels/cloud-storage-viewmodel"
+import {
+  useCloudStorageViewModel,
+  type CloudStorageConfig,
+} from "@/viewmodels/cloud-storage-viewmodel"
 import {
   awsConfigSchema,
   azureConfigSchema,
@@ -61,6 +65,7 @@ export default function CloudStorageConfigPage() {
     deleteConfig,
     setActiveConfig,
     testConnection,
+    loadSecrets,
     activeConfig,
   } = useCloudStorageViewModel()
 
@@ -86,38 +91,43 @@ export default function CloudStorageConfigPage() {
   // Handle form submission
   const onSubmit = async (data: CloudConfigFormData) => {
     try {
-      const config = {
+      const existing = editingConfig
+        ? configs.find((entry) => entry.id === editingConfig)
+        : undefined
+      const config: CloudStorageConfig = {
         id: editingConfig || crypto.randomUUID(),
         name: data.name,
         provider: selectedProvider,
         config: data.config,
-        isActive: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        isActive: existing?.isActive ?? false,
+        createdAt: existing?.createdAt ?? new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       }
-      
+
       await saveConfig(config)
       setShowForm(false)
       setEditingConfig(null)
       form.reset()
     } catch (error) {
       console.error("Failed to save config:", error)
+      toast.error("Failed to save configuration", { description: String(error) })
     }
   }
 
-  // Handle edit
-  const handleEdit = (configId: string) => {
-    const config = configs.find(c => c.id === configId)
-    if (config) {
-      setEditingConfig(configId)
-      setSelectedProvider(config.provider)
-      form.reset({
-        name: config.name,
-        provider: config.provider,
-        config: config.config,
-      })
-      setShowForm(true)
-    }
+  // Handle edit — rehydrate secrets from the keychain so the form validates
+  // and the user does not have to re-enter them.
+  const handleEdit = async (configId: string) => {
+    const config = configs.find((c) => c.id === configId)
+    if (!config) return
+    const secrets = await loadSecrets(config)
+    setEditingConfig(configId)
+    setSelectedProvider(config.provider)
+    form.reset({
+      name: config.name,
+      provider: config.provider,
+      config: { ...config.config, ...secrets } as CloudConfigFormData["config"],
+    })
+    setShowForm(true)
   }
 
   // Handle delete
@@ -131,16 +141,22 @@ export default function CloudStorageConfigPage() {
     }
   }
 
-  // Handle test connection
+  // Handle test connection — surfaces the real backend result.
   const handleTestConnection = async (configId: string) => {
-    const config = configs.find(c => c.id === configId)
-    if (config) {
-      setTestingConnection(configId)
-      try {
-        await testConnection(config)
-      } finally {
-        setTestingConnection(null)
+    const config = configs.find((c) => c.id === configId)
+    if (!config) return
+    setTestingConnection(configId)
+    try {
+      const result = await testConnection(config)
+      if (result.ok) {
+        toast.success("Connection successful", { description: config.name })
+      } else {
+        toast.error("Connection failed", { description: result.message })
       }
+    } catch (error) {
+      toast.error("Connection failed", { description: String(error) })
+    } finally {
+      setTestingConnection(null)
     }
   }
 
@@ -210,7 +226,7 @@ export default function CloudStorageConfigPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleEdit(activeConfig.id)}
+                  onClick={() => void handleEdit(activeConfig.id)}
                 >
                   <Edit className="h-4 w-4 mr-2" />
                   Edit
@@ -307,7 +323,7 @@ export default function CloudStorageConfigPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleEdit(config.id)}
+                          onClick={() => void handleEdit(config.id)}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>

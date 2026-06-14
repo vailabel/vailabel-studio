@@ -32,7 +32,7 @@ export class MoveHandler implements ToolHandler {
         (a: Annotation) => a.id === this.context.selectedAnnotation?.id
       )
       if (selected) {
-        const handle = getResizeHandle(e, selected)
+        const handle = getResizeHandle(point, selected)
         if (handle) {
           this.context.setToolState({
             ...this.context.toolState,

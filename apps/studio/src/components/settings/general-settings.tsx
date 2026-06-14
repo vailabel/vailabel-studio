@@ -1,21 +1,13 @@
 import { FolderOpen, Save, RotateCcw } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import { DesktopFileInput } from "@/components/common/desktop-file"
-import { useSettingsViewModel } from "@/viewmodels/settings-viewmodel"
+import { useSettings } from "@/contexts/settings-context"
+import { SettingsSection, SettingRow } from "@/components/settings/settings-ui"
 
 export default function GeneralSettings() {
-  const { settings, updateSetting } = useSettingsViewModel()
+  const { settings, updateSetting } = useSettings()
 
-  // Get general settings
   const dataDirectory = (settings.dataDirectory as string) || ""
   const autoSave = (settings.autoSave as boolean) ?? true
   const showLabels = (settings.showLabels as boolean) ?? true
@@ -25,25 +17,10 @@ export default function GeneralSettings() {
     target: { files: string[] }
   }) => {
     const dir = event.target.files?.[0]
-    if (dir) {
-      updateSetting("dataDirectory", dir)
-    }
-  }
-
-  const handleAutoSaveChange = (checked: boolean) => {
-    updateSetting("autoSave", checked)
-  }
-
-  const handleShowLabelsChange = (checked: boolean) => {
-    updateSetting("showLabels", checked)
-  }
-
-  const handleSnapToGridChange = (checked: boolean) => {
-    updateSetting("snapToGrid", checked)
+    if (dir) updateSetting("dataDirectory", dir)
   }
 
   const handleReset = async () => {
-    // Reset individual settings to defaults
     await updateSetting("autoSave", true)
     await updateSetting("showLabels", true)
     await updateSetting("snapToGrid", false)
@@ -51,143 +28,87 @@ export default function GeneralSettings() {
 
   return (
     <div className="space-y-6">
-      {/* Data Directory */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FolderOpen className="w-5 h-5" />
-            Data Directory
-          </CardTitle>
-          <CardDescription>
-            Choose where application data will be stored
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-col sm:flex-row gap-3 items-start">
-            <DesktopFileInput
-              onChange={handleDataDirectoryChange}
-              accept=""
-              multiple={false}
-              className="flex-1"
-              placeholder="Select a folder..."
-              options={{ properties: ["openDirectory"] }}
-            />
-          </div>
-          <p className="text-sm text-muted-foreground">
-            This is the folder where application data (e.g., downloaded files)
-            will be stored.
-          </p>
+      <SettingsSection
+        icon={FolderOpen}
+        title="Data Directory"
+        description="Where application data (downloads, exports) is stored"
+      >
+        <div className="space-y-3">
+          <DesktopFileInput
+            onChange={handleDataDirectoryChange}
+            accept=""
+            multiple={false}
+            className="flex-1"
+            placeholder="Select a folder…"
+            options={{ properties: ["openDirectory"] }}
+          />
           {dataDirectory && (
-            <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg transition-all duration-200 opacity-100">
-              <p className="text-sm text-primary">
-                <strong>Selected:</strong> {dataDirectory}
-              </p>
+            <div className="rounded-lg border border-primary/20 bg-primary/10 p-3 text-sm text-primary">
+              <span className="font-medium">Selected:</span> {dataDirectory}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </SettingsSection>
 
-      {/* Application Behavior */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Save className="w-5 h-5" />
-            Application Behavior
-          </CardTitle>
-          <CardDescription>
-            Configure how the application behaves during use
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Auto Save */}
-          <div className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/50 transition-all duration-200 hover:translate-x-1">
-            <div className="space-y-1">
-              <Label
-                htmlFor="auto-save"
-                className="text-base font-medium cursor-pointer"
-              >
-                Auto Save Annotations
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                Automatically save your work as you annotate
-              </p>
-            </div>
-            <Switch
-              id="auto-save"
-              checked={autoSave}
-              onCheckedChange={handleAutoSaveChange}
-            />
-          </div>
+      <SettingsSection
+        icon={Save}
+        title="Application Behavior"
+        description="Configure how the application behaves during use"
+      >
+        <div className="space-y-3">
+          <SettingRow
+            htmlFor="auto-save"
+            title="Auto Save Annotations"
+            description="Automatically save your work as you annotate"
+            control={
+              <Switch
+                id="auto-save"
+                checked={autoSave}
+                onCheckedChange={(checked) => updateSetting("autoSave", checked)}
+              />
+            }
+          />
+          <SettingRow
+            htmlFor="show-labels"
+            title="Show Labels on Annotations"
+            description="Display label names on annotation boxes"
+            control={
+              <Switch
+                id="show-labels"
+                checked={showLabels}
+                onCheckedChange={(checked) =>
+                  updateSetting("showLabels", checked)
+                }
+              />
+            }
+          />
+          <SettingRow
+            htmlFor="snap-to-grid"
+            title="Snap to Grid"
+            description="Align annotations to a grid for better organization"
+            control={
+              <Switch
+                id="snap-to-grid"
+                checked={snapToGrid}
+                onCheckedChange={(checked) =>
+                  updateSetting("snapToGrid", checked)
+                }
+              />
+            }
+          />
+        </div>
+      </SettingsSection>
 
-          {/* Show Labels */}
-          <div className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/50 transition-all duration-200 hover:translate-x-1">
-            <div className="space-y-1">
-              <Label
-                htmlFor="show-labels"
-                className="text-base font-medium cursor-pointer"
-              >
-                Show Labels on Annotations
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                Display label names on annotation boxes
-              </p>
-            </div>
-            <Switch
-              id="show-labels"
-              checked={showLabels}
-              onCheckedChange={handleShowLabelsChange}
-            />
-          </div>
-
-          {/* Snap to Grid */}
-          <div className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/50 transition-all duration-200 hover:translate-x-1">
-            <div className="space-y-1">
-              <Label
-                htmlFor="snap-to-grid"
-                className="text-base font-medium cursor-pointer"
-              >
-                Snap to Grid
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                Align annotations to a grid for better organization
-              </p>
-            </div>
-            <Switch
-              id="snap-to-grid"
-              checked={snapToGrid}
-              onCheckedChange={handleSnapToGridChange}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <RotateCcw className="w-5 h-5" />
-            Reset Settings
-          </CardTitle>
-          <CardDescription>
-            Restore all settings to their default values
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="transition-transform duration-200 hover:scale-102 active:scale-98">
-            <Button
-              onClick={handleReset}
-              variant="outline"
-              className="w-full border-border hover:bg-muted"
-            >
-              <RotateCcw className="w-4 h-4 mr-2" />
-              Reset to Defaults
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground mt-2 text-center">
-            This will reset all general settings to their default values
-          </p>
-        </CardContent>
-      </Card>
+      <SettingsSection
+        icon={RotateCcw}
+        title="Reset General Settings"
+        description="Restore the settings on this tab to their defaults"
+      >
+        <Button onClick={handleReset} variant="outline" className="gap-2">
+          <RotateCcw className="h-4 w-4" />
+          Reset to Defaults
+        </Button>
+      </SettingsSection>
     </div>
   )
 }

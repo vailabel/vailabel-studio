@@ -6,7 +6,8 @@ import {
   getGitHubReleases,
   getGitHubStarsContributorsPullRequests,
 } from "@/lib/api"
-import { Github, GitCommit, Star, Bug, GitFork, ArrowRight } from "lucide-react"
+import { GitCommit, Star, Bug, GitFork, ArrowRight } from "lucide-react"
+import { GithubIcon } from "@/components/icons/github-icon"
 
 function formatDate(dateString: string) {
   if (!dateString) return "Unknown date"
@@ -62,7 +63,7 @@ export default function UpdatesPage() {
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center gap-3 mb-8">
-            <Github size={24} className="text-gray-700 dark:text-gray-300" />
+            <GithubIcon size={24} className="text-gray-700 dark:text-gray-300" />
             <h1 className="text-3xl font-bold">Latest Updates</h1>
           </div>
 

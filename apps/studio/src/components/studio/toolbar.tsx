@@ -33,6 +33,8 @@ import type { CanvasTool } from "@/features/studio/types"
 
 interface ToolbarProps {
   currentImage: ImageData | null
+  /** Tools to expose for the current project template. Omit to show all. */
+  allowedTools?: CanvasTool[]
   selectedTool: CanvasTool
   onSelectTool: (tool: CanvasTool) => void
   zoom: number
@@ -91,6 +93,7 @@ const annotationTools: ToolButtonConfig[] = [
 export const Toolbar = memo(
   ({
     currentImage,
+    allowedTools,
     selectedTool,
     onSelectTool,
     zoom,
@@ -165,11 +168,15 @@ export const Toolbar = memo(
       ]
     )
 
+    const visibleTools = allowedTools
+      ? annotationTools.filter((tool) => allowedTools.includes(tool.id))
+      : annotationTools
+
     return (
       <div className="flex items-center justify-between border-b bg-background p-1 border-border">
         <div className="flex items-center space-x-1">
           <TooltipProvider>
-            {annotationTools.map((tool) => (
+            {visibleTools.map((tool) => (
               <Tooltip key={tool.id}>
                 <TooltipTrigger
                   render={

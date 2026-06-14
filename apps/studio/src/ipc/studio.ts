@@ -2,6 +2,12 @@ import { invokeWithLogging } from "@/ipc/invoke"
 import type { GitHubRelease } from "@/lib/github-releases"
 import type { AiGpuInfo, AiRegistryModel } from "@/types/ai-assistant"
 import type {
+  AnalysisConfig,
+  AnalysisJob,
+  AnalysisReport,
+  ReportSummary,
+} from "@/types/dataset-intelligence"
+import type {
   AIModel,
   Annotation,
   History,
@@ -12,8 +18,16 @@ import type {
   Prediction,
   Project,
   Settings,
-  Task,
 } from "@/types/core"
+import type {
+  FfmpegInfo,
+  ImportVideoRequest,
+  IngestOptions,
+  MaterializedShape,
+  Track,
+  VideoJob,
+  VideoMeta,
+} from "@/types/video"
 
 interface SuccessResponse {
   success: boolean
@@ -47,14 +61,6 @@ export const studioCommands = {
     call<Project>("projects_save", { payload }),
   projectsDelete: (id: string) =>
     call<SuccessResponse>("projects_delete", { payload: { id } }),
-
-  tasksList: () => call<Task[]>("tasks_list"),
-  tasksListByProject: (projectId: string) =>
-    call<Task[]>("tasks_list_by_project", { payload: { projectId } }),
-  tasksGet: (id: string) => call<Task>("tasks_get", { payload: { id } }),
-  tasksSave: (payload: Partial<Task>) => call<Task>("tasks_save", { payload }),
-  tasksDelete: (id: string) =>
-    call<SuccessResponse>("tasks_delete", { payload: { id } }),
 
   labelsListByProject: (projectId: string) =>
     call<Label[]>("labels_list_by_project", { payload: { projectId } }),
@@ -126,6 +132,48 @@ export const studioCommands = {
   // Local AI assistant (Phase 1): GPU/runtime detection + model registry.
   aiGpuInfo: () => call<AiGpuInfo>("ai_gpu_info"),
   aiModelRegistry: () => call<AiRegistryModel[]>("ai_model_registry"),
+
+  // Dataset Intelligence (Phase 2): analysis jobs + persisted reports.
+  analysisRun: (payload: { projectId: string; config?: AnalysisConfig }) =>
+    call<AnalysisJob>("analysis_run", { payload }),
+  analysisJobStatus: (jobId: string) =>
+    call<AnalysisJob | null>("analysis_job_status", { payload: { jobId } }),
+  analysisReportsList: (projectId: string) =>
+    call<ReportSummary[]>("analysis_reports_list", { payload: { projectId } }),
+  analysisReportGet: (id: string) =>
+    call<AnalysisReport | null>("analysis_report_get", { payload: { id } }),
+  analysisReportLatest: (projectId: string) =>
+    call<AnalysisReport | null>("analysis_report_latest", {
+      payload: { projectId },
+    }),
+  analysisReportDelete: (id: string) =>
+    call<SuccessResponse>("analysis_report_delete", { payload: { id } }),
+
+  // Video Annotation (Phase 5): FFmpeg pipeline, tracks, export.
+  videoFfmpegInfo: () => call<FfmpegInfo>("video_ffmpeg_info"),
+  videoImport: (payload: ImportVideoRequest) =>
+    call<VideoMeta>("video_import", { payload }),
+  videoList: (projectId: string) =>
+    call<VideoMeta[]>("video_list", { payload: { projectId } }),
+  videoGet: (id: string) => call<VideoMeta | null>("video_get", { payload: { id } }),
+  videoDelete: (id: string) =>
+    call<SuccessResponse>("video_delete", { payload: { id } }),
+  videoIngest: (payload: { videoId: string } & IngestOptions) =>
+    call<VideoJob>("video_ingest", { payload }),
+  videoJobStatus: (jobId: string) =>
+    call<VideoJob | null>("video_job_status", { payload: { jobId } }),
+  videoTracksList: (videoId: string) =>
+    call<Track[]>("video_tracks_list", { payload: { videoId } }),
+  videoTrackSave: (payload: Partial<Track>) =>
+    call<Track>("video_track_save", { payload }),
+  videoTrackDelete: (id: string) =>
+    call<SuccessResponse>("video_track_delete", { payload: { id } }),
+  videoExportTracks: (payload: {
+    videoId: string
+    startFrame?: number
+    endFrame?: number
+    step?: number
+  }) => call<MaterializedShape[]>("video_export_tracks", { payload }),
 }
 
 export type StudioCommands = typeof studioCommands

@@ -1,49 +1,55 @@
-import { useState, useEffect, useRef } from "react"
-import { 
-  Moon, 
-  Sun, 
-  Palette, 
-  Eye, 
-  EyeOff, 
-  Type, 
-  Layout, 
-  Zap, 
-  Accessibility,
-  Monitor,
-  Smartphone,
-  Tablet,
+import { useEffect, useRef, useState } from "react"
+import {
+  Moon,
+  Sun,
+  Palette,
+  Eye,
+  EyeOff,
+  Type,
+  Layout,
+  Zap,
   RotateCcw,
-  CheckCircle2
+  Check,
+  Monitor,
 } from "lucide-react"
 import { Slider } from "@/components/ui/slider"
-import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { ChromePicker } from "react-color"
-import { Check } from "lucide-react"
+import { cn } from "@/lib/utils"
 import { useTheme } from "@/components/layout/theme-provider"
-import { useSettingsViewModel } from "@/viewmodels/settings-viewmodel"
+import { useSettings } from "@/contexts/settings-context"
+import {
+  SettingsSection,
+  SettingRow,
+  SettingSlider,
+} from "@/components/settings/settings-ui"
 
 const PRESET_COLORS = [
-  "#3b82f6", // blue
-  "#ef4444", // red
-  "#10b981", // green
-  "#f59e42", // orange
-  "#a855f7", // purple
-  "#fbbf24", // yellow
-  "#6366f1", // indigo
-  "#6b7280", // gray
+  "#3b82f6",
+  "#ef4444",
+  "#10b981",
+  "#f59e42",
+  "#a855f7",
+  "#fbbf24",
+  "#6366f1",
+  "#6b7280",
 ]
 
 const ACCENT_COLORS = [
-  { name: "Blue", value: "#3b82f6", bg: "bg-blue-500" },
-  { name: "Green", value: "#10b981", bg: "bg-green-500" },
-  { name: "Purple", value: "#a855f7", bg: "bg-purple-500" },
-  { name: "Orange", value: "#f59e42", bg: "bg-orange-500" },
-  { name: "Red", value: "#ef4444", bg: "bg-red-500" },
-  { name: "Pink", value: "#ec4899", bg: "bg-pink-500" },
+  { name: "Blue", value: "#3b82f6" },
+  { name: "Green", value: "#10b981" },
+  { name: "Purple", value: "#a855f7" },
+  { name: "Orange", value: "#f59e42" },
+  { name: "Red", value: "#ef4444" },
+  { name: "Pink", value: "#ec4899" },
 ]
 
 const FONT_FAMILIES = [
@@ -56,44 +62,48 @@ const FONT_FAMILIES = [
 ]
 
 const UI_DENSITY_OPTIONS = [
-  { name: "Compact", value: "compact", description: "Tighter spacing for more content" },
-  { name: "Comfortable", value: "comfortable", description: "Balanced spacing (recommended)" },
+  { name: "Compact", value: "compact", description: "Tighter spacing" },
+  { name: "Comfortable", value: "comfortable", description: "Recommended" },
   { name: "Spacious", value: "spacious", description: "More breathing room" },
 ]
 
+const THEMES = [
+  { value: "light", label: "Light", icon: Sun },
+  { value: "dark", label: "Dark", icon: Moon },
+  { value: "system", label: "System", icon: Monitor },
+] as const
+
 export default function AppearanceSettings() {
   const { theme, setTheme } = useTheme()
-  const {
-    getSettingValue,
-    updateSetting,
-  } = useSettingsViewModel()
+  const { getSettingValue, updateSetting } = useSettings()
 
   const [showCustomColor, setShowCustomColor] = useState(false)
   const customBtnRef = useRef<HTMLButtonElement>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
 
-  // Get appearance settings
-  const brightness = getSettingValue("brightness") as number || 100
-  const contrast = getSettingValue("contrast") as number || 100
-  const annotationColor = getSettingValue("annotationColor") as string || "#3b82f6"
-  const boxThickness = getSettingValue("boxThickness") as number || 2
-  const accentColor = getSettingValue("accentColor") as string || "#3b82f6"
-  const fontSize = getSettingValue("fontSize") as number || 14
-  const fontFamily = getSettingValue("fontFamily") as string || "system-ui"
-  const uiDensity = getSettingValue("uiDensity") as string || "comfortable"
-  const animationsEnabled = getSettingValue("animationsEnabled") as boolean || true
-  const reducedMotion = getSettingValue("reducedMotion") as boolean || false
-  const highContrast = getSettingValue("highContrast") as boolean || false
+  const brightness = (getSettingValue("brightness") as number) || 100
+  const contrast = (getSettingValue("contrast") as number) || 100
+  const annotationColor =
+    (getSettingValue("annotationColor") as string) || "#3b82f6"
+  const boxThickness = (getSettingValue("boxThickness") as number) || 2
+  const accentColor = (getSettingValue("accentColor") as string) || "#3b82f6"
+  const fontSize = (getSettingValue("fontSize") as number) || 14
+  const fontFamily = (getSettingValue("fontFamily") as string) || "system-ui"
+  const uiDensity = (getSettingValue("uiDensity") as string) || "comfortable"
+  const animationsEnabled =
+    (getSettingValue("animationsEnabled") as boolean) ?? true
+  const reducedMotion = (getSettingValue("reducedMotion") as boolean) ?? false
+  const highContrast = (getSettingValue("highContrast") as boolean) ?? false
 
-  // Close popover on outside click
+  // Close the custom-color popover on outside click.
   useEffect(() => {
     if (!showCustomColor) return
-    function handleClick(e: MouseEvent) {
+    const handleClick = (event: MouseEvent) => {
       if (
         popoverRef.current &&
-        !popoverRef.current.contains(e.target as Node) &&
+        !popoverRef.current.contains(event.target as Node) &&
         customBtnRef.current &&
-        !customBtnRef.current.contains(e.target as Node)
+        !customBtnRef.current.contains(event.target as Node)
       ) {
         setShowCustomColor(false)
       }
@@ -102,54 +112,14 @@ export default function AppearanceSettings() {
     return () => document.removeEventListener("mousedown", handleClick)
   }, [showCustomColor])
 
-  const handleThemeChange = (newTheme: string) => {
-    setTheme(newTheme as "light" | "dark" | "system")
-    updateSetting("theme", newTheme)
-  }
-
-  const handleBrightnessChange = (value: number[]) => {
-    updateSetting("brightness", value[0])
-  }
-
-  const handleContrastChange = (value: number[]) => {
-    updateSetting("contrast", value[0])
+  const handleThemeChange = (next: string) => {
+    setTheme(next as "light" | "dark" | "system")
+    updateSetting("theme", next)
   }
 
   const handleColorChange = (color: string) => {
     updateSetting("annotationColor", color)
     setShowCustomColor(false)
-  }
-
-  const handleBoxThicknessChange = (value: number) => {
-    updateSetting("boxThickness", value)
-  }
-
-  const handleAccentColorChange = (color: string) => {
-    updateSetting("accentColor", color)
-  }
-
-  const handleFontSizeChange = (value: number[]) => {
-    updateSetting("fontSize", value[0])
-  }
-
-  const handleFontFamilyChange = (family: string) => {
-    updateSetting("fontFamily", family)
-  }
-
-  const handleUIDensityChange = (density: string) => {
-    updateSetting("uiDensity", density)
-  }
-
-  const handleAnimationsChange = (enabled: boolean) => {
-    updateSetting("animationsEnabled", enabled)
-  }
-
-  const handleReducedMotionChange = (enabled: boolean) => {
-    updateSetting("reducedMotion", enabled)
-  }
-
-  const handleHighContrastChange = (enabled: boolean) => {
-    updateSetting("highContrast", enabled)
   }
 
   const handleResetAppearance = () => {
@@ -168,176 +138,118 @@ export default function AppearanceSettings() {
 
   return (
     <div className="space-y-6">
-      {/* Theme Selection */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Palette className="w-5 h-5" />
-            Theme
-          </CardTitle>
-          <CardDescription>
-            Choose your preferred application theme
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-3 gap-4">
+      <SettingsSection
+        icon={Palette}
+        title="Theme"
+        description="Choose your preferred application theme"
+      >
+        <div className="grid grid-cols-3 gap-3">
+          {THEMES.map((item) => (
             <Button
-              variant={theme === "light" ? "default" : "outline"}
-              className="h-20 flex flex-col gap-2"
-              onClick={() => handleThemeChange("light")}
+              key={item.value}
+              variant={theme === item.value ? "default" : "outline"}
+              className="h-20 flex-col gap-2"
+              onClick={() => handleThemeChange(item.value)}
             >
-              <Sun className="w-6 h-6" />
-              <span>Light</span>
+              <item.icon className="h-6 w-6" />
+              <span>{item.label}</span>
             </Button>
-            
-            <Button
-              variant={theme === "dark" ? "default" : "outline"}
-              className="h-20 flex flex-col gap-2"
-              onClick={() => handleThemeChange("dark")}
-            >
-              <Moon className="w-6 h-6" />
-              <span>Dark</span>
-            </Button>
-            
-            <Button
-              variant={theme === "system" ? "default" : "outline"}
-              className="h-20 flex flex-col gap-2"
-              onClick={() => handleThemeChange("system")}
-            >
-              <Eye className="w-6 h-6" />
-              <span>System</span>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          ))}
+        </div>
+      </SettingsSection>
 
-      {/* Image Adjustments */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Eye className="w-5 h-5" />
-            Image Adjustments
-          </CardTitle>
-          <CardDescription>
-            Adjust brightness and contrast for better visibility
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Brightness */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="brightness" className="text-base font-medium">
-                Brightness
-              </Label>
-              <span className="text-sm text-muted-foreground">
-                {brightness}%
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              <Sun className="h-4 w-4 text-muted-foreground" />
-              <Slider
-                id="brightness"
-                min={50}
-                max={150}
-                step={1}
-                value={[brightness]}
-                onValueChange={handleBrightnessChange}
-                className="flex-1"
-              />
-              <Moon className="h-4 w-4 text-muted-foreground" />
-            </div>
-          </div>
+      <SettingsSection
+        icon={Eye}
+        title="Image Adjustments"
+        description="Adjust brightness and contrast for better visibility"
+      >
+        <div className="space-y-6">
+          <SettingSlider
+            title="Brightness"
+            value={brightness}
+            unit="%"
+            leading={<Sun className="h-4 w-4 text-muted-foreground" />}
+            trailing={<Moon className="h-4 w-4 text-muted-foreground" />}
+          >
+            <Slider
+              min={50}
+              max={150}
+              step={1}
+              value={[brightness]}
+              onValueChange={(value) => updateSetting("brightness", value[0])}
+            />
+          </SettingSlider>
+          <SettingSlider
+            title="Contrast"
+            value={contrast}
+            unit="%"
+            leading={<EyeOff className="h-4 w-4 text-muted-foreground" />}
+            trailing={<Eye className="h-4 w-4 text-muted-foreground" />}
+          >
+            <Slider
+              min={50}
+              max={150}
+              step={1}
+              value={[contrast]}
+              onValueChange={(value) => updateSetting("contrast", value[0])}
+            />
+          </SettingSlider>
+        </div>
+      </SettingsSection>
 
-          {/* Contrast */}
+      <SettingsSection
+        icon={Palette}
+        title="Annotation Style"
+        description="Default color and stroke width for new annotations"
+      >
+        <div className="space-y-6">
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="contrast" className="text-base font-medium">
-                Contrast
-              </Label>
-              <span className="text-sm text-muted-foreground">
-                {contrast}%
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              <EyeOff className="h-4 w-4 text-muted-foreground" />
-              <Slider
-                id="contrast"
-                min={50}
-                max={150}
-                step={1}
-                value={[contrast]}
-                onValueChange={handleContrastChange}
-                className="flex-1"
-              />
-              <Eye className="h-4 w-4 text-muted-foreground" />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Annotation Colors */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Palette className="w-5 h-5" />
-            Annotation Colors
-          </CardTitle>
-          <CardDescription>
-            Customize the default colors for annotations
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Default Annotation Color */}
-          <div className="space-y-3">
-            <Label htmlFor="annotation-color" className="text-base font-medium">
-              Default Annotation Color
-            </Label>
-            <div className="flex flex-wrap items-center gap-3 relative">
-              {PRESET_COLORS.map((color) => (
-                <button
-                  key={color}
-                  type="button"
-                  className={`relative h-10 w-10 rounded-full border-2 flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-ring transition-colors ${
-                    annotationColor === color && !showCustomColor 
-                      ? "border-primary ring-2 ring-ring" 
-                      : "border-border hover:border-primary"
-                  }`}
-                  style={{ backgroundColor: color }}
-                  aria-label={`Select ${color} as annotation color`}
-                  onClick={() => handleColorChange(color)}
-                >
-                  {annotationColor === color && !showCustomColor && (
-                    <span className="absolute inset-0 flex items-center justify-center">
-                      <Check className="h-5 w-5 text-white drop-shadow-lg" />
-                    </span>
-                  )}
-                </button>
-              ))}
-              
+            <p className="text-sm font-medium">Default color</p>
+            <div className="relative flex flex-wrap items-center gap-3">
+              {PRESET_COLORS.map((color) => {
+                const active = annotationColor === color && !showCustomColor
+                return (
+                  <button
+                    key={color}
+                    type="button"
+                    className={cn(
+                      "relative h-9 w-9 rounded-full border-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      active
+                        ? "border-primary ring-2 ring-ring"
+                        : "border-border hover:border-primary"
+                    )}
+                    style={{ backgroundColor: color }}
+                    aria-label={`Select ${color}`}
+                    onClick={() => handleColorChange(color)}
+                  >
+                    {active && (
+                      <Check className="absolute inset-0 m-auto h-4 w-4 text-white drop-shadow" />
+                    )}
+                  </button>
+                )
+              })}
               <button
                 ref={customBtnRef}
                 type="button"
-                className={`h-10 px-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center text-sm font-medium bg-background border-border hover:border-primary transition-colors
-                  ${showCustomColor ? "border-primary ring-2 ring-ring" : ""}`}
-                onClick={() => setShowCustomColor((v) => !v)}
-                aria-label="Custom color picker"
+                className={cn(
+                  "h-9 rounded-full border-2 px-4 text-sm font-medium",
+                  showCustomColor
+                    ? "border-primary ring-2 ring-ring"
+                    : "border-border hover:border-primary"
+                )}
+                onClick={() => setShowCustomColor((value) => !value)}
               >
-                Custom...
+                Custom…
               </button>
-              
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Current:</span>
-                <div
-                  className="h-8 w-8 rounded-full border-2 border-border inline-block align-middle"
-                  style={{ backgroundColor: annotationColor }}
-                  title="Current color"
-                />
-              </div>
-              
+              <span
+                className="h-8 w-8 rounded-full border-2 border-border"
+                style={{ backgroundColor: annotationColor }}
+                title={annotationColor}
+              />
               {showCustomColor && (
                 <div
                   ref={popoverRef}
-                  className="absolute z-50 left-0 top-12 sm:left-auto sm:right-0 sm:top-12 bg-background border border-border rounded-lg shadow-lg p-3"
+                  className="absolute left-0 top-12 z-50 rounded-lg border border-border bg-background p-3 shadow-lg"
                 >
                   <ChromePicker
                     color={annotationColor}
@@ -349,77 +261,52 @@ export default function AppearanceSettings() {
             </div>
           </div>
 
-          {/* Box Thickness */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="box-thickness" className="text-base font-medium">
-                Box Thickness
-              </Label>
-              <span className="text-sm text-muted-foreground">
-                {boxThickness}px
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-muted-foreground">1px</span>
-              <Slider
-                id="box-thickness"
-                min={1}
-                max={10}
-                step={1}
-                value={[boxThickness]}
-                onValueChange={(value) => handleBoxThicknessChange(value[0])}
-                className="flex-1"
-              />
-              <span className="text-sm text-muted-foreground">10px</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          <SettingSlider
+            title="Box thickness"
+            value={boxThickness}
+            unit="px"
+            leading={<span className="text-xs text-muted-foreground">1</span>}
+            trailing={<span className="text-xs text-muted-foreground">10</span>}
+          >
+            <Slider
+              min={1}
+              max={10}
+              step={1}
+              value={[boxThickness]}
+              onValueChange={(value) => updateSetting("boxThickness", value[0])}
+            />
+          </SettingSlider>
+        </div>
+      </SettingsSection>
 
-      {/* Typography */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Type className="w-5 h-5" />
-            Typography
-          </CardTitle>
-          <CardDescription>
-            Customize text appearance and readability
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Font Size */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="font-size" className="text-base font-medium">
-                Font Size
-              </Label>
-              <span className="text-sm text-muted-foreground">
-                {fontSize}px
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-muted-foreground">12px</span>
-              <Slider
-                id="font-size"
-                min={12}
-                max={20}
-                step={1}
-                value={[fontSize]}
-                onValueChange={handleFontSizeChange}
-                className="flex-1"
-              />
-              <span className="text-sm text-muted-foreground">20px</span>
-            </div>
-          </div>
+      <SettingsSection
+        icon={Type}
+        title="Typography"
+        description="Customize text appearance and readability"
+      >
+        <div className="space-y-6">
+          <SettingSlider
+            title="Font size"
+            value={fontSize}
+            unit="px"
+            leading={<span className="text-xs text-muted-foreground">12</span>}
+            trailing={<span className="text-xs text-muted-foreground">20</span>}
+          >
+            <Slider
+              min={12}
+              max={20}
+              step={1}
+              value={[fontSize]}
+              onValueChange={(value) => updateSetting("fontSize", value[0])}
+            />
+          </SettingSlider>
 
-          {/* Font Family */}
-          <div className="space-y-3">
-            <Label htmlFor="font-family" className="text-base font-medium">
-              Font Family
-            </Label>
-            <Select value={fontFamily} onValueChange={handleFontFamilyChange}>
-              <SelectTrigger>
+          <SettingRow title="Font family">
+            <Select
+              value={fontFamily}
+              onValueChange={(value) => updateSetting("fontFamily", value)}
+            >
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select font family" />
               </SelectTrigger>
               <SelectContent>
@@ -430,310 +317,162 @@ export default function AppearanceSettings() {
                 ))}
               </SelectContent>
             </Select>
-          </div>
-        </CardContent>
-      </Card>
+          </SettingRow>
+        </div>
+      </SettingsSection>
 
-      {/* UI Density */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Layout className="w-5 h-5" />
-            UI Density
-          </CardTitle>
-          <CardDescription>
-            Control spacing and layout density
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-3 gap-4">
-            {UI_DENSITY_OPTIONS.map((option) => (
-              <Button
-                key={option.value}
-                variant={uiDensity === option.value ? "default" : "outline"}
-                className="h-auto p-4 flex flex-col gap-2 text-left"
-                onClick={() => handleUIDensityChange(option.value)}
-              >
-                <span className="font-medium">{option.name}</span>
-                <span className="text-xs opacity-70">{option.description}</span>
-              </Button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <SettingsSection
+        icon={Layout}
+        title="UI Density"
+        description="Control spacing and layout density"
+      >
+        <div className="grid grid-cols-3 gap-3">
+          {UI_DENSITY_OPTIONS.map((option) => (
+            <Button
+              key={option.value}
+              variant={uiDensity === option.value ? "default" : "outline"}
+              className="h-auto flex-col gap-1 p-4"
+              onClick={() => updateSetting("uiDensity", option.value)}
+            >
+              <span className="font-medium">{option.name}</span>
+              <span className="text-xs opacity-70">{option.description}</span>
+            </Button>
+          ))}
+        </div>
+      </SettingsSection>
 
-      {/* Accent Colors */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Palette className="w-5 h-5" />
-            Accent Colors
-          </CardTitle>
-          <CardDescription>
-            Choose your preferred accent color for UI elements
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-3 gap-3">
-            {ACCENT_COLORS.map((color) => (
+      <SettingsSection
+        icon={Palette}
+        title="Accent Color"
+        description="Preferred accent color for UI highlights"
+      >
+        <div className="flex flex-wrap gap-3">
+          {ACCENT_COLORS.map((color) => {
+            const active = accentColor === color.value
+            return (
               <button
                 key={color.value}
-                className={`relative p-4 rounded-lg border-2 transition-colors ${
-                  accentColor === color.value
+                className={cn(
+                  "flex items-center gap-2 rounded-lg border-2 px-3 py-2",
+                  active
                     ? "border-primary ring-2 ring-ring"
                     : "border-border hover:border-primary"
-                }`}
-                onClick={() => handleAccentColorChange(color.value)}
-              >
-                <div className={`w-full h-8 rounded ${color.bg} mb-2`} />
-                <span className="text-sm font-medium">{color.name}</span>
-                {accentColor === color.value && (
-                  <div className="absolute top-2 right-2">
-                    <CheckCircle2 className="w-4 h-4 text-white drop-shadow-lg" />
-                  </div>
                 )}
+                onClick={() => updateSetting("accentColor", color.value)}
+              >
+                <span
+                  className="h-4 w-4 rounded-full"
+                  style={{ backgroundColor: color.value }}
+                />
+                <span className="text-sm font-medium">{color.name}</span>
+                {active && <Check className="h-3.5 w-3.5 text-primary" />}
               </button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+            )
+          })}
+        </div>
+      </SettingsSection>
 
-      {/* Animations & Performance */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Zap className="w-5 h-5" />
-            Animations & Performance
-          </CardTitle>
-          <CardDescription>
-            Control animations and performance preferences
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Enable Animations */}
-          <div className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors">
-            <div className="space-y-1">
-              <Label htmlFor="animations-enabled" className="text-base font-medium cursor-pointer">
-                Enable Animations
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                Smooth transitions and micro-interactions
-              </p>
-            </div>
-            <Switch
-              id="animations-enabled"
-              checked={animationsEnabled}
-              onCheckedChange={handleAnimationsChange}
-            />
-          </div>
+      <SettingsSection
+        icon={Zap}
+        title="Motion & Accessibility"
+        description="Animation and accessibility preferences"
+      >
+        <div className="space-y-3">
+          <SettingRow
+            htmlFor="animations-enabled"
+            title="Enable Animations"
+            description="Smooth transitions and micro-interactions"
+            control={
+              <Switch
+                id="animations-enabled"
+                checked={animationsEnabled}
+                onCheckedChange={(checked) =>
+                  updateSetting("animationsEnabled", checked)
+                }
+              />
+            }
+          />
+          <SettingRow
+            htmlFor="reduced-motion"
+            title="Reduced Motion"
+            description="Minimize animations for accessibility"
+            control={
+              <Switch
+                id="reduced-motion"
+                checked={reducedMotion}
+                onCheckedChange={(checked) =>
+                  updateSetting("reducedMotion", checked)
+                }
+              />
+            }
+          />
+          <SettingRow
+            htmlFor="high-contrast"
+            title="High Contrast Mode"
+            description="Increase contrast for better visibility"
+            control={
+              <Switch
+                id="high-contrast"
+                checked={highContrast}
+                onCheckedChange={(checked) =>
+                  updateSetting("highContrast", checked)
+                }
+              />
+            }
+          />
+        </div>
+      </SettingsSection>
 
-          {/* Reduced Motion */}
-          <div className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors">
-            <div className="space-y-1">
-              <Label htmlFor="reduced-motion" className="text-base font-medium cursor-pointer">
-                Reduced Motion
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                Minimize animations for accessibility
-              </p>
-            </div>
-            <Switch
-              id="reduced-motion"
-              checked={reducedMotion}
-              onCheckedChange={handleReducedMotionChange}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Accessibility */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Accessibility className="w-5 h-5" />
-            Accessibility
-          </CardTitle>
-          <CardDescription>
-            Improve accessibility and usability
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* High Contrast */}
-          <div className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors">
-            <div className="space-y-1">
-              <Label htmlFor="high-contrast" className="text-base font-medium cursor-pointer">
-                High Contrast Mode
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                Increase contrast for better visibility
-              </p>
-            </div>
-            <Switch
-              id="high-contrast"
-              checked={highContrast}
-              onCheckedChange={handleHighContrastChange}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Preview */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Eye className="w-5 h-5" />
-            Live Preview
-          </CardTitle>
-          <CardDescription>
-            See how your settings will look in the application
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {/* Application Mockup */}
-            <div className="relative bg-muted rounded-lg p-6 overflow-hidden border border-border">
-              {/* Mock Header */}
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div 
-                    className="w-8 h-8 rounded-lg"
-                    style={{ backgroundColor: accentColor }}
-                  />
-                  <div>
-                    <div 
-                      className="h-3 rounded mb-1"
-                      style={{ 
-                        backgroundColor: accentColor,
-                        width: "120px",
-                        opacity: 0.8
-                      }}
-                    />
-                    <div 
-                      className="h-2 rounded"
-                      style={{ 
-                        backgroundColor: accentColor,
-                        width: "80px",
-                        opacity: 0.5
-                      }}
-                    />
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <div className="w-6 h-6 rounded bg-muted-foreground/20" />
-                  <div className="w-6 h-6 rounded bg-muted-foreground/20" />
-                  <div className="w-6 h-6 rounded bg-muted-foreground/20" />
-                </div>
-              </div>
-
-              {/* Mock Content Area */}
-              <div className="space-y-4">
-                {/* Sample Image with Annotation */}
-                <div className="relative bg-background rounded-lg p-4 border border-border">
-                  <div className="relative h-32 bg-muted rounded-lg overflow-hidden">
-                    {/* Sample Annotation */}
-                    <div
-                      className="absolute top-4 left-4 border-2 rounded-lg p-2"
-                      style={{
-                        borderColor: annotationColor,
-                        borderWidth: `${boxThickness}px`,
-                        backgroundColor: `rgba(${parseInt(annotationColor.slice(1, 3), 16)}, ${parseInt(annotationColor.slice(3, 5), 16)}, ${parseInt(annotationColor.slice(5, 7), 16)}, 0.1)`,
-                        fontSize: `${fontSize}px`,
-                        fontFamily: fontFamily,
-                      }}
-                    >
-                      <span className="font-medium" style={{ color: annotationColor }}>
-                        Sample Object
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Mock Controls */}
-                <div className="flex items-center gap-3">
-                  <div 
-                    className="px-4 py-2 rounded-lg text-primary-foreground font-medium"
-                    style={{ backgroundColor: accentColor }}
-                  >
-                    Save
-                  </div>
-                  <div className="px-4 py-2 rounded-lg border border-border text-foreground font-medium">
-                    Cancel
-                  </div>
-                </div>
-
-                {/* Mock Sidebar */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 rounded-lg border border-border bg-background">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div 
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: accentColor }}
-                      />
-                      <span className="text-sm font-medium">Label 1</span>
-                    </div>
-                    <div className="text-xs text-muted-foreground">5 items</div>
-                  </div>
-                  <div className="p-3 rounded-lg border border-border bg-background">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div 
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: "#10b981" }}
-                      />
-                      <span className="text-sm font-medium">Label 2</span>
-                    </div>
-                    <div className="text-xs text-muted-foreground">3 items</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Device Preview */}
-            <div className="flex justify-center gap-6">
-              <div className="flex flex-col items-center gap-3 p-4 rounded-lg border border-border bg-background">
-                <Monitor className="w-8 h-8 text-muted-foreground" />
-                <span className="text-sm font-medium">Desktop</span>
-                <div className="text-xs text-muted-foreground">1920×1080</div>
-              </div>
-              <div className="flex flex-col items-center gap-3 p-4 rounded-lg border border-border bg-background">
-                <Tablet className="w-8 h-8 text-muted-foreground" />
-                <span className="text-sm font-medium">Tablet</span>
-                <div className="text-xs text-muted-foreground">768×1024</div>
-              </div>
-              <div className="flex flex-col items-center gap-3 p-4 rounded-lg border border-border bg-background">
-                <Smartphone className="w-8 h-8 text-muted-foreground" />
-                <span className="text-sm font-medium">Mobile</span>
-                <div className="text-xs text-muted-foreground">375×667</div>
-              </div>
+      {/* Live preview */}
+      <SettingsSection
+        icon={Eye}
+        title="Live Preview"
+        description="How annotation styling will look on the canvas"
+      >
+        <div className="rounded-lg border border-border bg-muted/40 p-6">
+          <div className="relative h-36 overflow-hidden rounded-lg bg-background">
+            <div
+              className="absolute left-6 top-6 rounded-md p-2"
+              style={{
+                borderColor: annotationColor,
+                borderWidth: `${boxThickness}px`,
+                borderStyle: "solid",
+                backgroundColor: hexToRgba(annotationColor, 0.1),
+                fontSize: `${fontSize}px`,
+                fontFamily,
+              }}
+            >
+              <span className="font-medium" style={{ color: annotationColor }}>
+                Sample Object
+              </span>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </SettingsSection>
 
-      {/* Reset */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <RotateCcw className="w-5 h-5" />
-            Reset Appearance
-          </CardTitle>
-          <CardDescription>
-            Restore all appearance settings to their default values
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button
-            onClick={handleResetAppearance}
-            variant="outline"
-            className="w-full"
-          >
-            <RotateCcw className="w-4 h-4 mr-2" />
-            Reset to Defaults
-          </Button>
-          <p className="text-xs text-muted-foreground mt-2 text-center">
-            This will reset all appearance settings to their default values
-          </p>
-        </CardContent>
-      </Card>
+      <SettingsSection
+        icon={RotateCcw}
+        title="Reset Appearance"
+        description="Restore all appearance settings to their defaults"
+      >
+        <Button
+          onClick={handleResetAppearance}
+          variant="outline"
+          className="gap-2"
+        >
+          <RotateCcw className="h-4 w-4" />
+          Reset to Defaults
+        </Button>
+      </SettingsSection>
     </div>
   )
+}
+
+function hexToRgba(hex: string, alpha: number): string {
+  const value = hex.replace("#", "")
+  if (value.length !== 6) return `rgba(59, 130, 246, ${alpha})`
+  const r = parseInt(value.slice(0, 2), 16)
+  const g = parseInt(value.slice(2, 4), 16)
+  const b = parseInt(value.slice(4, 6), 16)
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }

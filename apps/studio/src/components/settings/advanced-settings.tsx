@@ -1,45 +1,33 @@
 import { Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { SettingsSection } from "@/components/settings/settings-ui"
 
 export default function AdvancedSettings() {
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-3 text-lg">
-          <Trash2 className="size-5 text-destructive" aria-hidden="true" />
-          Clear All Data
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col items-start gap-4">
-        <p className="text-sm text-muted-foreground">
-          This will{" "}
-          <span className="font-bold text-destructive underline">
-            permanently delete
-          </span>{" "}
-          all data from your browser's local storage and any other storage used
-          by the app.
-          <br />
-          <span className="font-bold text-destructive">
-            This action cannot be undone.
-          </span>
-        </p>
+    <SettingsSection
+      icon={Trash2}
+      title="Clear All Data"
+      description="Permanently remove all locally stored workspace data"
+    >
+      <div className="flex flex-col items-start gap-4">
+        <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive">
+          <p>
+            This will{" "}
+            <span className="font-semibold underline">permanently delete</span>{" "}
+            all data stored locally by the app.{" "}
+            <span className="font-semibold">This action cannot be undone.</span>
+          </p>
+        </div>
         <Button
           type="button"
           variant="destructive"
-          size="lg"
           disabled
-          className="w-full"
+          className="w-full gap-2"
           aria-label="Clear all data"
           aria-describedby="clear-data-warning"
           data-testid="clear-all-data-btn"
         >
-          <Trash2 />
+          <Trash2 className="h-4 w-4" />
           Clear All Data
         </Button>
         <span id="clear-data-warning" className="sr-only">
@@ -49,7 +37,7 @@ export default function AdvancedSettings() {
           Destructive workspace clearing is intentionally disabled until the
           desktop storage flow exposes a supported backup and restore command.
         </p>
-      </CardContent>
-    </Card>
+      </div>
+    </SettingsSection>
   )
 }

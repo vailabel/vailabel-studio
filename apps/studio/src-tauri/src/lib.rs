@@ -8,10 +8,11 @@ mod store;
 
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use domain::ai::service::AiService;
+use domain::analysis::service::AnalysisService;
 use domain::images::service::ImageService;
 use domain::labels::service::LabelService;
 use domain::projects::service::ProjectService;
-use domain::tasks::service::TaskService;
+use domain::video::service::VideoService;
 use keyring::Entry;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
@@ -30,10 +31,11 @@ const DOMAIN_EVENT_NAME: &str = "studio://domain-event";
 pub struct AppState {
     pub store: Arc<Mutex<DesktopStore>>,
     pub project_service: Arc<ProjectService>,
-    pub task_service: Arc<TaskService>,
     pub label_service: Arc<LabelService>,
     pub image_service: Arc<ImageService>,
     pub ai_service: Arc<AiService>,
+    pub analysis_service: Arc<AnalysisService>,
+    pub video_service: Arc<VideoService>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -52,6 +54,8 @@ pub enum AppError {
     Yaml(#[from] serde_yaml::Error),
     #[error(transparent)]
     Keyring(#[from] keyring::Error),
+    #[error(transparent)]
+    Cloud(#[from] opendal::Error),
     #[error(transparent)]
     Tauri(#[from] tauri::Error),
     #[cfg(feature = "yolo-inference")]
@@ -256,14 +260,6 @@ pub(crate) fn normalize_entity(kind: &str, mut value: Value) -> Result<Value, Ap
             ensure_string_field(object, "status", "active");
             object.entry("settings").or_insert_with(|| json!({}));
             object.entry("metadata").or_insert_with(|| json!({}));
-        }
-        "tasks" => {
-            ensure_string_field(object, "name", "Untitled Task");
-            ensure_string_field(object, "description", "");
-            ensure_string_field(object, "status", "todo");
-            mirror_alias(object, "projectId", "project_id");
-            mirror_alias(object, "assignedTo", "assigned_to");
-            mirror_alias(object, "dueDate", "due_date");
         }
         "labels" => {
             ensure_string_field(object, "name", "New Label");
@@ -813,6 +809,17 @@ fn keyring_entry(namespace: &str, key: &str) -> Result<Entry, AppError> {
     Ok(Entry::new(SERVICE_NAME, &format!("{namespace}:{key}"))?)
 }
 
+/// Read a secret from the OS keychain, returning `None` when no entry exists.
+/// Shared by the `secret_get` command and the cloud module (so secrets never
+/// have to round-trip through the frontend to reach a backend operation).
+pub(crate) fn read_secret(namespace: &str, key: &str) -> Result<Option<String>, AppError> {
+    match keyring_entry(namespace, key)?.get_password() {
+        Ok(value) => Ok(Some(value)),
+        Err(keyring::Error::NoEntry) => Ok(None),
+        Err(error) => Err(AppError::Keyring(error)),
+    }
+}
+
 #[tauri::command]
 fn secret_set(state: tauri::State<AppState>, payload: SecretSetPayload) -> Result<(), AppError> {
     keyring_entry(&payload.namespace, &payload.key)?.set_password(&payload.value)?;
@@ -822,12 +829,7 @@ fn secret_set(state: tauri::State<AppState>, payload: SecretSetPayload) -> Resul
 
 #[tauri::command]
 fn secret_get(payload: SecretPayload) -> Result<Option<String>, AppError> {
-    let entry = keyring_entry(&payload.namespace, &payload.key)?;
-    match entry.get_password() {
-        Ok(value) => Ok(Some(value)),
-        Err(keyring::Error::NoEntry) => Ok(None),
-        Err(error) => Err(AppError::Keyring(error)),
-    }
+    read_secret(&payload.namespace, &payload.key)
 }
 
 #[tauri::command]
@@ -883,10 +885,6 @@ pub fn run() {
             let project_service = Arc::new(crate::domain::projects::service::ProjectService::new(
                 project_repo,
             ));
-            let task_repo = Arc::new(crate::domain::tasks::repository::SqliteTaskRepository::new(
-                entity_store.clone(),
-            ));
-            let task_service = Arc::new(crate::domain::tasks::service::TaskService::new(task_repo));
             let label_repo = Arc::new(
                 crate::domain::labels::repository::SqliteLabelRepository::new(entity_store.clone()),
             );
@@ -902,14 +900,22 @@ pub fn run() {
             let ai_service = Arc::new(crate::domain::ai::service::AiService::new(
                 entity_store.clone(),
             ));
+            let analysis_service = Arc::new(
+                crate::domain::analysis::service::AnalysisService::new(store_arc.clone()),
+            );
+            let video_service = Arc::new(crate::domain::video::service::VideoService::new(
+                store_arc.clone(),
+                app_dir.join("video-frames"),
+            ));
 
             app.manage(AppState {
                 store: store_arc,
                 project_service,
-                task_service,
                 label_service,
                 image_service,
                 ai_service,
+                analysis_service,
+                video_service,
             });
             Ok(())
         })
@@ -919,11 +925,6 @@ pub fn run() {
             domain::projects::commands::projects_get,
             domain::projects::commands::projects_save,
             domain::projects::commands::projects_delete,
-            domain::tasks::commands::tasks_list,
-            domain::tasks::commands::tasks_list_by_project,
-            domain::tasks::commands::tasks_get,
-            domain::tasks::commands::tasks_save,
-            domain::tasks::commands::tasks_delete,
             domain::labels::commands::labels_list_by_project,
             domain::labels::commands::labels_save,
             domain::labels::commands::labels_delete,
@@ -955,6 +956,23 @@ pub fn run() {
             domain::ai::commands::predictions_reject,
             domain::ai::commands::ai_gpu_info,
             domain::ai::commands::ai_model_registry,
+            domain::analysis::commands::analysis_run,
+            domain::analysis::commands::analysis_job_status,
+            domain::analysis::commands::analysis_reports_list,
+            domain::analysis::commands::analysis_report_get,
+            domain::analysis::commands::analysis_report_latest,
+            domain::analysis::commands::analysis_report_delete,
+            domain::video::commands::video_ffmpeg_info,
+            domain::video::commands::video_import,
+            domain::video::commands::video_list,
+            domain::video::commands::video_get,
+            domain::video::commands::video_delete,
+            domain::video::commands::video_ingest,
+            domain::video::commands::video_job_status,
+            domain::video::commands::video_tracks_list,
+            domain::video::commands::video_track_save,
+            domain::video::commands::video_track_delete,
+            domain::video::commands::video_export_tracks,
             system_info,
             open_path_dialog,
             open_external,
@@ -972,6 +990,11 @@ pub fn run() {
             secret_get,
             secret_delete,
             secret_list,
+            domain::cloud::commands::cloud_test_connection,
+            domain::cloud::commands::cloud_upload_files,
+            domain::cloud::commands::cloud_download_files,
+            domain::cloud::commands::cloud_delete_object,
+            domain::cloud::commands::cloud_list_objects,
             updater_status,
         ])
         .run(tauri::generate_context!())

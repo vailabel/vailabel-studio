@@ -18,6 +18,11 @@ chrono = { version = "0.4", features = ["serde"] }
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "gif", "rayon"] }
 keyring = { version = "3", default-features = false, features = ["apple-native", "linux-native", "windows-native"] }
 open = "5"
+opendal = { version = "0.54", default-features = false, features = [
+    "services-s3",
+    "services-azblob",
+    "services-gcs",
+] }
 rfd = "0.15"
 diesel = { version = "2", features = ["sqlite"] }
 libsqlite3-sys = { version = "0.28", features = ["bundled"] }

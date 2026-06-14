@@ -48,6 +48,9 @@ export const useProjectCreateViewModel = () => {
   const [description, setDescription] = useState("")
   const [type, setType] = useState<string>(PROJECT_TYPES.IMAGE_ANNOTATION)
   const [images, setImages] = useState<ImageFile[]>([])
+  const [classes, setClasses] = useState<
+    { id: string; name: string; color: string }[]
+  >([])
   const [folderPath, setFolderPath] = useState<string | null>(null)
   const [isScanning, setIsScanning] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
@@ -84,6 +87,21 @@ export const useProjectCreateViewModel = () => {
   const removeImage = (index: number) =>
     setImages((current) => current.filter((_, itemIndex) => itemIndex !== index))
 
+  // Labeling setup: pre-define label classes (Label Studio style). Optional —
+  // classes can still be created on the fly while annotating.
+  const addClass = (name: string, color: string) => {
+    const trimmed = name.trim()
+    if (!trimmed) return
+    setClasses((current) =>
+      current.some((cls) => cls.name.toLowerCase() === trimmed.toLowerCase())
+        ? current
+        : [...current, { id: uuidv4(), name: trimmed, color }]
+    )
+  }
+
+  const removeClass = (id: string) =>
+    setClasses((current) => current.filter((cls) => cls.id !== id))
+
   const createProject = async () => {
     if (!name.trim() || images.length === 0) return
 
@@ -105,6 +123,19 @@ export const useProjectCreateViewModel = () => {
           sourceFolder: folderPath,
         },
       })
+
+      // Create the label classes defined during labeling setup.
+      await Promise.all(
+        classes.map((cls) =>
+          services.getLabelService().createLabel({
+            id: cls.id,
+            name: cls.name,
+            color: cls.color,
+            projectId: project.id,
+            project_id: project.id,
+          })
+        )
+      )
 
       const createdImages = await Promise.all(
         images.map((image) =>
@@ -157,6 +188,9 @@ export const useProjectCreateViewModel = () => {
     type,
     setType,
     images,
+    classes,
+    addClass,
+    removeClass,
     folderPath,
     isScanning,
     isCreating,

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Annotation, ImageData, Label, Project, Task } from "@/types/core"
+import { Annotation, ImageData, Label, Project } from "@/types/core"
 import { z } from "zod"
 import { v4 as uuidv4 } from "uuid"
 import { useNavigate } from "react-router-dom"
@@ -40,7 +40,6 @@ export const useProjectDetailViewModel = (projectId: string) => {
   const [images, setImages] = useState<ImageData[]>([])
   const [annotations, setAnnotations] = useState<Annotation[]>([])
   const [labels, setLabels] = useState<Label[]>([])
-  const [tasks, setTasks] = useState<Task[]>([])
   const [activeTab, setActiveTab] = useState<"images" | "upload" | "labels">(
     "images"
   )
@@ -59,20 +58,18 @@ export const useProjectDetailViewModel = (projectId: string) => {
     setIsLoading(true)
     setError(null)
     try {
-      const [nextProject, nextImages, nextAnnotations, nextLabels, nextTasks] =
+      const [nextProject, nextImages, nextAnnotations, nextLabels] =
         await Promise.all([
           services.getProjectService().getById(projectId),
           services.getImageService().getImagesByProjectId(projectId),
           services.getAnnotationService().getAnnotationsByProjectId(projectId),
           services.getLabelService().getLabelsByProjectId(projectId),
-          services.getTaskService().listByProjectId(projectId),
         ])
       setProject(nextProject)
       if (nextProject) recordRecentProject(projectId)
       setImages(nextImages)
       setAnnotations(nextAnnotations)
       setLabels(nextLabels)
-      setTasks(nextTasks)
     } catch (nextError) {
       setError(nextError)
     } finally {
@@ -100,7 +97,7 @@ export const useProjectDetailViewModel = (projectId: string) => {
       }
 
       void refreshData()
-    }, ["projects", "images", "annotations", "labels", "tasks"]).then(
+    }, ["projects", "images", "annotations", "labels"]).then(
       (cleanup) => {
         unlisten = cleanup
       }
@@ -118,11 +115,9 @@ export const useProjectDetailViewModel = (projectId: string) => {
       annotatedImages,
       totalAnnotations: annotations.length,
       totalLabels: labels.length,
-      totalTasks: tasks.length,
-      completedTasks: tasks.filter((task) => task.status === "completed").length,
       progress: images.length ? Math.round((annotatedImages / images.length) * 100) : 0,
     }
-  }, [annotations, images.length, labels.length, tasks])
+  }, [annotations, images.length, labels.length])
 
   // Reference images in place from a folder (LabelMe-style) — no base64, no copy.
   const addImagesFromFolder = async () => {
@@ -156,7 +151,6 @@ export const useProjectDetailViewModel = (projectId: string) => {
     images,
     annotations,
     labels,
-    tasks,
     activeTab,
     newImages,
     isUploading,
@@ -213,7 +207,6 @@ export const useProjectDetailViewModel = (projectId: string) => {
       annotations.filter((annotation) => annotation.image_id === imageId),
     getAnnotationLabel: (annotation: Annotation) =>
       labels.find((label) => label.id === annotation.label_id),
-    getTaskProgress: (task: Task) => (task.status === "completed" ? 100 : 0),
     addImagesFromFolder,
     handleRemoveImage: (index: number) =>
       setNewImages((current) => current.filter((_, itemIndex) => itemIndex !== index)),

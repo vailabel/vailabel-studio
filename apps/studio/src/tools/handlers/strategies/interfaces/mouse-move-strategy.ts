@@ -1,5 +1,5 @@
 import { Annotation, Point } from "@/types/core"
-import { ToolHandlerContext } from "../../../canvas-handler"
+import { ToolHandlerContext } from "@/hooks/use-canvas-handlers-context"
 
 export interface MouseMoveStrategy {
   handle(e: React.MouseEvent, point: Point, context: ToolHandlerContext): void
