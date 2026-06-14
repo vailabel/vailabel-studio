@@ -561,6 +561,14 @@ impl AiService {
                 .list_by_field("labels", "project_id", &project_id)?
         };
 
+        // A task-specific export (…-cls / -seg / -pose) cannot run the box
+        // detector even if it was installed under the "detection" category (e.g. a
+        // `-cls` asset picked from a detection catalog entry). Catch it by filename
+        // so the user gets a clear message instead of zero detections.
+        if let Some(task) = task_suffix(Path::new(&model_path)) {
+            return Err(AppError::Message(non_detection_reason(task)));
+        }
+
         let unsupported_reason = model
             .get("modelMetadata")
             .and_then(Value::as_object)
@@ -1890,17 +1898,51 @@ fn prepare_model_asset_for_inference(model_path: &Path) -> PreparedModelAsset {
     }
 }
 
+/// Ultralytics-style filename suffix → task, authoritative over the installed
+/// category (a `-cls`/`-seg`/`-pose` asset is that task even if it was downloaded
+/// under a "detection" catalog entry). Returns `None` for plain detectors.
+fn task_suffix(model_path: &Path) -> Option<&'static str> {
+    let name = model_path
+        .file_name()
+        .and_then(|value| value.to_str())
+        .unwrap_or_default()
+        .to_lowercase();
+    if name.contains("-cls") || name.contains("_cls") {
+        Some("classification")
+    } else if name.contains("-pose") || name.contains("_pose") {
+        Some("pose")
+    } else if name.contains("-seg") || name.contains("_seg") {
+        Some("segmentation")
+    } else {
+        None
+    }
+}
+
+/// Accurate, role-aware reason a model can't run the box detector — segmentation
+/// models are usable (via the copilot), classification/pose are different tasks.
+fn non_detection_reason(task: &str) -> String {
+    match task {
+        "segmentation" => "Segmentation model \u{2014} used by the AI Copilot for click/box \u{2192} polygon (ask it to \u{201c}outline them\u{201d}), not the Detect button.",
+        "classification" => "Classification model \u{2014} it labels the whole image, not regions. Install a detection model (e.g. YOLO26 Detection) to draw boxes.",
+        "pose" => "Pose-estimation model \u{2014} not a box detector. Install a detection model for AI detect.",
+        _ => "AI detect supports object-detection models; this model uses a different task.",
+    }
+    .to_string()
+}
+
 fn prediction_unsupported_reason(
     model_path: &Path,
     category: &str,
     has_class_names: bool,
     conversion_message: Option<&str>,
 ) -> Option<String> {
+    // Filename suffix is authoritative about the task (catches a `-cls` asset
+    // installed under the "detection" category).
+    if let Some(task) = task_suffix(model_path) {
+        return Some(non_detection_reason(task));
+    }
     if !category.eq_ignore_ascii_case("detection") {
-        return Some(
-            "AI detect currently supports object-detection models only. Segmentation, pose, and open-vocabulary models are not wired up yet."
-                .into(),
-        );
+        return Some(non_detection_reason(&category.to_lowercase()));
     }
 
     let extension = model_extension(model_path);
@@ -2652,6 +2694,19 @@ mod tests {
         // ...but re-inserting an existing key never grows past the cap.
         cache_insert_bounded(&mut cache, "c".into(), stub());
         assert_eq!(cache.len(), MAX_CACHED_ENGINES);
+    }
+
+    #[test]
+    fn task_suffix_flags_cls_seg_pose_but_not_sam_or_plain_detector() {
+        assert_eq!(task_suffix(Path::new("yolo11l-cls.onnx")), Some("classification"));
+        assert_eq!(task_suffix(Path::new("yolo26n-seg.onnx")), Some("segmentation"));
+        assert_eq!(task_suffix(Path::new("yolo26n-pose.pt")), Some("pose"));
+        // Plain detector and SAM ("segment_anything…") must NOT be flagged.
+        assert_eq!(task_suffix(Path::new("yolo26n.onnx")), None);
+        assert_eq!(
+            task_suffix(Path::new("segment_anything_vit_b_encoder_quant.onnx")),
+            None
+        );
     }
 
     #[test]

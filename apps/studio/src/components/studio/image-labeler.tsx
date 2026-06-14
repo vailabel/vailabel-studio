@@ -24,6 +24,7 @@ import { useStudioScreenViewModel } from "@/features/studio/use-studio-screen-vi
 import { getLabelingConfig } from "@/lib/labeling-config"
 import type { Annotation, ImageData, Label, Prediction } from "@/types/core"
 import type { PipelinePrompt } from "@/ipc/studio"
+import { toast } from "sonner"
 
 interface ImageLabelerProps {
   projectId?: string
@@ -92,6 +93,33 @@ export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => 
   const [showExportDialog, setShowExportDialog] = useState(false)
   const [showCopilot, setShowCopilot] = useState(false)
   const viewModel = useStudioScreenViewModel(projectId, imageId)
+
+  // Smart Segment (SAM): the tool handler voids the promise, so surface the
+  // outcome here — otherwise a failed/empty run silently does nothing and looks
+  // broken. Success drops a polygon into the prediction review loop.
+  const handleSmartSegment = useCallback(
+    async (prompt: PipelinePrompt) => {
+      const outcome = await viewModel.smartSegment(prompt)
+      if (outcome.status === "ok") {
+        if (outcome.count > 0) {
+          toast.success(
+            `Segmented ${outcome.count} object${outcome.count === 1 ? "" : "s"} — review it on the canvas.`
+          )
+        } else {
+          toast.info(
+            "SAM didn't return a shape there. Click the center of the object, or drag a box around it."
+          )
+        }
+      } else if (outcome.status === "no-model") {
+        toast.error(
+          "No SAM model installed. Install “Segment Anything (SAM)” on the AI Models page first."
+        )
+      } else {
+        toast.error(`Smart Segment failed: ${outcome.message}`)
+      }
+    },
+    [viewModel.smartSegment]
+  )
 
   // The project's template decides which tools show and whether we're in
   // region-drawing or whole-image classification mode.
@@ -232,7 +260,7 @@ export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => 
                 onDeleteAnnotation={viewModel.deleteAnnotation}
                 onUndo={viewModel.undo}
                 onRedo={viewModel.redo}
-                onSmartSegment={viewModel.smartSegment}
+                onSmartSegment={handleSmartSegment}
               />
             ) : (
               <EmptyImageState />

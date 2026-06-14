@@ -54,9 +54,12 @@ import {
 import {
   getAIModelMetadata,
   getModelClassCount,
+  getModelUsageHint,
   getPredictionReadinessLabel,
   getModelUnsupportedReason,
+  isDetectionModel,
   isModelPredictionReady,
+  isModelUsable,
   willModelConvertOnRun,
 } from "@/lib/ai-model-metadata"
 import { aiModelFormSchema, type AIModelFormData } from "@/lib/schemas/ai-model"
@@ -352,17 +355,9 @@ export default function AIModelListPage() {
                         <TableCell>
                           <Badge
                             variant={
-                              isModelPredictionReady(model)
-                                ? "secondary"
-                                : "outline"
+                              isModelUsable(model) ? "secondary" : "outline"
                             }
-                            title={
-                              isModelPredictionReady(model)
-                                ? undefined
-                                : willModelConvertOnRun(model)
-                                  ? "Converts to ONNX on first AI detect run."
-                                  : getModelUnsupportedReason(model)
-                            }
+                            title={getModelUsageHint(model)}
                           >
                             {getPredictionReadinessLabel(model)}
                           </Badge>
@@ -374,7 +369,10 @@ export default function AIModelListPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1.5">
-                            {!model.isActive && (
+                            {/* "Active" applies to the detector only. Segmentation
+                                models (SAM) are used on demand by the copilot, so
+                                they're never "activated". */}
+                            {!model.isActive && isDetectionModel(model) && (
                               <Button
                                 size="sm"
                                 variant="outline"
