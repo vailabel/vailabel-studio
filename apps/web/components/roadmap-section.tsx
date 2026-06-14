@@ -16,7 +16,9 @@ const RoadmapSection = () => {
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Roadmap</h2>
+          <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
+            <span className="text-gradient">Roadmap</span>
+          </h2>
           <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
             See what's completed, in progress, and planned for future releases
           </p>
@@ -39,7 +41,7 @@ const RoadmapSection = () => {
                 <h3 className="font-bold text-lg">Completed</h3>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700 flex items-start gap-2">
+              <div className="glass cloud-card p-3 rounded-xl flex items-start gap-2 hover:shadow-lg hover:shadow-blue-500/5">
                 <div className="w-5 h-5 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400 mt-0.5">
                   <Check size={12} />
                 </div>
@@ -51,7 +53,7 @@ const RoadmapSection = () => {
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700 flex items-start gap-2">
+              <div className="glass cloud-card p-3 rounded-xl flex items-start gap-2 hover:shadow-lg hover:shadow-blue-500/5">
                 <div className="w-5 h-5 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400 mt-0.5">
                   <Check size={12} />
                 </div>
@@ -63,7 +65,7 @@ const RoadmapSection = () => {
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700 flex items-start gap-2">
+              <div className="glass cloud-card p-3 rounded-xl flex items-start gap-2 hover:shadow-lg hover:shadow-blue-500/5">
                 <div className="w-5 h-5 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400 mt-0.5">
                   <Check size={12} />
                 </div>
@@ -85,7 +87,7 @@ const RoadmapSection = () => {
                 <h3 className="font-bold text-lg">In Progress</h3>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700 flex items-start gap-2">
+              <div className="glass cloud-card p-3 rounded-xl flex items-start gap-2 hover:shadow-lg hover:shadow-blue-500/5">
                 <div className="w-5 h-5 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center text-yellow-600 dark:text-yellow-400 mt-0.5">
                   <Clock size={12} />
                 </div>
@@ -97,7 +99,7 @@ const RoadmapSection = () => {
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700 flex items-start gap-2">
+              <div className="glass cloud-card p-3 rounded-xl flex items-start gap-2 hover:shadow-lg hover:shadow-blue-500/5">
                 <div className="w-5 h-5 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center text-yellow-600 dark:text-yellow-400 mt-0.5">
                   <Clock size={12} />
                 </div>
@@ -109,7 +111,7 @@ const RoadmapSection = () => {
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700 flex items-start gap-2">
+              <div className="glass cloud-card p-3 rounded-xl flex items-start gap-2 hover:shadow-lg hover:shadow-blue-500/5">
                 <div className="w-5 h-5 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center text-yellow-600 dark:text-yellow-400 mt-0.5">
                   <Clock size={12} />
                 </div>
@@ -144,7 +146,7 @@ const RoadmapSection = () => {
                 <h3 className="font-bold text-lg">Planned</h3>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700 flex items-start gap-2">
+              <div className="glass cloud-card p-3 rounded-xl flex items-start gap-2 hover:shadow-lg hover:shadow-blue-500/5">
                 <div className="w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 mt-0.5">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -169,7 +171,7 @@ const RoadmapSection = () => {
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700 flex items-start gap-2">
+              <div className="glass cloud-card p-3 rounded-xl flex items-start gap-2 hover:shadow-lg hover:shadow-blue-500/5">
                 <div className="w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 mt-0.5">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -194,7 +196,7 @@ const RoadmapSection = () => {
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700 flex items-start gap-2">
+              <div className="glass cloud-card p-3 rounded-xl flex items-start gap-2 hover:shadow-lg hover:shadow-blue-500/5">
                 <div className="w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 mt-0.5">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"

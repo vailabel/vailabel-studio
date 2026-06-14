@@ -32,7 +32,7 @@ export default function GitHubButton({ repoUrl }: GitHubButtonProps) {
       href={repoUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 px-3 py-1.5 rounded-md font-semibold shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+      className="inline-flex items-center glass text-gray-800 dark:text-gray-100 px-3 py-1.5 rounded-lg font-semibold shadow-sm hover:shadow-md transition-shadow"
       style={{ minWidth: 110, justifyContent: "center" }}
     >
       <GithubIcon className="w-4 h-4 mr-2 text-gray-700 dark:text-gray-200" />

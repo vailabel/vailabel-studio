@@ -5,11 +5,13 @@ import Link from "next/link"
 
 export default function Footer() {
   return (
-    <footer className="bg-gray-100 dark:bg-gray-800 py-12 border-t border-gray-200 dark:border-gray-700">
+    <footer className="relative py-14 border-t border-black/5 dark:border-white/10 bg-white/50 dark:bg-white/[0.02] backdrop-blur-sm">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
-            <h3 className="font-bold text-lg mb-4">Vision AI Label Studio</h3>
+            <h3 className="font-bold text-lg mb-4 text-gradient">
+              Vision AI Label Studio
+            </h3>
             <p className="text-gray-600 dark:text-gray-400 mb-4">
               A powerful, open-source image labeling tool with AI assistance.
             </p>

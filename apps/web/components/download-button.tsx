@@ -78,7 +78,7 @@ const DownloadButton: React.FC = () => {
     >
       <a
         href={releaseAssets[platform] || undefined}
-        className={`flex-1 flex items-center justify-center px-4 py-3 sm:px-6 rounded-lg sm:rounded-l-lg sm:rounded-r-none bg-blue-600 text-white font-semibold shadow-lg hover:bg-blue-700 transition-all duration-200 gap-2 sm:gap-3 text-base sm:text-lg min-w-0 ${
+        className={`flex-1 flex items-center justify-center px-4 py-3 sm:px-6 rounded-lg sm:rounded-l-lg sm:rounded-r-none bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 transition-shadow duration-200 gap-2 sm:gap-3 text-base sm:text-lg min-w-0 ${
           !releaseAssets[platform] ? "opacity-50 pointer-events-none" : ""
         }`}
         style={{

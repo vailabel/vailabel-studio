@@ -1,12 +1,19 @@
 "use client"
 import Link from "next/link"
-import { Sun, Moon } from "lucide-react"
+import { Sun, Moon, Menu as MenuIcon } from "lucide-react"
+import { Popover } from "@base-ui/react/popover"
 import { useTheme } from "next-themes"
 import { data } from "@/app/data"
 import { usePathname } from "next/navigation"
 import GitHubButton from "./github-button"
 import { useEffect, useState } from "react"
 import Image from "next/image"
+
+const navLinks = [
+  { href: "/docs/getting-started", label: "Docs", match: "/docs" },
+  { href: "/blogs", label: "Blog", match: "/blogs" },
+  { href: "/updates", label: "Updates", match: "/updates" },
+]
 
 export default function Header() {
   const { theme, setTheme } = useTheme()
@@ -18,148 +25,100 @@ export default function Header() {
     setMounted(true)
   }, [])
 
-  const toggleDarkMode = () => {
-    if (theme === "dark") {
-      setTheme("light")
-    } else {
-      setTheme("dark")
-    }
-  }
+  const toggleDarkMode = () => setTheme(theme === "dark" ? "light" : "dark")
 
-  const isActive = (path: string) => pathname === path
+  const isActive = (path: string) =>
+    pathname === path || pathname?.startsWith(`${path}/`)
+
+  const linkClass = (match: string) =>
+    isActive(match)
+      ? "text-gray-900 dark:text-white font-semibold"
+      : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
 
   return (
-    <header className="sticky top-0 z-50 backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border-b border-gray-200 dark:border-gray-800">
+    <header className="sticky top-0 z-50 glass border-b border-black/5 dark:border-white/10">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
-          <div className="flex items-center space-x-2">
-            <Link href="/" className="flex items-center space-x-2">
-              <Image
-                src="/logo.png"
-                alt="Logo"
-                width={32}
-                height={32}
-                className="h-8 w-8"
-              />
-              <span className="text-xl font-bold">Vision AI Label Studio</span>
-            </Link>
-          </div>
+          <Link href="/" className="flex items-center space-x-2">
+            <Image
+              src="/logo.png"
+              alt="Logo"
+              width={32}
+              height={32}
+              className="h-8 w-8"
+            />
+            <span className="text-xl font-bold text-gradient">
+              Vision AI Label Studio
+            </span>
+          </Link>
+
           {/* Desktop nav */}
-          <div className="hidden md:flex items-center space-x-4">
-            <Link
-              href="/docs/getting-started"
-              className={`${
-                isActive("/docs")
-                  ? "text-gray-900 dark:text-white font-semibold"
-                  : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-              }`}
-            >
-              Docs
-            </Link>
-            <Link
-              href="/blogs"
-              className={`${
-                isActive("/blogs")
-                  ? "text-gray-900 dark:text-white font-semibold"
-                  : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-              }`}
-            >
-              Blog
-            </Link>
-            <Link
-              href="/updates"
-              className={`${
-                isActive("/updates")
-                  ? "text-gray-900 dark:text-white font-semibold"
-                  : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-              }`}
-            >
-              Updates
-            </Link>
+          <div className="hidden md:flex items-center space-x-6">
+            {navLinks.map((link) => (
+              <Link key={link.href} href={link.href} className={linkClass(link.match)}>
+                {link.label}
+              </Link>
+            ))}
             <GitHubButton repoUrl={data.repoUrl} />
             {mounted && (
               <button
                 onClick={toggleDarkMode}
-                className="p-2 rounded-full bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
+                className="p-2 rounded-full glass text-gray-700 dark:text-gray-300 hover:shadow-md transition-shadow"
                 aria-label="Toggle dark mode"
               >
                 {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
               </button>
             )}
           </div>
+
           {/* Mobile nav */}
           <div className="md:hidden flex items-center">
-            <button
-              onClick={() => setMenuOpen(!menuOpen)}
-              className="p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-400"
-              aria-label="Toggle menu"
-            >
-              <svg
-                width="24"
-                height="24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-6 w-6"
+            <Popover.Root open={menuOpen} onOpenChange={setMenuOpen}>
+              <Popover.Trigger
+                className="p-2 rounded-md text-gray-700 dark:text-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                aria-label="Toggle menu"
               >
-                <path d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
+                <MenuIcon className="h-6 w-6" />
+              </Popover.Trigger>
+              <Popover.Portal>
+                <Popover.Positioner
+                  side="bottom"
+                  align="end"
+                  sideOffset={8}
+                  className="z-50"
+                >
+                  <Popover.Popup className="glass rounded-2xl shadow-xl p-4 w-56 flex flex-col gap-2 animate-fade-in">
+                    {navLinks.map((link) => (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        className={linkClass(link.match)}
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        {link.label}
+                      </Link>
+                    ))}
+                    <div className="pt-2 border-t border-black/5 dark:border-white/10">
+                      <GitHubButton repoUrl={data.repoUrl} />
+                    </div>
+                    {mounted && (
+                      <button
+                        onClick={toggleDarkMode}
+                        className="mt-1 flex items-center gap-2 p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                        aria-label="Toggle dark mode"
+                      >
+                        {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+                        <span className="text-sm">
+                          {theme === "dark" ? "Light mode" : "Dark mode"}
+                        </span>
+                      </button>
+                    )}
+                  </Popover.Popup>
+                </Popover.Positioner>
+              </Popover.Portal>
+            </Popover.Root>
           </div>
         </div>
-        {/* Mobile menu dropdown */}
-        {menuOpen && (
-          <div className="md:hidden flex flex-col space-y-2 pb-4 animate-fade-in">
-            <Link
-              href="/docs/getting-started"
-              className={`$${
-                isActive("/docs")
-                  ? "text-gray-900 dark:text-white font-semibold"
-                  : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-              }`}
-              onClick={() => setMenuOpen(false)}
-            >
-              Docs
-            </Link>
-            <Link
-              href="/blogs"
-              className={`$${
-                isActive("/blogs")
-                  ? "text-gray-900 dark:text-white font-semibold"
-                  : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-              }`}
-              onClick={() => setMenuOpen(false)}
-            >
-              Blog
-            </Link>
-            <Link
-              href="/updates"
-              className={`$${
-                isActive("/updates")
-                  ? "text-gray-900 dark:text-white font-semibold"
-                  : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-              }`}
-              onClick={() => setMenuOpen(false)}
-            >
-              Updates
-            </Link>
-            <GitHubButton repoUrl={data.repoUrl} />
-            {mounted && (
-              <div className="flex justify-center mt-4 mb-2">
-                <button
-                  onClick={toggleDarkMode}
-                  className="p-3 rounded-full bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
-                  aria-label="Toggle dark mode"
-                  style={{ minWidth: 48, minHeight: 48 }}
-                >
-                  {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
-                </button>
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </header>
   )

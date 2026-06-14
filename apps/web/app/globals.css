@@ -97,3 +97,95 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ── Cloud design system ──────────────────────────────────────────────── */
+@layer components {
+  /* Gradient brand text */
+  .text-gradient {
+    background-image: linear-gradient(to right, #2563eb, #4f46e5, #7c3aed);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Frosted-glass surface used by cards, panels and the header */
+  .glass {
+    background-color: rgb(255 255 255 / 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgb(15 23 42 / 0.06);
+  }
+  .dark .glass {
+    background-color: rgb(255 255 255 / 0.04);
+    border-color: rgb(255 255 255 / 0.08);
+  }
+
+  /* Card hover lift */
+  .cloud-card {
+    transition:
+      transform 0.25s ease,
+      box-shadow 0.25s ease,
+      border-color 0.25s ease;
+  }
+  .cloud-card:hover {
+    transform: translateY(-4px);
+  }
+}
+
+/* Soft aurora glow used behind the hero / CTA */
+.cloud-aurora {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.cloud-aurora::before,
+.cloud-aurora::after {
+  content: "";
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(80px);
+  opacity: 0.5;
+}
+.cloud-aurora::before {
+  width: 480px;
+  height: 480px;
+  top: -160px;
+  left: -120px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.5), transparent 70%);
+}
+.cloud-aurora::after {
+  width: 520px;
+  height: 520px;
+  top: -120px;
+  right: -160px;
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.45), transparent 70%);
+}
+.dark .cloud-aurora::before,
+.dark .cloud-aurora::after {
+  opacity: 0.35;
+}
+
+/* Subtle dotted grid backdrop */
+.cloud-grid {
+  background-image: radial-gradient(
+    rgb(99 102 241 / 0.12) 1px,
+    transparent 1px
+  );
+  background-size: 22px 22px;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out both;
+}
