@@ -93,6 +93,7 @@ vailabel-shared = { workspace = true }
 vailabel-db = { workspace = true }
 vailabel-project = { workspace = true }
 vailabel-dataset = { workspace = true }
+vailabel-annotation = { workspace = true }
 vailabel-analysis = { workspace = true }
 vailabel-video = { workspace = true }
 vailabel-models = { workspace = true }

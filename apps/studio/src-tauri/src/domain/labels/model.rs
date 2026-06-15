@@ -1,29 +1,10 @@
-use crate::domain::common::service::HasId;
-use serde::{Deserialize, Serialize};
+//! Re-export shim.
+//!
+//! `Label` is now the annotation module's `LabelClass` aggregate (in the
+//! `vailabel-annotation` crate). This shim keeps
+//! `crate::domain::labels::model::{Label, ProjectIdPayload}` valid for existing
+//! importers; the orphan-violating local `impl HasId for Label` is gone (the
+//! crate implements `core::Identifiable`).
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct Label {
-    pub id: String,
-    pub name: String,
-    pub color: String,
-    pub project_id: String,
-    #[serde(default)]
-    pub is_ai_generated: bool,
-    #[serde(default = "crate::now_iso")]
-    pub created_at: String,
-    #[serde(default = "crate::now_iso")]
-    pub updated_at: String,
-}
-
-impl HasId for Label {
-    fn id(&self) -> &str {
-        &self.id
-    }
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ProjectIdPayload {
-    pub project_id: String,
-}
+pub use vailabel_annotation::contracts::ProjectIdPayload;
+pub use vailabel_annotation::domain::LabelClass as Label;
