@@ -11,6 +11,7 @@ members = [
     "crates/shared",
     "crates/plugin",
     "crates/runtime",
+    "crates/project",
     "crates/annotation",
     "crates/search",
     "crates/training",
@@ -31,6 +32,7 @@ chrono = { version = "0.4", features = ["serde"] }
 # reference one shared version.
 vailabel-core = { path = "crates/core" }
 vailabel-shared = { path = "crates/shared" }
+vailabel-project = { path = "crates/project" }
 vailabel-plugin = { path = "crates/plugin" }
 vailabel-runtime = { path = "crates/runtime" }
 vailabel-annotation = { path = "crates/annotation" }

@@ -1,0 +1,14 @@
+[package]
+name = "vailabel-project"
+version = "0.1.0"
+edition = "2021"
+description = "Project module: the Project aggregate root (creation, settings, metadata, lifecycle), its repository contract, application use cases, and a JSON-port-backed repository. The Phase 1 reference module."
+
+[lib]
+name = "vailabel_project"
+
+[dependencies]
+vailabel-core = { workspace = true }
+vailabel-shared = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
