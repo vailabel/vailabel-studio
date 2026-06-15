@@ -9,6 +9,11 @@ members = [
     # binary and inter-crate deps pin one version via [workspace.dependencies]).
     "crates/core",
     "crates/shared",
+    "crates/plugin",
+    "crates/runtime",
+    "crates/annotation",
+    "crates/search",
+    "crates/training",
 ]
 
 [workspace.dependencies]
@@ -26,6 +31,11 @@ chrono = { version = "0.4", features = ["serde"] }
 # reference one shared version.
 vailabel-core = { path = "crates/core" }
 vailabel-shared = { path = "crates/shared" }
+vailabel-plugin = { path = "crates/plugin" }
+vailabel-runtime = { path = "crates/runtime" }
+vailabel-annotation = { path = "crates/annotation" }
+vailabel-search = { path = "crates/search" }
+vailabel-training = { path = "crates/training" }
 
 [package]
 name = "vailabel-studio"

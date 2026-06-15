@@ -1,0 +1,12 @@
+[package]
+name = "vailabel-annotation"
+version = "0.1.0"
+edition = "2021"
+description = "Annotation module (DDD Phase 1 boundary). Owns Annotation/LabelClass aggregates and the shape entities. Domain types land in a later phase."
+
+[lib]
+name = "vailabel_annotation"
+
+[dependencies]
+vailabel-core = { workspace = true }
+vailabel-shared = { workspace = true }

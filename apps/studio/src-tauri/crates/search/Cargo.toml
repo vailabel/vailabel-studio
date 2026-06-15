@@ -1,0 +1,12 @@
+[package]
+name = "vailabel-search"
+version = "0.1.0"
+edition = "2021"
+description = "Search module (DDD Phase 1 boundary). Owns the EmbeddingIndex aggregate and semantic/image/duplicate/similarity search. Domain types land in a later phase."
+
+[lib]
+name = "vailabel_search"
+
+[dependencies]
+vailabel-core = { workspace = true }
+vailabel-shared = { workspace = true }

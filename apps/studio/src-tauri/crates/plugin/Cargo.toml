@@ -1,0 +1,12 @@
+[package]
+name = "vailabel-plugin"
+version = "0.1.0"
+edition = "2021"
+description = "Generic plugin framework for Vailabel Studio: capability traits (detector/segmenter/OCR/exporter/trainer/embedding) + lifecycle. Pure trait crate."
+
+[lib]
+name = "vailabel_plugin"
+
+[dependencies]
+vailabel-core = { workspace = true }
+serde = { workspace = true }
