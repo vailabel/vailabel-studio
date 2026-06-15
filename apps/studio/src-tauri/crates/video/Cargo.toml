@@ -2,7 +2,7 @@
 name = "vailabel-video"
 version = "0.1.0"
 edition = "2021"
-description = "Video Annotation module: video metadata, CVAT-style keyframe tracks, ingest job/progress, and request DTOs. Pure domain types (FFmpeg/decode work stays in the binary)."
+description = "Video Annotation module: video metadata, CVAT-style keyframe tracks, track interpolation, ingest orchestration, and request DTOs. Domain/application/contracts are pure; the FFmpeg CLI pipeline lives behind the VideoPipeline port in infrastructure."
 
 [lib]
 name = "vailabel_video"
@@ -11,3 +11,4 @@ name = "vailabel_video"
 vailabel-core = { workspace = true }
 vailabel-shared = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }

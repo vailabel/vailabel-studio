@@ -13,7 +13,7 @@
 //!   `b`; otherwise interpolate `a → b` by the fractional position.
 //! - Interpolation requires equal point counts; mismatched shapes hold `a`.
 
-use super::model::{Point, Track, TrackKeyframe};
+use super::{Point, Track, TrackKeyframe};
 
 /// A track shape resolved at a single frame.
 pub struct SampledShape {

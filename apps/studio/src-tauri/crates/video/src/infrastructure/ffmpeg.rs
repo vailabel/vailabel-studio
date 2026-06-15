@@ -15,10 +15,82 @@ use std::path::Path;
 use std::process::{Child, Command, Stdio};
 
 use serde_json::Value;
+use vailabel_core::{DomainError, DomainResult};
 
-use crate::AppError;
+use crate::application::ports::VideoPipeline;
+use crate::domain::{FfmpegInfo, FrameThumb, ProbeResult, SceneCut};
 
-use super::model::{FfmpegInfo, FrameThumb, ProbeResult, SceneCut};
+/// The FFmpeg-CLI implementation of the codec port.
+#[derive(Debug, Default, Clone, Copy)]
+pub struct FfmpegPipeline;
+
+impl FfmpegPipeline {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl VideoPipeline for FfmpegPipeline {
+    fn info(&self) -> FfmpegInfo {
+        info()
+    }
+
+    fn is_available(&self) -> bool {
+        is_available()
+    }
+
+    fn has_cuda(&self) -> bool {
+        has_cuda()
+    }
+
+    fn probe(&self, path: &str) -> Option<ProbeResult> {
+        probe(path).ok()
+    }
+
+    fn extract_frames(
+        &self,
+        path: &str,
+        out_dir: &Path,
+        sample_fps: f64,
+        max_edge: i64,
+        duration: f64,
+        src_fps: f64,
+        use_cuda: bool,
+        on_progress: &mut dyn FnMut(f64),
+    ) -> DomainResult<Vec<FrameThumb>> {
+        extract_frames(
+            path,
+            out_dir,
+            sample_fps,
+            max_edge,
+            duration,
+            src_fps,
+            use_cuda,
+            on_progress,
+        )
+    }
+
+    fn detect_scenes(
+        &self,
+        path: &str,
+        fps: f64,
+        threshold: f64,
+        use_cuda: bool,
+    ) -> DomainResult<Vec<SceneCut>> {
+        detect_scenes(path, fps, threshold, use_cuda)
+    }
+
+    fn clear_frame_cache(&self, frames_dir: &Path) {
+        if frames_dir.exists() {
+            let _ = std::fs::remove_dir_all(frames_dir);
+        }
+    }
+}
+
+/// Map any FFmpeg/IO failure into the domain's repository variant.
+fn repo(error: impl ToString) -> DomainError {
+    DomainError::repository(error.to_string())
+}
 
 fn ffmpeg_bin() -> String {
     std::env::var("VAILABEL_FFMPEG").unwrap_or_else(|_| "ffmpeg".to_string())
@@ -41,15 +113,15 @@ fn command(bin: &str) -> Command {
 }
 
 /// Run a command to completion, returning combined stdout (on success).
-fn run_capture(bin: &str, args: &[&str]) -> Result<String, AppError> {
+fn run_capture(bin: &str, args: &[&str]) -> DomainResult<String> {
     let output = command(bin)
         .args(args)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .output()
-        .map_err(|err| AppError::Message(format!("Failed to launch {bin}: {err}")))?;
+        .map_err(|err| DomainError::repository(format!("Failed to launch {bin}: {err}")))?;
     if !output.status.success() {
-        return Err(AppError::Message(format!(
+        return Err(DomainError::repository(format!(
             "{bin} exited with {}: {}",
             output.status,
             String::from_utf8_lossy(&output.stderr).trim()
@@ -59,7 +131,7 @@ fn run_capture(bin: &str, args: &[&str]) -> Result<String, AppError> {
 }
 
 /// Probe FFmpeg / FFprobe availability and CUDA support for the UI.
-pub fn info() -> FfmpegInfo {
+fn info() -> FfmpegInfo {
     let version = run_capture(&ffmpeg_bin(), &["-hide_banner", "-version"])
         .ok()
         .and_then(|out| out.lines().next().map(str::to_string));
@@ -88,18 +160,18 @@ pub fn info() -> FfmpegInfo {
     }
 }
 
-pub fn is_available() -> bool {
+fn is_available() -> bool {
     run_capture(&ffmpeg_bin(), &["-hide_banner", "-version"]).is_ok()
 }
 
-pub fn has_cuda() -> bool {
+fn has_cuda() -> bool {
     run_capture(&ffmpeg_bin(), &["-hide_banner", "-hwaccels"])
         .map(|out| out.to_lowercase().contains("cuda"))
         .unwrap_or(false)
 }
 
 /// Read duration / fps / dimensions / frame count via ffprobe (JSON output).
-pub fn probe(path: &str) -> Result<ProbeResult, AppError> {
+fn probe(path: &str) -> DomainResult<ProbeResult> {
     let json = run_capture(
         &ffprobe_bin(),
         &[
@@ -112,7 +184,7 @@ pub fn probe(path: &str) -> Result<ProbeResult, AppError> {
             path,
         ],
     )?;
-    let value: Value = serde_json::from_str(&json)?;
+    let value: Value = serde_json::from_str(&json).map_err(repo)?;
 
     let stream = value
         .get("streams")
@@ -122,7 +194,7 @@ pub fn probe(path: &str) -> Result<ProbeResult, AppError> {
                 .iter()
                 .find(|s| s.get("codec_type").and_then(Value::as_str) == Some("video"))
         })
-        .ok_or_else(|| AppError::Message("No video stream found".into()))?;
+        .ok_or_else(|| DomainError::repository("No video stream found"))?;
 
     let width = stream.get("width").and_then(Value::as_i64).unwrap_or(0);
     let height = stream.get("height").and_then(Value::as_i64).unwrap_or(0);
@@ -182,12 +254,12 @@ fn parse_rational(value: &str) -> f64 {
 
 /// Detect scene cuts with FFmpeg's `select='gt(scene,T)'` filter, parsing the
 /// `showinfo` timestamps from stderr. The first frame always opens scene 0.
-pub fn detect_scenes(
+fn detect_scenes(
     path: &str,
     fps: f64,
     threshold: f64,
     use_cuda: bool,
-) -> Result<Vec<SceneCut>, AppError> {
+) -> DomainResult<Vec<SceneCut>> {
     let filter = format!(
         "scale=320:-2,select='gt(scene,{:.3})',showinfo",
         threshold.clamp(0.0, 1.0)
@@ -214,13 +286,13 @@ pub fn detect_scenes(
         .stdout(Stdio::null())
         .stderr(Stdio::piped())
         .output()
-        .map_err(|err| AppError::Message(format!("Failed to launch ffmpeg: {err}")))?;
+        .map_err(|err| DomainError::repository(format!("Failed to launch ffmpeg: {err}")))?;
 
     if !output.status.success() {
         if use_cuda {
             return detect_scenes(path, fps, threshold, false);
         }
-        return Err(AppError::Message(format!(
+        return Err(DomainError::repository(format!(
             "ffmpeg scene detection failed: {}",
             String::from_utf8_lossy(&output.stderr).trim()
         )));
@@ -259,7 +331,8 @@ pub fn detect_scenes(
 /// Extract a downscaled filmstrip at `sample_fps` to `out_dir`. Reports
 /// determinate progress (0..1) by polling the output directory while FFmpeg
 /// runs. CUDA decode falls back to software on error.
-pub fn extract_frames<F: FnMut(f64)>(
+#[allow(clippy::too_many_arguments)]
+fn extract_frames(
     path: &str,
     out_dir: &Path,
     sample_fps: f64,
@@ -267,9 +340,9 @@ pub fn extract_frames<F: FnMut(f64)>(
     duration: f64,
     src_fps: f64,
     use_cuda: bool,
-    mut on_progress: F,
-) -> Result<Vec<FrameThumb>, AppError> {
-    std::fs::create_dir_all(out_dir)?;
+    on_progress: &mut dyn FnMut(f64),
+) -> DomainResult<Vec<FrameThumb>> {
+    std::fs::create_dir_all(out_dir).map_err(repo)?;
     clear_jpgs(out_dir)?;
 
     let pattern = out_dir.join("frame_%06d.jpg");
@@ -301,11 +374,11 @@ pub fn extract_frames<F: FnMut(f64)>(
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()
-        .map_err(|err| AppError::Message(format!("Failed to launch ffmpeg: {err}")))?;
+        .map_err(|err| DomainError::repository(format!("Failed to launch ffmpeg: {err}")))?;
 
     let expected = ((duration * sample_fps).ceil() as usize).max(1);
     loop {
-        match child.try_wait()? {
+        match child.try_wait().map_err(repo)? {
             Some(status) => {
                 if !status.success() {
                     if use_cuda {
@@ -320,7 +393,7 @@ pub fn extract_frames<F: FnMut(f64)>(
                             on_progress,
                         );
                     }
-                    return Err(AppError::Message("ffmpeg frame extraction failed".into()));
+                    return Err(DomainError::repository("ffmpeg frame extraction failed"));
                 }
                 break;
             }
@@ -357,12 +430,12 @@ fn is_jpg(path: &Path) -> bool {
         .unwrap_or(false)
 }
 
-fn clear_jpgs(dir: &Path) -> Result<(), AppError> {
+fn clear_jpgs(dir: &Path) -> DomainResult<()> {
     if !dir.exists() {
         return Ok(());
     }
-    for entry in std::fs::read_dir(dir)? {
-        let path = entry?.path();
+    for entry in std::fs::read_dir(dir).map_err(repo)? {
+        let path = entry.map_err(repo)?.path();
         if is_jpg(&path) {
             let _ = std::fs::remove_file(path);
         }
@@ -381,10 +454,10 @@ fn count_jpgs(dir: &Path) -> usize {
         .unwrap_or(0)
 }
 
-fn list_jpgs(dir: &Path) -> Result<Vec<std::path::PathBuf>, AppError> {
+fn list_jpgs(dir: &Path) -> DomainResult<Vec<std::path::PathBuf>> {
     let mut files = Vec::new();
-    for entry in std::fs::read_dir(dir)? {
-        let path = entry?.path();
+    for entry in std::fs::read_dir(dir).map_err(repo)? {
+        let path = entry.map_err(repo)?.path();
         if is_jpg(&path) {
             files.push(path);
         }

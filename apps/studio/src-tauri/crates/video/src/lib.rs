@@ -7,8 +7,16 @@
 //! `src/types/video.ts`; field names are camelCase so the same JSON crosses IPC
 //! unchanged.
 //!
-//! All heavy video work (decode, frame extraction, scene detection) runs in the
-//! binary by shelling out to FFmpeg — this crate holds only the pure data model.
+//! Heavy video work (decode, frame extraction, scene detection) shells out to
+//! the FFmpeg CLI; that lives behind the [`application::VideoPipeline`] port,
+//! implemented in [`infrastructure`] (the only layer allowed `std::process` /
+//! `std::fs`). Persistence is the [`domain::VideoRepository`] port, implemented
+//! by the binary over its store. The ingest job lifecycle (threads + the
+//! `video://progress` Tauri event) stays in the binary, driving the crate's
+//! [`application::VideoAppService`] through the [`application::IngestReporter`]
+//! port.
 
+pub mod application;
 pub mod contracts;
 pub mod domain;
+pub mod infrastructure;
