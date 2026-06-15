@@ -90,4 +90,16 @@ impl Db {
         let mut guard = self.0.lock().map_err(|_| DbError::Poisoned)?;
         f(&mut guard).map_err(DbError::Diesel)
     }
+
+    /// Run `f` inside a SQLite transaction over the shared connection: commits on
+    /// `Ok`, rolls back on `Err`. This is the unit-of-work boundary — a use case
+    /// that does an existence-check + write (or several writes) passes one
+    /// closure so the whole sequence is atomic, with no interleaving between the
+    /// read and the write.
+    pub fn transaction<T>(
+        &self,
+        f: impl FnOnce(&mut SqliteConnection) -> Result<T, diesel::result::Error>,
+    ) -> Result<T, DbError> {
+        self.with_conn(|conn| conn.transaction(f))
+    }
 }

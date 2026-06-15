@@ -12,7 +12,7 @@ use vailabel_shared::now_iso;
 
 use super::record::ProjectRow;
 use super::schema::{images, projects};
-use crate::domain::Project;
+use crate::domain::{Project, ProjectRepository};
 
 /// Typed-Diesel implementation of [`crate::domain::ProjectRepository`].
 pub struct DieselProjectRepository {
@@ -115,6 +115,50 @@ impl Repository<Project> for DieselProjectRepository {
             .with_conn(|conn| {
                 diesel::delete(projects::table.find(id)).execute(conn)?;
                 Ok(())
+            })
+            .map_err(to_domain_err)
+    }
+}
+
+impl ProjectRepository for DieselProjectRepository {
+    fn save_atomic(&self, project: &Project) -> DomainResult<(Project, bool)> {
+        let now = now_iso();
+        let row = ProjectRow::from_project(project, &now);
+        self.db
+            .transaction(|conn| {
+                // Existence-check + write in one transaction (no TOCTOU window).
+                let existed = projects::table
+                    .find(row.id.as_str())
+                    .select(projects::id)
+                    .first::<String>(conn)
+                    .optional()?
+                    .is_some();
+                diesel::replace_into(projects::table)
+                    .values(&row)
+                    .execute(conn)?;
+                let count = Self::image_count(conn, &row.id)?;
+                Ok((row.into_project(count), !existed))
+            })
+            .map_err(to_domain_err)
+    }
+
+    fn delete_returning(&self, id: &str) -> DomainResult<Option<Project>> {
+        let id = id.to_string();
+        self.db
+            .transaction(move |conn| {
+                let row = projects::table
+                    .find(id.as_str())
+                    .select(ProjectRow::as_select())
+                    .first::<ProjectRow>(conn)
+                    .optional()?;
+                match row {
+                    Some(row) => {
+                        let count = Self::image_count(conn, &id)?;
+                        diesel::delete(projects::table.find(id.as_str())).execute(conn)?;
+                        Ok(Some(row.into_project(count)))
+                    }
+                    None => Ok(None),
+                }
             })
             .map_err(to_domain_err)
     }

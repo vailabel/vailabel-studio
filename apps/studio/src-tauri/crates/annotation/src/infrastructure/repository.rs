@@ -99,4 +99,43 @@ impl LabelRepository for DieselLabelRepository {
             })
             .map_err(to_domain_err)
     }
+
+    fn save_atomic(&self, label: &LabelClass) -> DomainResult<(LabelClass, bool)> {
+        let now = now_iso();
+        let row = LabelRow::from_label(label, &now);
+        self.db
+            .transaction(|conn| {
+                let existed = labels::table
+                    .find(row.id.as_str())
+                    .select(labels::id)
+                    .first::<String>(conn)
+                    .optional()?
+                    .is_some();
+                diesel::replace_into(labels::table)
+                    .values(&row)
+                    .execute(conn)?;
+                Ok((row.into_label(), !existed))
+            })
+            .map_err(to_domain_err)
+    }
+
+    fn delete_returning(&self, id: &str) -> DomainResult<Option<LabelClass>> {
+        let id = id.to_string();
+        self.db
+            .transaction(move |conn| {
+                let row = labels::table
+                    .find(id.as_str())
+                    .select(LabelRow::as_select())
+                    .first::<LabelRow>(conn)
+                    .optional()?;
+                match row {
+                    Some(row) => {
+                        diesel::delete(labels::table.find(id.as_str())).execute(conn)?;
+                        Ok(Some(row.into_label()))
+                    }
+                    None => Ok(None),
+                }
+            })
+            .map_err(to_domain_err)
+    }
 }

@@ -1,14 +1,19 @@
 //! The Project persistence contract.
 
 use super::project::Project;
-use vailabel_core::Repository;
+use vailabel_core::{DomainResult, Repository};
 
 /// Persistence contract for the `Project` aggregate.
 ///
-/// A named marker over [`vailabel_core::Repository<Project>`] (with a blanket
-/// impl) so application code can depend on `dyn ProjectRepository` while any
-/// `Repository<Project>` implementation — e.g. the infrastructure
-/// `JsonRepository<Project>` — satisfies it automatically.
-pub trait ProjectRepository: Repository<Project> {}
+/// Extends the generic CRUD [`Repository<Project>`] with atomic, single-transaction
+/// operations used by the application layer's use cases (so the existence-check
+/// and the write cannot interleave with a concurrent writer).
+pub trait ProjectRepository: Repository<Project> {
+    /// Create-or-update in one transaction; returns the stored project and
+    /// whether it was newly created (`true`) vs updated (`false`).
+    fn save_atomic(&self, project: &Project) -> DomainResult<(Project, bool)>;
 
-impl<T> ProjectRepository for T where T: Repository<Project> {}
+    /// Delete in one transaction, returning the prior value (or `None` if it did
+    /// not exist) for the deletion event payload.
+    fn delete_returning(&self, id: &str) -> DomainResult<Option<Project>>;
+}

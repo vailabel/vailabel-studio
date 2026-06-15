@@ -99,4 +99,43 @@ impl ImageRepository for DieselImageRepository {
             })
             .map_err(to_domain_err)
     }
+
+    fn save_atomic(&self, image: &Image) -> DomainResult<(Image, bool)> {
+        let now = now_iso();
+        let row = ImageRow::from_image(image, &now);
+        self.db
+            .transaction(|conn| {
+                let existed = images::table
+                    .find(row.id.as_str())
+                    .select(images::id)
+                    .first::<String>(conn)
+                    .optional()?
+                    .is_some();
+                diesel::replace_into(images::table)
+                    .values(&row)
+                    .execute(conn)?;
+                Ok((row.into_image(), !existed))
+            })
+            .map_err(to_domain_err)
+    }
+
+    fn delete_returning(&self, id: &str) -> DomainResult<Option<Image>> {
+        let id = id.to_string();
+        self.db
+            .transaction(move |conn| {
+                let row = images::table
+                    .find(id.as_str())
+                    .select(ImageRow::as_select())
+                    .first::<ImageRow>(conn)
+                    .optional()?;
+                match row {
+                    Some(row) => {
+                        diesel::delete(images::table.find(id.as_str())).execute(conn)?;
+                        Ok(Some(row.into_image()))
+                    }
+                    None => Ok(None),
+                }
+            })
+            .map_err(to_domain_err)
+    }
 }
