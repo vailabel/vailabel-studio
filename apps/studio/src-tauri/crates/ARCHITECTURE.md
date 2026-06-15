@@ -1,4 +1,4 @@
-# Architecture — DDD Modular Monolith (Phase 1)
+# Architecture — DDD Modular Monolith (Phases 1–2)
 
 VaiLabel Studio's backend is a **modular monolith** organized by business domain
 and layered with **Clean Architecture**. This document describes the crate
@@ -10,69 +10,84 @@ Dependencies point **inward**. Infrastructure → Application → Domain. The do
 never depends on a database, transport, UI, or external service.
 
 ```
-vailabel-core      pure abstractions      (serde, thiserror only)
+vailabel-core      pure abstractions          (serde, thiserror only)
    ▲
-vailabel-shared    shared kernel + ports  (core + serde/uuid/chrono)
+vailabel-shared    shared kernel + event port (core + serde/uuid/chrono)
    ▲
-<module> crates    domain / application / infrastructure / contracts
+<module> crates    domain / application / contracts  (pure)
+   │                       └── infrastructure         (typed Diesel)
+   ▼                                  │
+vailabel-db        shared SQLite connection  ◄────────┘   (diesel + libsqlite3-sys)
    ▲
-vailabel-studio    the Tauri binary = composition root (diesel, tauri, opendal,
-                   ort, reqwest, fs, process — all infrastructure lives here)
+vailabel-studio    the Tauri binary = composition root (tauri, opendal, ort,
+                   reqwest, fs, process, the residual DesktopStore — wires it all)
 ```
 
 - **`core`** depends on nothing internal. It is the root.
-- **`shared`** depends only on `core`. It adds the clock, ids, and the
-  `EntitySource` (persistence) and `EventPublisher` (event) **ports**.
+- **`shared`** depends only on `core`. It provides the clock, ids, the
+  [`EventPublisher`] port, and `PortError`. (Persistence is per-module, so there
+  is no generic persistence port.)
+- **`vailabel-db`** owns the one shared `SqliteConnection` (a single database is
+  shared infrastructure). It exposes a cloneable `Db` handle (`lock`/`with_conn`)
+  and re-exports `diesel`. It is *not* a pure crate.
 - **module crates** (`project`, `dataset`, `annotation`, `search`, `models`,
-  `copilot`, `training`, plus `analysis`/`video`) depend on `core`/`shared`
-  (and `plugin` where relevant). Their `domain` + `application` layers are pure;
-  their `infrastructure` builds on the `shared` ports, never on diesel/tauri.
+  `copilot`, `training`, plus `analysis`/`video`) depend on `core`/`shared`. Their
+  `domain`/`application`/`contracts` layers are **pure**; their `infrastructure`
+  layer owns the module's own `diesel::table!` + Row mapping + typed repository,
+  querying the shared `vailabel-db` connection.
 - **`plugin`** is a pure trait crate (capability + lifecycle interfaces).
 - **`runtime`** is the anti-corruption layer to the Python runtime; it re-exports
-  the Tauri-free `runtime-manager` crate and is *excluded* from the purity rule
-  (it legitimately uses reqwest/tokio).
-- The **binary** (`vailabel-studio`) is the only place that knows about both
-  abstractions and concrete infrastructure. It implements the ports
-  (`EntitySourceAdapter`, `TauriEventPublisher` in `src/composition.rs`), wires
-  the application services, and exposes Tauri commands.
+  the Tauri-free `runtime-manager` crate (excluded from the purity rule).
+- The **binary** (`vailabel-studio`) is the composition root. It opens the `Db`,
+  builds each module's Diesel repository + a `TauriEventPublisher`
+  (`src/composition.rs`), wires the application services, and exposes Tauri
+  commands. It also keeps the **residual `DesktopStore`** (typed methods + the
+  `EntityStore` trait) for entities not yet migrated to a module.
 
 A module must not reach into another module's persistence. Cross-module
 communication goes through public contracts and (later) domain events.
 
 ## Module layout
 
-Each module crate follows:
-
 ```
 <module>/src/
-  domain/          entities, value objects, domain events, repository traits, errors
-  application/     commands, queries, handlers, dto, services (CQRS)
-  infrastructure/  repository impls over the shared ports, mappers, adapters
-  contracts/       public events / requests / responses
+  domain/          entities, value objects, domain events, repository traits, errors  ── pure
+  application/     commands, queries, handlers, services (CQRS)                        ── pure
+  contracts/       public events / requests / responses                               ── pure
+  infrastructure/  the module's diesel schema + Row + typed repository (over vailabel-db)
 ```
 
-`project` is the fully-wired reference (domain → application → infrastructure →
-contracts, routed through the binary). Other modules are at various Phase-1
-stages: type-extracted (`dataset`, `analysis`, `video`, `models`, `copilot`) or
-boundary stubs (`annotation`, `search`, `training`).
+`project` is the fully-wired reference. `project`, `dataset` (images), and
+`annotation` (the `LabelClass` aggregate) persist via per-module Diesel. The other
+module crates are still type-extracted (`analysis`, `video`, `models`, `copilot`)
+or boundary stubs (`search`, `training`).
 
 ## Enforcement
 
-`vailabel-arch-tests` (run by `cargo test`) fails the build if a pure crate:
+`vailabel-arch-tests` (run by `cargo test`) distinguishes two tiers:
 
-1. imports an infrastructure concern (`diesel::`, `tauri::`, `rusqlite::`,
-   `reqwest::`, `opendal::`, `ort::`, `std::process`, `std::fs`), or
-2. declares an infrastructure dependency in its `Cargo.toml`, or
-3. (for `core`) depends on any internal crate.
+- **Fully pure crates** (`core`, `shared`, `plugin`, and the not-yet-migrated
+  module crates): the ENTIRE `src/` must be free of infrastructure imports
+  (`diesel::`/`tauri::`/`rusqlite::`/`reqwest::`/`opendal::`/`ort::`/`std::process`/
+  `std::fs`), and the `Cargo.toml` must declare no infrastructure dependency.
+- **Layered module crates** (`project`, `dataset`, `annotation`): their
+  `domain`/`application`/`contracts` layers must stay pure (scanned at folder
+  granularity), but `infrastructure/` may use `diesel` + `vailabel-db`.
+- `core` must depend on nothing internal.
 
-The compiler also enforces the crate DAG: a pure crate that has no infra
-dependency simply cannot name those types.
+The scanner strips comments before matching (so doc text is safe) and self-tests
+that it catches real usage. The compiler additionally enforces the crate DAG.
 
 ## Phase status
 
-Phase 1 establishes the workspace, the pure crates, the reference module
-(`project`), domain-model extraction across modules, and this enforcement.
-Deferred to later phases: moving SQL out of `store.rs`, migrating the remaining
-services (ai/analysis/video/image/label) into application layers, full
-ai/copilot/models wiring, plugin implementations, runtime-glue extraction, and
-inter-module domain events.
+- **Phase 1** — workspace, pure `core`/`shared`, the `project` reference module,
+  domain-model extraction across modules, and the enforcement above.
+- **Phase 2** — per-module typed-Diesel persistence: the shared `vailabel-db`
+  connection; `project`/`dataset`/`annotation` migrated to their own
+  `infrastructure/` Diesel repositories; the generic JSON port + `common` service
+  layer removed.
+
+Deferred to later phases: UnitOfWork/transactions; migrating the remaining
+entities and the `ai`/`analysis`/`video` service logic into modules/application
+layers; full ai/copilot/models wiring + plugin implementations; runtime-glue
+extraction; inter-module domain events; the React feature reorg.
