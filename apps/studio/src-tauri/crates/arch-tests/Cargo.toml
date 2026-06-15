@@ -1,0 +1,9 @@
+[package]
+name = "vailabel-arch-tests"
+version = "0.1.0"
+edition = "2021"
+description = "Architecture/dependency-rule tests: assert the pure crates contain no infrastructure imports or dependencies. Std-only; runs under `cargo test`."
+publish = false
+
+[lib]
+name = "vailabel_arch_tests"

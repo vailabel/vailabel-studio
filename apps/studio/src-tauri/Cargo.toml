@@ -20,6 +20,7 @@ members = [
     "crates/annotation",
     "crates/search",
     "crates/training",
+    "crates/arch-tests",
 ]
 
 [workspace.dependencies]
