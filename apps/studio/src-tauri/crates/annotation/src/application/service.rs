@@ -8,7 +8,7 @@ use vailabel_shared::{new_id, EventPublisher, PortError};
 
 use crate::application::commands::{DeleteLabelCommand, SaveLabelCommand};
 use crate::application::queries::{GetLabelQuery, ListLabelsByProjectQuery};
-use crate::domain::{LabelClass, LabelRepository};
+use crate::domain::{LabelClass, LabelEvent, LabelRepository};
 
 /// The store `kind` / event entity name for labels (unchanged from `"labels"`).
 const ENTITY: &str = "labels";
@@ -47,13 +47,13 @@ impl LabelClassAppService {
             .map_err(|e| DomainError::validation(e.to_string()))?;
 
         let id = label.id().to_string();
-        let (stored, action) = if self.repo.get(&id)?.is_some() {
-            (self.repo.update(&label)?, "updated")
+        let (stored, event) = if self.repo.get(&id)?.is_some() {
+            (self.repo.update(&label)?, LabelEvent::Updated { id })
         } else {
-            (self.repo.create(&label)?, "created")
+            (self.repo.create(&label)?, LabelEvent::Created { id })
         };
 
-        self.publish(&stored, action)?;
+        self.publish(&stored, &event)?;
         Ok(stored)
     }
 
@@ -64,15 +64,15 @@ impl LabelClassAppService {
             .get(&command.id)?
             .ok_or_else(|| DomainError::not_found("Label"))?;
         self.repo.delete(&command.id)?;
-        self.publish(&existing, "deleted")?;
+        self.publish(&existing, &LabelEvent::Deleted { id: command.id })?;
         Ok(json!({ "success": true }))
     }
 
-    fn publish(&self, label: &LabelClass, action: &str) -> DomainResult<()> {
+    fn publish(&self, label: &LabelClass, event: &LabelEvent) -> DomainResult<()> {
         let payload =
             serde_json::to_value(label).map_err(|e| DomainError::repository(e.to_string()))?;
         self.events
-            .publish(ENTITY, action, &payload)
+            .publish(ENTITY, event.action(), &payload)
             .map_err(PortError::into_domain)
     }
 }

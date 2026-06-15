@@ -8,7 +8,7 @@ use vailabel_shared::{new_id, EventPublisher, PortError};
 
 use crate::application::commands::{DeleteImageCommand, SaveImageCommand};
 use crate::application::queries::{GetImageQuery, ListImagesByProjectQuery, ListImagesRangeQuery};
-use crate::domain::{Image, ImageRepository};
+use crate::domain::{Image, ImageEvent, ImageRepository};
 
 /// The store `kind` / event entity name for images (unchanged from `"images"`).
 const ENTITY: &str = "images";
@@ -57,13 +57,13 @@ impl ImageAppService {
             .map_err(|e| DomainError::validation(e.to_string()))?;
 
         let id = image.id().to_string();
-        let (stored, action) = if self.repo.get(&id)?.is_some() {
-            (self.repo.update(&image)?, "updated")
+        let (stored, event) = if self.repo.get(&id)?.is_some() {
+            (self.repo.update(&image)?, ImageEvent::Updated { id })
         } else {
-            (self.repo.create(&image)?, "created")
+            (self.repo.create(&image)?, ImageEvent::Created { id })
         };
 
-        self.publish(&stored, action)?;
+        self.publish(&stored, &event)?;
         Ok(stored)
     }
 
@@ -74,15 +74,15 @@ impl ImageAppService {
             .get(&command.id)?
             .ok_or_else(|| DomainError::not_found("Image"))?;
         self.repo.delete(&command.id)?;
-        self.publish(&existing, "deleted")?;
+        self.publish(&existing, &ImageEvent::Deleted { id: command.id })?;
         Ok(json!({ "success": true }))
     }
 
-    fn publish(&self, image: &Image, action: &str) -> DomainResult<()> {
+    fn publish(&self, image: &Image, event: &ImageEvent) -> DomainResult<()> {
         let payload =
             serde_json::to_value(image).map_err(|e| DomainError::repository(e.to_string()))?;
         self.events
-            .publish(ENTITY, action, &payload)
+            .publish(ENTITY, event.action(), &payload)
             .map_err(PortError::into_domain)
     }
 }
