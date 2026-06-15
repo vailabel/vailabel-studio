@@ -236,7 +236,14 @@ export function useCanvasHandlers(
     ]
   )
 
-  const toolHandler = createToolHandler(selectedTool, handlerContext)
+  // Build the handler only when the tool or its context actually changes —
+  // previously a new handler instance was created on every render, which
+  // invalidated every mouse callback and forced the keyboard/wheel effect below
+  // to re-subscribe its window listeners constantly.
+  const toolHandler = useMemo(
+    () => createToolHandler(selectedTool, handlerContext),
+    [selectedTool, handlerContext]
+  )
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
@@ -367,9 +374,85 @@ export function useCanvasHandlers(
     toolHandler.onDoubleClick?.()
   }, [toolHandler])
 
-  // Keyboard event handling
+  // Latest-value snapshot for the window/wheel listeners below. Keeping these in
+  // a ref lets the keyboard + wheel effect subscribe ONCE (on mount) instead of
+  // re-subscribing on every render / pan / zoom, while still reading fresh state.
+  const liveRef = useRef({
+    toolHandler,
+    isPanning,
+    selectedAnnotation,
+    annotationsStore,
+    zoom,
+    baseOffset,
+    containerSize,
+    imageSize,
+    setIsPanning,
+    setLastPanPoint,
+    setSelectedTool,
+    setToolState,
+    setSelectedAnnotation,
+    setZoom,
+    setPanOffset,
+  })
+  // Keep the snapshot fresh after every render (synced in an effect rather than
+  // during render so it never writes a ref mid-render).
   useEffect(() => {
+    liveRef.current = {
+      toolHandler,
+      isPanning,
+      selectedAnnotation,
+      annotationsStore,
+      zoom,
+      baseOffset,
+      containerSize,
+      imageSize,
+      setIsPanning,
+      setLastPanPoint,
+      setSelectedTool,
+      setToolState,
+      setSelectedAnnotation,
+      setZoom,
+      setPanOffset,
+    }
+  })
+
+  // Keyboard + wheel handling — subscribed once; reads live state via liveRef.
+  useEffect(() => {
+    // Reset the drawing/move state when switching tools. NOTE: the context's
+    // setToolState MERGES, so `setToolState({})` is a no-op — every key that
+    // must be cleared has to be set explicitly.
+    const clearToolState = () =>
+      liveRef.current.setToolState({
+        isDragging: false,
+        isResizing: false,
+        isMoving: false,
+        isDrawing: false,
+        startPoint: null,
+        tempAnnotation: null,
+        showLabelInput: false,
+        polygonPoints: undefined,
+        freeDrawPoints: undefined,
+        movingAnnotationId: null,
+        resizingAnnotationId: null,
+        previewCoordinates: null,
+        resizeHandle: null,
+      })
+
+    const TOOL_HOTKEYS: Record<string, string> = {
+      m: "move",
+      b: "box",
+      p: "polygon",
+      f: "freeDraw",
+      d: "delete",
+      o: "point",
+      l: "line",
+      s: "linestrip",
+      c: "circle",
+      g: "smartSegment",
+    }
+
     const handleKeyDown = (e: KeyboardEvent) => {
+      const L = liveRef.current
       const target = e.target as HTMLElement | null
       const isTypingTarget =
         !!target &&
@@ -382,20 +465,20 @@ export function useCanvasHandlers(
         return
       }
 
-      if (e.code === "Space" && !isPanning) {
+      if (e.code === "Space" && !L.isPanning) {
         e.preventDefault()
-        setIsPanning(true)
+        L.setIsPanning(true)
         return
       }
 
-      if ((e.key === "Delete" || e.key === "Backspace") && selectedAnnotation) {
+      if ((e.key === "Delete" || e.key === "Backspace") && L.selectedAnnotation) {
         e.preventDefault()
-        void annotationsStore.deleteAnnotation(selectedAnnotation.id).catch(
-          (error) => {
+        void L.annotationsStore
+          .deleteAnnotation(L.selectedAnnotation.id)
+          .catch((error) => {
             console.error("Failed to delete annotation:", error)
-          }
-        )
-        setSelectedAnnotation(null)
+          })
+        L.setSelectedAnnotation(null)
         return
       }
 
@@ -403,166 +486,85 @@ export function useCanvasHandlers(
         switch (e.key) {
           case "z":
             e.preventDefault()
-            void annotationsStore.undo()
+            void L.annotationsStore.undo()
             return
           case "y":
             e.preventDefault()
-            void annotationsStore.redo()
+            void L.annotationsStore.redo()
             return
         }
-      } else {
-        // When switching tools, clear tempAnnotation and toolState
-        const clearTemp = () => setToolState({})
-        switch (e.key.toLowerCase()) {
-          case "m":
-            setSelectedTool("move")
-            clearTemp()
-            return
-          case "b":
-            setSelectedTool("box")
-            clearTemp()
-            return
-          case "p":
-            setSelectedTool("polygon")
-            clearTemp()
-            return
-          case "f":
-            setSelectedTool("freeDraw")
-            clearTemp()
-            return
-          case "d":
-            setSelectedTool("delete")
-            clearTemp()
-            return
-          case "o":
-            setSelectedTool("point")
-            clearTemp()
-            return
-          case "l":
-            setSelectedTool("line")
-            clearTemp()
-            return
-          case "s":
-            setSelectedTool("linestrip")
-            clearTemp()
-            return
-          case "c":
-            setSelectedTool("circle")
-            clearTemp()
-            return
-          case "g":
-            setSelectedTool("smartSegment")
-            clearTemp()
-            return
-          case "=":
-          case "+":
-            e.preventDefault()
-            setZoom(Math.min(5, zoom * 1.2))
-            return
-          case "-":
-          case "_":
-            e.preventDefault()
-            setZoom(Math.max(0.1, zoom / 1.2))
-            return
-        }
-
-        // Let the current tool handle key events
-        if (toolHandler.onKeyDown) {
-          toolHandler.onKeyDown(e)
-        }
+        return
       }
+
+      const key = e.key.toLowerCase()
+      const tool = TOOL_HOTKEYS[key]
+      if (tool) {
+        L.setSelectedTool(tool)
+        clearToolState()
+        return
+      }
+      if (key === "=" || key === "+") {
+        e.preventDefault()
+        L.setZoom(Math.min(5, L.zoom * 1.2))
+        return
+      }
+      if (key === "-" || key === "_") {
+        e.preventDefault()
+        L.setZoom(Math.max(0.1, L.zoom / 1.2))
+        return
+      }
+
+      // Let the current tool handle remaining key events
+      L.toolHandler.onKeyDown?.(e)
     }
 
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.code === "Space") {
         e.preventDefault()
-        setIsPanning(false)
-        setLastPanPoint(null)
+        liveRef.current.setIsPanning(false)
+        liveRef.current.setLastPanPoint(null)
       }
     }
 
-    // Add non-passive wheel event listener for better zoom control
+    // Non-passive wheel listener: zoom around the cursor with Ctrl/Cmd/Alt+scroll.
     const handleNativeWheel = (e: WheelEvent) => {
-      // Enable zooming with Ctrl/Cmd + scroll OR Alt + scroll
-      if (e.ctrlKey || e.metaKey || e.altKey) {
-        e.preventDefault()
-        e.stopPropagation()
-        const delta = e.deltaY > 0 ? -0.1 : 0.1
-        const newZoom = Math.max(0.1, Math.min(5, zoom + delta))
+      if (!(e.ctrlKey || e.metaKey || e.altKey)) return
+      const L = liveRef.current
+      e.preventDefault()
+      e.stopPropagation()
 
-        if (actualCanvasRef.current) {
-          const rect = actualCanvasRef.current.getBoundingClientRect()
-          
-          // Use mouse position for zoom center
-          const mouseX = e.clientX - rect.left
-          const mouseY = e.clientY - rect.top
+      const delta = e.deltaY > 0 ? -0.1 : 0.1
+      const newZoom = Math.max(0.1, Math.min(5, L.zoom + delta))
+      const el = actualCanvasRef.current
+      if (!el) return
 
-          // Calculate the point in image coordinates before zoom
-          const beforeZoomX = (mouseX - baseOffset.x) / zoom
-          const beforeZoomY = (mouseY - baseOffset.y) / zoom
+      const rect = el.getBoundingClientRect()
+      const mouseX = e.clientX - rect.left
+      const mouseY = e.clientY - rect.top
+      const beforeZoomX = (mouseX - L.baseOffset.x) / L.zoom
+      const beforeZoomY = (mouseY - L.baseOffset.y) / L.zoom
+      const nextCenterOffset = getCenterOffset(L.containerSize, L.imageSize, newZoom)
 
-          // Recompute center offset for the new zoom level
-          const nextCenterOffset = getCenterOffset(containerSize, imageSize, newZoom)
-
-          // Adjust pan offset to keep the mouse point stable
-          setPanOffset({
-            x: (mouseX - nextCenterOffset.x) - beforeZoomX * newZoom,
-            y: (mouseY - nextCenterOffset.y) - beforeZoomY * newZoom,
-          })
-          
-          // Apply the new zoom
-          setZoom(newZoom)
-        }
-      }
+      L.setPanOffset({
+        x: mouseX - nextCenterOffset.x - beforeZoomX * newZoom,
+        y: mouseY - nextCenterOffset.y - beforeZoomY * newZoom,
+      })
+      L.setZoom(newZoom)
     }
 
     window.addEventListener("keydown", handleKeyDown)
     window.addEventListener("keyup", handleKeyUp)
-
-    // Add wheel event listener with explicit non-passive option
     const canvasElement = actualCanvasRef.current
-    if (canvasElement) {
-      canvasElement.addEventListener(
-        "wheel",
-        handleNativeWheel,
-        { passive: false }
-      )
-    }
+    canvasElement?.addEventListener("wheel", handleNativeWheel, {
+      passive: false,
+    })
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown)
       window.removeEventListener("keyup", handleKeyUp)
-
-      // Clean up wheel event listener
-      if (canvasElement) {
-        canvasElement.removeEventListener(
-          "wheel",
-          handleNativeWheel
-        )
-      }
+      canvasElement?.removeEventListener("wheel", handleNativeWheel)
     }
-  }, [
-    actualCanvasRef,
-    isPanning,
-    selectedAnnotation,
-    annotationsStore,
-    setIsPanning,
-    setLastPanPoint,
-    setSelectedTool,
-    setToolState,
-    toolHandler,
-    zoom,
-    panOffset,
-    setPanOffset,
-    setSelectedAnnotation,
-    setZoom,
-    baseOffset.x,
-    baseOffset.y,
-    containerSize.width,
-    containerSize.height,
-    imageSize.width,
-    imageSize.height,
-  ])
+  }, [actualCanvasRef])
 
   return {
     handleMouseDown,

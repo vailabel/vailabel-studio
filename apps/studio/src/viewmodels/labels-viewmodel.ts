@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
+import { toast } from "sonner"
 import { Label, Project } from "@/types/core"
 import { listenToStudioEvents } from "@/ipc/events"
 import { services } from "@/services"
@@ -78,15 +79,17 @@ export const useLabelsViewModel = (projectId?: string) => {
   }, [loadLabels, projectId])
 
   const filteredLabels = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase()
     return labels.filter((label) => {
       const matchesProject =
         !selectedProject ||
         label.projectId === selectedProject ||
         label.project_id === selectedProject
       const matchesSearch =
-        !searchQuery ||
-        label.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        label.description?.toLowerCase().includes(searchQuery.toLowerCase())
+        !query ||
+        label.name.toLowerCase().includes(query) ||
+        label.description?.toLowerCase().includes(query) ||
+        label.category?.toLowerCase().includes(query)
       return matchesProject && matchesSearch
     })
   }, [labels, selectedProject, searchQuery])
@@ -103,29 +106,61 @@ export const useLabelsViewModel = (projectId?: string) => {
     setSearchQuery,
     setSelectedProject,
     createLabel: async (label: Omit<Label, "id">) => {
-      const createdLabel = await services.getLabelService().createLabel(label)
-      setLabels((current) => [createdLabel, ...current])
+      try {
+        const createdLabel = await services.getLabelService().createLabel(label)
+        setLabels((current) => [createdLabel, ...current])
+        toast.success(`Label "${createdLabel.name}" created`)
+      } catch (nextError) {
+        toast.error("Failed to create label")
+        throw nextError
+      }
     },
     updateLabel: async (labelId: string, updates: Partial<Label>) => {
-      const updatedLabel = await services
-        .getLabelService()
-        .updateLabel(labelId, updates)
-      setLabels((current) =>
-        current.map((label) => (label.id === labelId ? updatedLabel : label))
-      )
+      try {
+        const updatedLabel = await services
+          .getLabelService()
+          .updateLabel(labelId, updates)
+        setLabels((current) =>
+          current.map((label) => (label.id === labelId ? updatedLabel : label))
+        )
+        toast.success("Label updated")
+      } catch (nextError) {
+        toast.error("Failed to update label")
+        throw nextError
+      }
     },
     deleteLabel: async (labelId: string) => {
-      await services.getLabelService().deleteLabel(labelId)
-      setLabels((current) => current.filter((label) => label.id !== labelId))
+      try {
+        await services.getLabelService().deleteLabel(labelId)
+        setLabels((current) => current.filter((label) => label.id !== labelId))
+        toast.success("Label deleted")
+      } catch (nextError) {
+        toast.error("Failed to delete label")
+        throw nextError
+      }
     },
     duplicateLabel: async (labelId: string) => {
       const label = labels.find((entry) => entry.id === labelId)
       if (!label) return
-      const createdLabel = await services.getLabelService().createLabel({
-        ...label,
-        name: `${label.name} (Copy)`,
-      })
-      setLabels((current) => [createdLabel, ...current])
+      // Strip identity/relation fields so the backend creates a NEW label
+      // instead of updating the original (labels_save is update-by-id).
+      const { id, createdAt, updatedAt, annotations, project, ...rest } = label
+      void id
+      void createdAt
+      void updatedAt
+      void annotations
+      void project
+      try {
+        const createdLabel = await services.getLabelService().createLabel({
+          ...rest,
+          name: `${label.name} (Copy)`,
+        })
+        setLabels((current) => [createdLabel, ...current])
+        toast.success(`Label "${createdLabel.name}" created`)
+      } catch (nextError) {
+        toast.error("Failed to duplicate label")
+        throw nextError
+      }
     },
     refreshLabels: loadLabels,
   }

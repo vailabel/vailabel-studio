@@ -89,7 +89,7 @@ export const FileListPanel = memo(
           </div>
         </div>
 
-        <ScrollArea className="flex-1">
+        <ScrollArea className="min-h-0 flex-1">
           {visibleImages.length === 0 ? (
             <p className="p-6 text-center text-sm text-muted-foreground">
               {isLoading

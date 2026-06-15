@@ -1,5 +1,6 @@
 import type { Annotation } from "@/types/core"
-import { useCanvasSelection } from "@/contexts/canvas-context"
+import { useCanvasSelection, useCanvasZoom } from "@/contexts/canvas-context"
+import { AnnotationLabel, dashFor, strokeWidthFor } from "./annotation-styles"
 import { memo } from "react"
 
 interface PointAnnotationProps {
@@ -10,6 +11,7 @@ interface PointAnnotationProps {
 export const PointAnnotation = memo(
   ({ annotation, readOnly = false }: PointAnnotationProps) => {
     const { selectedAnnotation } = useCanvasSelection()
+    const { zoom } = useCanvasZoom()
     const isSelected = selectedAnnotation?.id === annotation.id
     const point = annotation.coordinates[0]
     if (!point) return null
@@ -22,19 +24,18 @@ export const PointAnnotation = memo(
           r={isSelected ? 6 : 5}
           style={{
             fill: annotation.color,
-            stroke: isSelected ? "#ef4444" : "white",
-            strokeWidth: 2,
-            strokeDasharray: readOnly ? "3 2" : "none",
+            stroke: "white",
+            strokeWidth: strokeWidthFor(isSelected),
+            strokeDasharray: dashFor(readOnly),
           }}
         />
-        <text
-          x={point.x + 8}
-          y={point.y - 8}
-          style={{ fill: annotation.color }}
-          className="text-xs"
-        >
-          {annotation.name}
-        </text>
+        <AnnotationLabel
+          x={point.x}
+          y={point.y}
+          color={annotation.color ?? "#3b82f6"}
+          name={annotation.name}
+          zoom={zoom}
+        />
       </svg>
     )
   }

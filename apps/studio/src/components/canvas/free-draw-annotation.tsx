@@ -1,9 +1,14 @@
-import { memo, useMemo, useCallback } from "react"
+import { memo, useMemo } from "react"
 import {
   useCanvasZoom,
   useCanvasTool,
   useCanvasSelection,
 } from "@/contexts/canvas-context"
+import {
+  AnnotationLabel,
+  dashFor,
+  strokeWidthFor,
+} from "./annotation-styles"
 import { Annotation, Point } from "@/types/core"
 
 interface FreeDrawAnnotationProps {
@@ -15,33 +20,10 @@ export const FreeDrawAnnotation = memo(
   ({ annotation, readOnly = false }: FreeDrawAnnotationProps) => {
     const { zoom } = useCanvasZoom()
     const { selectedTool } = useCanvasTool()
-    const { selection } = useCanvasSelection()
-    const selectedAnnotation = selection
+    const { selectedAnnotation } = useCanvasSelection()
 
     const isSelected = selectedAnnotation?.id === annotation.id
     const isMoveTool = selectedTool === "move"
-
-    const styles = useMemo(
-      () => ({
-        fill: {
-          selected: "none", // No fill for free draw
-          default: "none", // No fill for free draw
-        },
-        stroke: {
-          selected: annotation.color ?? "#333",
-          default: annotation.color ?? "#333",
-        },
-        strokeWidth: {
-          selected: 2,
-          default: 2,
-        },
-        strokeDashArray: {
-          selected: "none",
-          default: "none",
-        },
-      }),
-      [annotation.color]
-    )
 
     // Calculate bounding box for easier interaction
     const boundingBox = useMemo(() => {
@@ -67,21 +49,6 @@ export const FreeDrawAnnotation = memo(
       }
     }, [annotation.coordinates])
 
-    // Calculate center point for easier dragging
-    const centerPoint = useMemo(() => {
-      if (!annotation.coordinates || annotation.coordinates.length === 0) {
-        return null
-      }
-
-      const xs = annotation.coordinates.map((p) => p.x)
-      const ys = annotation.coordinates.map((p) => p.y)
-
-      return {
-        x: xs.reduce((sum, x) => sum + x, 0) / xs.length,
-        y: ys.reduce((sum, y) => sum + y, 0) / ys.length,
-      }
-    }, [annotation.coordinates])
-
     // Memoize edit points to prevent recreation
     const editPoints = useMemo(() => {
       if (!isMoveTool || readOnly) return null
@@ -99,7 +66,7 @@ export const FreeDrawAnnotation = memo(
           style={{ opacity: pointOpacity }}
         />
       ))
-    }, [isMoveTool, isSelected, annotation.coordinates, zoom])
+    }, [isMoveTool, isSelected, annotation.coordinates, zoom, readOnly])
 
     // Memoize bounding box for easier grabbing
     const boundingBoxElement = useMemo(() => {
@@ -125,69 +92,7 @@ export const FreeDrawAnnotation = memo(
           }}
         />
       )
-    }, [isMoveTool, isSelected, boundingBox])
-
-    // Helper to handle center point drag
-    const handleCenterPointMouseDown = useCallback(
-      (e: React.MouseEvent<SVGCircleElement>) => {
-        e.stopPropagation()
-        const svg = (e.target as SVGCircleElement).ownerSVGElement
-        if (!svg) return
-        const rect = svg.getBoundingClientRect()
-
-        function onMouseMove(moveEvent: MouseEvent) {
-          const newX = (moveEvent.clientX - rect.left) / zoom
-          const newY = (moveEvent.clientY - rect.top) / zoom
-
-          // Calculate the offset from the original center
-          const offsetX = newX - centerPoint!.x
-          const offsetY = newY - centerPoint!.y
-
-          // Move all points by the same offset
-          const newCoordinates = annotation.coordinates.map((point) => ({
-            x: point.x + offsetX,
-            y: point.y + offsetY,
-          }))
-
-          // TODO: Update annotation coordinates
-          console.log("Update annotation:", annotation.id, newCoordinates)
-        }
-
-        function onMouseUp() {
-          window.removeEventListener("mousemove", onMouseMove)
-          window.removeEventListener("mouseup", onMouseUp)
-        }
-
-        window.addEventListener("mousemove", onMouseMove)
-        window.addEventListener("mouseup", onMouseUp)
-      },
-      [zoom, centerPoint, annotation.coordinates, annotation.id]
-    )
-
-    // Memoize center point for easy dragging
-    const centerPointElement = useMemo(() => {
-      if (!isMoveTool || !centerPoint || readOnly) return null
-
-      const centerRadius = isSelected ? 8 / zoom : 6 / zoom
-      const centerOpacity = isSelected ? 1 : 0.7
-
-      return (
-        <circle
-          cx={centerPoint.x}
-          cy={centerPoint.y}
-          r={centerRadius}
-          fill="rgba(59, 130, 246, 0.8)"
-          stroke="white"
-          strokeWidth={2}
-          className="pointer-events-auto cursor-move hover:fill-blue-500 transition-colors"
-          style={{
-            opacity: centerOpacity,
-            transition: "fill 0.2s ease, opacity 0.2s ease",
-          }}
-          onMouseDown={handleCenterPointMouseDown}
-        />
-      )
-    }, [isMoveTool, isSelected, centerPoint, zoom, handleCenterPointMouseDown])
+    }, [isMoveTool, isSelected, boundingBox, readOnly])
 
     // Create SVG path from coordinates with smooth curves
     const pathData = useMemo(() => {
@@ -235,18 +140,10 @@ export const FreeDrawAnnotation = memo(
         <path
           d={pathData}
           style={{
-            fill: isSelected ? styles.fill.selected : styles.fill.default,
-            stroke: isSelected ? styles.stroke.selected : styles.stroke.default,
-            strokeWidth: isSelected
-              ? styles.strokeWidth.selected + 2 // Thicker stroke when selected for easier clicking
-              : isMoveTool
-                ? styles.strokeWidth.default + 1 // Slightly thicker when move tool is active
-                : styles.strokeWidth.default,
-            strokeDasharray: isSelected
-              ? styles.strokeDashArray.selected
-              : readOnly
-                ? "6 4"
-                : styles.strokeDashArray.default,
+            fill: "none",
+            stroke: annotation.color ?? "#333",
+            strokeWidth: strokeWidthFor(isSelected),
+            strokeDasharray: dashFor(readOnly),
             strokeLinecap: "round",
             strokeLinejoin: "round",
           }}
@@ -257,27 +154,16 @@ export const FreeDrawAnnotation = memo(
           }
         />
 
-        {/* Label */}
-        {annotation.coordinates.length > 0 && (
-          <text
-            x={annotation.coordinates[0].x}
-            y={annotation.coordinates[0].y - 10}
-            style={{
-              fill: isSelected ? styles.stroke.selected : styles.stroke.default,
-              fontSize: "12px",
-              fontWeight: "bold",
-            }}
-            className="pointer-events-none"
-          >
-            {annotation.name}
-          </text>
-        )}
+        <AnnotationLabel
+          x={annotation.coordinates[0].x}
+          y={annotation.coordinates[0].y}
+          color={annotation.color ?? "#3b82f6"}
+          name={annotation.name}
+          zoom={zoom}
+        />
 
         {/* Show edit points when selected */}
         {editPoints}
-
-        {/* Center point for easy dragging */}
-        {centerPointElement}
       </svg>
     )
   }

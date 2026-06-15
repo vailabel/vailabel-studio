@@ -1,5 +1,24 @@
 import type { Point, Annotation } from "@/types/core"
 
+/**
+ * Remove consecutive points closer than `minDistance` (image-space units).
+ * Used when finishing a polygon/linestrip so the two near-identical points a
+ * double-click adds don't survive as duplicate vertices.
+ */
+export function dedupeConsecutivePoints(
+  points: Point[],
+  minDistance: number
+): Point[] {
+  const out: Point[] = []
+  for (const point of points) {
+    const last = out[out.length - 1]
+    if (!last || Math.hypot(point.x - last.x, point.y - last.y) > minDistance) {
+      out.push(point)
+    }
+  }
+  return out
+}
+
 export function getCanvasCoords(
   container: HTMLDivElement | null,
   baseOffset: Point,
@@ -45,8 +64,45 @@ export function getImageCoords(
   }
 }
 
-// Cache for bounding boxes to avoid recalculation
-const boundingBoxCache = new Map<string, { minX: number; minY: number; maxX: number; maxY: number }>()
+// Cache for bounding boxes to avoid recalculation. The cached box is tagged
+// with the exact `coordinates` array it was computed from; since annotation
+// updates always replace the array (immutable updates), a reference mismatch
+// means the shape moved/resized and the box is recomputed automatically. This
+// removes a whole class of stale-hit-test bugs (clicking a moved polygon used
+// to miss because the old bounding box lingered).
+type CachedBBox = {
+  coords: Point[]
+  box: { minX: number; minY: number; maxX: number; maxY: number }
+}
+const boundingBoxCache = new Map<string, CachedBBox>()
+
+function getBoundingBox(
+  cacheKey: string,
+  coords: Point[],
+  padding = 0
+): CachedBBox["box"] {
+  const cached = boundingBoxCache.get(cacheKey)
+  if (cached && cached.coords === coords) return cached.box
+
+  let minX = Infinity
+  let minY = Infinity
+  let maxX = -Infinity
+  let maxY = -Infinity
+  for (const p of coords) {
+    if (p.x < minX) minX = p.x
+    if (p.x > maxX) maxX = p.x
+    if (p.y < minY) minY = p.y
+    if (p.y > maxY) maxY = p.y
+  }
+  const box = {
+    minX: minX - padding,
+    minY: minY - padding,
+    maxX: maxX + padding,
+    maxY: maxY + padding,
+  }
+  boundingBoxCache.set(cacheKey, { coords, box })
+  return box
+}
 
 export function isPointInLabel(point: Point, annotation: Annotation): boolean {
   if (!annotation.coordinates || annotation.coordinates.length === 0) {
@@ -64,27 +120,14 @@ export function isPointInLabel(point: Point, annotation: Annotation): boolean {
   }
 
   if (annotation.type === "polygon") {
-    // Use bounding box check first for early exit
-    const cacheKey = `${annotation.id}-bbox`
-    let bbox = boundingBoxCache.get(cacheKey)
-    
-    if (!bbox) {
-      const coords = annotation.coordinates
-      bbox = {
-        minX: Math.min(...coords.map(p => p.x)),
-        minY: Math.min(...coords.map(p => p.y)),
-        maxX: Math.max(...coords.map(p => p.x)),
-        maxY: Math.max(...coords.map(p => p.y))
-      }
-      boundingBoxCache.set(cacheKey, bbox)
-    }
-    
-    // Early exit if point is outside bounding box
-    if (point.x < bbox.minX || point.x > bbox.maxX || 
+    // Bounding-box early exit (auto-invalidated when coordinates change).
+    const bbox = getBoundingBox(`${annotation.id}-bbox`, annotation.coordinates)
+
+    if (point.x < bbox.minX || point.x > bbox.maxX ||
         point.y < bbox.minY || point.y > bbox.maxY) {
       return false
     }
-    
+
     return isPointInPolygon(point, annotation.coordinates)
   }
 
@@ -92,23 +135,14 @@ export function isPointInLabel(point: Point, annotation: Annotation): boolean {
     const threshold = 5
     const thresholdSquared = threshold * threshold // 25
 
-    // Use bounding box check first for freeDraw as well
-    const cacheKey = `${annotation.id}-freedraw-bbox`
-    let bbox = boundingBoxCache.get(cacheKey)
-    
-    if (!bbox) {
-      const coords = annotation.coordinates
-      bbox = {
-        minX: Math.min(...coords.map(p => p.x)) - threshold,
-        minY: Math.min(...coords.map(p => p.y)) - threshold,
-        maxX: Math.max(...coords.map(p => p.x)) + threshold,
-        maxY: Math.max(...coords.map(p => p.y)) + threshold
-      }
-      boundingBoxCache.set(cacheKey, bbox)
-    }
-    
+    const bbox = getBoundingBox(
+      `${annotation.id}-freedraw-bbox`,
+      annotation.coordinates,
+      threshold
+    )
+
     // Early exit if point is outside bounding box
-    if (point.x < bbox.minX || point.x > bbox.maxX || 
+    if (point.x < bbox.minX || point.x > bbox.maxX ||
         point.y < bbox.minY || point.y > bbox.maxY) {
       return false
     }

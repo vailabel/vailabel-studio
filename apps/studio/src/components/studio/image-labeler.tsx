@@ -19,8 +19,10 @@ import { ContextMenu } from "@/components/studio/context-menu"
 import { ExportDialog } from "@/components/studio/export-dialog"
 import { PredictionReviewPanel } from "@/components/ai/prediction-review-panel"
 import { AiCopilotPanel } from "@/components/ai/ai-copilot-panel"
+import { AutoLabelControls } from "@/components/ai/auto-label-controls"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { useStudioScreenViewModel } from "@/features/studio/use-studio-screen-viewmodel"
+import { useLabelHotkeys } from "@/hooks/use-label-hotkeys"
 import { getLabelingConfig } from "@/lib/labeling-config"
 import type { Annotation, ImageData, Label, Prediction } from "@/types/core"
 import type { PipelinePrompt } from "@/ipc/studio"
@@ -37,6 +39,7 @@ const MemoizedCanvas = memo(
     annotations,
     predictions,
     labels,
+    activeLabel,
     onCreateAnnotationDraft,
     onUpdateAnnotation,
     onDeleteAnnotation,
@@ -48,11 +51,13 @@ const MemoizedCanvas = memo(
     annotations: Annotation[]
     predictions: Prediction[]
     labels: Label[]
+    activeLabel: Label | null
     onCreateAnnotationDraft: (draft: {
       name: string
       color: string
       type: string
       coordinates: Array<{ x: number; y: number }>
+      labelId?: string
     }) => Promise<void>
     onUpdateAnnotation: (
       annotationId: string,
@@ -68,6 +73,7 @@ const MemoizedCanvas = memo(
       annotations={annotations}
       predictions={predictions}
       labels={labels}
+      activeLabel={activeLabel}
       onCreateAnnotationDraft={onCreateAnnotationDraft}
       onUpdateAnnotation={onUpdateAnnotation}
       onDeleteAnnotation={onDeleteAnnotation}
@@ -119,6 +125,31 @@ export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => 
       }
     },
     [viewModel.smartSegment]
+  )
+
+  // Auto-label: run the picked detection model on the current image. Surfaces
+  // the result so the toolbar button has clear feedback; suggestions land in the
+  // review panel where each label can be edited before accepting.
+  const handleAutoLabel = useCallback(
+    async (modelId: string) => {
+      try {
+        const created = await viewModel.generatePredictions(modelId)
+        if (created.length > 0) {
+          toast.success(
+            `Auto-label found ${created.length} object${created.length === 1 ? "" : "s"} — review them on the right.`
+          )
+        } else {
+          toast.info(
+            "No objects found above the confidence threshold. Try another image or model."
+          )
+        }
+      } catch (error) {
+        toast.error(
+          `Auto-label failed: ${error instanceof Error ? error.message : String(error)}`
+        )
+      }
+    },
+    [viewModel.generatePredictions]
   )
 
   // The project's template decides which tools show and whether we're in
@@ -179,19 +210,34 @@ export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => 
     [viewModel]
   )
 
+  // Clicking a class arms it as the active class (so new shapes inherit it) and,
+  // if a shape is currently selected, re-labels that shape — covering both the
+  // "set up for fast labeling" and "fix this one" flows from a single click.
   const handleLabelSelect = useCallback(
     (label: Label) => {
-      if (!viewModel.selectedAnnotation) return
+      viewModel.setActiveLabelId(label.id)
 
-      void viewModel.updateAnnotation(viewModel.selectedAnnotation.id, {
-        name: label.name,
-        color: label.color,
-        labelId: label.id,
-        label_id: label.id,
-      })
+      if (viewModel.selectedAnnotation) {
+        void viewModel.updateAnnotation(viewModel.selectedAnnotation.id, {
+          name: label.name,
+          color: label.color,
+          labelId: label.id,
+          label_id: label.id,
+        })
+      }
     },
     [viewModel]
   )
+
+  // Single keyboard listener for the labeler: ←/→ navigate images, 1–9 arm the
+  // Nth class, Esc/0 clears it.
+  useLabelHotkeys({
+    labels: viewModel.data.labels,
+    activeLabelId: viewModel.activeLabelId,
+    setActiveLabelId: viewModel.setActiveLabelId,
+    onNextImage: viewModel.goToNextImage,
+    onPreviousImage: viewModel.goToPreviousImage,
+  })
 
   return (
     <div className="flex h-screen w-full flex-col overflow-hidden bg-muted text-foreground">
@@ -232,6 +278,13 @@ export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => 
         >
           <Toolbar
             allowedTools={config.tools}
+            aiSlot={
+              <AutoLabelControls
+                models={viewModel.data.aiModels}
+                isRunning={viewModel.isGeneratingPredictions}
+                onAutoLabel={handleAutoLabel}
+              />
+            }
             selectedTool={viewModel.selectedTool}
             onSelectTool={viewModel.setSelectedTool}
             zoom={viewModel.zoom}
@@ -255,6 +308,7 @@ export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => 
                 annotations={viewModel.data.annotations}
                 predictions={viewModel.data.predictions}
                 labels={viewModel.data.labels}
+                activeLabel={viewModel.activeLabel}
                 onCreateAnnotationDraft={viewModel.createAnnotationFromDraft}
                 onUpdateAnnotation={viewModel.updateAnnotation}
                 onDeleteAnnotation={viewModel.deleteAnnotation}
@@ -345,6 +399,7 @@ export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => 
           <LabelListPanel
             onLabelSelect={handleLabelSelect}
             labels={viewModel.data.labels}
+            activeLabelId={viewModel.activeLabelId}
             isLoading={viewModel.data.isLoading}
           />
         </ResizablePanel>

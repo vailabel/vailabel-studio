@@ -1,10 +1,16 @@
-import { rgbToRgba } from "../../lib/utils"
 import type { Annotation } from "@/types/core"
 import {
   useCanvasZoom,
   useCanvasTool,
   useCanvasSelection,
 } from "@/contexts/canvas-context"
+import {
+  AnnotationLabel,
+  dashFor,
+  fillFor,
+  strokeWidthFor,
+  HANDLE_RADIUS,
+} from "./annotation-styles"
 import { memo, useCallback } from "react"
 
 interface CircleAnnotationProps {
@@ -64,25 +70,24 @@ export const CircleAnnotation = memo(
           cy={center.y}
           r={radius}
           style={{
-            fill: rgbToRgba(annotation.color, 0.2),
-            stroke: isSelected ? "#ef4444" : annotation.color,
-            strokeWidth: isSelected ? 3 : 2,
-            strokeDasharray: readOnly ? "6 4" : "none",
+            fill: fillFor(annotation.color, isSelected),
+            stroke: annotation.color,
+            strokeWidth: strokeWidthFor(isSelected),
+            strokeDasharray: dashFor(readOnly),
           }}
         />
-        <text
-          x={center.x}
-          y={center.y - radius - 6}
-          style={{ fill: annotation.color }}
-          className="text-xs"
-        >
-          {annotation.name}
-        </text>
+        <AnnotationLabel
+          x={center.x - radius}
+          y={center.y - radius}
+          color={annotation.color ?? "#3b82f6"}
+          name={annotation.name}
+          zoom={zoom}
+        />
         {isMoveTool && !readOnly && (
           <circle
             cx={edge.x}
             cy={edge.y}
-            r={4 / zoom}
+            r={HANDLE_RADIUS / zoom}
             className="fill-white stroke-gray-400 stroke-1 cursor-pointer pointer-events-auto hover:fill-blue-200 transition-colors"
             onMouseDown={handleEdgeMouseDown}
           />

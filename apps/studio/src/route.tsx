@@ -12,7 +12,6 @@ import { AutoUpdateBanner } from "./components/layout/auto-update-banner"
 import AIModelListPage from "./pages/ai-model"
 import DatasetIntelligence from "./pages/dataset-intelligence"
 import VideoAnnotation from "./pages/video-annotation"
-import CloudStorageConfigPage from "./pages/cloud-storage"
 import { ProjectCreate } from "./pages/projects/project-create"
 
 const AppRoutes = () => {
@@ -38,7 +37,10 @@ const AppRoutes = () => {
           />
           <Route path="/video-annotation" element={<VideoAnnotation />} />
           <Route path="/labels" element={<LabelsPage />} />
-          <Route path="/cloud-storage" element={<CloudStorageConfigPage />} />
+          <Route
+            path="/cloud-storage"
+            element={<Navigate to="/settings" replace />}
+          />
           <Route path="/settings" element={<Setting />} />
         </Route>
 

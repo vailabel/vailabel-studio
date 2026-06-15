@@ -1,10 +1,15 @@
-import { rgbToRgba } from "../../lib/utils"
 import type { Annotation, Point } from "@/types/core"
 import {
   useCanvasZoom,
   useCanvasTool,
   useCanvasSelection,
 } from "@/contexts/canvas-context"
+import {
+  AnnotationLabel,
+  dashFor,
+  strokeWidthFor,
+  HANDLE_RADIUS,
+} from "./annotation-styles"
 import { memo, useCallback, useMemo } from "react"
 
 interface LinestripAnnotationProps {
@@ -69,19 +74,18 @@ export const LinestripAnnotation = memo(
           points={pointsString}
           style={{
             fill: "none",
-            stroke: isSelected ? "#ef4444" : annotation.color,
-            strokeWidth: isSelected ? 3 : 2,
-            strokeDasharray: readOnly ? "6 4" : "none",
+            stroke: annotation.color,
+            strokeWidth: strokeWidthFor(isSelected),
+            strokeDasharray: dashFor(readOnly),
           }}
         />
-        <text
+        <AnnotationLabel
           x={firstPoint.x}
-          y={firstPoint.y - 10}
-          style={{ fill: rgbToRgba(annotation.color, 1) }}
-          className="text-xs"
-        >
-          {annotation.name}
-        </text>
+          y={firstPoint.y}
+          color={annotation.color ?? "#3b82f6"}
+          name={annotation.name}
+          zoom={zoom}
+        />
         {isMoveTool &&
           !readOnly &&
           annotation.coordinates.map((point: Point, index: number) => (
@@ -89,7 +93,7 @@ export const LinestripAnnotation = memo(
               key={index}
               cx={point.x}
               cy={point.y}
-              r={4 / zoom}
+              r={HANDLE_RADIUS / zoom}
               className="fill-white stroke-gray-400 stroke-1 cursor-pointer pointer-events-auto hover:fill-blue-200 transition-colors"
               onMouseDown={(e) => handlePointMouseDown(e, index)}
             />

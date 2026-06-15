@@ -20,11 +20,17 @@ export const BoxAnnotation = memo(({ annotation, readOnly = false }: BoxAnnotati
       top: annotation.coordinates[0].y,
       width: annotation.coordinates[1].x - annotation.coordinates[0].x,
       height: annotation.coordinates[1].y - annotation.coordinates[0].y,
-      backgroundColor: getContentBoxColor(annotation.color ?? "#333", 0.2),
+      backgroundColor: getContentBoxColor(
+        annotation.color ?? "#333",
+        isSelected ? 0.6 : 0.5
+      ),
       borderColor: annotation.color,
       borderStyle: readOnly ? "dashed" : "solid",
+      // Selection keeps the class color and just thickens the border — matching
+      // every other shape (no red flip), so all tools look consistent.
+      borderWidth: isSelected ? 3 : 2,
     }),
-    [annotation.coordinates, annotation.color, readOnly]
+    [annotation.coordinates, annotation.color, readOnly, isSelected]
   )
 
   const labelStyles = useMemo(
@@ -57,15 +63,14 @@ export const BoxAnnotation = memo(({ annotation, readOnly = false }: BoxAnnotati
   return (
     <div
       data-testid="box-annotation"
-      className={cn(
-        "absolute border-2 bg-opacity-20",
-        isSelected && "border-red-500"
-      )}
+      className={cn("absolute")}
       style={annotationStyles}
     >
       <div
         style={labelStyles}
-        className={cn("absolute -top-6 left-0 px-2 py-0.5 text-xs text-white")}
+        className={cn(
+          "absolute -top-6 left-0 rounded-sm px-2 py-0.5 text-xs font-semibold text-white"
+        )}
       >
         {annotation.name}
       </div>

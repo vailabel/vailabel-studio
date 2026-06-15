@@ -1,6 +1,7 @@
 import type { Point, Annotation } from "@/types/core"
 import { ToolHandlerContext } from "../../hooks/use-canvas-handlers-context"
 import { ToolHandler } from "../tool-handlers"
+import { dedupeConsecutivePoints } from "../canvas-utils"
 
 export type PolygonHandlerUIState = {
   polygonPoints?: Point[]
@@ -34,16 +35,17 @@ export class PolygonHandler implements ToolHandler {
 
     if (e.button !== 0) return // Only handle left clicks
 
-    // Check if we're clicking near the first point to close the polygon
+    // Check if we're clicking near the first point to close the polygon.
+    // The snap radius is defined in SCREEN pixels and converted to image space
+    // via zoom, so closing is equally easy whether zoomed in or out.
     if (toolState.polygonPoints && toolState.polygonPoints.length >= 3) {
       const firstPoint = toolState.polygonPoints[0]
-      // Optimize distance calculation using squared distance
       const dx = point.x - firstPoint.x
       const dy = point.y - firstPoint.y
       const distanceSquared = dx * dx + dy * dy
 
-      // Increased snap area for better UX: 15px radius (15^2 = 225)
-      if (distanceSquared <= 225) {
+      const snapRadius = 14 / (this.context.zoom || 1)
+      if (distanceSquared <= snapRadius * snapRadius) {
         this.finishPolygon()
         return
       }
@@ -94,13 +96,20 @@ export class PolygonHandler implements ToolHandler {
 
   private finishPolygon() {
     const { toolState } = this.context
-    if (toolState.polygonPoints && toolState.polygonPoints.length >= 3) {
+    // Drop near-duplicate trailing vertices (a double-click fires two mousedowns
+    // before the dblclick, each adding a point) so finishing never leaves cruft.
+    const points = dedupeConsecutivePoints(
+      toolState.polygonPoints || [],
+      3 / (this.context.zoom || 1)
+    )
+    if (points.length >= 3) {
       this.context.setToolState({
         showLabelInput: true,
         isDrawing: false,
+        polygonPoints: points,
         tempAnnotation: {
           type: "polygon",
-          coordinates: toolState.polygonPoints,
+          coordinates: points,
           imageId: this.context.annotationsStore.currentImage?.id || "",
         },
       })

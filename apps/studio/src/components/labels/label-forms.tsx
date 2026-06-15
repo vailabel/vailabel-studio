@@ -27,19 +27,7 @@ import {
 } from "@/components/ui/select"
 import { SketchPicker } from "react-color"
 import { Label as LabelType } from "@/types/core"
-
-const colorPalette = [
-  "#3b82f6", // blue
-  "#ef4444", // red
-  "#10b981", // green
-  "#f59e42", // orange
-  "#a855f7", // purple
-  "#fbbf24", // yellow
-  "#6366f1", // indigo
-  "#6b7280", // gray
-  "#ec4899", // pink
-  "#14b8a6", // teal
-]
+import { colorPalette, randomLabelColor } from "./label-colors"
 
 interface LabelCreateFormProps {
   projects: Array<{ id: string; name: string }>
@@ -52,12 +40,12 @@ export const LabelCreateForm: React.FC<LabelCreateFormProps> = ({
 }) => {
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState(() => ({
     name: "",
-    color: "#3b82f6",
+    color: randomLabelColor(),
     projectId: "",
     description: "",
-  })
+  }))
   const [showColorPicker, setShowColorPicker] = useState(false)
   React.useEffect(() => {
     if (projects.length > 0 && !formData.projectId) {
@@ -75,12 +63,12 @@ export const LabelCreateForm: React.FC<LabelCreateFormProps> = ({
         name: formData.name.trim(),
         color: formData.color,
         projectId: formData.projectId,
-        category: formData.description.trim(),
+        description: formData.description.trim(),
       })
 
       setFormData({
         name: "",
-        color: "#3b82f6",
+        color: randomLabelColor(),
         projectId: "",
         description: "",
       })
@@ -294,7 +282,7 @@ export const LabelEditForm: React.FC<LabelEditFormProps> = ({
   const [formData, setFormData] = useState({
     name: label.name,
     color: label.color,
-    description: label.category || "",
+    description: label.description || label.category || "",
   })
   const [showColorPicker, setShowColorPicker] = useState(false)
 
@@ -307,7 +295,7 @@ export const LabelEditForm: React.FC<LabelEditFormProps> = ({
       await onUpdateLabel(label.id, {
         name: formData.name.trim(),
         color: formData.color,
-        category: formData.description.trim(),
+        description: formData.description.trim(),
       })
       setOpen(false)
     } catch (error) {

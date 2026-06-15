@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Annotation, ImageData, Label, Prediction } from "@/types/core"
+import { AIModel, Annotation, ImageData, Label, Prediction } from "@/types/core"
+import type { AnnotationMeta } from "@/types/modality"
 import { services } from "@/services"
 import { listenToStudioEvents } from "@/ipc/events"
 import type { PipelinePrompt } from "@/ipc/studio"
@@ -10,6 +11,10 @@ interface CreateAnnotationDraftInput {
   color: string
   type: string
   coordinates: Array<{ x: number; y: number }>
+  /** When set, the shape is pre-labeled with this existing class (no modal). */
+  labelId?: string
+  /** Typed non-spatial payload (text span, audio range, mask RLE, …). */
+  meta?: AnnotationMeta
 }
 
 /** Result of a smart-segment run, so the UI layer can phrase the right toast. */
@@ -30,6 +35,7 @@ export const useImageLabelerViewModel = (
   const [annotations, setAnnotations] = useState<Annotation[]>([])
   const [predictions, setPredictions] = useState<Prediction[]>([])
   const [labels, setLabels] = useState<Label[]>([])
+  const [aiModels, setAiModels] = useState<AIModel[]>([])
   const [projectImages, setProjectImages] = useState<ImageData[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isGeneratingPredictions, setIsGeneratingPredictions] = useState(false)
@@ -46,23 +52,30 @@ export const useImageLabelerViewModel = (
       const effectiveProjectId =
         projectId || nextImage.projectId || nextImage.project_id || ""
 
-      const [nextAnnotations, nextPredictions, nextProjectImages, nextLabels] =
-        await Promise.all([
-          services.getAnnotationService().getAnnotationsByImageId(imageId),
-          services.getPredictionService().listByImageId(imageId),
-          effectiveProjectId
-            ? services.getImageService().getImagesByProjectId(effectiveProjectId)
-            : Promise.resolve([]),
-          effectiveProjectId
-            ? services.getLabelService().getLabelsByProjectId(effectiveProjectId)
-            : Promise.resolve([]),
-        ])
+      const [
+        nextAnnotations,
+        nextPredictions,
+        nextProjectImages,
+        nextLabels,
+        nextModels,
+      ] = await Promise.all([
+        services.getAnnotationService().getAnnotationsByImageId(imageId),
+        services.getPredictionService().listByImageId(imageId),
+        effectiveProjectId
+          ? services.getImageService().getImagesByProjectId(effectiveProjectId)
+          : Promise.resolve([]),
+        effectiveProjectId
+          ? services.getLabelService().getLabelsByProjectId(effectiveProjectId)
+          : Promise.resolve([]),
+        services.getAIModelService().list(),
+      ])
 
       setImage(nextImage)
       setAnnotations(nextAnnotations)
       setPredictions(nextPredictions)
       setProjectImages(nextProjectImages)
       setLabels(nextLabels)
+      setAiModels(nextModels)
     } catch (nextError) {
       setError(nextError)
     } finally {
@@ -215,6 +228,7 @@ export const useImageLabelerViewModel = (
     annotations,
     predictions,
     labels,
+    aiModels,
     nextId: nextImage?.id ?? null,
     prevId: prevImage?.id ?? null,
     hasNext: Boolean(nextImage),
@@ -228,19 +242,26 @@ export const useImageLabelerViewModel = (
       color,
       type,
       coordinates,
+      labelId,
+      meta,
     }: CreateAnnotationDraftInput) => {
       if (!image) {
         throw new Error("No image is loaded.")
       }
 
-      const label = await ensureLabel(name, color)
+      // Prefer an explicit class (active-class fast path / pre-labeled import)
+      // over find-or-create-by-name, so the palette and labels never drift.
+      const label =
+        (labelId && labels.find((entry) => entry.id === labelId)) ||
+        (await ensureLabel(name, color))
       const effectiveProjectId =
         projectId || image.projectId || image.project_id || ""
 
       const createdAnnotation = await services.getAnnotationService().createAnnotation({
-        name,
+        name: label?.name ?? name,
         type,
         coordinates,
+        meta,
         imageId: image.id,
         image_id: image.id,
         projectId: effectiveProjectId,
@@ -278,9 +299,9 @@ export const useImageLabelerViewModel = (
     },
     generatePredictions,
     smartSegment,
-    acceptPrediction: async (predictionId: string) => {
+    acceptPrediction: async (predictionId: string, labelId?: string) => {
       const createdAnnotation =
-        await services.getPredictionService().accept(predictionId)
+        await services.getPredictionService().accept(predictionId, labelId)
       setPredictions((current) =>
         current.filter((prediction) => prediction.id !== predictionId)
       )

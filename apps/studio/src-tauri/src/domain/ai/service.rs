@@ -43,6 +43,15 @@ labeling tool into plain language for the user. Output ONLY the rewritten status
 sentences \u{2014} no greeting, no preamble, no \u{201c}Okay\u{201d}/\u{201c}Sure\u{201d}/\u{201c}Let's \
 begin\u{201d}, no markdown, no follow-up question. State only what the status says; never invent \
 objects, counts, or that boxes exist when the status says none were found.";
+/// System prompt for the vision model when recommending label names. Constrained
+/// so weak local VLMs return a clean class list, not a description.
+const LABEL_SUGGEST_SYSTEM_PROMPT: &str = "You help a user set up an image-annotation project. \
+Look at the image and list the distinct object categories worth labeling with bounding boxes. \
+Reply with ONLY a comma-separated list of short, lowercase, singular class names (for example: \
+car, person, traffic light, dog). No numbers, no counts, no descriptions, no markdown \u{2014} \
+just the list. Give between 3 and 12 of the most useful, concrete categories.";
+const LABEL_SUGGEST_USER_PROMPT: &str = "What object categories should I label in this image?";
+
 const COCO_80_CLASS_NAMES: &[&str] = &[
     "person",
     "bicycle",
@@ -840,6 +849,7 @@ impl AiService {
         &self,
         app: &tauri::AppHandle,
         prediction_id: &str,
+        label_id_override: Option<&str>,
     ) -> Result<Value, AppError> {
         let prediction = get_entity_or_error(
             self.store.as_ref(),
@@ -847,21 +857,46 @@ impl AiService {
             prediction_id,
             "Prediction not found",
         )?;
-        let (label, created_label) = ensure_prediction_label(self.store.as_ref(), &prediction)?;
+
+        // If the user picked a different label in the review panel, use it;
+        // otherwise resolve (or create) the label the model predicted.
+        let (label, created_label) = match label_id_override
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+        {
+            Some(label_id) => {
+                let label = get_entity_or_error(
+                    self.store.as_ref(),
+                    "labels",
+                    label_id,
+                    "Selected label was not found",
+                )?;
+                (Some(label), None)
+            }
+            None => ensure_prediction_label(self.store.as_ref(), &prediction)?,
+        };
 
         let label_id = label
             .as_ref()
             .and_then(|value| value_string(value, "id", "id"));
+        let label_name = label
+            .as_ref()
+            .and_then(|value| value_string(value, "name", "name"));
         let label_color = label
             .as_ref()
             .and_then(|value| value_string(value, "color", "color"))
             .or_else(|| value_string(&prediction, "labelColor", "label_color"))
             .unwrap_or_else(|| DEFAULT_AI_LABEL_COLOR.into());
+        // The annotation takes the (possibly corrected) label's name.
+        let annotation_name = label_name
+            .clone()
+            .or_else(|| value_string(&prediction, "name", "name"))
+            .unwrap_or_else(|| "Prediction".into());
 
         let annotation = normalize_entity(
             "annotations",
             json!({
-              "name": value_string(&prediction, "name", "name").unwrap_or_else(|| "Prediction".into()),
+              "name": annotation_name,
               "type": value_string(&prediction, "type", "type").unwrap_or_else(|| "box".into()),
               "coordinates": prediction.get("coordinates").cloned().unwrap_or_else(|| json!([])),
               "imageId": value_string(&prediction, "imageId", "image_id"),
@@ -1070,6 +1105,9 @@ impl AiService {
             // Grounding stays deterministic — the detector, never the LLM.
             Capability::Detect => self.copilot_detect(app, intent, image_id, llm),
             Capability::Qa => self.copilot_qa(app, intent, image_id, llm),
+            // Label-name recommendation: gather names from the vision model and/or
+            // the detector and offer them as one-click "add label" actions.
+            Capability::SuggestLabels => self.copilot_suggest_labels(app, intent, image, image_id, llm),
             Capability::Segment => Ok(CopilotTurnResult::reply_only(
                 &intent.capability,
                 "Click an object (or draw a box) on the canvas and I\u{2019}ll outline it with \
@@ -1467,6 +1505,164 @@ impl AiService {
         })
     }
 
+    /// Recommend label/class names for the current image, drawn from whatever is
+    /// available — the auto-discovered local vision model and/or the on-device
+    /// detector — merged, deduped, and filtered against the project's existing
+    /// labels. Each suggestion is returned as a `CreateLabel` action the user can
+    /// add with one click. Both sources stay on the user's machine.
+    fn copilot_suggest_labels(
+        &self,
+        app: &tauri::AppHandle,
+        intent: &copilot::RoutedIntent,
+        image: &Value,
+        image_id: &str,
+        llm: Option<&CopilotLlmConfig>,
+    ) -> Result<CopilotTurnResult, AppError> {
+        let project_id = value_string(image, "projectId", "project_id").unwrap_or_default();
+        let existing_labels = if project_id.is_empty() {
+            Vec::new()
+        } else {
+            self.store.list_by_field("labels", "project_id", &project_id)?
+        };
+        let existing_lower: std::collections::HashSet<String> = existing_labels
+            .iter()
+            .filter_map(|label| value_string(label, "name", "name"))
+            .map(|name| name.trim().to_lowercase())
+            .collect();
+
+        let mut suggestions: Vec<String> = Vec::new();
+        let mut sources: Vec<&str> = Vec::new();
+        let mut notes: Vec<String> = Vec::new();
+        let mut predictions_added = 0usize;
+
+        // 1) Vision model: ask it to name the object classes it sees.
+        let vision_available = matches!(llm, Some(config) if config.vision);
+        if let Some(config) = llm {
+            if config.vision {
+                match self.vlm_suggest_labels(image, config) {
+                    Ok(mut names) if !names.is_empty() => {
+                        sources.push("the vision model");
+                        suggestions.append(&mut names);
+                    }
+                    Ok(_) => {}
+                    Err(_) => {
+                        // A failed call shouldn't sink the whole turn — the
+                        // detector may still produce names. Re-discover only if
+                        // the server is actually gone.
+                        if !llm::server_reachable(&config.base_url) {
+                            self.invalidate_llm();
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2) Detector: run it (best-effort) and use the classes it found on THIS
+        //    image. This also surfaces boxes on the canvas to accept.
+        let detector_model_id = self.resolve_model_id().ok().flatten();
+        let detector_available = detector_model_id.is_some();
+        if let Some(model_id) = detector_model_id {
+            match self.generate_predictions(
+                app,
+                PredictionGeneratePayload {
+                    image_id: image_id.to_string(),
+                    model_id,
+                    threshold: None,
+                },
+            ) {
+                Ok(predictions) => {
+                    predictions_added = predictions.len();
+                    let mut names: Vec<String> = predictions
+                        .iter()
+                        .filter_map(|prediction| {
+                            value_string(prediction, "labelName", "label_name")
+                                .or_else(|| value_string(prediction, "name", "name"))
+                        })
+                        .map(|name| name.trim().to_lowercase())
+                        .filter(|name| !name.is_empty())
+                        .collect();
+                    if !names.is_empty() {
+                        sources.push("the detector");
+                    }
+                    suggestions.append(&mut names);
+                }
+                Err(error) => notes.push(format!("The detector couldn\u{2019}t run ({error}).")),
+            }
+        }
+
+        // Neither source is set up → tell the user how to enable one.
+        if !vision_available && !detector_available {
+            return Ok(CopilotTurnResult::reply_only(
+                &intent.capability,
+                "To suggest label names from this image I need either a local vision model \
+                 (start LM Studio, Ollama, or llama.cpp with a \u{201c}-VL\u{201d}/LLaVA/Moondream \
+                 model) or an installed detector (add a YOLO model on the AI Models page). Set up \
+                 either one and ask again \u{2014} both stay on your machine.",
+            ));
+        }
+
+        // Dedupe (case-insensitive, order-preserving) and drop names the project
+        // already has a label for.
+        let mut seen = std::collections::HashSet::new();
+        let mut fresh: Vec<String> = Vec::new();
+        let mut already_have = 0usize;
+        for name in suggestions {
+            let key = name.trim().to_lowercase();
+            if key.is_empty() || !seen.insert(key.clone()) {
+                continue;
+            }
+            if existing_lower.contains(&key) {
+                already_have += 1;
+                continue;
+            }
+            fresh.push(key);
+        }
+        fresh.truncate(copilot::MAX_LABEL_SUGGESTIONS);
+
+        let proposed_actions: Vec<copilot::ProposedAction> = fresh
+            .iter()
+            .map(|name| copilot::ProposedAction::CreateLabel {
+                name: name.clone(),
+                color: DEFAULT_AI_LABEL_COLOR.to_string(),
+                project_id: project_id.clone(),
+                message: format!("Add \u{201c}{name}\u{201d} as a label"),
+            })
+            .collect();
+
+        let reply = build_suggest_reply(&fresh, &sources, already_have, &notes);
+
+        Ok(CopilotTurnResult {
+            reply,
+            capability: intent.capability.as_str().to_string(),
+            predictions_added,
+            findings: Vec::new(),
+            proposed_actions,
+        })
+    }
+
+    /// Ask the configured local vision model to name the object categories in the
+    /// image, returning a cleaned list of candidate label names.
+    fn vlm_suggest_labels(
+        &self,
+        image: &Value,
+        config: &CopilotLlmConfig,
+    ) -> Result<Vec<String>, AppError> {
+        let image_url = value_string(image, "path", "path")
+            .and_then(|path| llm::image_data_url(&path))
+            .ok_or_else(|| {
+                AppError::Message("Image file is unavailable for the vision model".into())
+            })?;
+        let api_key = crate::read_secret("copilot", "apiKey").ok().flatten();
+        let raw = llm::chat_completion(
+            config,
+            api_key.as_deref(),
+            LABEL_SUGGEST_SYSTEM_PROMPT,
+            LABEL_SUGGEST_USER_PROMPT,
+            Some(&image_url),
+        )?;
+        Ok(copilot::parse_label_list(&raw))
+    }
+
     /// Apply a copilot action the user approved (relabel / delete / new label).
     pub fn copilot_apply_action(
         &self,
@@ -1579,6 +1775,60 @@ fn summarize_by_class(predictions: &[Value]) -> String {
         .map(|(name, count)| format!("{count} {name}"))
         .collect::<Vec<_>>()
         .join(", ")
+}
+
+/// Compose the copilot's reply for a label-suggestion turn from the fresh names,
+/// which sources produced them, how many were already covered, and any notes.
+fn build_suggest_reply(
+    fresh: &[String],
+    sources: &[&str],
+    already_have: usize,
+    notes: &[String],
+) -> String {
+    let mut parts: Vec<String> = Vec::new();
+    if fresh.is_empty() {
+        if already_have > 0 {
+            parts.push(format!(
+                "Your project already has labels for everything I recognized here ({already_have} \
+                 match{}).",
+                if already_have == 1 { "" } else { "es" }
+            ));
+        } else {
+            parts.push(
+                "I couldn\u{2019}t pick out clear object categories to label in this image.".into(),
+            );
+        }
+    } else {
+        let source_text = if sources.is_empty() {
+            String::new()
+        } else {
+            format!(" (from {})", join_human(sources))
+        };
+        parts.push(format!(
+            "Here are label names I\u{2019}d suggest for this image{source_text} \u{2014} tap one to \
+             add it to your project:"
+        ));
+        if already_have > 0 {
+            parts.push(format!(
+                "({already_have} more match labels you already have.)"
+            ));
+        }
+    }
+    parts.extend(notes.iter().cloned());
+    parts.join(" ")
+}
+
+/// Join a short list into "a", "a and b", or "a, b and c".
+fn join_human(items: &[&str]) -> String {
+    match items {
+        [] => String::new(),
+        [one] => (*one).to_string(),
+        [first, second] => format!("{first} and {second}"),
+        _ => {
+            let (last, rest) = items.split_last().expect("non-empty");
+            format!("{} and {}", rest.join(", "), last)
+        }
+    }
 }
 
 fn get_entity_or_error(

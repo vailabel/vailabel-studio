@@ -12,7 +12,7 @@ export const TempPolygonAnnotation = memo(
     }
 
     const styles = {
-      fill: 'rgba(59, 130, 246, 0.2)',
+      fill: 'rgba(59, 130, 246, 0.5)',
       stroke: 'rgba(59, 130, 246)',
       vertexFill: 'rgba(59, 130, 246)',
       vertexStroke: 'white',

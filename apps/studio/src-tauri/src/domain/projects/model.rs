@@ -11,6 +11,13 @@ pub struct Project {
     pub description: Option<String>,
     #[serde(rename = "type")]
     pub project_type: String,
+    /// Coarse data type of the project's items: image | video | text | audio.
+    #[serde(default = "default_modality")]
+    pub modality: String,
+    /// Labeling task within the modality: detection | segmentation |
+    /// classification | keypoints | ner | ...
+    #[serde(default = "default_task")]
+    pub task: String,
     pub status: String,
     pub settings: Value,
     pub metadata: Value,
@@ -18,6 +25,14 @@ pub struct Project {
     pub created_at: String,
     #[serde(default = "crate::now_iso")]
     pub updated_at: String,
+}
+
+fn default_modality() -> String {
+    "image".to_string()
+}
+
+fn default_task() -> String {
+    "detection".to_string()
 }
 
 impl HasId for Project {

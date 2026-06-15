@@ -379,6 +379,17 @@ placeholders until their ONNX engines land.
 - `describe` / `ocr` / `help` / free-form chat → answered by a **local LLM/VLM** when one
   is auto-discovered (see Hybrid below); otherwise a pointer to start one or use the
   detector.
+- **`suggest_labels` ("suggest labels for this image" / "what should I label") — now wired.**
+  Recommends image-specific label **names** by merging whatever sources are available: the
+  auto-discovered **vision model** (prompted for a clean class list, parsed by
+  `copilot::parse_label_list`) **and** the **detector** (the classes it found on this image,
+  which also surface as boxes). Results are deduped, filtered against the project's existing
+  labels, and returned as `ProposedAction::CreateLabel` actions the frontend renders as
+  one-click "add label" chips (committed through the existing
+  `CopilotActionPayload::CreateLabel` → `copilot_apply_action` path). With neither a vision
+  model nor a detector available, it returns an actionable setup message. This is the
+  lowest-friction path to value when the YOLO detector isn't set up — a vision model alone
+  can name objects with no trained detector.
 
 **Hybrid: local LLM/VLM brain (LM Studio, Ollama, llama.cpp).**
 Grounding (detect/QA) stays deterministic on the ONNX detector — never the LLM — so

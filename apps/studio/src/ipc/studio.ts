@@ -164,8 +164,8 @@ export const studioCommands = {
     call<Prediction[]>("predictions_generate", { payload }),
   pipelineRun: (payload: PipelineRunRequest) =>
     call<Prediction[]>("pipeline_run", { payload }),
-  predictionsAccept: (predictionId: string) =>
-    call<Annotation>("predictions_accept", { payload: { predictionId } }),
+  predictionsAccept: (predictionId: string, labelId?: string) =>
+    call<Annotation>("predictions_accept", { payload: { predictionId, labelId } }),
   predictionsReject: (predictionId: string) =>
     call<SuccessResponse>("predictions_reject", {
       payload: { predictionId },

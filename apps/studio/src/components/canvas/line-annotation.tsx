@@ -4,6 +4,12 @@ import {
   useCanvasTool,
   useCanvasSelection,
 } from "@/contexts/canvas-context"
+import {
+  AnnotationLabel,
+  dashFor,
+  strokeWidthFor,
+  HANDLE_RADIUS,
+} from "./annotation-styles"
 import { memo, useCallback } from "react"
 
 interface LineAnnotationProps {
@@ -66,19 +72,18 @@ export const LineAnnotation = memo(
           x2={end.x}
           y2={end.y}
           style={{
-            stroke: isSelected ? "#ef4444" : annotation.color,
-            strokeWidth: isSelected ? 3 : 2,
-            strokeDasharray: readOnly ? "6 4" : "none",
+            stroke: annotation.color,
+            strokeWidth: strokeWidthFor(isSelected),
+            strokeDasharray: dashFor(readOnly),
           }}
         />
-        <text
+        <AnnotationLabel
           x={start.x}
-          y={start.y - 8}
-          style={{ fill: annotation.color }}
-          className="text-xs"
-        >
-          {annotation.name}
-        </text>
+          y={start.y}
+          color={annotation.color ?? "#3b82f6"}
+          name={annotation.name}
+          zoom={zoom}
+        />
         {isMoveTool &&
           !readOnly &&
           annotation.coordinates.map((point, index) => (
@@ -86,7 +91,7 @@ export const LineAnnotation = memo(
               key={index}
               cx={point.x}
               cy={point.y}
-              r={4 / zoom}
+              r={HANDLE_RADIUS / zoom}
               className="fill-white stroke-gray-400 stroke-1 cursor-pointer pointer-events-auto hover:fill-blue-200 transition-colors"
               onMouseDown={(e) => handlePointMouseDown(e, index)}
             />

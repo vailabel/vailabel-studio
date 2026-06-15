@@ -1,3 +1,5 @@
+import type { Modality, Task, AnnotationMeta } from "./modality"
+
 export class Point {
   x!: number
   y!: number
@@ -7,7 +9,12 @@ export class Project {
   id!: string
   name!: string
   description?: string
+  /** Legacy single-axis type, kept for back-compat (e.g. "object_detection"). */
   type!: string
+  /** Coarse data type of the project's items. Derived from `type` for old projects. */
+  modality?: Modality
+  /** Labeling task within the modality. Derived from `type` for old projects. */
+  task?: Task
   status!: string
   settings?: Record<string, any>
   metadata?: Record<string, any>
@@ -65,6 +72,8 @@ export class Annotation {
   group_id?: number | null
   /** LabelMe-style boolean flags for this shape. */
   flags?: Record<string, boolean>
+  /** Typed non-spatial payload (text span, audio range, mask RLE, video frame). */
+  meta?: AnnotationMeta
   projectId?: string
   project_id?: string
   project?: Project

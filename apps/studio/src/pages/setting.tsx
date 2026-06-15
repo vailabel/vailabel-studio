@@ -7,6 +7,7 @@ import {
   Brain,
   Keyboard,
   Cog,
+  Cloud,
   RotateCcw,
   Download,
   Upload,
@@ -19,12 +20,14 @@ import AppearanceSettings from "@/components/settings/appearance-settings"
 import { KeyboardShortcuts } from "@/components/settings/keyboard-shortcuts"
 import { ModelSelection } from "@/components/settings/model-selection"
 import AdvancedSettings from "@/components/settings/advanced-settings"
+import CloudStorageSettings from "@/components/settings/cloud-storage-settings"
 
 const CATEGORY_ICONS = {
   general: SettingsIcon,
   appearance: Palette,
   model: Brain,
   shortcuts: Keyboard,
+  cloud: Cloud,
   advanced: Cog,
 } as const
 
@@ -136,7 +139,7 @@ function SettingsView() {
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="overflow-x-auto pb-2">
-            <TabsList className="grid w-full min-w-[520px] grid-cols-5">
+            <TabsList className="grid w-full min-w-[620px] grid-cols-6">
               {categories.map((category) => {
                 const Icon =
                   CATEGORY_ICONS[category.id as keyof typeof CATEGORY_ICONS]
@@ -168,6 +171,9 @@ function SettingsView() {
               shortcuts={keyboardShortcutsList}
               onChange={updateKeyboardShortcuts}
             />
+          </TabsContent>
+          <TabsContent value="cloud" className="mt-6">
+            <CloudStorageSettings />
           </TabsContent>
           <TabsContent value="advanced" className="mt-6">
             <AdvancedSettings />

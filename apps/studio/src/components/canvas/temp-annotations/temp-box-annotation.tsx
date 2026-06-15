@@ -1,4 +1,5 @@
 import type { Annotation } from "@/types/core"
+import { getContentBoxColor } from "@/lib/utils"
 import { memo } from "react"
 
 interface TempBoxAnnotationProps {
@@ -16,9 +17,10 @@ export const TempBoxAnnotation = memo(
     }
 
     const [topLeft, bottomRight] = annotation.coordinates
+    const color = annotation.color ?? "#3b82f6"
     const styles = {
-      fill: 'rgba(59, 130, 246, 0.2)',
-      stroke: annotation.color,
+      fill: getContentBoxColor(color, 0.5),
+      stroke: color,
     }
 
     return (

@@ -1,6 +1,7 @@
 import type { Point, Annotation } from "@/types/core"
 import { ToolHandlerContext } from "../../hooks/use-canvas-handlers-context"
 import { ToolHandler } from "../tool-handlers"
+import { dedupeConsecutivePoints } from "../canvas-utils"
 
 export type LinestripHandlerUIState = {
   polygonPoints?: Point[]
@@ -76,16 +77,22 @@ export class LinestripHandler implements ToolHandler {
 
   private finishLinestrip() {
     const { toolState } = this.context
-    if (toolState.polygonPoints && toolState.polygonPoints.length >= 2) {
+    // Drop near-duplicate trailing vertices left by the double-click that finishes.
+    const points = dedupeConsecutivePoints(
+      toolState.polygonPoints || [],
+      3 / (this.context.zoom || 1)
+    )
+    if (points.length >= 2) {
       this.context.setToolState({
         showLabelInput: true,
         isDrawing: false,
+        polygonPoints: points,
         tempAnnotation: {
           id: crypto.randomUUID(),
           name: "New Line",
           type: "linestrip",
           color: "#2196f3",
-          coordinates: toolState.polygonPoints,
+          coordinates: points,
           imageId: this.context.annotationsStore.currentImage?.id || "",
           createdAt: new Date(),
           updatedAt: new Date(),

@@ -127,6 +127,13 @@ export interface CopilotFinding {
 export type CopilotProposedAction =
   | { kind: "relabel"; annotationId: string; toLabel: string; message: string }
   | { kind: "delete"; annotationId: string; message: string }
+  | {
+      kind: "createLabel"
+      name: string
+      color: string
+      projectId: string
+      message: string
+    }
 
 export interface CopilotTurnResult {
   reply: string

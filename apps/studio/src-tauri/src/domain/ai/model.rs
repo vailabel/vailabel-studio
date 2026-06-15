@@ -79,6 +79,10 @@ pub struct PredictionGeneratePayload {
 #[serde(rename_all = "camelCase")]
 pub struct PredictionActionPayload {
     pub prediction_id: String,
+    /// Optional label to assign on accept, overriding the model's predicted label
+    /// (lets the user correct a suggestion before accepting it).
+    #[serde(default)]
+    pub label_id: Option<String>,
 }
 
 /// One prompt-driven inference run for a capability-aware model plugin

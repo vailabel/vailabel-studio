@@ -124,6 +124,7 @@ export const useSettingsViewModel = () => {
       { id: "appearance", name: "Appearance" },
       { id: "model", name: "Model" },
       { id: "shortcuts", name: "Shortcuts" },
+      { id: "cloud", name: "Cloud Storage" },
       { id: "advanced", name: "Advanced" },
     ],
     activeTab,

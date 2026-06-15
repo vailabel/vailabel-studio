@@ -24,6 +24,9 @@ pub enum Capability {
     Ocr,
     /// Interactive segmentation (needs SAM — not wired yet).
     Segment,
+    /// Recommend label/class names for the current image, drawn from whatever is
+    /// available — the local vision model and/or the on-device detector.
+    SuggestLabels,
     /// Point the user at Dataset Intelligence.
     Summarize,
     /// Fallback: explain what the copilot can do.
@@ -38,6 +41,7 @@ impl Capability {
             Capability::Describe => "describe",
             Capability::Ocr => "ocr",
             Capability::Segment => "segment",
+            Capability::SuggestLabels => "suggest_labels",
             Capability::Summarize => "summarize",
             Capability::Help => "help",
         }
@@ -74,6 +78,16 @@ pub enum ProposedAction {
     #[serde(rename_all = "camelCase")]
     Delete {
         annotation_id: String,
+        message: String,
+    },
+    /// Create a new project label the copilot recommended for the image. Carries
+    /// the project id so the frontend can round-trip it back to
+    /// [`super::model::CopilotActionPayload::CreateLabel`] without extra context.
+    #[serde(rename_all = "camelCase")]
+    CreateLabel {
+        name: String,
+        color: String,
+        project_id: String,
         message: String,
     },
 }
@@ -117,6 +131,25 @@ pub fn route(message: &str, label_names: &[String]) -> RoutedIntent {
         &["segment", "outline", "mask", "make a polygon", "trace"],
     ) {
         Capability::Segment
+    } else if contains_any(
+        &text,
+        &[
+            "suggest label",
+            "suggest a label",
+            "recommend label",
+            "label suggestion",
+            "suggest class",
+            "recommend class",
+            "what label",
+            "which label",
+            "label names",
+            "what should i label",
+            "what to label",
+            "what classes",
+            "which classes",
+        ],
+    ) {
+        Capability::SuggestLabels
     } else if contains_any(
         &text,
         &[
@@ -204,6 +237,7 @@ pub enum PlanCapability {
     SegmentEachDetection,
     SegmentAtPoints,
     QaReview,
+    SuggestLabels,
     Describe,
     Ocr,
     Summarize,
@@ -218,6 +252,7 @@ impl PlanCapability {
             "segment_each_detection" | "segment_each" => Some(Self::SegmentEachDetection),
             "segment_at_points" | "segment" => Some(Self::SegmentAtPoints),
             "qa_review" | "qa" => Some(Self::QaReview),
+            "suggest_labels" | "suggest_label" | "recommend_labels" => Some(Self::SuggestLabels),
             "describe" | "caption" => Some(Self::Describe),
             "ocr" => Some(Self::Ocr),
             "summarize" => Some(Self::Summarize),
@@ -253,6 +288,7 @@ impl PlanStep {
             PlanCapability::SegmentAtPoints | PlanCapability::SegmentEachDetection => {
                 Capability::Segment
             }
+            PlanCapability::SuggestLabels => Capability::SuggestLabels,
             PlanCapability::Describe => Capability::Describe,
             PlanCapability::Ocr => Capability::Ocr,
             PlanCapability::Summarize => Capability::Summarize,
@@ -278,7 +314,7 @@ pub const PLANNER_SYSTEM_PROMPT: &str = "You convert a user's image-labeling req
 into a small JSON plan for an offline annotation tool. Respond with ONLY a JSON object \u{2014} \
 no prose, no markdown fences.\n\
 Schema: {\"steps\":[{\"capability\": one of [prompt_to_detect, detect_all, segment_each_detection, \
-segment_at_points, qa_review, describe, ocr, help], \"target\": optional object class like \"car\"}]}\n\
+segment_at_points, qa_review, suggest_labels, describe, ocr, help], \"target\": optional object class like \"car\"}]}\n\
 Rules:\n\
 - prompt_to_detect is ONLY for a specific named object class (car, dog, person). Its `target` must \
 be that class word \u{2014} never \"object\", \"objects\", \"everything\", or \"all\".\n\
@@ -287,6 +323,7 @@ be that class word \u{2014} never \"object\", \"objects\", \"everything\", or \"
 \u{2192} detect_all with NO target.\n\
 - if the user also says outline/segment/mask them after detecting \u{2192} add segment_each_detection.\n\
 - \"what did I miss\"/\"review\"/\"check\" \u{2192} qa_review.\n\
+- \"suggest labels\"/\"recommend labels\"/\"what should I label\"/\"what labels or classes\" \u{2192} suggest_labels (no target).\n\
 - \"describe\" \u{2192} describe; \"read text\" \u{2192} ocr; anything else \u{2192} help.\n\
 - At most 3 steps. Only use capabilities from the list.\n\
 Examples:\n\
@@ -294,7 +331,8 @@ Examples:\n\
 \"find all cars\" \u{2192} {\"steps\":[{\"capability\":\"prompt_to_detect\",\"target\":\"car\"}]}\n\
 \"find all cars and outline them\" \u{2192} {\"steps\":[{\"capability\":\"prompt_to_detect\",\"target\":\"car\"},{\"capability\":\"segment_each_detection\"}]}\n\
 \"detect everything\" \u{2192} {\"steps\":[{\"capability\":\"detect_all\"}]}\n\
-\"what did I miss\" \u{2192} {\"steps\":[{\"capability\":\"qa_review\"}]}";
+\"what did I miss\" \u{2192} {\"steps\":[{\"capability\":\"qa_review\"}]}\n\
+\"suggest labels for this image\" \u{2192} {\"steps\":[{\"capability\":\"suggest_labels\"}]}";
 
 /// Build the planner's user turn: the message plus a hint of the detector's known
 /// classes so it picks valid targets.
@@ -355,6 +393,7 @@ pub fn route_to_plan(message: &str, vocab: &[String]) -> Plan {
         Capability::Detect => PlanCapability::DetectAll,
         Capability::Qa => PlanCapability::QaReview,
         Capability::Segment => PlanCapability::SegmentAtPoints,
+        Capability::SuggestLabels => PlanCapability::SuggestLabels,
         Capability::Describe => PlanCapability::Describe,
         Capability::Ocr => PlanCapability::Ocr,
         Capability::Summarize => PlanCapability::Summarize,
@@ -401,6 +440,83 @@ fn extract_json_object(raw: &str) -> Option<&str> {
         }
     }
     None
+}
+
+/// Max label suggestions kept from a single turn — enough to be useful without
+/// burying the user in chips.
+pub const MAX_LABEL_SUGGESTIONS: usize = 12;
+
+/// Parse a model's free-text answer into a clean list of candidate label names.
+///
+/// Tolerates the three shapes a local model tends to return: a JSON array
+/// (`["car","person"]`), a comma-separated line, or a newline/bulleted list.
+/// Each name is stripped of list markers and quotes, lowercased, and filtered to
+/// short noun-like phrases (sentences are dropped); duplicates are removed with
+/// order preserved. Pure — unit-tested below.
+pub fn parse_label_list(raw: &str) -> Vec<String> {
+    let trimmed = raw.trim();
+    let tokens: Vec<String> = match extract_json_array(trimmed) {
+        Some(array) => array,
+        None => trimmed
+            .split(|character| matches!(character, ',' | '\n' | ';' | '/'))
+            .map(ToString::to_string)
+            .collect(),
+    };
+
+    let mut seen = std::collections::HashSet::new();
+    let mut out = Vec::new();
+    for token in tokens {
+        let cleaned = clean_label_token(&token);
+        if cleaned.is_empty() {
+            continue;
+        }
+        // Drop sentences/explanations — class names are short noun phrases.
+        if cleaned.split_whitespace().count() > 4 || cleaned.chars().count() > 40 {
+            continue;
+        }
+        if seen.insert(cleaned.clone()) {
+            out.push(cleaned);
+        }
+        if out.len() >= MAX_LABEL_SUGGESTIONS {
+            break;
+        }
+    }
+    out
+}
+
+/// Normalize one candidate token: strip leading list markers (numbering, bullets,
+/// dashes), surrounding quotes/brackets, collapse whitespace, and lowercase.
+fn clean_label_token(token: &str) -> String {
+    let stripped = token
+        .trim()
+        .trim_start_matches(|character: char| {
+            character.is_ascii_digit()
+                || matches!(character, '.' | ')' | '(' | '-' | '*' | '•' | '·' | '#' | ' ' | '\t')
+        })
+        .trim_matches(|character: char| {
+            matches!(character, '"' | '\'' | '`' | '[' | ']' | '{' | '}' | '.')
+        })
+        .trim();
+    stripped
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .to_lowercase()
+}
+
+/// Extract the first `[...]` JSON array of strings from arbitrary model output.
+fn extract_json_array(raw: &str) -> Option<Vec<String>> {
+    let start = raw.find('[')?;
+    let end = raw[start..].find(']').map(|offset| start + offset)?;
+    let slice = &raw[start..=end];
+    let value: Value = serde_json::from_str(slice).ok()?;
+    let array = value.as_array()?;
+    Some(
+        array
+            .iter()
+            .filter_map(|entry| entry.as_str().map(ToString::to_string))
+            .collect(),
+    )
 }
 
 /// Axis-aligned bounding box `[x0, y0, x1, y1]` from a coordinate array entity.
@@ -559,6 +675,43 @@ mod tests {
         );
         assert_eq!(route("read the text", &[]).capability, Capability::Ocr);
         assert_eq!(route("hello", &[]).capability, Capability::Help);
+    }
+
+    #[test]
+    fn routes_label_suggestion_requests() {
+        for message in [
+            "suggest labels for this image",
+            "recommend label names",
+            "what labels should I use here",
+            "what classes are in this image",
+        ] {
+            assert_eq!(
+                route(message, &[]).capability,
+                Capability::SuggestLabels,
+                "should route to SuggestLabels: {message:?}"
+            );
+        }
+        // "review my labels" is a QA ask, not a suggestion.
+        assert_eq!(route("review my labels", &[]).capability, Capability::Qa);
+    }
+
+    #[test]
+    fn parses_label_list_from_csv_json_and_bullets() {
+        // Comma-separated with stray casing/spacing.
+        assert_eq!(
+            parse_label_list(" Car, Person ,traffic light"),
+            vec!["car", "person", "traffic light"]
+        );
+        // JSON array embedded in prose.
+        assert_eq!(
+            parse_label_list("Sure! [\"dog\", \"Cat\", \"dog\"] are visible."),
+            vec!["dog", "cat"]
+        );
+        // Numbered / bulleted list, deduped, sentences dropped.
+        let raw = "1. bicycle\n2. Bicycle\n- bus\n* This image clearly shows a crowded street scene with many things";
+        assert_eq!(parse_label_list(raw), vec!["bicycle", "bus"]);
+        // Nothing usable.
+        assert!(parse_label_list("I can't tell.").len() <= 1);
     }
 
     #[test]

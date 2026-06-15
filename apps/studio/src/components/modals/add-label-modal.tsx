@@ -10,6 +10,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import type { LabelCreateForm } from "@/viewmodels/project-detail-viewmodel"
 import { LabelCreateSchema } from "@/viewmodels/project-detail-viewmodel"
+import { randomLabelColor } from "@/components/labels/label-colors"
 
 interface AddLabelModalProps {
   isOpen: boolean
@@ -37,7 +38,7 @@ export const AddLabelModal = memo(({
   onCreate,
   isLoading,
 }: AddLabelModalProps) => {
-  const [labelColor, setLabelColor] = useState("#3b82f6")
+  const [labelColor, setLabelColor] = useState(randomLabelColor)
   const [showColorPicker, setShowColorPicker] = useState(false)
 
   const {
@@ -50,13 +51,14 @@ export const AddLabelModal = memo(({
     resolver: zodResolver(LabelCreateSchema),
     defaultValues: {
       name: "",
-      color: "#3b82f6",
+      color: randomLabelColor(),
     },
   })
 
   const handleClose = () => {
-    reset()
-    setLabelColor("#3b82f6")
+    const nextColor = randomLabelColor()
+    reset({ name: "", color: nextColor })
+    setLabelColor(nextColor)
     setShowColorPicker(false)
     onClose()
   }

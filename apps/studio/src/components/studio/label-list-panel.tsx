@@ -1,5 +1,8 @@
 import { cn } from "@/lib/utils"
+import { ChevronDown, Sparkles, Tags } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Collapsible,
@@ -12,11 +15,24 @@ import { memo, useMemo, useCallback, useState } from "react"
 interface LabelListPanelProps {
   onLabelSelect: (label: Label) => void
   labels: Label[]
+  /** Currently armed class (new shapes inherit it). */
+  activeLabelId?: string | null
   isLoading?: boolean
 }
 
+/** Map the first nine classes (in list order) to their 1–9 hotkey number. */
+function useHotkeyMap(labels: Label[]): Map<string, number> {
+  return useMemo(() => {
+    const map = new Map<string, number>()
+    labels.slice(0, 9).forEach((label, index) => {
+      map.set(label.id, index + 1)
+    })
+    return map
+  }, [labels])
+}
+
 export const LabelListPanel = memo(
-  ({ onLabelSelect, labels, isLoading = false }: LabelListPanelProps) => {
+  ({ onLabelSelect, labels, activeLabelId, isLoading = false }: LabelListPanelProps) => {
     // Memoize grouped labels to prevent unnecessary recalculations
     const groupedLabels = useMemo(() => {
       return labels.reduce(
@@ -30,34 +46,35 @@ export const LabelListPanel = memo(
       )
     }, [labels])
 
+    const hotkeyByLabelId = useHotkeyMap(labels)
+
+    // Layout mirrors FileListPanel: fixed header + a min-h-0 flex-1 ScrollArea so
+    // the list scrolls within the panel instead of growing and being clipped.
     return (
-      <div
-        className={cn(
-          "h-full border-l",
-          "dark:bg-gray-800",
-          "bg-card border-border"
-        )}
-      >
-        <div
-          className={cn(
-            "px-4 py-3 border-b",
-            "dark:border-gray-700",
-            "border-border"
-          )}
-        >
-          <h2 className="text-lg font-semibold">Labels</h2>
-          <p className={cn("text-sm", "dark:text-muted-foreground", "text-muted-foreground")}>
-            {isLoading ? "Loading..." : `${labels.length} total`}
+      <div className="flex h-full flex-col border-l border-border bg-card text-card-foreground">
+        <div className="space-y-1 border-b border-border p-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold">Classes</h2>
+            <span className="text-xs text-muted-foreground">
+              {isLoading ? "Loading..." : `${labels.length} total`}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {labels.length > 0
+              ? "Click or press 1–9 to set the active class"
+              : "Draw on the canvas to create your first class"}
           </p>
         </div>
 
-        <ScrollArea className="h-[calc(100%-73px)]">
+        <ScrollArea className="min-h-0 flex-1">
           {isLoading ? (
             <LoadingSkeleton />
           ) : (
             <LabelList
               labelGroup={groupedLabels}
               onLabelSelect={onLabelSelect}
+              activeLabelId={activeLabelId ?? null}
+              hotkeyByLabelId={hotkeyByLabelId}
             />
           )}
         </ScrollArea>
@@ -69,6 +86,7 @@ export const LabelListPanel = memo(
     return (
       prevProps.labels === nextProps.labels &&
       prevProps.isLoading === nextProps.isLoading &&
+      prevProps.activeLabelId === nextProps.activeLabelId &&
       prevProps.onLabelSelect === nextProps.onLabelSelect
     )
   }
@@ -79,20 +97,19 @@ LabelListPanel.displayName = "LabelListPanel"
 interface LabelListProps {
   labelGroup: Record<string, Label[]>
   onLabelSelect: (label: Label) => void
+  activeLabelId: string | null
+  hotkeyByLabelId: Map<string, number>
 }
 
 // Loading skeleton component
 const LoadingSkeleton = memo(() => (
-  <div className="p-4 space-y-4">
+  <div className="space-y-4 p-3">
     {Array.from({ length: 3 }).map((_, i) => (
       <div key={i} className="space-y-2">
-        <div className="h-6 w-32 bg-muted rounded animate-pulse" />
+        <Skeleton className="h-6 w-32" />
         <div className="space-y-2 pl-4">
           {Array.from({ length: 2 }).map((_, j) => (
-            <div
-              key={j}
-              className="h-16 bg-muted rounded-lg animate-pulse"
-            />
+            <Skeleton key={j} className="h-16 rounded-lg" />
           ))}
         </div>
       </div>
@@ -107,9 +124,13 @@ const LabelItem = memo(
   ({
     label,
     onLabelSelect,
+    isActive,
+    hotkey,
   }: {
     label: Label
     onLabelSelect: (label: Label) => void
+    isActive: boolean
+    hotkey?: number
   }) => {
     const handleClick = useCallback(() => {
       onLabelSelect(label)
@@ -117,46 +138,60 @@ const LabelItem = memo(
 
     return (
       <div
-        key={label.id}
         className={cn(
-          "rounded-lg border p-3 cursor-pointer flex flex-col gap-1 transition-all duration-200 hover:scale-[1.02]",
-          "dark:hover:bg-gray-700 border-border hover:bg-muted",
-          "hover:shadow-sm dark:hover:shadow-gray-900/20",
-          label.isAIGenerated
-            ? "ring-2 ring-green-200 dark:ring-green-700 bg-green-50/50 dark:bg-green-900/10"
-            : ""
+          "flex cursor-pointer items-center gap-2 rounded-lg border border-border p-3 transition-colors hover:bg-muted",
+          isActive
+            ? "border-primary bg-primary/5 ring-2 ring-primary"
+            : label.isAIGenerated
+              ? "border-emerald-300/70 bg-emerald-50/40 dark:border-emerald-900 dark:bg-emerald-950/20"
+              : ""
         )}
         onClick={handleClick}
+        aria-pressed={isActive}
       >
-        <div className="flex items-center gap-2">
-          <div
-            style={{ backgroundColor: label.color }}
-            className={cn(
-              "h-4 w-4 rounded-full border-2 border-white shadow-sm flex-shrink-0",
-              label.isAIGenerated
-                ? "ring-2 ring-green-400 dark:ring-green-600"
-                : ""
-            )}
-          />
-          <span className="text-sm font-medium truncate flex-1 min-w-0">
-            {label.name}
-          </span>
-          {label.isAIGenerated && (
-            <span className="ml-2 px-2 py-0.5 rounded bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 text-xs font-semibold flex items-center gap-1 flex-shrink-0 transition-all duration-200">
-              <span className="text-base leading-none">🤖</span> AI
-            </span>
+        <span
+          style={{ backgroundColor: label.color }}
+          className={cn(
+            "h-4 w-4 flex-shrink-0 rounded-full border-2 border-white shadow-sm",
+            label.isAIGenerated && "ring-2 ring-emerald-400 dark:ring-emerald-600"
           )}
-        </div>
+        />
+        <span className="min-w-0 flex-1 truncate text-sm font-medium">
+          {label.name}
+        </span>
+        {label.isAIGenerated && (
+          <Badge
+            variant="outline"
+            className="flex-shrink-0 gap-1 border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300"
+          >
+            <Sparkles className="size-3" />
+            AI
+          </Badge>
+        )}
+        {hotkey ? (
+          <kbd
+            className={cn(
+              "flex h-5 min-w-5 flex-shrink-0 items-center justify-center rounded border px-1 text-xs font-semibold",
+              isActive
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border bg-muted text-muted-foreground"
+            )}
+          >
+            {hotkey}
+          </kbd>
+        ) : null}
       </div>
     )
   },
   (prevProps, nextProps) => {
-    // Only re-render if the label has actually changed
+    // Only re-render if the label, active state, or hotkey changed
     return (
       prevProps.label.id === nextProps.label.id &&
       prevProps.label.name === nextProps.label.name &&
       prevProps.label.color === nextProps.label.color &&
-      prevProps.label.isAIGenerated === nextProps.label.isAIGenerated
+      prevProps.label.isAIGenerated === nextProps.label.isAIGenerated &&
+      prevProps.isActive === nextProps.isActive &&
+      prevProps.hotkey === nextProps.hotkey
     )
   }
 )
@@ -169,10 +204,14 @@ const CategorySection = memo(
     category,
     labels,
     onLabelSelect,
+    activeLabelId,
+    hotkeyByLabelId,
   }: {
     category: string
     labels: Label[]
     onLabelSelect: (label: Label) => void
+    activeLabelId: string | null
+    hotkeyByLabelId: Map<string, number>
   }) => {
     const [isOpen, setIsOpen] = useState(true)
 
@@ -182,28 +221,32 @@ const CategorySection = memo(
           render={
             <Button
               variant="ghost"
-              className="w-full flex items-center justify-between px-2 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 pl-1 gap-2 hover:bg-muted"
+              className="mb-1 h-auto w-full justify-between gap-2 px-2 py-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:bg-muted"
             >
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 flex items-center justify-center transition-transform duration-200 hover:rotate-90">
-                  ▼
-                </div>
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-gray-300"></span>
-                {category}
-              </div>
-              <span className="text-xs bg-muted px-2 py-0.5 rounded-full">
-                {labels.length}
+              <span className="flex min-w-0 items-center gap-1.5">
+                <ChevronDown
+                  className={cn(
+                    "size-3.5 flex-shrink-0",
+                    !isOpen && "-rotate-90"
+                  )}
+                />
+                <span className="truncate">{category}</span>
               </span>
+              <Badge variant="secondary" className="font-normal">
+                {labels.length}
+              </Badge>
             </Button>
           }
         />
         <CollapsibleContent>
-          <div className="space-y-2 transition-all duration-200">
+          <div className="space-y-2">
             {labels.map((label) => (
               <LabelItem
                 key={label.id}
                 label={label}
                 onLabelSelect={onLabelSelect}
+                isActive={label.id === activeLabelId}
+                hotkey={hotkeyByLabelId.get(label.id)}
               />
             ))}
           </div>
@@ -215,64 +258,55 @@ const CategorySection = memo(
 
 CategorySection.displayName = "CategorySection"
 
-const LabelList = memo(({ labelGroup, onLabelSelect }: LabelListProps) => {
-  const hasLabels = Object.keys(labelGroup).length > 0
+const LabelList = memo(
+  ({ labelGroup, onLabelSelect, activeLabelId, hotkeyByLabelId }: LabelListProps) => {
+    const hasLabels = Object.keys(labelGroup).length > 0
 
-  return (
-    <div className="p-4">
-      {hasLabels ? (
-        <div className="space-y-4">
-          {Object.entries(labelGroup)
-            .sort(([a], [b]) => {
-              // Sort categories alphabetically, but put "Uncategorized" last
-              if (a === "Uncategorized") return 1
-              if (b === "Uncategorized") return -1
-              return a.localeCompare(b)
-            })
-            .map(([category, labels]) => (
-              <CategorySection
-                key={category}
-                category={category}
-                labels={labels}
-                onLabelSelect={onLabelSelect}
-              />
-            ))}
-        </div>
-      ) : (
-        <EmptyState />
-      )}
-    </div>
-  )
-})
+    return (
+      <div className="p-3">
+        {hasLabels ? (
+          <div className="space-y-4">
+            {Object.entries(labelGroup)
+              .sort(([a], [b]) => {
+                // Sort categories alphabetically, but put "Uncategorized" last
+                if (a === "Uncategorized") return 1
+                if (b === "Uncategorized") return -1
+                return a.localeCompare(b)
+              })
+              .map(([category, labels]) => (
+                <CategorySection
+                  key={category}
+                  category={category}
+                  labels={labels}
+                  onLabelSelect={onLabelSelect}
+                  activeLabelId={activeLabelId}
+                  hotkeyByLabelId={hotkeyByLabelId}
+                />
+              ))}
+          </div>
+        ) : (
+          <EmptyState />
+        )}
+      </div>
+    )
+  }
+)
 
 LabelList.displayName = "LabelList"
 
 // Improved empty state component
 const EmptyState = memo(() => (
-  <div
-    className={cn(
-      "mt-8 rounded-lg border border-dashed p-8 text-center transition-all duration-200",
-      "dark:border-gray-700/50",
-      "border-input bg-muted/50"
-    )}
-  >
-    <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
-      <span className="text-2xl">🏷️</span>
+  <div className="mt-8 rounded-lg border border-dashed border-border bg-muted/50 p-8 text-center">
+    <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+      <Tags className="h-6 w-6 text-muted-foreground" />
     </div>
-    <h3
-      className={cn(
-        "text-sm font-medium mb-2",
-        "dark:text-gray-300",
-        "text-foreground"
-      )}
-    >
-      No labels created yet
+    <h3 className="mb-2 text-sm font-medium text-foreground">
+      No classes created yet
     </h3>
-    <p className={cn("text-xs", "dark:text-muted-foreground", "text-muted-foreground")}>
-      Use the drawing tools to create your first label
+    <p className="text-xs text-muted-foreground">
+      Use the drawing tools to create your first class
     </p>
   </div>
 ))
 
 EmptyState.displayName = "EmptyState"
-

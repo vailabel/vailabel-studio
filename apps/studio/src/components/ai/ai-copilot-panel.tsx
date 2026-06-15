@@ -4,15 +4,18 @@ import {
   Check,
   Cpu,
   Loader2,
+  Plus,
   ScanSearch,
   Send,
   ShieldCheck,
   Sparkles,
   SquarePen,
+  Tags,
   Text,
   X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Markdown } from "@/components/ui/markdown"
 import { useAiCopilotViewModel } from "@/viewmodels/ai-copilot-viewmodel"
 import type { CopilotMessage } from "@/viewmodels/ai-copilot-viewmodel"
 
@@ -33,6 +36,12 @@ interface Suggestion {
 // Quick actions the copilot can run on the current image. These map to the
 // deterministic capability router on the backend.
 const SUGGESTIONS: Suggestion[] = [
+  {
+    label: "Suggest labels",
+    hint: "Recommend label names from the image",
+    prompt: "Suggest labels for this image",
+    icon: Tags,
+  },
   {
     label: "Detect objects",
     hint: "Run the on-device detector",
@@ -237,7 +246,7 @@ function CopilotMessageView({
 }) {
   if (message.role === "user") {
     return (
-      <div className="ml-auto max-w-[85%] rounded-lg rounded-br-sm bg-primary px-3 py-2 text-sm text-primary-foreground">
+      <div className="ml-auto max-w-[85%] whitespace-pre-wrap break-words rounded-lg rounded-br-sm bg-primary px-3 py-2 text-sm text-primary-foreground [overflow-wrap:anywhere]">
         {message.text}
       </div>
     )
@@ -247,11 +256,23 @@ function CopilotMessageView({
   const missedFindings =
     result?.findings.filter((finding) => finding.kind === "missed") ?? []
 
+  // Label suggestions render as one-click "add" chips; relabel/delete actions
+  // keep the amber approve/deny card. Indices are preserved so resolution still
+  // keys into `message.resolved`.
+  const indexedActions = (result?.proposedActions ?? []).map((action, index) => ({
+    action,
+    index,
+  }))
+  const labelSuggestions = indexedActions.filter(
+    (entry) => entry.action.kind === "createLabel"
+  )
+  const otherActions = indexedActions.filter(
+    (entry) => entry.action.kind !== "createLabel"
+  )
+
   return (
-    <div className="flex flex-col gap-2">
-      <div className="max-w-[90%] text-sm leading-relaxed text-foreground">
-        {message.text}
-      </div>
+    <div className="flex min-w-0 flex-col gap-2">
+      <Markdown className="text-foreground">{message.text}</Markdown>
 
       {result && result.predictionsAdded > 0 ? (
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -272,16 +293,51 @@ function CopilotMessageView({
         </ul>
       ) : null}
 
-      {result?.proposedActions.map((action, index) => {
+      {labelSuggestions.length > 0 ? (
+        <div className="flex flex-wrap gap-1.5">
+          {labelSuggestions.map(({ action, index }) => {
+            if (action.kind !== "createLabel") return null
+            const added = message.resolved[index] === "approved"
+            return (
+              <button
+                key={`label-${index}`}
+                type="button"
+                disabled={added}
+                onClick={() =>
+                  void onResolve(message.id, index, action, "approved")
+                }
+                title={added ? "Added to project" : `Add "${action.name}"`}
+                className={
+                  added
+                    ? "inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-xs text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300"
+                    : "inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-xs hover:bg-muted"
+                }
+              >
+                {added ? (
+                  <Check className="h-3 w-3" />
+                ) : (
+                  <Plus className="h-3 w-3" />
+                )}
+                {action.name}
+              </button>
+            )
+          })}
+        </div>
+      ) : null}
+
+      {otherActions.map(({ action, index }) => {
+        if (action.kind === "createLabel") return null
         const decision = message.resolved[index]
         return (
           <div
             key={`action-${index}`}
-            className="rounded-md border border-amber-300 bg-amber-50 p-2.5 dark:border-amber-900 dark:bg-amber-950/40"
+            className="min-w-0 rounded-md border border-amber-300 bg-amber-50 p-2.5 dark:border-amber-900 dark:bg-amber-950/40"
           >
             <div className="mb-2 flex items-start gap-1.5 text-xs text-amber-800 dark:text-amber-300">
               <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              <span>{action.message}</span>
+              <span className="min-w-0 break-words [overflow-wrap:anywhere]">
+                {action.message}
+              </span>
             </div>
             {decision ? (
               <p className="text-xs font-medium text-muted-foreground">

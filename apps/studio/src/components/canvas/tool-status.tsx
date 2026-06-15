@@ -1,4 +1,4 @@
-import { memo } from "react"
+import { memo, type ReactNode } from "react"
 
 interface ToolStatusProps {
   tool: string
@@ -10,118 +10,104 @@ interface ToolStatusProps {
   isResizing?: boolean
 }
 
-export const ToolStatus = memo(({ 
-  tool, 
-  isVisible, 
-  pointCount = 0,
-  isDragging = false,
-  isDrawing = false,
-  isMoving = false,
-  isResizing = false
-}: ToolStatusProps) => {
-  if (!isVisible) return null
+const Kbd = ({ children }: { children: ReactNode }) => (
+  <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold leading-none text-muted-foreground">
+    {children}
+  </kbd>
+)
 
-  const getStatusMessage = () => {
-    switch (tool) {
-      case "move":
-        if (isMoving) return "Moving annotation..."
-        if (isResizing) return "Resizing annotation..."
-        return "Click and drag to move annotations, drag handles to resize"
-      
-      case "box":
-        if (isDragging) return "Drawing box..."
-        return "Click and drag to draw a rectangle"
-      
-      case "polygon":
-        if (pointCount === 0) return "Click to start drawing polygon"
-        if (pointCount < 3) return `Add ${3 - pointCount} more point${3 - pointCount > 1 ? 's' : ''} to close polygon`
-        return "Click first point to close, or press Enter/Double-click to finish"
-      
-      case "freeDraw":
-        if (isDrawing) return "Drawing freeform shape..."
-        return "Click and drag to draw freeform shapes"
-      
-      case "delete":
-        return "Click on any annotation to delete it"
-      
-      default:
-        return ""
-    }
-  }
+/**
+ * Compact in-canvas hint pill telling the user how to use the active drawing
+ * tool — crucially, how to FINISH multi-point shapes (double-click / Enter), so
+ * they don't have to discover the click-the-first-point trick on their own.
+ * Functional feedback only (no decorative motion).
+ */
+export const ToolStatus = memo(
+  ({
+    tool,
+    isVisible,
+    pointCount = 0,
+    isDragging = false,
+    isDrawing = false,
+    isMoving = false,
+    isResizing = false,
+  }: ToolStatusProps) => {
+    if (!isVisible) return null
 
-  const getInstructions = () => {
-    const instructions = []
-    
-    switch (tool) {
-      case "move":
-        instructions.push("Drag: Move annotation")
-        instructions.push("Drag handles: Resize annotation")
-        break
-      
-      case "box":
-        instructions.push("Click & drag: Draw rectangle")
-        instructions.push("Escape: Cancel drawing")
-        break
-      
-      case "polygon":
-        if (pointCount > 0) {
-          instructions.push("Right-click or Backspace: Undo last point")
-        }
-        instructions.push("Escape: Cancel polygon")
-        if (pointCount >= 3) {
-          instructions.push("Enter: Finish polygon")
-        }
-        break
-      
-      case "freeDraw":
-        instructions.push("Click & drag: Draw shape")
-        instructions.push("Escape: Cancel drawing")
-        break
-      
-      case "delete":
-        instructions.push("Click: Delete annotation")
-        instructions.push("Escape: Cancel deletion")
-        break
-    }
-    
-    return instructions
-  }
+    const hint = ((): ReactNode => {
+      switch (tool) {
+        case "move":
+          if (isMoving) return "Moving…"
+          if (isResizing) return "Resizing…"
+          return "Drag a shape to move it · drag its handles to resize"
 
-  const getToolIcon = () => {
-    switch (tool) {
-      case "move": return "↔️"
-      case "box": return "⬜"
-      case "polygon": return "🔺"
-      case "freeDraw": return "✏️"
-      case "delete": return "🗑️"
-      default: return "🛠️"
-    }
-  }
+        case "box":
+          return isDragging ? (
+            "Release to finish the box"
+          ) : (
+            <>Click &amp; drag to draw a box</>
+          )
 
-  const getStatusColor = () => {
-    if (isDragging || isDrawing || isMoving || isResizing) {
-      return "bg-blue-600 border-blue-500"
-    }
-    return "bg-gray-900 border-gray-700"
-  }
+        case "circle":
+          return isDragging
+            ? "Release to finish the circle"
+            : "Click & drag to draw a circle"
 
-  return (
-    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-50">
-      <div className={`${getStatusColor()} text-white px-4 py-2 rounded-lg shadow-lg border`}>
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-lg">{getToolIcon()}</span>
-          <div className="text-sm font-medium">
-            {getStatusMessage()}
-          </div>
-        </div>
-        <div className="text-xs text-gray-300 space-y-1">
-          {getInstructions().map((instruction, index) => (
-            <div key={index}>{instruction}</div>
-          ))}
+        case "line":
+          return isDragging
+            ? "Release to finish the line"
+            : "Click & drag to draw a line"
+
+        case "point":
+          return "Click to place a point"
+
+        case "freeDraw":
+          return isDrawing
+            ? "Release to finish the freehand shape"
+            : "Click & drag to draw freehand"
+
+        case "polygon":
+          if (pointCount === 0) return "Click to place the first point"
+          if (pointCount < 3)
+            return `Click to add points — ${3 - pointCount} more to close`
+          return (
+            <span className="flex items-center gap-1.5">
+              Finish: <Kbd>Double-click</Kbd> or <Kbd>Enter</Kbd> or click the
+              first point · <Kbd>Esc</Kbd> cancel
+            </span>
+          )
+
+        case "linestrip":
+          if (pointCount === 0) return "Click to place the first point"
+          if (pointCount < 2) return "Click to add another point"
+          return (
+            <span className="flex items-center gap-1.5">
+              Finish: <Kbd>Double-click</Kbd> or <Kbd>Enter</Kbd> ·{" "}
+              <Kbd>Esc</Kbd> cancel
+            </span>
+          )
+
+        case "smartSegment":
+          return "Click an object (or drag a box around it) to auto-segment"
+
+        case "delete":
+          return "Click a shape to delete it"
+
+        default:
+          return null
+      }
+    })()
+
+    if (!hint) return null
+
+    return (
+      <div className="pointer-events-none absolute bottom-4 left-1/2 z-30 -translate-x-1/2">
+        <div className="flex items-center gap-1.5 rounded-full border border-border bg-card/95 px-3 py-1.5 text-xs font-medium text-foreground shadow-lg backdrop-blur">
+          {hint}
         </div>
       </div>
-    </div>
-  )
-})
+    )
+  }
+)
 
 ToolStatus.displayName = "ToolStatus"

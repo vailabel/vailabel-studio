@@ -131,7 +131,7 @@ pub fn predictions_accept(
 ) -> Result<Value, AppError> {
     state
         .ai_service
-        .accept_prediction(&app, &payload.prediction_id)
+        .accept_prediction(&app, &payload.prediction_id, payload.label_id.as_deref())
 }
 
 #[tauri::command]

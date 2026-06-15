@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from "react"
 import type { Annotation } from "@/types/core"
+import type { AnnotationMeta } from "@/types/modality"
 import type { CanvasHistoryEntry, CanvasSessionState } from "./types"
 
 interface CreateAnnotationDraftInput {
@@ -7,6 +8,8 @@ interface CreateAnnotationDraftInput {
   color: string
   type: string
   coordinates: Array<{ x: number; y: number }>
+  labelId?: string
+  meta?: AnnotationMeta
 }
 
 interface UseCanvasSessionOptions {

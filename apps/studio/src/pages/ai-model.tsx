@@ -6,7 +6,7 @@ import {
   Cpu,
   HardDrive,
   Import,
-  RefreshCw,
+  Layers,
   Sparkles,
   Trash2,
 } from "lucide-react"
@@ -22,46 +22,32 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Spinner } from "@/components/ui/spinner"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { DataGrid, type DataGridColumn } from "@/components/data-grid"
 import AIModelForm from "@/components/forms/AIModelForm"
 import { AiRuntimeStatus } from "@/components/ai/ai-runtime-status"
+import { ModelPacks } from "@/components/ai/model-packs"
+import { ModelLibrary } from "@/components/ai/model-library"
+import { useAIModelViewModel } from "@/viewmodels/ai-model-viewmodel"
 import {
-  useAIModelViewModel,
-  type CatalogSystemModel,
-  type CatalogSystemModelVariant,
-} from "@/viewmodels/ai-model-viewmodel"
-import {
-  getAIModelMetadata,
   getModelClassCount,
   getModelUsageHint,
   getPredictionReadinessLabel,
   getModelUnsupportedReason,
-  isDetectionModel,
   isModelPredictionReady,
   isModelUsable,
   willModelConvertOnRun,
 } from "@/lib/ai-model-metadata"
+import {
+  countReadyCapabilities,
+  totalCapabilities,
+} from "@/lib/model-catalog"
 import { aiModelFormSchema, type AIModelFormData } from "@/lib/schemas/ai-model"
 import { toast } from "sonner"
 import type { AIModel } from "@/types/core"
@@ -113,17 +99,11 @@ export default function AIModelListPage() {
     isLoading,
     isImportingModel,
     recommendedInstalledModel,
-    recommendedSystemModel,
-    selectedModel,
     totalModelSize,
     findInstalledCatalogVariant,
-    isInstallingVariant,
     deleteModel,
-    activateModel,
     importModel,
     installSystemModel,
-    selectCatalogRelease,
-    refreshCatalogReleases,
     refreshModels,
   } = viewModel
 
@@ -159,7 +139,6 @@ export default function AIModelListPage() {
         modelFilePath: data.modelFilePath,
         configFilePath: data.configFilePath || undefined,
       })
-      await activateModel(imported.id)
       await refreshModels()
       installToast(imported, "imported")
       setShowImportModal(false)
@@ -184,50 +163,94 @@ export default function AIModelListPage() {
     }
   }
 
-  const handleActivate = async (modelId: string) => {
-    try {
-      await activateModel(modelId)
-      toast("Model activated", {
-        description: "This model is now the default local detector.",
-      })
-    } catch {
-      toast.error("Activation failed", {
-        description: "The model could not be activated.",
-      })
-    }
-  }
-
-  const handleInstallVariant = async (
-    model: CatalogSystemModel,
-    variant: CatalogSystemModelVariant
-  ) => {
-    try {
-      const installed = await installSystemModel(model, variant)
-      await activateModel(installed.id)
-      await refreshModels()
-      installToast(installed, "installed")
-    } catch (error) {
-      toast.error("Install failed", {
-        description:
-          error instanceof Error
-            ? error.message
-            : "The model could not be installed from the catalog.",
-      })
-    }
-  }
-
-  const handleRefreshReleases = async (model: CatalogSystemModel) => {
-    try {
-      await refreshCatalogReleases(model)
-    } catch (error) {
-      toast.error("Release refresh failed", {
-        description:
-          error instanceof Error
-            ? error.message
-            : "The GitHub release list could not be refreshed.",
-      })
-    }
-  }
+  const installedColumns: DataGridColumn<AIModel>[] = [
+    {
+      id: "name",
+      header: "Name",
+      cell: ({ row }) => {
+        const model = row.original
+        return (
+          <div>
+            <div className="flex items-center gap-2 font-medium">
+              <span>{model.name}</span>
+              {recommendedInstalledModel?.id === model.id && (
+                <Badge variant="secondary" title="Used by default when a tool needs a detector">
+                  Default detector
+                </Badge>
+              )}
+            </div>
+            <span className="text-xs text-muted-foreground">
+              {model.modelVersion || model.model_version || `v${model.version}`}
+            </span>
+          </div>
+        )
+      },
+    },
+    {
+      id: "category",
+      header: "Category",
+      cell: ({ row }) => (
+        <Badge variant="outline">{row.original.category || "uncategorized"}</Badge>
+      ),
+    },
+    {
+      id: "size",
+      header: "Size",
+      cell: ({ row }) => (
+        <span className="tabular-nums">
+          {formatFileSize(row.original.modelSize || 0)}
+        </span>
+      ),
+    },
+    {
+      id: "classes",
+      header: "Classes",
+      cell: ({ row }) => (
+        <span className="tabular-nums">{getModelClassCount(row.original) || "—"}</span>
+      ),
+    },
+    {
+      id: "prediction",
+      header: "Prediction",
+      cell: ({ row }) => (
+        <Badge
+          variant={isModelUsable(row.original) ? "secondary" : "outline"}
+          title={getModelUsageHint(row.original)}
+        >
+          {getPredictionReadinessLabel(row.original)}
+        </Badge>
+      ),
+    },
+    {
+      id: "backend",
+      header: "Backend",
+      cell: ({ row }) => (
+        <Badge variant="outline">
+          {(row.original.backend || "cpu").toUpperCase()}
+        </Badge>
+      ),
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => {
+        const model = row.original
+        return (
+          <div className="flex justify-end gap-1.5">
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              onClick={() => setDeleteTarget(model)}
+              aria-label={`Delete ${model.name}`}
+              className="text-muted-foreground hover:text-destructive"
+            >
+              <Trash2 className="size-4" />
+            </Button>
+          </div>
+        )
+      },
+    },
+  ]
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6">
@@ -266,25 +289,26 @@ export default function AIModelListPage() {
           value={predictionReadyCount}
         />
         <StatCard
-          icon={Cpu}
-          label="Active model"
-          value={selectedModel?.name || "None"}
+          icon={Layers}
+          label="Capabilities ready"
+          value={`${countReadyCapabilities(availableModels)}/${totalCapabilities}`}
         />
       </div>
 
       <Alert>
         <Cpu className="size-4" />
         <AlertDescription>
-          Install a curated model from the catalog, pick a GitHub release for YOLO
-          families, or import a local file. Prediction generation always stays
-          local and offline.
+          Install a curated model pack matched to your hardware, or import a local
+          file. Each pack bundles several models so the copilot can aggregate them
+          for auto-labeling. Prediction generation always stays local and offline.
         </AlertDescription>
       </Alert>
 
       <Tabs defaultValue="installed" className="gap-4">
         <TabsList>
           <TabsTrigger value="installed">Installed models</TabsTrigger>
-          <TabsTrigger value="catalog">Reference catalog</TabsTrigger>
+          <TabsTrigger value="catalog">Model packs</TabsTrigger>
+          <TabsTrigger value="library">Model library</TabsTrigger>
         </TabsList>
 
         {/* Installed */}
@@ -305,270 +329,36 @@ export default function AIModelListPage() {
                 <div className="flex flex-col items-center gap-2 py-10 text-center">
                   <Brain className="size-9 text-muted-foreground" />
                   <p className="text-sm text-muted-foreground">
-                    No local models yet — import one or install from the catalog.
+                    No local models yet — install a model pack or import one.
                   </p>
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Size</TableHead>
-                      <TableHead>Classes</TableHead>
-                      <TableHead>Prediction</TableHead>
-                      <TableHead>Backend</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {availableModels.map((model) => (
-                      <TableRow key={model.id}>
-                        <TableCell className="font-medium">
-                          <div className="flex items-center gap-2">
-                            <span>{model.name}</span>
-                            {model.isActive ? (
-                              <Badge className="bg-emerald-600 text-white hover:bg-emerald-600">
-                                Active
-                              </Badge>
-                            ) : recommendedInstalledModel?.id === model.id ? (
-                              <Badge variant="secondary">Default</Badge>
-                            ) : null}
-                          </div>
-                          <span className="text-xs text-muted-foreground">
-                            {model.modelVersion ||
-                              model.model_version ||
-                              `v${model.version}`}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            {model.category || "uncategorized"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="tabular-nums">
-                          {formatFileSize(model.modelSize || 0)}
-                        </TableCell>
-                        <TableCell className="tabular-nums">
-                          {getModelClassCount(model) || "—"}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              isModelUsable(model) ? "secondary" : "outline"
-                            }
-                            title={getModelUsageHint(model)}
-                          >
-                            {getPredictionReadinessLabel(model)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            {(model.backend || "cpu").toUpperCase()}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-1.5">
-                            {/* "Active" applies to the detector only. Segmentation
-                                models (SAM) are used on demand by the copilot, so
-                                they're never "activated". */}
-                            {!model.isActive && isDetectionModel(model) && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => void handleActivate(model.id)}
-                              >
-                                Activate
-                              </Button>
-                            )}
-                            <Button
-                              size="icon-sm"
-                              variant="ghost"
-                              onClick={() => setDeleteTarget(model)}
-                              aria-label={`Delete ${model.name}`}
-                              className="text-muted-foreground hover:text-destructive"
-                            >
-                              <Trash2 className="size-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <DataGrid
+                  data={availableModels}
+                  columns={installedColumns}
+                  enableSearch={false}
+                  enableSorting={false}
+                  enablePagination={false}
+                  showAggregations={false}
+                />
               )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Catalog */}
+        {/* Model packs */}
         <TabsContent value="catalog">
-          <div className="grid gap-4 lg:grid-cols-2">
-            {systemModels.map((model) => (
-              <Card
-                key={model.id}
-                className={
-                  recommendedSystemModel?.id === model.id
-                    ? "ring-1 ring-primary"
-                    : undefined
-                }
-              >
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    {model.name}
-                    {recommendedSystemModel?.id === model.id && (
-                      <Badge>Recommended</Badge>
-                    )}
-                  </CardTitle>
-                  <CardDescription>{model.description}</CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4 text-sm">
-                  {model.releaseSource && (
-                    <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/40 p-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs text-muted-foreground">
-                          {model.releaseSource.owner}/{model.releaseSource.repo}
-                        </span>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="gap-1.5"
-                          onClick={() => void handleRefreshReleases(model)}
-                          disabled={model.isReleaseLoading}
-                        >
-                          {model.isReleaseLoading ? (
-                            <Spinner className="size-3.5" />
-                          ) : (
-                            <RefreshCw className="size-3.5" />
-                          )}
-                          Refresh releases
-                        </Button>
-                      </div>
-                      {model.releaseOptions?.length ? (
-                        <Select
-                          value={model.selectedReleaseTag || undefined}
-                          onValueChange={(value) => {
-                            if (value) selectCatalogRelease(model, value)
-                          }}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Choose a release" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {model.releaseOptions.map((release) => (
-                              <SelectItem
-                                key={release.tagName}
-                                value={release.tagName}
-                              >
-                                {release.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <p className="text-xs text-muted-foreground">
-                          Using built-in download URLs — refresh to pull the latest
-                          GitHub releases.
-                        </p>
-                      )}
-                      {model.releaseError && (
-                        <p className="text-xs text-destructive">
-                          {model.releaseError}
-                        </p>
-                      )}
-                    </div>
-                  )}
+          <ModelPacks
+            systemModels={systemModels}
+            findInstalledCatalogVariant={findInstalledCatalogVariant}
+            installSystemModel={installSystemModel}
+            refreshModels={refreshModels}
+          />
+        </TabsContent>
 
-                  {model.variants?.length ? (
-                    <div className="flex flex-col gap-2">
-                      {model.variants.map((variant) => {
-                        const installed = findInstalledCatalogVariant(
-                          model,
-                          variant
-                        )
-                        const installing = isInstallingVariant(model, variant)
-                        const meta = getAIModelMetadata({
-                          modelMetadata: variant.modelMetadata,
-                        })
-                        return (
-                          <div
-                            key={`${model.id}:${variant.assetName || variant.name}`}
-                            className="flex items-start justify-between gap-3 rounded-lg border border-border p-3"
-                          >
-                            <div className="min-w-0 space-y-1">
-                              <div className="flex flex-wrap items-center gap-1.5">
-                                <span className="font-medium text-foreground">
-                                  {variant.modelVersion || variant.name}
-                                </span>
-                                {variant.recommended && <Badge>Recommended</Badge>}
-                                {installed && (
-                                  <Badge variant="secondary">Installed</Badge>
-                                )}
-                              </div>
-                              <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                                {typeof variant.size === "number" && (
-                                  <span>{formatFileSize(variant.size)}</span>
-                                )}
-                                {typeof variant.accuracy === "number" && (
-                                  <span>{variant.accuracy}% mAP</span>
-                                )}
-                                <span>
-                                  {meta.supportsPrediction
-                                    ? "Prediction ready"
-                                    : "Reference only"}
-                                </span>
-                              </div>
-                              {!variant.available && variant.unavailableReason && (
-                                <p className="text-xs text-destructive">
-                                  {variant.unavailableReason}
-                                </p>
-                              )}
-                            </div>
-
-                            {installed ? (
-                              installed.isActive ? (
-                                <Badge className="bg-emerald-600 text-white hover:bg-emerald-600">
-                                  Active
-                                </Badge>
-                              ) : (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => void handleActivate(installed.id)}
-                                >
-                                  Activate
-                                </Button>
-                              )
-                            ) : (
-                              <Button
-                                size="sm"
-                                className="gap-1.5"
-                                onClick={() =>
-                                  void handleInstallVariant(model, variant)
-                                }
-                                disabled={installing || !variant.available}
-                              >
-                                {installing && <Spinner className="size-3.5" />}
-                                {installing
-                                  ? "Installing…"
-                                  : variant.available
-                                    ? "Install"
-                                    : "Unavailable"}
-                              </Button>
-                            )}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      No installable variants for this family.
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+        {/* Model library — grouped by capability/tool across CV + NLP */}
+        <TabsContent value="library">
+          <ModelLibrary availableModels={availableModels} />
         </TabsContent>
       </Tabs>
 

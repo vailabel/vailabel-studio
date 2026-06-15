@@ -24,8 +24,8 @@ export const predictionsService = {
    *  predictions produced for this prompt, persisted for the review loop. */
   pipelineRun: (payload: PipelineRunRequest) =>
     studioCommands.pipelineRun(payload),
-  accept: (predictionId: string) =>
-    studioCommands.predictionsAccept(predictionId) as Promise<Annotation>,
+  accept: (predictionId: string, labelId?: string) =>
+    studioCommands.predictionsAccept(predictionId, labelId) as Promise<Annotation>,
   reject: (predictionId: string) =>
     studioCommands.predictionsReject(predictionId),
   exportToLabelStudioTask: (args: {

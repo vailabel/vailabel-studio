@@ -256,7 +256,11 @@ pub(crate) fn normalize_entity(kind: &str, mut value: Value) -> Result<Value, Ap
     match kind {
         "projects" => {
             ensure_string_field(object, "name", "Untitled Project");
-            ensure_string_field(object, "type", "image");
+            // Legacy single-axis type kept valid for back-compat; the canonical
+            // taxonomy going forward is the two-axis (modality, task) pair.
+            ensure_string_field(object, "type", "object_detection");
+            ensure_string_field(object, "modality", "image");
+            ensure_string_field(object, "task", "detection");
             ensure_string_field(object, "status", "active");
             object.entry("settings").or_insert_with(|| json!({}));
             object.entry("metadata").or_insert_with(|| json!({}));

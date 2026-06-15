@@ -1,10 +1,15 @@
-import { rgbToRgba } from "../../lib/utils"
 import type { Annotation, Point } from "@/types/core"
 import {
   useCanvasZoom,
   useCanvasTool,
   useCanvasSelection,
 } from "@/contexts/canvas-context"
+import {
+  AnnotationLabel,
+  dashFor,
+  fillFor,
+  strokeWidthFor,
+} from "./annotation-styles"
 import { memo, useMemo, useCallback } from "react"
 
 interface PolygonAnnotationProps {
@@ -27,40 +32,7 @@ export const PolygonAnnotation = memo(
     const { selectedAnnotation } = useCanvasSelection()
 
     const isSelected = selectedAnnotation?.id === annotation.id
-    const isAIGenerated = annotation.isAIGenerated
     const isMoveTool = selectedTool === "move"
-
-    // Memoize styles to prevent recalculation
-    const styles = useMemo(
-      () => ({
-        fill: {
-          selected: rgbToRgba(annotation.color, 0.2),
-          aiGenerated: rgbToRgba(annotation.color, 0.2),
-          default: rgbToRgba(annotation.color, 0.2),
-        },
-        stroke: {
-          selected: annotation.color,
-          aiGenerated: annotation.color,
-          default: annotation.color,
-        },
-        strokeWidth: {
-          selected: 2,
-          aiGenerated: 2,
-          default: 2,
-        },
-        strokeDashArray: {
-          selected: "none",
-          aiGenerated: "none",
-          default: "none",
-        },
-        textFill: {
-          selected: annotation.color,
-          aiGenerated: annotation.color,
-          default: annotation.color,
-        },
-      }),
-      [annotation.color]
-    )
 
     // Memoize polygon points string to avoid recalculation
     const pointsString = useMemo(
@@ -203,30 +175,10 @@ export const PolygonAnnotation = memo(
         <polygon
           points={pointsString}
           style={{
-            fill: isSelected
-              ? styles.fill.selected
-              : isAIGenerated
-                ? styles.fill.aiGenerated
-                : styles.fill.default,
-            stroke: isSelected
-              ? styles.stroke.selected
-              : isAIGenerated
-                ? styles.stroke.aiGenerated
-                : styles.stroke.default,
-            strokeWidth: isSelected
-              ? styles.strokeWidth.selected + 1 // Thicker when selected
-              : isMoveTool
-                ? styles.strokeWidth.default + 0.5 // Slightly thicker when move tool is active
-                : isAIGenerated
-                  ? styles.strokeWidth.aiGenerated
-                  : styles.strokeWidth.default,
-            strokeDasharray: isSelected
-              ? styles.strokeDashArray.selected
-              : readOnly
-                ? "6 4"
-                : isAIGenerated
-                  ? styles.strokeDashArray.aiGenerated
-                : styles.strokeDashArray.default,
+            fill: fillFor(annotation.color, isSelected),
+            stroke: annotation.color,
+            strokeWidth: strokeWidthFor(isSelected),
+            strokeDasharray: dashFor(readOnly),
           }}
           className={
             isMoveTool && !readOnly
@@ -234,20 +186,13 @@ export const PolygonAnnotation = memo(
               : "pointer-events-none"
           }
         />
-        <text
+        <AnnotationLabel
           x={annotation.coordinates[0].x}
-          y={annotation.coordinates[0].y - 10}
-          style={{
-            fill: isSelected
-              ? styles.textFill.selected
-              : isAIGenerated
-                ? styles.textFill.aiGenerated
-                : styles.textFill.default,
-          }}
-          className="text-xs"
-        >
-          {annotation.name}
-        </text>
+          y={annotation.coordinates[0].y}
+          color={annotation.color ?? "#3b82f6"}
+          name={annotation.name}
+          zoom={zoom}
+        />
 
         {addVertexHandles}
         {editPoints}

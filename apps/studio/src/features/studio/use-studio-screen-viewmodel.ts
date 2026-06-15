@@ -47,6 +47,8 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
   const [isProjectSummaryLoading, setIsProjectSummaryLoading] = useState(true)
   const [showSettingsModal, setShowSettingsModal] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
+  // Active class: the label new shapes inherit (set via the palette or 1–9).
+  const [activeLabelId, setActiveLabelId] = useState<string | null>(null)
 
   const effectiveProjectId = useMemo(
     () =>
@@ -55,6 +57,11 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
       imageLabeler.image?.project_id ||
       "",
     [imageLabeler.image?.projectId, imageLabeler.image?.project_id, projectId]
+  )
+
+  const activeLabel = useMemo(
+    () => imageLabeler.labels.find((entry) => entry.id === activeLabelId) ?? null,
+    [imageLabeler.labels, activeLabelId]
   )
 
   const canvasSession = useCanvasSession({
@@ -177,33 +184,9 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
     navigateToImage(previousImageId)
   }, [previousImageId, navigateToImage])
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null
-      const isTypingTarget =
-        !!target &&
-        (target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.tagName === "SELECT" ||
-          target.isContentEditable)
-
-      if (isTypingTarget) {
-        return
-      }
-
-      if (event.key === "ArrowRight" || event.code === "ArrowRight") {
-        goToNextImage()
-        return
-      }
-
-      if (event.key === "ArrowLeft" || event.code === "ArrowLeft") {
-        goToPreviousImage()
-      }
-    }
-
-    window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [goToNextImage, goToPreviousImage])
+  // Image navigation (arrows) + class hotkeys (1–9) are handled by a single
+  // `useLabelHotkeys` listener mounted in the labeler, replacing the previously
+  // separate per-concern keydown handlers.
 
   const closeContextMenu = useCallback(() => {
     setContextMenu({
@@ -227,8 +210,11 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
   )
 
   const acceptPrediction = useCallback(
-    async (predictionId: string) => {
-      const createdAnnotation = await imageLabeler.acceptPrediction(predictionId)
+    async (predictionId: string, labelId?: string) => {
+      const createdAnnotation = await imageLabeler.acceptPrediction(
+        predictionId,
+        labelId
+      )
       canvasSession.recordExternalCreate(createdAnnotation, `Accept ${createdAnnotation.name}`)
       setSelectedAnnotation(createdAnnotation)
       return createdAnnotation
@@ -332,6 +318,7 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
       annotations: imageLabeler.annotations,
       predictions: imageLabeler.predictions,
       labels: imageLabeler.labels,
+      aiModels: imageLabeler.aiModels,
       isLoading: imageLabeler.isLoading,
       error: imageLabeler.error,
     },
@@ -341,6 +328,9 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
     effectiveProjectId,
     selectedAnnotation,
     selectedTool,
+    activeLabelId,
+    activeLabel,
+    setActiveLabelId,
     zoom,
     showCrosshair,
     showCoordinates,

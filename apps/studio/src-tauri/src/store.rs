@@ -48,6 +48,8 @@ struct ProjectRow {
     name: String,
     description: Option<String>,
     project_type: String,
+    modality: Option<String>,
+    task: Option<String>,
     status: String,
     settings_json: Option<String>,
     metadata_json: Option<String>,
@@ -114,6 +116,7 @@ struct AnnotationRow {
     coordinates_json: String,
     group_id: Option<i32>,
     flags_json: Option<String>,
+    meta_json: Option<String>,
     project_id: Option<String>,
     is_ai_generated: i32,
     created_at: String,
@@ -302,15 +305,61 @@ fn parse_json_field(s: Option<&str>) -> Value {
         .unwrap_or(Value::Null)
 }
 
+fn derive_modality_from_legacy(_project_type: &str) -> String {
+    // Every legacy project type is an image modality; new projects always
+    // carry an explicit `modality`, so this only backfills old rows on read.
+    "image".to_string()
+}
+
+fn derive_task_from_legacy(project_type: &str) -> String {
+    match project_type {
+        "object_detection" | "detection" => "detection",
+        "segmentation" | "instance_segmentation" | "semantic_segmentation" => "segmentation",
+        "classification" => "classification",
+        "keypoints" | "keypoint" => "keypoints",
+        _ => "detection",
+    }
+    .to_string()
+}
+
+/// Idempotently add a column to an existing table. New databases get the column
+/// from `CREATE TABLE`; older ones get it here via `ALTER TABLE ADD COLUMN`. A
+/// "duplicate column name" error means the column already exists and is treated
+/// as success, so this is safe to call on every startup — additive, never
+/// destructive.
+fn add_column_if_missing(
+    conn: &mut SqliteConnection,
+    table: &str,
+    column: &str,
+    decl: &str,
+) -> Result<(), StoreError> {
+    let sql = format!("ALTER TABLE {table} ADD COLUMN {column} {decl}");
+    match diesel::sql_query(sql).execute(conn) {
+        Ok(_) => Ok(()),
+        Err(e) if e.to_string().contains("duplicate column name") => Ok(()),
+        Err(e) => Err(StoreError::from(e)),
+    }
+}
+
 // ── Row → JSON converters ─────────────────────────────────────────────────────
 
 fn project_to_json(r: ProjectRow) -> Value {
+    let modality = r
+        .modality
+        .clone()
+        .unwrap_or_else(|| derive_modality_from_legacy(&r.project_type));
+    let task = r
+        .task
+        .clone()
+        .unwrap_or_else(|| derive_task_from_legacy(&r.project_type));
     json!({
         "id": r.id,
         "name": r.name,
         "description": r.description,
         "type": r.project_type,
         "project_type": r.project_type,
+        "modality": modality,
+        "task": task,
         "status": r.status,
         "settings": parse_json_field(r.settings_json.as_deref()),
         "metadata": parse_json_field(r.metadata_json.as_deref()),
@@ -380,6 +429,7 @@ fn task_to_json(r: TaskRow) -> Value {
 fn annotation_to_json(r: AnnotationRow) -> Value {
     let coords: Value = serde_json::from_str(&r.coordinates_json).unwrap_or(json!([]));
     let flags: Value = parse_json_field(r.flags_json.as_deref());
+    let meta: Value = parse_json_field(r.meta_json.as_deref());
     json!({
         "id": r.id,
         "imageId": r.image_id,
@@ -393,6 +443,7 @@ fn annotation_to_json(r: AnnotationRow) -> Value {
         "groupId": r.group_id,
         "group_id": r.group_id,
         "flags": flags,
+        "meta": meta,
         "projectId": r.project_id,
         "project_id": r.project_id,
         "isAIGenerated": r.is_ai_generated != 0,
@@ -531,13 +582,20 @@ fn history_to_json(r: HistoryRow) -> Value {
 // ── JSON → Row converters ─────────────────────────────────────────────────────
 
 fn project_row_from(v: &Value, now: &str) -> ProjectRow {
+    let project_type = str_val(v, "project_type", "type")
+        .unwrap_or("classification")
+        .to_owned();
+    let modality = opt_str(v, "modality", "modality")
+        .unwrap_or_else(|| derive_modality_from_legacy(&project_type));
+    let task =
+        opt_str(v, "task", "task").unwrap_or_else(|| derive_task_from_legacy(&project_type));
     ProjectRow {
         id: get_id(v),
         name: str_owned(v, "name", "name"),
         description: opt_str(v, "description", "description"),
-        project_type: str_val(v, "project_type", "type")
-            .unwrap_or("classification")
-            .to_owned(),
+        project_type,
+        modality: Some(modality),
+        task: Some(task),
         status: str_owned(v, "status", "status").if_empty("active"),
         settings_json: json_field(v, "settings"),
         metadata_json: json_field(v, "metadata"),
@@ -604,6 +662,7 @@ fn annotation_row_from(v: &Value, now: &str) -> AnnotationRow {
         .map(|c| c.to_string())
         .unwrap_or_else(|| "[]".to_owned());
     let flags = json_field(v, "flags");
+    let meta = json_field(v, "meta");
     AnnotationRow {
         id: get_id(v),
         image_id: str_owned(v, "image_id", "imageId"),
@@ -616,6 +675,7 @@ fn annotation_row_from(v: &Value, now: &str) -> AnnotationRow {
         coordinates_json: coords,
         group_id: opt_i32(v, "group_id", "groupId"),
         flags_json: flags,
+        meta_json: meta,
         project_id: opt_str(v, "project_id", "projectId"),
         is_ai_generated: bool_val(v, "is_ai_generated", "isAIGenerated") as i32,
         created_at: str_val(v, "created_at", "createdAt")
@@ -781,6 +841,8 @@ impl DesktopStore {
                 name          TEXT NOT NULL,
                 description   TEXT,
                 project_type  TEXT NOT NULL DEFAULT 'classification',
+                modality      TEXT,
+                task          TEXT,
                 status        TEXT NOT NULL DEFAULT 'active',
                 settings_json TEXT,
                 metadata_json TEXT,
@@ -843,6 +905,7 @@ impl DesktopStore {
                 coordinates_json TEXT NOT NULL DEFAULT '[]',
                 group_id         INTEGER,
                 flags_json       TEXT,
+                meta_json        TEXT,
                 project_id       TEXT,
                 is_ai_generated  INTEGER NOT NULL DEFAULT 0,
                 created_at       TEXT NOT NULL,
@@ -990,6 +1053,34 @@ impl DesktopStore {
             "CREATE INDEX IF NOT EXISTS idx_tracks_video
                 ON tracks (video_id, created_at)",
         ).execute(&mut conn)?;
+
+        // ── Additive schema evolution (no destructive migration) ──────────────
+        // Bring databases created before these columns existed up to the current
+        // schema. New columns are nullable, so existing rows stay byte-identical
+        // until re-saved. `add_column_if_missing` treats a "duplicate column
+        // name" error as success, so this is safe to run on every startup.
+        add_column_if_missing(&mut conn, "projects", "modality", "TEXT")?;
+        add_column_if_missing(&mut conn, "projects", "task", "TEXT")?;
+        add_column_if_missing(&mut conn, "annotations", "meta_json", "TEXT")?;
+
+        // Backfill the two-axis taxonomy for legacy projects from their original
+        // single `project_type`, so existing projects open with a correct
+        // modality/task without any user action.
+        diesel::sql_query("UPDATE projects SET modality = 'image' WHERE modality IS NULL")
+            .execute(&mut conn)?;
+        diesel::sql_query(
+            "UPDATE projects SET task = CASE project_type \
+                 WHEN 'object_detection' THEN 'detection' \
+                 WHEN 'segmentation' THEN 'segmentation' \
+                 WHEN 'instance_segmentation' THEN 'segmentation' \
+                 WHEN 'semantic_segmentation' THEN 'segmentation' \
+                 WHEN 'classification' THEN 'classification' \
+                 WHEN 'keypoints' THEN 'keypoints' \
+                 WHEN 'keypoint' THEN 'keypoints' \
+                 ELSE 'detection' END \
+             WHERE task IS NULL",
+        )
+        .execute(&mut conn)?;
 
         diesel::sql_query("PRAGMA foreign_keys=ON").execute(&mut conn)?;
 

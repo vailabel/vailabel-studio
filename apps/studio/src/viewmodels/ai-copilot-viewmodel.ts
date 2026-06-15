@@ -95,6 +95,13 @@ export function useAiCopilotViewModel() {
               annotationId: action.annotationId,
               toLabel: action.toLabel,
             })
+          } else if (action.kind === "createLabel") {
+            await aiCopilotService.applyAction({
+              kind: "createLabel",
+              name: action.name,
+              color: action.color,
+              projectId: action.projectId,
+            })
           } else {
             await aiCopilotService.applyAction({
               kind: "delete",

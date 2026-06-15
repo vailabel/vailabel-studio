@@ -1,0 +1,135 @@
+name: Release
+
+# Build and publish the desktop app whenever a version tag is pushed, e.g.:
+#   git tag v1.0.13 && git push origin v1.0.13
+# (the `release:*` scripts in package.json create + push these tags).
+on:
+  push:
+    tags:
+      - "v*"
+
+# Needed to create the GitHub Release and upload the installers.
+permissions:
+  contents: write
+
+jobs:
+  # 1) Create a DRAFT release for this tag. Keeping it a draft until every
+  #    platform has finished uploading avoids publishing a half-built release.
+  create-release:
+    name: Create draft release
+    runs-on: ubuntu-latest
+    outputs:
+      release_id: ${{ steps.create-release.outputs.release_id }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create draft GitHub release
+        id: create-release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tag = context.ref.replace("refs/tags/", "")
+            const { data } = await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: tag,
+              name: `Vailabel Studio ${tag}`,
+              body: "See the assets below to download the installer for your platform.",
+              draft: true,
+              prerelease: false,
+              generate_release_notes: true,
+            })
+            core.setOutput("release_id", data.id)
+
+  # 2) Build the Tauri app on each OS and upload the bundles to the draft release.
+  build-tauri:
+    name: Build ${{ matrix.platform }} ${{ matrix.args }}
+    needs: create-release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest # Apple Silicon
+            args: "--target aarch64-apple-darwin"
+          - platform: macos-latest # Intel
+            args: "--target x86_64-apple-darwin"
+          - platform: ubuntu-22.04
+            args: ""
+          - platform: windows-latest
+            args: ""
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux build dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: yarn
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          # On macOS build both arches; other platforms need no extra targets.
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/studio/src-tauri -> target
+
+      - name: Install JS dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Sync app version to the tag
+        # Keeps the installer's version in lockstep with the tag so `v1.2.3`
+        # always produces a 1.2.3 build, regardless of what's committed.
+        shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          node -e "const fs=require('fs');const p='apps/studio/src-tauri/tauri.conf.json';const c=JSON.parse(fs.readFileSync(p,'utf8'));c.version=process.env.TAG.replace(/^v/,'');fs.writeFileSync(p,JSON.stringify(c,null,2)+'\n');console.log('app version =>',c.version)"
+
+      - name: Build and upload Tauri bundles
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: ./apps/studio
+          releaseId: ${{ needs.create-release.outputs.release_id }}
+          args: ${{ matrix.args }}
+
+  # 3) All builds succeeded — flip the draft to a published release.
+  publish-release:
+    name: Publish release
+    needs: [create-release, build-tauri]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish the release
+        uses: actions/github-script@v7
+        env:
+          RELEASE_ID: ${{ needs.create-release.outputs.release_id }}
+        with:
+          script: |
+            await github.rest.repos.updateRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: Number(process.env.RELEASE_ID),
+              draft: false,
+            })

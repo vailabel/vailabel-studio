@@ -1,12 +1,8 @@
-import React, { useMemo, useState } from "react"
+import React, { useMemo } from "react"
 import {
   Tag,
   Search,
   Filter,
-  MoreHorizontal,
-  Edit,
-  Trash2,
-  Copy,
   BarChart3,
   Hash,
   User,
@@ -15,23 +11,16 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { Label } from "@/components/ui/label"
-import type { Label as LabelType } from "@/types/core"
-import { useLabelsViewModel } from "@/viewmodels/labels-viewmodel"
 import {
-  LabelCreateForm,
-  LabelEditForm,
-} from "@/components/labels/label-forms"
+  NativeSelect,
+  NativeSelectOption,
+} from "@/components/ui/native-select"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useLabelsViewModel } from "@/viewmodels/labels-viewmodel"
+import { LabelCreateForm } from "@/components/labels/label-forms"
 import { LabelStatsCard } from "@/components/labels/label-stats-card"
+import { LabelsTable } from "@/components/labels/labels-table"
 
 const LabelsPage: React.FC = () => {
   const {
@@ -51,8 +40,6 @@ const LabelsPage: React.FC = () => {
     duplicateLabel,
     refreshLabels,
   } = useLabelsViewModel()
-
-  const [editingLabel, setEditingLabel] = useState<LabelType | null>(null)
 
   // Derived, real overview metrics (no placeholders).
   const { totalAnnotations, mostUsedLabel } = useMemo(() => {
@@ -170,19 +157,19 @@ const LabelsPage: React.FC = () => {
               </div>
               <div className="md:w-64">
                 <Label htmlFor="project">Filter by Project</Label>
-                <select
+                <NativeSelect
                   id="project"
                   value={selectedProject || ""}
                   onChange={(e) => setSelectedProject(e.target.value || null)}
-                  className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground"
+                  className="w-full"
                 >
-                  <option value="">All Projects</option>
+                  <NativeSelectOption value="">All Projects</NativeSelectOption>
                   {projects.map((project) => (
-                    <option key={project.id} value={project.id}>
+                    <NativeSelectOption key={project.id} value={project.id}>
                       {project.name}
-                    </option>
+                    </NativeSelectOption>
                   ))}
-                </select>
+                </NativeSelect>
               </div>
             </div>
           </CardContent>
@@ -198,17 +185,14 @@ const LabelsPage: React.FC = () => {
         </div>
 
         {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {Array.from({ length: 8 }).map((_, index) => (
-              <Card key={index} className="animate-pulse">
-                <CardContent className="p-6">
-                  <div className="space-y-3">
-                    <div className="h-4 bg-muted rounded w-3/4"></div>
-                    <div className="h-3 bg-muted rounded w-1/2"></div>
-                    <div className="h-8 bg-muted rounded w-full"></div>
-                  </div>
-                </CardContent>
-              </Card>
+          <div className="divide-y rounded-lg border bg-card">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div key={index} className="flex items-center gap-4 p-3">
+                <Skeleton className="h-4 w-4 rounded-full" />
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-4 w-56" />
+                <Skeleton className="ml-auto h-4 w-24" />
+              </div>
             ))}
           </div>
         ) : labels.length === 0 ? (
@@ -229,116 +213,16 @@ const LabelsPage: React.FC = () => {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {labels.map((label) => (
-              <Card key={label.id}>
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-4 h-4 rounded-full border-2 border-white shadow-sm"
-                        style={{ backgroundColor: label.color }}
-                      />
-                      <div>
-                        <h3 className="font-semibold text-foreground">
-                          {label.name}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          {projects.find(
-                            (p) =>
-                              p.id === label.projectId ||
-                              p.id === label.project_id
-                          )?.name || "Unknown Project"}
-                        </p>
-                      </div>
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger
-                        render={
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                          />
-                        }
-                      >
-                        <MoreHorizontal className="h-4 w-4" />
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => setEditingLabel(label)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => duplicateLabel(label.id)}
-                        >
-                          <Copy className="mr-2 h-4 w-4" />
-                          Duplicate
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => deleteLabel(label.id)}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Color</span>
-                      <Badge
-                        variant="outline"
-                        className="text-xs"
-                        style={{
-                          backgroundColor: label.color,
-                          color: "white",
-                          borderColor: label.color,
-                        }}
-                      >
-                        {label.color}
-                      </Badge>
-                    </div>
-
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Usage</span>
-                      <span className="text-foreground font-medium">
-                        {usageByLabelId[label.id] ?? 0} annotations
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Created</span>
-                      <span className="text-foreground">
-                        {label.createdAt
-                          ? new Date(label.createdAt).toLocaleDateString()
-                          : "—"}
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <LabelsTable
+            labels={labels}
+            projects={projects}
+            usageByLabelId={usageByLabelId}
+            onUpdateLabel={updateLabel}
+            onDuplicateLabel={duplicateLabel}
+            onDeleteLabel={deleteLabel}
+          />
         )}
       </section>
-
-      {editingLabel && (
-        <LabelEditForm
-          key={editingLabel.id}
-          label={editingLabel}
-          onUpdateLabel={updateLabel}
-          open
-          onOpenChange={(open) => {
-            if (!open) setEditingLabel(null)
-          }}
-        />
-      )}
     </div>
   )
 }

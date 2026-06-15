@@ -6,6 +6,7 @@ import { useCanvasHandlers } from "@/hooks/use-canvas-handlers-context"
 import { type Annotation, type ImageData, type Label } from "@/types/core"
 import { Crosshair } from "@/components/canvas/crosshair-context"
 import { CreateAnnotation } from "@/components/canvas/create-annotation"
+import { ToolStatus } from "@/components/canvas/tool-status"
 import {
   useCanvasPan,
   useCanvasZoom,
@@ -15,7 +16,6 @@ import {
   useCanvasDisplay,
 } from "@/contexts/canvas-context"
 import { TempAnnotation } from "./temp-annotation"
-import { ToolStatus } from "./tool-status"
 import { Prediction } from "@/types/core"
 import type { PipelinePrompt } from "@/ipc/studio"
 import { getCenterOffset } from "@/tools/canvas-utils"
@@ -26,11 +26,14 @@ interface CanvasProps {
   annotations: Annotation[]
   predictions?: Prediction[]
   labels: Label[]
+  /** Active class: when set, a finished shape is created pre-labeled (no modal). */
+  activeLabel?: Label | null
   onCreateAnnotationDraft: (draft: {
     name: string
     color: string
     type: string
     coordinates: Array<{ x: number; y: number }>
+    labelId?: string
   }) => Promise<void>
   onUpdateAnnotation: (
     annotationId: string,
@@ -83,6 +86,7 @@ export const Canvas = memo(
     annotations,
     predictions = [],
     labels,
+    activeLabel,
     onCreateAnnotationDraft,
     onUpdateAnnotation,
     onDeleteAnnotation,
@@ -221,6 +225,16 @@ export const Canvas = memo(
       "previewCoordinates" in handlerState
         ? handlerState.previewCoordinates
         : null
+    // Live drawing state for the in-canvas tool hint.
+    const polygonPoints =
+      "polygonPoints" in handlerState ? handlerState.polygonPoints : undefined
+    const inProgressPointCount = Array.isArray(polygonPoints)
+      ? polygonPoints.length
+      : 0
+    const isDraggingTool =
+      "isDragging" in handlerState ? Boolean(handlerState.isDragging) : false
+    const isDrawingTool =
+      "isDrawing" in handlerState ? Boolean(handlerState.isDrawing) : false
 
     // Create annotations array with preview coordinates for resizing or moving annotation
     // Optimize this with shallow comparison to prevent unnecessary re-computation
@@ -242,7 +256,7 @@ export const Canvas = memo(
     ])
 
     const handleCreateAnnotation = useCallback(
-      async (name: string, color: string) => {
+      async (name: string, color: string, labelId?: string) => {
         if (!tempAnnotation) return
 
         try {
@@ -251,6 +265,7 @@ export const Canvas = memo(
             type: tempAnnotation.type ?? "box",
             coordinates: tempAnnotation.coordinates ?? [],
             color,
+            labelId,
           })
 
           // Clear tool state after successful creation
@@ -276,6 +291,24 @@ export const Canvas = memo(
         setSelectedAnnotation,
       ]
     )
+
+    // Fast path (Roboflow-style): with an active class selected, a finished
+    // shape is created immediately with that class — the naming modal is skipped
+    // entirely. The modal only appears when no class is active. A ref guards
+    // against the async create re-firing before tool state clears.
+    const autoCreateRef = useRef(false)
+    useEffect(() => {
+      if (showLabelInput && tempAnnotation && activeLabel && !autoCreateRef.current) {
+        autoCreateRef.current = true
+        void handleCreateAnnotation(
+          activeLabel.name,
+          activeLabel.color,
+          activeLabel.id
+        ).finally(() => {
+          autoCreateRef.current = false
+        })
+      }
+    }, [showLabelInput, tempAnnotation, activeLabel, handleCreateAnnotation])
 
     const handleCloseCreateAnnotationModal = useCallback(() => {
       setToolState({
@@ -390,33 +423,12 @@ export const Canvas = memo(
                   <PositionCoordinates baseOffset={baseOffset} />
                 )}
 
-                {/* Show tool status for all tools */}
                 <ToolStatus
                   tool={selectedTool}
-                  isVisible={!showLabelInput}
-                  pointCount={
-                    "polygonPoints" in handlerState
-                      ? handlerState.polygonPoints?.length || 0
-                      : 0
-                  }
-                  isDragging={
-                    "isDragging" in handlerState
-                      ? handlerState.isDragging
-                      : false
-                  }
-                  isDrawing={
-                    "isDrawing" in handlerState ? handlerState.isDrawing : false
-                  }
-                  isMoving={
-                    "isMoving" in handlerState
-                      ? (handlerState.isMoving as boolean)
-                      : false
-                  }
-                  isResizing={
-                    "isResizing" in handlerState
-                      ? (handlerState.isResizing as boolean)
-                      : false
-                  }
+                  isVisible={selectedTool !== "move"}
+                  pointCount={inProgressPointCount}
+                  isDragging={isDraggingTool}
+                  isDrawing={isDrawingTool}
                 />
               </div>
             )}
@@ -425,7 +437,7 @@ export const Canvas = memo(
         <CreateAnnotation
           labels={labels}
           onSubmit={handleCreateAnnotation}
-          isOpen={!!showLabelInput}
+          isOpen={!!showLabelInput && !activeLabel}
           onClose={handleCloseCreateAnnotationModal}
         />
       </>

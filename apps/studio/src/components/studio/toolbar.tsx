@@ -32,6 +32,8 @@ import type { CanvasTool } from "@/features/studio/types"
 interface ToolbarProps {
   /** Tools to expose for the current project template. Omit to show all. */
   allowedTools?: CanvasTool[]
+  /** Optional AI auto-label controls rendered in the toolbar's left group. */
+  aiSlot?: React.ReactNode
   selectedTool: CanvasTool
   onSelectTool: (tool: CanvasTool) => void
   zoom: number
@@ -81,6 +83,7 @@ const annotationTools: ToolButtonConfig[] = [
 export const Toolbar = memo(
   ({
     allowedTools,
+    aiSlot,
     selectedTool,
     onSelectTool,
     zoom,
@@ -212,6 +215,13 @@ export const Toolbar = memo(
               </Tooltip>
             ))}
           </TooltipProvider>
+
+          {aiSlot ? (
+            <>
+              <Separator orientation="vertical" className="mx-2 h-6" />
+              {aiSlot}
+            </>
+          ) : null}
         </div>
 
         <div className="flex items-center space-x-1">

@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { Check, Sparkles, X } from "lucide-react"
 import type { Label, Prediction } from "@/types/core"
 import { Button } from "@/components/ui/button"
@@ -7,7 +8,9 @@ import { cn } from "@/lib/utils"
 interface PredictionReviewPanelProps {
   predictions: Prediction[]
   labels: Label[]
-  onAccept: (predictionId: string) => Promise<void>
+  /** Accept a suggestion, optionally with a corrected label id (overrides the
+   *  model's predicted label). */
+  onAccept: (predictionId: string, labelId?: string) => Promise<void>
   onReject: (predictionId: string) => Promise<void>
   /** Shift left so the panel clears the docked copilot when it's open. */
   offset?: boolean
@@ -34,6 +37,9 @@ export function PredictionReviewPanel({
   onReject,
   offset = false,
 }: PredictionReviewPanelProps) {
+  // Per-prediction label override; empty string = keep the model's prediction.
+  const [chosen, setChosen] = useState<Record<string, string>>({})
+
   if (predictions.length === 0) return null
 
   return (
@@ -50,64 +56,99 @@ export function PredictionReviewPanel({
         <div>
           <p className="text-sm font-semibold">AI Predictions</p>
           <p className="text-xs text-muted-foreground">
-            Accept the suggestions you want to keep.
+            Pick a label, then accept the ones you want.
           </p>
         </div>
       </div>
 
       <ScrollArea className="max-h-72">
         <div className="space-y-3">
-          {predictions.map((prediction) => (
-            <div
-              key={prediction.id}
-              className="rounded-lg border border-border bg-background/70 p-3"
-            >
-              {willCreateLabel(prediction, labels) && (
-                <p className="mb-2 text-xs font-medium text-amber-600 dark:text-amber-400">
-                  Accepting this will create a new project label.
-                </p>
-              )}
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <div>
-                  <p className="text-sm font-medium">
-                    {prediction.labelName || prediction.name}
+          {predictions.map((prediction) => {
+            const overrideId = chosen[prediction.id] ?? ""
+            const overrideLabel = overrideId
+              ? labels.find((label) => label.id === overrideId)
+              : undefined
+            const displayName =
+              overrideLabel?.name || prediction.labelName || prediction.name
+            const displayColor =
+              overrideLabel?.color ||
+              prediction.labelColor ||
+              prediction.color ||
+              "#22c55e"
+            const willCreate = !overrideLabel && willCreateLabel(prediction, labels)
+
+            return (
+              <div
+                key={prediction.id}
+                className="rounded-lg border border-border bg-background/70 p-3"
+              >
+                {willCreate && (
+                  <p className="mb-2 text-xs font-medium text-amber-600 dark:text-amber-400">
+                    Accepting this will create a new project label.
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    {(prediction.confidence * 100).toFixed(0)}% confidence
-                  </p>
+                )}
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{displayName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {(prediction.confidence * 100).toFixed(0)}% confidence
+                    </p>
+                  </div>
+                  <div
+                    className="h-3 w-3 shrink-0 rounded-full border border-white shadow"
+                    style={{ backgroundColor: displayColor }}
+                  />
                 </div>
-                <div
-                  className="h-3 w-3 rounded-full border border-white shadow"
-                  style={{
-                    backgroundColor:
-                      prediction.labelColor || prediction.color || "#22c55e",
-                  }}
-                />
+
+                {labels.length > 0 && (
+                  <select
+                    value={overrideId}
+                    onChange={(event) =>
+                      setChosen((current) => ({
+                        ...current,
+                        [prediction.id]: event.target.value,
+                      }))
+                    }
+                    className="mb-2 w-full rounded-md border border-border bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    title="Change the label before accepting"
+                  >
+                    <option value="">
+                      Keep: {prediction.labelName || prediction.name}
+                    </option>
+                    {labels.map((label) => (
+                      <option key={label.id} value={label.id}>
+                        {label.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    className="flex-1"
+                    onClick={() =>
+                      void onAccept(prediction.id, overrideId || undefined)
+                    }
+                  >
+                    <Check className="mr-2 h-4 w-4" />
+                    Accept
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => void onReject(prediction.id)}
+                  >
+                    <X className="mr-2 h-4 w-4" />
+                    Reject
+                  </Button>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  className="flex-1"
-                  onClick={() => void onAccept(prediction.id)}
-                >
-                  <Check className="mr-2 h-4 w-4" />
-                  Accept
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => void onReject(prediction.id)}
-                >
-                  <X className="mr-2 h-4 w-4" />
-                  Reject
-                </Button>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </ScrollArea>
     </div>
   )
 }
-
