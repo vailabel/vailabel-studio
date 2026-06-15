@@ -943,23 +943,19 @@ pub fn run() {
             // One shared SQLite connection: the residual DesktopStore and the
             // per-module Diesel repositories all borrow this `Db`.
             let db = vailabel_db::Db::open(app_dir.join("vailabel-desktop.sqlite"))?;
-            let store = DesktopStore::open(db)?;
+            let store = DesktopStore::open(db.clone())?;
             let store_arc = Arc::new(Mutex::new(store));
             let entity_store: Arc<dyn store::EntityStore> =
                 Arc::new(store::StoreHandle::new(store_arc.clone()));
 
-            // Project module, wired through its crate: the SQLite EntityStore is
-            // bridged to the pure EntitySource port, a JsonRepository<Project>
-            // is built over it, and the ProjectAppService is given that repo
+            // Project module: a typed Diesel repository over the shared `db`,
             // plus a Tauri-backed EventPublisher. The binary's ProjectService is
-            // now a thin facade over this app service.
-            let project_entity_source: Arc<dyn vailabel_shared::EntitySource> =
-                Arc::new(crate::composition::EntitySourceAdapter::new(entity_store.clone()));
+            // a thin facade over the ProjectAppService.
             let project_event_publisher: Arc<dyn vailabel_shared::EventPublisher> = Arc::new(
                 crate::composition::TauriEventPublisher::new(app.handle().clone()),
             );
             let project_repo: Arc<dyn vailabel_project::domain::ProjectRepository> = Arc::new(
-                vailabel_project::infrastructure::project_repository(project_entity_source),
+                vailabel_project::infrastructure::DieselProjectRepository::new(db.clone()),
             );
             let project_app_service = Arc::new(
                 vailabel_project::application::ProjectAppService::new(

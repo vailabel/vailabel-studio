@@ -1,32 +1,32 @@
 //! Dependency-rule tests.
 //!
 //! These assert the Clean-Architecture dependency rule structurally:
-//! the *pure* crates (core, shared, plugin, and the module crates) must contain
-//! no infrastructure imports and no infrastructure dependencies. Infrastructure
-//! lives in the binary (the composition root) and the runtime ACL crate, which
-//! are intentionally excluded here.
+//! - **Fully pure crates** (core, shared, plugin, and the not-yet-migrated
+//!   module crates) must contain NO infrastructure imports anywhere and NO
+//!   infrastructure dependencies in their `Cargo.toml`.
+//! - **Layered module crates** (those that own a Diesel `infrastructure/` layer)
+//!   must keep their `domain`/`application`/`contracts` layers pure, but their
+//!   `infrastructure/` may use diesel + the shared db crate.
+//!
+//! Excluded entirely: `db` (the shared connection), `runtime`/`runtime-manager`
+//! (the Python ACL), `arch-tests`, and the binary.
 
 use std::fs;
 use std::path::{Path, PathBuf};
 
-/// Crates whose entire `src/` must be free of infrastructure concerns.
-///
-/// Excluded by design: `runtime`/`runtime-manager` (the Python-runtime ACL,
-/// which legitimately uses reqwest/tokio), `arch-tests`, and the binary.
-const PURE_CRATES: &[&str] = &[
-    "core",
-    "shared",
-    "plugin",
-    "project",
-    "dataset",
-    "analysis",
-    "video",
-    "models",
-    "copilot",
-    "annotation",
-    "search",
-    "training",
+/// Crates whose ENTIRE `src/` must be infrastructure-free.
+const FULLY_PURE: &[&str] = &[
+    "core", "shared", "plugin", "analysis", "video", "models", "copilot", "search", "training",
 ];
+
+/// Module crates that own a typed-Diesel `infrastructure/` layer. Their
+/// `domain`/`application`/`contracts` layers must stay pure; `infrastructure/`
+/// legitimately depends on diesel + `vailabel-db`, so it is scanned at folder
+/// granularity and its `Cargo.toml` is exempt from the dependency check.
+const LAYERED: &[&str] = &["project", "dataset", "annotation"];
+
+/// The layers of a LAYERED crate that must remain pure.
+const PURE_LAYERS: &[&str] = &["domain", "application", "contracts"];
 
 /// Forbidden usage tokens, matched against comment-stripped source. The `::`
 /// suffix (and `std::` prefix) keep these from matching substrings of unrelated
@@ -42,7 +42,7 @@ const FORBIDDEN_USAGES: &[&str] = &[
     "std::fs",
 ];
 
-/// Forbidden dependency crate names in a pure crate's `Cargo.toml`.
+/// Forbidden dependency crate names in a fully-pure crate's `Cargo.toml`.
 const FORBIDDEN_DEPS: &[&str] = &[
     "diesel",
     "tauri",
@@ -51,6 +51,7 @@ const FORBIDDEN_DEPS: &[&str] = &[
     "opendal",
     "ort",
     "libsqlite3-sys",
+    "vailabel-db",
 ];
 
 /// `.../crates/arch-tests` → `.../crates`.
@@ -98,49 +99,72 @@ fn dependencies_block(manifest: &str) -> String {
     rest[..end].to_string()
 }
 
-#[test]
-fn pure_crates_have_no_infrastructure_imports() {
-    let crates = crates_dir();
-    let mut violations = Vec::new();
-
-    for krate in PURE_CRATES {
-        let src = crates.join(krate).join("src");
-        let mut files = Vec::new();
-        collect_rs_files(&src, &mut files);
-        // Guard against a silently-broken walk: every pure crate has source to
-        // scan, so finding none means the test isn't actually checking anything.
-        assert!(
-            !files.is_empty(),
-            "no .rs files found under {} — the scanner is not inspecting this crate",
-            src.display()
-        );
-        for file in files {
-            let code = strip_line_comments(&fs::read_to_string(&file).expect("read source"));
-            for token in FORBIDDEN_USAGES {
-                if code.contains(token) {
-                    violations.push(format!(
-                        "{} uses forbidden `{}`",
-                        file.display(),
-                        token
-                    ));
-                }
+/// Scan every `.rs` file under `dir` for forbidden usages, recording any in
+/// `violations`. Returns the number of files scanned.
+fn scan_dir(dir: &Path, violations: &mut Vec<String>) -> usize {
+    let mut files = Vec::new();
+    collect_rs_files(dir, &mut files);
+    let count = files.len();
+    for file in files {
+        let code = strip_line_comments(&fs::read_to_string(&file).expect("read source"));
+        for token in FORBIDDEN_USAGES {
+            if code.contains(token) {
+                violations.push(format!("{} uses forbidden `{}`", file.display(), token));
             }
         }
     }
+    count
+}
 
+#[test]
+fn pure_layers_have_no_infrastructure_imports() {
+    let crates = crates_dir();
+    let mut violations = Vec::new();
+    let mut scanned = 0usize;
+
+    // Fully pure crates: the entire src/ tree must be clean.
+    for krate in FULLY_PURE {
+        scanned += scan_dir(&crates.join(krate).join("src"), &mut violations);
+    }
+    // Layered crates: only the pure layers (skip infrastructure/).
+    for krate in LAYERED {
+        let src = crates.join(krate).join("src");
+        for layer in PURE_LAYERS {
+            scanned += scan_dir(&src.join(layer), &mut violations);
+        }
+    }
+
+    // Guard against a silently-broken walk finding nothing.
+    assert!(
+        scanned >= FULLY_PURE.len(),
+        "scanner walked too few files ({scanned}) — the walk is broken"
+    );
     assert!(
         violations.is_empty(),
-        "Clean-Architecture dependency-rule violations (infrastructure in a pure crate):\n{}",
+        "Clean-Architecture dependency-rule violations (infrastructure in a pure layer):\n{}",
         violations.join("\n")
     );
 }
 
 #[test]
-fn pure_crates_have_no_infrastructure_dependencies() {
+fn scanner_matches_real_usage_and_ignores_comments() {
+    // A real import in code is caught.
+    assert!(strip_line_comments("use tauri::AppHandle;").contains("tauri::"));
+    // The same token inside a comment is ignored (so doc text is safe).
+    assert!(!strip_line_comments("/// carries no tauri:: knowledge").contains("tauri::"));
+    assert!(!strip_line_comments("// see diesel:: docs").contains("diesel::"));
+    // `ort` as a substring of `report`/`export` must NOT match the `ort::` token.
+    assert!(!strip_line_comments("let report = export_thing();").contains("ort::"));
+    // `std::fmt` must NOT match the forbidden `std::fs` token.
+    assert!(!strip_line_comments("use std::fmt::Debug;").contains("std::fs"));
+}
+
+#[test]
+fn fully_pure_crates_have_no_infrastructure_dependencies() {
     let crates = crates_dir();
     let mut violations = Vec::new();
 
-    for krate in PURE_CRATES {
+    for krate in FULLY_PURE {
         let manifest_path = crates.join(krate).join("Cargo.toml");
         let manifest = fs::read_to_string(&manifest_path).expect("read Cargo.toml");
         let deps = dependencies_block(&manifest);
@@ -163,28 +187,15 @@ fn pure_crates_have_no_infrastructure_dependencies() {
 
     assert!(
         violations.is_empty(),
-        "Pure crates must not depend on infrastructure crates:\n{}",
+        "Fully-pure crates must not depend on infrastructure crates:\n{}",
         violations.join("\n")
     );
 }
 
 #[test]
-fn scanner_matches_real_usage_and_ignores_comments() {
-    // A real import in code is caught.
-    assert!(strip_line_comments("use tauri::AppHandle;").contains("tauri::"));
-    // The same token inside a comment is ignored (so doc text is safe).
-    assert!(!strip_line_comments("/// carries no tauri:: knowledge").contains("tauri::"));
-    assert!(!strip_line_comments("// see diesel:: docs").contains("diesel::"));
-    // `ort` as a substring of `report`/`export` must NOT match the `ort::` token.
-    assert!(!strip_line_comments("let report = export_thing();").contains("ort::"));
-    // `std::fmt` must NOT match the forbidden `std::fs` token.
-    assert!(!strip_line_comments("use std::fmt::Debug;").contains("std::fs"));
-}
-
-#[test]
 fn core_is_the_dependency_root() {
-    let manifest =
-        fs::read_to_string(crates_dir().join("core").join("Cargo.toml")).expect("read core manifest");
+    let manifest = fs::read_to_string(crates_dir().join("core").join("Cargo.toml"))
+        .expect("read core manifest");
     let deps = dependencies_block(&manifest);
     assert!(
         !deps.contains("vailabel"),

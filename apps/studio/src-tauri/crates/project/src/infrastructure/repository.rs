@@ -1,93 +1,121 @@
-//! A JSON-port-backed repository.
+//! The `Project` repository, backed by typed Diesel queries over the shared
+//! `vailabel-db` connection (replaces the Phase-1 generic JSON repository).
 
-use std::marker::PhantomData;
-use std::sync::Arc;
+use std::collections::HashMap;
 
-use serde::{de::DeserializeOwned, Serialize};
-use serde_json::Value;
+use diesel::dsl::count_star;
+use diesel::prelude::*;
+use diesel::sqlite::SqliteConnection;
 use vailabel_core::{DomainError, DomainResult, Repository};
-use vailabel_shared::{EntitySource, PortError};
+use vailabel_db::{Db, DbError};
+use vailabel_shared::now_iso;
 
+use super::record::ProjectRow;
+use super::schema::{images, projects};
 use crate::domain::Project;
 
-/// A generic [`Repository`] backed by the shared [`EntitySource`] JSON port.
-///
-/// Mirrors the binary's historical `JsonCrudRepository` (insert and update both
-/// go through `upsert`) but speaks [`DomainError`] and the diesel-free port, so
-/// behavior is identical while the type stays pure. It is parameterized over
-/// the entity `T` and the store `kind` (table name).
-pub struct JsonRepository<T> {
-    source: Arc<dyn EntitySource>,
-    kind: &'static str,
-    _entity: PhantomData<fn() -> T>,
+/// Typed-Diesel implementation of [`crate::domain::ProjectRepository`].
+pub struct DieselProjectRepository {
+    db: Db,
 }
 
-impl<T> JsonRepository<T> {
-    /// Build a repository over `source`, storing entities under `kind`.
-    pub fn new(source: Arc<dyn EntitySource>, kind: &'static str) -> Self {
-        Self {
-            source,
-            kind,
-            _entity: PhantomData,
-        }
+impl DieselProjectRepository {
+    /// Build the repository over the shared connection handle.
+    pub fn new(db: Db) -> Self {
+        Self { db }
+    }
+
+    fn image_count(
+        conn: &mut SqliteConnection,
+        project_id: &str,
+    ) -> Result<i64, diesel::result::Error> {
+        images::table
+            .filter(images::project_id.eq(project_id))
+            .count()
+            .get_result(conn)
+    }
+
+    fn image_counts(
+        conn: &mut SqliteConnection,
+    ) -> Result<HashMap<String, i64>, diesel::result::Error> {
+        let rows: Vec<(String, i64)> = images::table
+            .group_by(images::project_id)
+            .select((images::project_id, count_star()))
+            .load(conn)?;
+        Ok(rows.into_iter().collect())
+    }
+
+    fn upsert(&self, entity: &Project) -> DomainResult<Project> {
+        let now = now_iso();
+        let row = ProjectRow::from_project(entity, &now);
+        self.db
+            .with_conn(|conn| {
+                diesel::replace_into(projects::table)
+                    .values(&row)
+                    .execute(conn)?;
+                let count = Self::image_count(conn, &row.id)?;
+                Ok(row.into_project(count))
+            })
+            .map_err(to_domain_err)
     }
 }
 
-fn parse<T: DeserializeOwned>(value: Value) -> DomainResult<T> {
-    serde_json::from_value(value).map_err(|e| DomainError::repository(e.to_string()))
+fn to_domain_err(err: DbError) -> DomainError {
+    DomainError::repository(err.to_string())
 }
 
-fn to_value<T: Serialize>(entity: &T) -> DomainResult<Value> {
-    serde_json::to_value(entity).map_err(|e| DomainError::repository(e.to_string()))
-}
-
-impl<T> Repository<T> for JsonRepository<T>
-where
-    T: Serialize + DeserializeOwned + Send + Sync + 'static,
-{
-    fn list(&self) -> DomainResult<Vec<T>> {
-        self.source
-            .list(self.kind)
-            .map_err(PortError::into_domain)?
-            .into_iter()
-            .map(parse)
-            .collect()
+impl Repository<Project> for DieselProjectRepository {
+    fn list(&self) -> DomainResult<Vec<Project>> {
+        self.db
+            .with_conn(|conn| {
+                let rows = projects::table
+                    .select(ProjectRow::as_select())
+                    .load::<ProjectRow>(conn)?;
+                let counts = Self::image_counts(conn)?;
+                Ok(rows
+                    .into_iter()
+                    .map(|row| {
+                        let count = counts.get(&row.id).copied().unwrap_or(0);
+                        row.into_project(count)
+                    })
+                    .collect())
+            })
+            .map_err(to_domain_err)
     }
 
-    fn get(&self, id: &str) -> DomainResult<Option<T>> {
-        self.source
-            .get(self.kind, id)
-            .map_err(PortError::into_domain)?
-            .map(parse)
-            .transpose()
+    fn get(&self, id: &str) -> DomainResult<Option<Project>> {
+        self.db
+            .with_conn(|conn| {
+                let row = projects::table
+                    .find(id)
+                    .select(ProjectRow::as_select())
+                    .first::<ProjectRow>(conn)
+                    .optional()?;
+                Ok(match row {
+                    Some(row) => {
+                        let count = Self::image_count(conn, id)?;
+                        Some(row.into_project(count))
+                    }
+                    None => None,
+                })
+            })
+            .map_err(to_domain_err)
     }
 
-    fn create(&self, entity: &T) -> DomainResult<T> {
-        let saved = self
-            .source
-            .upsert(self.kind, to_value(entity)?)
-            .map_err(PortError::into_domain)?;
-        parse(saved)
+    fn create(&self, entity: &Project) -> DomainResult<Project> {
+        self.upsert(entity)
     }
 
-    fn update(&self, entity: &T) -> DomainResult<T> {
-        let saved = self
-            .source
-            .upsert(self.kind, to_value(entity)?)
-            .map_err(PortError::into_domain)?;
-        parse(saved)
+    fn update(&self, entity: &Project) -> DomainResult<Project> {
+        self.upsert(entity)
     }
 
     fn delete(&self, id: &str) -> DomainResult<()> {
-        self.source
-            .delete(self.kind, id)
-            .map_err(PortError::into_domain)
+        self.db
+            .with_conn(|conn| {
+                diesel::delete(projects::table.find(id)).execute(conn)?;
+                Ok(())
+            })
+            .map_err(to_domain_err)
     }
-}
-
-/// Build a `Project` repository wired to the `"projects"` store kind. The
-/// returned value implements [`crate::domain::ProjectRepository`] via the
-/// blanket impl over [`Repository<Project>`].
-pub fn project_repository(source: Arc<dyn EntitySource>) -> JsonRepository<Project> {
-    JsonRepository::new(source, "projects")
 }
