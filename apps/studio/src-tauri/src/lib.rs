@@ -149,24 +149,6 @@ struct UrlPayload {
     url: String,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct EntityIdPayload {
-    id: String,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct ProjectIdPayload {
-    project_id: String,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct ImageIdPayload {
-    image_id: String,
-}
-
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct SystemInfo {
@@ -191,7 +173,7 @@ pub fn now_iso() -> String {
     chrono::Utc::now().to_rfc3339()
 }
 
-fn state_guard<'a>(
+pub(crate) fn state_guard<'a>(
     state: &'a tauri::State<AppState>,
 ) -> Result<MutexGuard<'a, DesktopStore>, AppError> {
     state
@@ -457,11 +439,11 @@ pub(crate) fn emit_domain_event_for_ids(
     Ok(())
 }
 
-fn list_entities_for(state: &tauri::State<AppState>, kind: &str) -> Result<Vec<Value>, AppError> {
+pub(crate) fn list_entities_for(state: &tauri::State<AppState>, kind: &str) -> Result<Vec<Value>, AppError> {
     Ok(state_guard(state)?.list_entities(kind)?)
 }
 
-fn list_by_project_for(
+pub(crate) fn list_by_project_for(
     state: &tauri::State<AppState>,
     kind: &str,
     project_id: &str,
@@ -469,7 +451,7 @@ fn list_by_project_for(
     Ok(state_guard(state)?.list_by_field(kind, "project_id", project_id)?)
 }
 
-fn list_by_image_for(
+pub(crate) fn list_by_image_for(
     state: &tauri::State<AppState>,
     kind: &str,
     image_id: &str,
@@ -477,7 +459,7 @@ fn list_by_image_for(
     Ok(state_guard(state)?.list_by_field(kind, "image_id", image_id)?)
 }
 
-fn save_entity_for(
+pub(crate) fn save_entity_for(
     app: &tauri::AppHandle,
     state: &tauri::State<AppState>,
     kind: &str,
@@ -490,7 +472,7 @@ fn save_entity_for(
     Ok(value)
 }
 
-fn delete_entity_for(
+pub(crate) fn delete_entity_for(
     app: &tauri::AppHandle,
     state: &tauri::State<AppState>,
     kind: &str,
@@ -507,98 +489,6 @@ fn delete_entity_for(
 #[tauri::command]
 fn health() -> bool {
     true
-}
-
-#[tauri::command]
-fn annotations_list_by_project(
-    state: tauri::State<AppState>,
-    payload: ProjectIdPayload,
-) -> Result<Vec<Value>, AppError> {
-    list_by_project_for(&state, "annotations", &payload.project_id)
-}
-
-#[tauri::command]
-fn annotations_list_by_image(
-    state: tauri::State<AppState>,
-    payload: ImageIdPayload,
-) -> Result<Vec<Value>, AppError> {
-    list_by_image_for(&state, "annotations", &payload.image_id)
-}
-
-#[tauri::command]
-fn annotations_save(
-    app: tauri::AppHandle,
-    state: tauri::State<AppState>,
-    payload: Value,
-) -> Result<Value, AppError> {
-    save_entity_for(&app, &state, "annotations", "annotations", payload)
-}
-
-#[tauri::command]
-fn annotations_delete(
-    app: tauri::AppHandle,
-    state: tauri::State<AppState>,
-    payload: EntityIdPayload,
-) -> Result<Value, AppError> {
-    delete_entity_for(
-        &app,
-        &state,
-        "annotations",
-        "annotations",
-        &payload.id,
-        "Annotation not found",
-    )
-}
-
-#[tauri::command]
-fn history_list_by_project(
-    state: tauri::State<AppState>,
-    payload: ProjectIdPayload,
-) -> Result<Vec<Value>, AppError> {
-    list_by_project_for(&state, "history", &payload.project_id)
-}
-
-#[tauri::command]
-fn history_save(
-    app: tauri::AppHandle,
-    state: tauri::State<AppState>,
-    payload: Value,
-) -> Result<Value, AppError> {
-    save_entity_for(&app, &state, "history", "history", payload)
-}
-
-#[tauri::command]
-fn settings_list(state: tauri::State<AppState>) -> Result<Vec<Value>, AppError> {
-    list_entities_for(&state, "settings")
-}
-
-#[tauri::command]
-fn settings_get(
-    state: tauri::State<AppState>,
-    payload: EntityIdPayload,
-) -> Result<Value, AppError> {
-    let store = state_guard(&state)?;
-    Ok(store.get_setting(&payload.id)?.unwrap_or_else(
-        || json!({ "id": Uuid::new_v4().to_string(), "key": payload.id, "value": "" }),
-    ))
-}
-
-#[tauri::command]
-fn settings_set(
-    app: tauri::AppHandle,
-    state: tauri::State<AppState>,
-    payload: Value,
-) -> Result<Value, AppError> {
-    let key = value_string(&payload, "key", "key").unwrap_or_default();
-    let store = state_guard(&state)?;
-    let action = if !key.is_empty() && store.get_setting(&key)?.is_some() {
-        "updated"
-    } else {
-        "created"
-    };
-    let value = store.upsert_setting(normalize_entity("settings", payload)?)?;
-    emit_domain_event(&app, "settings", action, &value)?;
-    Ok(value)
 }
 
 #[tauri::command]
@@ -1132,15 +1022,15 @@ pub fn run() {
             commands::images::images_get,
             commands::images::images_save,
             commands::images::images_delete,
-            annotations_list_by_project,
-            annotations_list_by_image,
-            annotations_save,
-            annotations_delete,
-            history_list_by_project,
-            history_save,
-            settings_list,
-            settings_get,
-            settings_set,
+            commands::entities::annotations_list_by_project,
+            commands::entities::annotations_list_by_image,
+            commands::entities::annotations_save,
+            commands::entities::annotations_delete,
+            commands::entities::history_list_by_project,
+            commands::entities::history_save,
+            commands::entities::settings_list,
+            commands::entities::settings_get,
+            commands::entities::settings_set,
             commands::ai::ai_models_list,
             commands::ai::ai_models_list_by_project,
             commands::ai::ai_models_save,
