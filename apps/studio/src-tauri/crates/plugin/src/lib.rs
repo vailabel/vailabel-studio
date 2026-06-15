@@ -13,9 +13,11 @@
 
 pub mod capabilities;
 pub mod metadata;
+pub mod registry;
 
 pub use capabilities::{
     DetectorPlugin, EmbeddingPlugin, ExporterPlugin, OcrPlugin, Plugin, SegmenterPlugin,
     TrainerPlugin,
 };
 pub use metadata::{PluginKind, PluginMetadata, PluginState};
+pub use registry::{PluginEntry, PluginRegistry};
