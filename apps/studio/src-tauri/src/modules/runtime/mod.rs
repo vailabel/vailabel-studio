@@ -5,5 +5,4 @@
 //! The lifecycle/health/HTTP logic lives in the Tauri-free `runtime-manager`
 //! crate, which `AppState` holds as `Arc<RuntimeService>`.
 
-pub mod commands;
 pub mod glue;

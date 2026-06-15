@@ -6,7 +6,7 @@ use tauri::State;
 
 use crate::{AppError, AppState};
 
-use super::model::{AnalysisRequest, JobIdPayload, ProjectIdPayload, ReportIdPayload};
+use crate::modules::analysis::model::{AnalysisRequest, JobIdPayload, ProjectIdPayload, ReportIdPayload};
 
 #[tauri::command]
 pub fn analysis_run(
