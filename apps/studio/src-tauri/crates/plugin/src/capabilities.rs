@@ -1,12 +1,14 @@
 //! Capability traits — one per kind of pluggable AI operation.
 //!
-//! Each trait uses associated types for its request/response so a concrete
-//! plugin defines its own payloads (an ONNX detector and a remote-runtime
-//! detector can both be `DetectorPlugin`s with different `Request`s) while
-//! callers depend only on the trait. All operations return
-//! [`vailabel_core::DomainResult`].
+//! Each trait is **object-safe** (so `Arc<dyn DetectorPlugin>` can live in the
+//! [`crate::PluginRegistry`]): requests and responses cross as
+//! `serde_json::Value` — the same JSON shape the IPC boundary uses — and a
+//! concrete plugin parses the request into its own typed payload internally
+//! (e.g. a runtime-backed detector parses into `runtime_manager::DetectRequest`).
+//! All operations return [`vailabel_core::DomainResult`].
 
 use crate::metadata::PluginMetadata;
+use serde_json::Value;
 use vailabel_core::DomainResult;
 
 /// Base trait every plugin implements: it can describe itself.
@@ -15,68 +17,38 @@ pub trait Plugin: Send + Sync {
     fn metadata(&self) -> &PluginMetadata;
 }
 
-/// Detects objects (bounding boxes) in an input.
+/// Detects objects (bounding boxes) in an input image.
 pub trait DetectorPlugin: Plugin {
-    /// Input payload (e.g. an image reference + thresholds).
-    type Request;
-    /// Output payload (e.g. a list of boxes with labels/scores).
-    type Detections;
-
-    /// Run detection.
-    fn detect(&self, request: Self::Request) -> DomainResult<Self::Detections>;
+    /// Run detection. `request`/return are capability-specific JSON.
+    fn detect(&self, request: &Value) -> DomainResult<Value>;
 }
 
 /// Produces segmentation masks for an input.
 pub trait SegmenterPlugin: Plugin {
-    /// Input payload (e.g. an image + point/box prompts).
-    type Request;
-    /// Output payload (e.g. masks / polygons).
-    type Masks;
-
     /// Run segmentation.
-    fn segment(&self, request: Self::Request) -> DomainResult<Self::Masks>;
+    fn segment(&self, request: &Value) -> DomainResult<Value>;
 }
 
 /// Recognizes text in an input.
 pub trait OcrPlugin: Plugin {
-    /// Input payload (e.g. an image / region).
-    type Request;
-    /// Output payload (e.g. recognized lines with boxes).
-    type Text;
-
     /// Run OCR.
-    fn recognize(&self, request: Self::Request) -> DomainResult<Self::Text>;
+    fn recognize(&self, request: &Value) -> DomainResult<Value>;
 }
 
 /// Exports a dataset/annotations to an external format.
 pub trait ExporterPlugin: Plugin {
-    /// Input payload (e.g. a dataset selection + options).
-    type Request;
-    /// Output payload (e.g. a path/artifact descriptor).
-    type Output;
-
     /// Run the export.
-    fn export(&self, request: Self::Request) -> DomainResult<Self::Output>;
+    fn export(&self, request: &Value) -> DomainResult<Value>;
 }
 
 /// Trains / fine-tunes a model.
 pub trait TrainerPlugin: Plugin {
-    /// Input payload (e.g. dataset + hyperparameters).
-    type Request;
-    /// Output payload (e.g. a training-run handle).
-    type Run;
-
     /// Start a training run.
-    fn train(&self, request: Self::Request) -> DomainResult<Self::Run>;
+    fn train(&self, request: &Value) -> DomainResult<Value>;
 }
 
 /// Generates embeddings (e.g. CLIP) for search / similarity.
 pub trait EmbeddingPlugin: Plugin {
-    /// Input payload (e.g. an image or text).
-    type Request;
-    /// Output payload (e.g. a vector).
-    type Embedding;
-
     /// Compute an embedding.
-    fn embed(&self, request: Self::Request) -> DomainResult<Self::Embedding>;
+    fn embed(&self, request: &Value) -> DomainResult<Value>;
 }
