@@ -13,7 +13,7 @@
 
 #![allow(dead_code)]
 
-use crate::domain::ai::model::InferenceAnnotationDraft;
+use crate::modules::ai::model::InferenceAnnotationDraft;
 use crate::AppError;
 use serde::Deserialize;
 
@@ -119,7 +119,7 @@ pub fn plugin_for(registry_id: &str) -> Box<dyn ModelPlugin> {
     // model entity on the first run, so it constructs here with no file paths.
     #[cfg(feature = "local-inference")]
     if matches!(registry_id, "mobile-sam" | "sam2") {
-        return Box::new(crate::domain::ai::engines::sam::SamSegmenter::new());
+        return Box::new(crate::modules::ai::engines::sam::SamSegmenter::new());
     }
 
     Box::new(NotImplementedPlugin {

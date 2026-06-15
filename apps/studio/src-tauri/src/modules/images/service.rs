@@ -9,8 +9,8 @@ use std::sync::Arc;
 
 use serde_json::Value;
 
-use crate::domain::images::model::{Image, ImageRangePayload, ProjectIdPayload};
-use crate::domain::projects::model::EntityIdPayload;
+use crate::modules::images::model::{Image, ImageRangePayload, ProjectIdPayload};
+use crate::modules::projects::model::EntityIdPayload;
 use crate::AppError;
 use vailabel_dataset::application::{
     DeleteImageCommand, GetImageQuery, ImageAppService, ListImagesByProjectQuery,

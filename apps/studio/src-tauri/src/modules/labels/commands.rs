@@ -1,5 +1,5 @@
-use crate::domain::labels::model::ProjectIdPayload;
-use crate::domain::projects::model::EntityIdPayload;
+use crate::modules::labels::model::ProjectIdPayload;
+use crate::modules::projects::model::EntityIdPayload;
 use crate::{AppError, AppState};
 use serde_json::Value;
 use tauri::State;

@@ -27,8 +27,8 @@ use ort::session::Session;
 use ort::value::TensorRef;
 use serde_json::Value;
 
-use crate::domain::ai::model::{InferenceAnnotationDraft, InferencePoint};
-use crate::domain::ai::plugin::{BoxPrompt, ModelPlugin, PipelineRequest, PointPrompt};
+use crate::modules::ai::model::{InferenceAnnotationDraft, InferencePoint};
+use crate::modules::ai::plugin::{BoxPrompt, ModelPlugin, PipelineRequest, PointPrompt};
 use crate::{value_string, AppError};
 
 /// SAM ViT encoder input side length.

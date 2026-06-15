@@ -15,7 +15,7 @@ use std::sync::Arc;
 
 use serde_json::Value;
 
-use crate::domain::projects::model::{EntityIdPayload, Project};
+use crate::modules::projects::model::{EntityIdPayload, Project};
 use crate::AppError;
 use vailabel_project::application::{
     DeleteProjectCommand, GetProjectQuery, ListProjectsQuery, ProjectAppService, SaveProjectCommand,

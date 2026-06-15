@@ -1,8 +1,8 @@
-use crate::domain::cloud::model::{
+use crate::modules::cloud::model::{
     BatchResult, CloudBatchPayload, CloudConfigPayload, CloudListPayload, CloudObjectMeta,
     CloudObjectPayload, TestConnectionResult,
 };
-use crate::domain::cloud::service;
+use crate::modules::cloud::service;
 use crate::AppError;
 
 #[tauri::command]

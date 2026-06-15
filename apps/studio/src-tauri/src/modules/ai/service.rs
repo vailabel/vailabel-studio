@@ -1,8 +1,8 @@
-use crate::domain::ai::model::{
+use crate::modules::ai::model::{
     CopilotActionPayload, GitHubReleaseLookupPayload, InferenceAnnotationDraft, ModelImportPayload,
     ModelInstallPayload, PipelineRunPayload, PredictionGeneratePayload,
 };
-use crate::domain::ai::plugin;
+use crate::modules::ai::plugin;
 use crate::inference::{self, InferenceEngine};
 use crate::store::EntityStore;
 use crate::{
@@ -603,7 +603,7 @@ impl AiService {
     /// Run a prompt-driven model plugin (SAM segment, open-vocab detect, …) on one
     /// image and persist its drafts as predictions. This is the capability-aware
     /// counterpart to [`Self::generate_predictions`]: it resolves a
-    /// [`crate::domain::ai::plugin::ModelPlugin`] via [`plugin::plugin_for`] and
+    /// [`crate::modules::ai::plugin::ModelPlugin`] via [`plugin::plugin_for`] and
     /// passes the user's [`PromptInput`] (points/boxes/text) through to it.
     pub fn pipeline_run(
         &self,
@@ -1461,7 +1461,7 @@ fn draft_matches_class(draft: &InferenceAnnotationDraft, target: &str) -> bool {
 }
 
 /// Best-effort mapping from an installed `ai_models` entity to a registry plugin
-/// id (see [`crate::domain::ai::registry`]), used when the caller didn't pass an
+/// id (see [`crate::modules::ai::registry`]), used when the caller didn't pass an
 /// explicit `registryId`. The frontend normally passes the id of the catalog
 /// entry it invoked; this fallback lets the backend (e.g. copilot detect→segment
 /// chaining) resolve a plugin from the active model alone. Unknown values resolve
@@ -1771,7 +1771,7 @@ mod tests {
 
     #[test]
     fn cache_insert_bounded_evicts_at_capacity() {
-        use crate::domain::ai::plugin::NotImplementedPlugin;
+        use crate::modules::ai::plugin::NotImplementedPlugin;
         let stub = || {
             CachedEngine::Plugin(Box::new(NotImplementedPlugin {
                 model_name: "stub".into(),
