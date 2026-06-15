@@ -951,7 +951,7 @@ pub fn run() {
             // Project module: a typed Diesel repository over the shared `db`,
             // plus a Tauri-backed EventPublisher. The binary's ProjectService is
             // a thin facade over the ProjectAppService.
-            let project_event_publisher: Arc<dyn vailabel_shared::EventPublisher> = Arc::new(
+            let event_publisher: Arc<dyn vailabel_shared::EventPublisher> = Arc::new(
                 crate::composition::TauriEventPublisher::new(app.handle().clone()),
             );
             let project_repo: Arc<dyn vailabel_project::domain::ProjectRepository> = Arc::new(
@@ -960,7 +960,7 @@ pub fn run() {
             let project_app_service = Arc::new(
                 vailabel_project::application::ProjectAppService::new(
                     project_repo,
-                    project_event_publisher,
+                    event_publisher.clone(),
                 ),
             );
             let project_service = Arc::new(crate::domain::projects::service::ProjectService::new(
@@ -972,11 +972,15 @@ pub fn run() {
             let label_service = Arc::new(crate::domain::labels::service::LabelService::new(
                 label_repo,
             ));
-            let image_repo = Arc::new(
-                crate::domain::images::repository::SqliteImageRepository::new(entity_store.clone()),
+            let image_repo: Arc<dyn vailabel_dataset::domain::ImageRepository> = Arc::new(
+                vailabel_dataset::infrastructure::DieselImageRepository::new(db.clone()),
             );
-            let image_service = Arc::new(crate::domain::images::service::ImageService::new(
+            let image_app_service = Arc::new(vailabel_dataset::application::ImageAppService::new(
                 image_repo,
+                event_publisher.clone(),
+            ));
+            let image_service = Arc::new(crate::domain::images::service::ImageService::new(
+                image_app_service,
             ));
             let ai_service = Arc::new(crate::domain::ai::service::AiService::new(
                 entity_store.clone(),
