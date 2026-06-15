@@ -13,6 +13,7 @@ members = [
     "crates/runtime",
     "crates/project",
     "crates/dataset",
+    "crates/cloud",
     "crates/analysis",
     "crates/video",
     "crates/models",
@@ -46,6 +47,7 @@ vailabel-core = { path = "crates/core" }
 vailabel-shared = { path = "crates/shared" }
 vailabel-project = { path = "crates/project" }
 vailabel-dataset = { path = "crates/dataset" }
+vailabel-cloud = { path = "crates/cloud" }
 vailabel-analysis = { path = "crates/analysis" }
 vailabel-video = { path = "crates/video" }
 vailabel-models = { path = "crates/models" }
@@ -77,11 +79,6 @@ chrono = { version = "0.4", features = ["serde"] }
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "gif", "rayon"] }
 keyring = { version = "3", default-features = false, features = ["apple-native", "linux-native", "windows-native"] }
 open = "5"
-opendal = { version = "0.54", default-features = false, features = [
-    "services-s3",
-    "services-azblob",
-    "services-gcs",
-] }
 rfd = "0.15"
 # Embedded Python/FastAPI runtime lifecycle manager (Tauri-free; this crate owns
 # spawn/health/monitor/HTTP-bridge for the resources/runtime FastAPI service).
@@ -94,6 +91,7 @@ vailabel-shared = { workspace = true }
 vailabel-db = { workspace = true }
 vailabel-project = { workspace = true }
 vailabel-dataset = { workspace = true }
+vailabel-cloud = { workspace = true }
 vailabel-annotation = { workspace = true }
 vailabel-analysis = { workspace = true }
 vailabel-video = { workspace = true }
