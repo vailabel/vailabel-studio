@@ -5,7 +5,7 @@ use crate::ai::model::{
     ModelInstallPayload, PipelineRunPayload, PredictionActionPayload, PredictionGeneratePayload,
     RuntimeInstallPayload,
 };
-use crate::modules::projects::model::{EntityIdPayload, ProjectIdPayload};
+use vailabel_project::contracts::{EntityIdPayload, ProjectIdPayload};
 use crate::{AppError, AppState};
 use serde_json::Value;
 use tauri::State;
