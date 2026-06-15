@@ -966,11 +966,17 @@ pub fn run() {
             let project_service = Arc::new(crate::domain::projects::service::ProjectService::new(
                 project_app_service,
             ));
-            let label_repo = Arc::new(
-                crate::domain::labels::repository::SqliteLabelRepository::new(entity_store.clone()),
+            let label_repo: Arc<dyn vailabel_annotation::domain::LabelRepository> = Arc::new(
+                vailabel_annotation::infrastructure::DieselLabelRepository::new(db.clone()),
+            );
+            let label_app_service = Arc::new(
+                vailabel_annotation::application::LabelClassAppService::new(
+                    label_repo,
+                    event_publisher.clone(),
+                ),
             );
             let label_service = Arc::new(crate::domain::labels::service::LabelService::new(
-                label_repo,
+                label_app_service,
             ));
             let image_repo: Arc<dyn vailabel_dataset::domain::ImageRepository> = Arc::new(
                 vailabel_dataset::infrastructure::DieselImageRepository::new(db.clone()),

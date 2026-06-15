@@ -2,7 +2,7 @@
 name = "vailabel-annotation"
 version = "0.1.0"
 edition = "2021"
-description = "Annotation module (DDD Phase 1 boundary). Owns Annotation/LabelClass aggregates and the shape entities. Domain types land in a later phase."
+description = "Annotation module. Phase 2 owns the LabelClass aggregate (the label catalog) with full layering + per-module Diesel persistence. Annotation/shape entities land in a later phase."
 
 [lib]
 name = "vailabel_annotation"
@@ -10,3 +10,9 @@ name = "vailabel_annotation"
 [dependencies]
 vailabel-core = { workspace = true }
 vailabel-shared = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+# Infrastructure layer only: the labels table lives in this module's own Diesel
+# schema, querying the shared vailabel-db connection.
+vailabel-db = { workspace = true }
+diesel = { workspace = true }

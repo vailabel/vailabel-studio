@@ -1,48 +1,53 @@
-use crate::domain::common::service::{
-    delete_entity, get_entity, list_entities_by_field, save_entity,
-};
-use crate::domain::labels::model::{Label, ProjectIdPayload};
-use crate::domain::labels::repository::LabelRepository;
-use crate::domain::projects::model::EntityIdPayload;
-use crate::AppError;
-use serde_json::Value;
+//! Thin facade over the `vailabel-annotation` label application service.
+//!
+//! Preserves the original method signatures so `commands.rs` and
+//! `AppState.label_service` are unchanged. The per-command `&AppHandle` is now
+//! unused (events go through the `EventPublisher` the app service was built
+//! with). Domain errors convert to `AppError` via `crate::composition`.
+
 use std::sync::Arc;
 
+use serde_json::Value;
+
+use crate::domain::labels::model::{Label, ProjectIdPayload};
+use crate::domain::projects::model::EntityIdPayload;
+use crate::AppError;
+use vailabel_annotation::application::{
+    DeleteLabelCommand, GetLabelQuery, LabelClassAppService, ListLabelsByProjectQuery,
+    SaveLabelCommand,
+};
+
 pub struct LabelService {
-    repo: Arc<dyn LabelRepository + Send + Sync>,
+    inner: Arc<LabelClassAppService>,
 }
 
 impl LabelService {
-    pub fn new(repo: Arc<dyn LabelRepository + Send + Sync>) -> Self {
-        Self { repo }
+    pub fn new(inner: Arc<LabelClassAppService>) -> Self {
+        Self { inner }
     }
 
     pub fn list_labels_by_project(
         &self,
         payload: ProjectIdPayload,
     ) -> Result<Vec<Label>, AppError> {
-        list_entities_by_field(self.repo.as_ref(), "project_id", &payload.project_id)
+        Ok(self.inner.list_by_project(ListLabelsByProjectQuery {
+            project_id: payload.project_id,
+        })?)
     }
 
     pub fn get_label(&self, payload: EntityIdPayload) -> Result<Label, AppError> {
-        get_entity(self.repo.as_ref(), &payload.id, "Label not found")
+        Ok(self.inner.get(GetLabelQuery::new(payload.id))?)
     }
 
-    pub fn save_label(&self, app: &tauri::AppHandle, payload: Value) -> Result<Label, AppError> {
-        save_entity(self.repo.as_ref(), app, "labels", payload)
+    pub fn save_label(&self, _app: &tauri::AppHandle, payload: Value) -> Result<Label, AppError> {
+        Ok(self.inner.save(SaveLabelCommand::new(payload))?)
     }
 
     pub fn delete_label(
         &self,
-        app: &tauri::AppHandle,
+        _app: &tauri::AppHandle,
         payload: EntityIdPayload,
     ) -> Result<Value, AppError> {
-        delete_entity::<Label, _>(
-            self.repo.as_ref(),
-            app,
-            "labels",
-            &payload.id,
-            "Label not found",
-        )
+        Ok(self.inner.delete(DeleteLabelCommand::new(payload.id))?)
     }
 }

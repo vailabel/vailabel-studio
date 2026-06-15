@@ -1,16 +1,17 @@
-//! `vailabel-annotation` — the Annotation module (Phase 1 boundary).
+//! `vailabel-annotation` — the Annotation module.
 //!
-//! Will own the `Annotation` and `LabelClass` aggregate roots and the shape
-//! entities (`BoundingBox`, `Polygon`, `Mask`, `Keypoint`, `Classification`),
-//! plus create/modify/delete/review/validate use cases. Annotations currently
-//! flow through the binary's generic JSON `EntityStore`; the typed domain lands
-//! in a later phase. The layer modules below establish the boundary now.
+//! Phase 2 owns the `LabelClass` aggregate (the project's label catalog) with
+//! full layering: [`domain`] (the `LabelClass` entity + `LabelRepository`
+//! contract), [`application`] (CQRS + `LabelClassAppService`),
+//! [`infrastructure`] (typed Diesel persistence over the shared `vailabel-db`
+//! connection), and [`contracts`] (request DTOs).
+//!
+//! The `Annotation` aggregate and the shape entities (`BoundingBox`, `Polygon`,
+//! `Mask`, `Keypoint`, `Classification`) land in a later phase.
 
-/// Entities, value objects, domain events, repository traits, errors.
-pub mod domain {}
-/// Commands, queries, handlers, DTOs, application services.
-pub mod application {}
-/// Repository implementations, mappers, adapters.
-pub mod infrastructure {}
-/// Public events/requests/responses other modules may depend on.
-pub mod contracts {}
+pub mod application;
+pub mod contracts;
+pub mod domain;
+pub mod infrastructure;
+
+pub use domain::LabelClass;
