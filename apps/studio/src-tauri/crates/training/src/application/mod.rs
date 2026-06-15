@@ -3,6 +3,8 @@
 
 pub mod commands;
 pub mod ports;
+pub mod service;
 
 pub use commands::{StartTrainingCommand, StopTrainingCommand};
 pub use ports::{TrainingRuntime, TrainingStartReq};
+pub use service::TrainingAppService;
