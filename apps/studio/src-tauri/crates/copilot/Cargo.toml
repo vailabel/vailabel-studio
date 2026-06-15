@@ -8,5 +8,6 @@ description = "Copilot module for the local AI labeling copilot. `contracts` hol
 name = "vailabel_copilot"
 
 [dependencies]
+vailabel-core = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
