@@ -1,0 +1,13 @@
+[package]
+name = "vailabel-dataset"
+version = "0.1.0"
+edition = "2021"
+description = "Dataset module: owns the dataset's image assets (and, in later phases, dataset import/export/statistics/health). Phase 1 extracts the Image domain type + request DTOs."
+
+[lib]
+name = "vailabel_dataset"
+
+[dependencies]
+vailabel-core = { workspace = true }
+vailabel-shared = { workspace = true }
+serde = { workspace = true }
