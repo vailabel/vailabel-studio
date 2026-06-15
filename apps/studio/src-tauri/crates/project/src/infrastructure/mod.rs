@@ -1,6 +1,9 @@
-//! The Project infrastructure layer: a repository implemented over the shared
-//! [`vailabel_shared::EntitySource`] JSON port (no diesel, no Tauri).
+//! The Project infrastructure layer: typed Diesel persistence over the shared
+//! `vailabel-db` connection. This is the only layer of the crate allowed to
+//! touch `diesel`; `domain`/`application`/`contracts` stay pure.
 
+pub mod record;
 pub mod repository;
+pub mod schema;
 
-pub use repository::{project_repository, JsonRepository};
+pub use repository::DieselProjectRepository;

@@ -12,3 +12,7 @@ vailabel-core = { workspace = true }
 vailabel-shared = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+# Infrastructure layer only: the projects table lives in this module's own
+# Diesel schema, querying the shared vailabel-db connection.
+vailabel-db = { workspace = true }
+diesel = { workspace = true }
