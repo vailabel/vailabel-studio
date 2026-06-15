@@ -1,0 +1,12 @@
+[package]
+name = "vailabel-core"
+version = "0.1.0"
+edition = "2021"
+description = "Pure domain abstractions for Vailabel Studio (Entity, Repository, DomainEvent, Specification, ...). No I/O, no framework deps — the root of the dependency graph."
+
+[lib]
+name = "vailabel_core"
+
+[dependencies]
+serde = { workspace = true }
+thiserror = { workspace = true }
