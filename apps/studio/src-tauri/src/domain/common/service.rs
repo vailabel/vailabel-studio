@@ -4,9 +4,11 @@ use serde::{de::DeserializeOwned, Serialize};
 use serde_json::{json, Value};
 use uuid::Uuid;
 
-pub trait HasId {
-    fn id(&self) -> &str;
-}
+// `HasId` is now an alias for the canonical `vailabel_core::Identifiable`
+// (identical signature `fn id(&self) -> &str`). Every existing `impl HasId for X`
+// and `T: HasId` bound keeps compiling unchanged, while new domain crates
+// implement `core::Identifiable` directly. See crates/ARCHITECTURE.md.
+pub use vailabel_core::Identifiable as HasId;
 
 /// Ensure the incoming payload carries a non-empty `id` before it is
 /// deserialized into a typed entity. The frontend omits `id` when creating a
