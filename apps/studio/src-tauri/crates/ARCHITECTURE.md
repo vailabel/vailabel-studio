@@ -1,4 +1,4 @@
-# Architecture — DDD Modular Monolith (Phases 1–4)
+# Architecture — DDD Modular Monolith (Phases 1–5)
 
 VaiLabel Studio's backend is a **modular monolith** organized by business domain
 and layered with **Clean Architecture**. This document describes the crate
@@ -32,11 +32,15 @@ vailabel-studio    the Tauri binary = composition root (tauri, opendal, ort,
   shared infrastructure). It exposes a cloneable `Db` handle (`lock`/`with_conn`/
   `transaction`) and re-exports `diesel`. It is *not* a pure crate. `Db::transaction`
   is the unit-of-work boundary (commit on `Ok`, rollback on `Err`).
-- **module crates** (`project`, `dataset`, `annotation`, `search`, `models`,
-  `copilot`, `training`, plus `analysis`/`video`) depend on `core`/`shared`. Their
-  `domain`/`application`/`contracts` layers are **pure**; their `infrastructure`
-  layer owns the module's own `diesel::table!` + Row mapping + typed repository,
-  querying the shared `vailabel-db` connection.
+- **module crates** (`project`, `dataset`, `annotation`, `training`, `cloud`,
+  `search`, `models`, `copilot`, plus `analysis`/`video`) depend on `core`/`shared`.
+  Their `domain`/`application`/`contracts` layers are **pure**. Modules that own
+  persistence (`project`, `dataset`, `annotation`, `training`) add an
+  `infrastructure/` layer with the module's own `diesel::table!` + Row mapping +
+  typed repository over the shared `vailabel-db`; `cloud`'s `infrastructure/`
+  wraps OpenDAL instead. A module whose work is infrastructural but carries no
+  persistence of its own (`copilot`) stays **fully pure** and declares **outbound
+  ports** that the composition root implements (see *Outbound ports*).
 - **`plugin`** is a pure framework crate: object-safe capability traits
   (Detector/Segmenter/Ocr/Exporter/Trainer/Embedding, `&Value → DomainResult<Value>`)
   + a `PluginRegistry` that tracks each plugin's `PluginState` lifecycle and
@@ -80,6 +84,27 @@ bridges the framework to the runtime ACL. The registry is held in `AppState`; th
 `plugins_list` command surfaces the installed plugins to the UI. (Routing the
 inference commands *through* the registry is a later, load-bearing step.)
 
+## Outbound ports
+
+Some use cases need infrastructure the domain must not name — an HTTP LLM, the
+ONNX inference engine, the embedded Python runtime. The application layer
+declares an **outbound port** (an object-safe trait over plain domain/JSON
+types) and the composition root implements it, so the module stays pure:
+
+- **`training`** — `TrainingRuntime` (**async**, `async-trait`; backed by the
+  `runtime-manager` ACL + `RuntimeService` in `src/training_runtime.rs`).
+  `TrainingAppService` persists the `TrainingRun` through its Diesel repo and
+  drives the trainer through the port.
+- **`copilot`** — `CopilotLlm` + `CopilotInference` (**sync** — the LLM client is
+  `reqwest::blocking` and the Tauri commands already `spawn_blocking`).
+  `CopilotAppService` orchestrates one chat turn (route → optional LLM plan →
+  dispatch → the per-capability handlers + `test_connection`) against the two
+  ports; `src/copilot_ports.rs` implements them over the local OpenAI-compatible
+  client and the binary's `AiService` (the shared predictions/pipeline engine,
+  which still emits `predictions:generated`). The copilot crate holds no
+  HTTP/Tauri/inference code; reply-path errors cross as bare strings so the
+  user-facing text stays byte-identical.
+
 ## Module layout
 
 ```
@@ -90,22 +115,27 @@ inference commands *through* the registry is a later, load-bearing step.)
   infrastructure/  the module's diesel schema + Row + typed repository (over vailabel-db)
 ```
 
-`project` is the fully-wired reference. `project`, `dataset` (images), and
-`annotation` (the `LabelClass` aggregate) persist via per-module Diesel. The other
-module crates are still type-extracted (`analysis`, `video`, `models`, `copilot`)
-or boundary stubs (`search`, `training`).
+`project` is the fully-wired reference. `project`, `dataset` (images),
+`annotation` (the `LabelClass` aggregate), and `training` (the `TrainingRun`
+aggregate) persist via per-module Diesel; `cloud` persists via OpenDAL.
+`copilot` is a pure module driven through outbound ports (above). The remaining
+crates are still type-extracted (`analysis`, `video`, `models`) or a boundary
+stub (`search`).
 
 ## Enforcement
 
 `vailabel-arch-tests` (run by `cargo test`) distinguishes two tiers:
 
-- **Fully pure crates** (`core`, `shared`, `plugin`, and the not-yet-migrated
-  module crates): the ENTIRE `src/` must be free of infrastructure imports
+- **Fully pure crates** (`core`, `shared`, `plugin`, `copilot`, and the
+  not-yet-migrated module crates `analysis`/`video`/`models`/`search`): the
+  ENTIRE `src/` must be free of infrastructure imports
   (`diesel::`/`tauri::`/`rusqlite::`/`reqwest::`/`opendal::`/`ort::`/`std::process`/
   `std::fs`), and the `Cargo.toml` must declare no infrastructure dependency.
-- **Layered module crates** (`project`, `dataset`, `annotation`): their
-  `domain`/`application`/`contracts` layers must stay pure (scanned at folder
-  granularity), but `infrastructure/` may use `diesel` + `vailabel-db`.
+  `copilot` qualifies because its inference/LLM work lives behind outbound ports.
+- **Layered module crates** (`project`, `dataset`, `annotation`, `training`,
+  `cloud`): their `domain`/`application`/`contracts` layers must stay pure
+  (scanned at folder granularity), but `infrastructure/` may use its backing
+  technology — `diesel` + `vailabel-db`, or (for `cloud`) `opendal`.
 - `core` must depend on nothing internal.
 
 The scanner strips comments before matching (so doc text is safe) and self-tests
@@ -128,9 +158,23 @@ that it catches real usage. The compiler additionally enforces the crate DAG.
   reference plugin registered in `AppState`, and a `plugins_list` command. The
   runtime module was already the ACL (`runtime-manager`). The dead `&mut`-self
   `PluginLifecycle` trait was removed (lifecycle is the registry state machine).
+- **Phase 5** — Training Studio + Copilot moved behind outbound ports (see
+  *Outbound ports*). `training` became a full layered module: the `TrainingRun`
+  aggregate + `TrainingStatus`/`TrainingEvent`, its own `training_jobs` Diesel
+  repository, `TrainingAppService`, and the async `TrainingRuntime` port; the
+  residual store's training plumbing was deleted (the module owns the table).
+  `copilot`'s pure decision logic (intent router, LLM plan parser, QA-diff,
+  label parsing, `CopilotLlmConfig`) moved into the crate; `CopilotAppService`
+  now orchestrates a turn against the sync `CopilotLlm` + `CopilotInference`
+  ports, and the binary's duplicate `AiService` copilot code was removed. Tauri
+  command responses and the `studio://domain-event` wire format are unchanged.
+  (Alongside this, the cloud storage module was extracted into the layered
+  `cloud` crate over OpenDAL.)
 
 Deferred to later phases: routing the inference commands through the
 `PluginRegistry` (so plugins are the execution path) + more concrete plugins;
-migrating the remaining entities and the `ai`/`analysis`/`video` service logic
-into modules/application layers; full ai/copilot/models wiring; runtime-glue
-extraction; cross-process/integration event transport; the React feature reorg.
+migrating the remaining entities and the `analysis`/`video`/`models` service
+logic into modules/application layers (and routing `copilot_apply_action`
+through the module); cross-process/integration event transport; the React
+feature reorg. (`--no-default-features` still has the pre-existing
+`ai/service.rs` build break, tracked separately.)
