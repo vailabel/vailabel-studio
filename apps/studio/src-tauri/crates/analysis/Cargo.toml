@@ -1,0 +1,12 @@
+[package]
+name = "vailabel-analysis"
+version = "0.1.0"
+edition = "2021"
+description = "Dataset Intelligence module: the analysis report model (health, analytics, quality, image-quality, outliers, findings) and request DTOs. A dataset-statistics/health concern; pure domain types."
+
+[lib]
+name = "vailabel_analysis"
+
+[dependencies]
+vailabel-core = { workspace = true }
+serde = { workspace = true }
