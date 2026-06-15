@@ -1,25 +1,25 @@
 //! `vailabel-shared` — the shared kernel.
 //!
-//! Cross-cutting primitives every module may use, and the *ports* (abstract
-//! interfaces) through which module infrastructure talks to the outside world
-//! without naming a concrete technology:
+//! Cross-cutting primitives every module may use, plus the [`EventPublisher`]
+//! port through which application services emit domain events outward without
+//! naming Tauri:
 //!
 //! - [`clock`] — wall-clock access ([`now_iso`], [`Clock`]).
 //! - [`id`] — identifier generation and the type-tagged [`Id`] newtype.
-//! - [`persistence`] — the [`EntitySource`] JSON-store port + [`PortError`].
-//! - [`event`] — the [`EventPublisher`] port for emitting domain events outward.
+//! - [`event`] — the [`EventPublisher`] port + [`PortError`].
 //!
-//! `shared` depends only on `vailabel-core` (plus serde/uuid/chrono). Like
-//! `core`, it must never depend on `diesel`, `tauri`, `reqwest`, `opendal`,
-//! `ort`, or the filesystem — those live in the composition root, which
-//! *implements* these ports. See `crates/ARCHITECTURE.md`.
+//! `shared` depends only on `vailabel-core` (plus serde/uuid/chrono). Persistence
+//! is owned per-module (each module's `infrastructure/` runs typed Diesel over
+//! the shared `vailabel-db` connection), so there is no generic persistence port
+//! here. Like `core`, this crate must never depend on `diesel`, `tauri`, etc.
+//! See `crates/ARCHITECTURE.md`.
 
 pub mod clock;
+pub mod error;
 pub mod event;
 pub mod id;
-pub mod persistence;
 
 pub use clock::{now_iso, Clock, SystemClock};
+pub use error::PortError;
 pub use event::EventPublisher;
 pub use id::{new_id, Id};
-pub use persistence::{EntitySource, PortError};

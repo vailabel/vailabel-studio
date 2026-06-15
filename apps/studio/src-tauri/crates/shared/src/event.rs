@@ -1,6 +1,6 @@
 //! The event-publishing port.
 
-use crate::persistence::PortError;
+use crate::error::PortError;
 use serde_json::Value;
 
 /// Port for publishing domain events outward (UI refresh, audit, integrations).
