@@ -170,25 +170,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    training_jobs (id) {
-        id -> Text,
-        project_id -> Text,
-        model_id -> Nullable<Text>,
-        name -> Text,
-        status -> Text,
-        config_json -> Nullable<Text>,
-        metrics_json -> Nullable<Text>,
-        progress -> Float,
-        log_path -> Nullable<Text>,
-        error -> Nullable<Text>,
-        created_at -> Text,
-        updated_at -> Text,
-        started_at -> Nullable<Text>,
-        finished_at -> Nullable<Text>,
-    }
-}
-
-diesel::table! {
     runtime_models (id) {
         id -> Text,
         name -> Text,
@@ -218,5 +199,4 @@ diesel::allow_tables_to_appear_in_same_query!(
     secret_keys,
     settings,
     tasks,
-    training_jobs,
 );
