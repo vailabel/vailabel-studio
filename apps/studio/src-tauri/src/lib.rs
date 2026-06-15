@@ -2,10 +2,12 @@
 
 pub mod composition;
 pub mod commands;
+pub mod analysis;
+pub mod cloud;
+pub mod video;
 pub mod ai;
 pub mod runtime;
 pub mod copilot_ports;
-pub mod modules;
 pub mod plugins;
 pub mod training_runtime;
 mod gpu;
@@ -15,8 +17,8 @@ mod store;
 
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use ai::service::AiService;
-use modules::analysis::service::AnalysisService;
-use modules::video::service::VideoService;
+use analysis::service::AnalysisService;
+use video::service::VideoService;
 use keyring::Entry;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
@@ -995,7 +997,7 @@ pub fn run() {
             // adapter over the residual store; the pixel decoder is the crate's
             // infrastructure. The binary AnalysisService owns the job lifecycle.
             let analysis_repo: Arc<dyn vailabel_analysis::domain::AnalysisRepository> = Arc::new(
-                crate::modules::analysis::repository::AnalysisStoreRepository::new(store_arc.clone()),
+                crate::analysis::repository::AnalysisStoreRepository::new(store_arc.clone()),
             );
             let analysis_decoder: Arc<dyn vailabel_analysis::application::ImageDecoder> =
                 Arc::new(vailabel_analysis::infrastructure::ImageQualityDecoder::new());
@@ -1004,13 +1006,13 @@ pub fn run() {
                 analysis_decoder,
             ));
             let analysis_service = Arc::new(
-                crate::modules::analysis::service::AnalysisService::new(analysis_app_service),
+                crate::analysis::service::AnalysisService::new(analysis_app_service),
             );
             // Video module: persistence is a binary adapter over the residual
             // store; the FFmpeg pipeline is the crate's infrastructure. The
             // binary VideoService owns only the ingest job lifecycle.
             let video_repo: Arc<dyn vailabel_video::domain::VideoRepository> = Arc::new(
-                crate::modules::video::repository::VideoStoreRepository::new(store_arc.clone()),
+                crate::video::repository::VideoStoreRepository::new(store_arc.clone()),
             );
             let video_pipeline: Arc<dyn vailabel_video::application::VideoPipeline> =
                 Arc::new(vailabel_video::infrastructure::FfmpegPipeline::new());
@@ -1019,7 +1021,7 @@ pub fn run() {
                 video_pipeline,
                 app_dir.join("video-frames"),
             ));
-            let video_service = Arc::new(crate::modules::video::service::VideoService::new(
+            let video_service = Arc::new(crate::video::service::VideoService::new(
                 video_app_service,
             ));
 
