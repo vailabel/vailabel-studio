@@ -98,6 +98,7 @@ vailabel-analysis = { workspace = true }
 vailabel-video = { workspace = true }
 vailabel-models = { workspace = true }
 vailabel-copilot = { workspace = true }
+vailabel-plugin = { workspace = true }
 diesel = { workspace = true }
 libsqlite3-sys = { workspace = true }
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls", "json"] }
