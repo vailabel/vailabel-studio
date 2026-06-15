@@ -1,178 +1,65 @@
-use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
-use opendal::{services, Operator};
-use serde_json::Value;
-use std::path::PathBuf;
+//! Thin facade over the `vailabel-cloud` storage service.
+//!
+//! The OpenDAL provider wiring, batch-transfer policy, and object listing now
+//! live in the `vailabel-cloud` crate (domain/application/infrastructure). This
+//! file keeps the original free-function signatures so `commands.rs` is
+//! unchanged, builds the application service with the keychain-backed secret
+//! port, and bridges the crate's async use cases to the synchronous Tauri
+//! commands via the Tauri runtime. Domain errors convert to `AppError` via the
+//! `From` impl in `crate::composition`.
 
-use crate::domain::cloud::model::{
+use std::sync::Arc;
+
+use vailabel_cloud::application::{CloudStorageService, SecretStore};
+use vailabel_cloud::contracts::{
     BatchResult, CloudBatchPayload, CloudConfigPayload, CloudListPayload, CloudObjectMeta,
-    CloudObjectPayload, TestConnectionResult, TransferFailure,
+    CloudObjectPayload, TestConnectionResult,
 };
-use crate::{read_secret, AppError};
+use vailabel_cloud::infrastructure::OpenDalFactory;
+use vailabel_core::{DomainError, DomainResult};
 
-/// Keychain namespace the frontend writes cloud secrets under (see
-/// `cloud-storage-viewmodel.ts`). Keys are `"<configId>:<field>"`.
-const SECRET_NAMESPACE: &str = "cloud-storage";
+use crate::AppError;
 
-fn config_str(config: &Value, key: &str) -> Result<String, AppError> {
-    config
-        .get(key)
-        .and_then(Value::as_str)
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .map(ToString::to_string)
-        .ok_or_else(|| AppError::Message(format!("Cloud config is missing '{key}'")))
-}
+/// Adapts the binary's OS-keychain reader to the crate's [`SecretStore`] port,
+/// so cloud secrets are resolved in the backend and never round-trip through the
+/// frontend.
+struct KeyringSecretStore;
 
-fn secret(config_id: &str, field: &str) -> Result<String, AppError> {
-    read_secret(SECRET_NAMESPACE, &format!("{config_id}:{field}"))?
-        .filter(|value| !value.is_empty())
-        .ok_or_else(|| {
-            AppError::Message(format!("Missing secret '{field}' for this configuration"))
-        })
-}
-
-/// Build an OpenDAL operator for the given provider from the non-secret config
-/// plus the secrets stored in the OS keychain.
-pub fn build_operator(
-    config_id: &str,
-    provider: &str,
-    config: &Value,
-) -> Result<Operator, AppError> {
-    let operator = match provider {
-        "aws" => {
-            let builder = services::S3::default()
-                .bucket(&config_str(config, "bucket")?)
-                .region(&config_str(config, "region")?)
-                .access_key_id(&secret(config_id, "accessKeyId")?)
-                .secret_access_key(&secret(config_id, "secretAccessKey")?);
-            Operator::new(builder)?.finish()
-        }
-        "azure" => {
-            let account_name = config_str(config, "accountName")?;
-            let builder = services::Azblob::default()
-                .container(&config_str(config, "container")?)
-                .account_name(&account_name)
-                .account_key(&secret(config_id, "accountKey")?)
-                .endpoint(&format!("https://{account_name}.blob.core.windows.net"));
-            Operator::new(builder)?.finish()
-        }
-        "gcp" => {
-            // OpenDAL's GCS service expects the service-account JSON as a
-            // base64-encoded credential string.
-            let service_account_json = secret(config_id, "serviceAccountJson")?;
-            let builder = services::Gcs::default()
-                .bucket(&config_str(config, "bucket")?)
-                .credential(&BASE64.encode(service_account_json.as_bytes()));
-            Operator::new(builder)?.finish()
-        }
-        other => {
-            return Err(AppError::Message(format!(
-                "Unsupported cloud provider '{other}'"
-            )))
-        }
-    };
-    Ok(operator)
-}
-
-/// Probe connectivity + credentials without raising — the UI shows the message.
-pub fn test_connection(payload: CloudConfigPayload) -> TestConnectionResult {
-    match check(&payload) {
-        Ok(()) => TestConnectionResult {
-            ok: true,
-            message: "Connection successful".into(),
-        },
-        Err(error) => TestConnectionResult {
-            ok: false,
-            message: error.to_string(),
-        },
+impl SecretStore for KeyringSecretStore {
+    fn get(&self, namespace: &str, key: &str) -> DomainResult<Option<String>> {
+        crate::read_secret(namespace, key)
+            .map_err(|error| DomainError::repository(error.to_string()))
     }
 }
 
-fn check(payload: &CloudConfigPayload) -> Result<(), AppError> {
-    let operator = build_operator(&payload.config_id, &payload.provider, &payload.config)?;
-    tauri::async_runtime::block_on(async move { operator.check().await })?;
-    Ok(())
+/// Construct the application service with the keychain-backed object-store
+/// factory. Cheap: building the operator only happens when a use case runs.
+fn service() -> CloudStorageService {
+    CloudStorageService::new(Arc::new(OpenDalFactory::new(Arc::new(KeyringSecretStore))))
+}
+
+pub fn test_connection(payload: CloudConfigPayload) -> TestConnectionResult {
+    tauri::async_runtime::block_on(service().test_connection(payload))
 }
 
 pub fn upload_files(payload: CloudBatchPayload) -> Result<BatchResult, AppError> {
-    let operator = build_operator(&payload.config_id, &payload.provider, &payload.config)?;
-    let mut result = BatchResult::default();
-    tauri::async_runtime::block_on(async {
-        for item in &payload.items {
-            match upload_one(&operator, &item.key, &item.path).await {
-                Ok(()) => result.succeeded.push(item.key.clone()),
-                Err(error) => result.failed.push(TransferFailure {
-                    key: item.key.clone(),
-                    error: error.to_string(),
-                }),
-            }
-        }
-    });
-    Ok(result)
-}
-
-async fn upload_one(operator: &Operator, key: &str, path: &str) -> Result<(), AppError> {
-    // One image at a time: peak memory is a single file, not the whole batch.
-    let bytes = std::fs::read(path)?;
-    operator.write(key, bytes).await?;
-    Ok(())
+    Ok(tauri::async_runtime::block_on(service().upload_files(payload))?)
 }
 
 pub fn download_files(payload: CloudBatchPayload) -> Result<BatchResult, AppError> {
-    let operator = build_operator(&payload.config_id, &payload.provider, &payload.config)?;
-    let mut result = BatchResult::default();
-    tauri::async_runtime::block_on(async {
-        for item in &payload.items {
-            match download_one(&operator, &item.key, &item.path).await {
-                Ok(()) => result.succeeded.push(item.key.clone()),
-                Err(error) => result.failed.push(TransferFailure {
-                    key: item.key.clone(),
-                    error: error.to_string(),
-                }),
-            }
-        }
-    });
-    Ok(result)
-}
-
-async fn download_one(operator: &Operator, key: &str, path: &str) -> Result<(), AppError> {
-    let buffer = operator.read(key).await?;
-    let destination = PathBuf::from(path);
-    if let Some(parent) = destination.parent() {
-        std::fs::create_dir_all(parent)?;
-    }
-    std::fs::write(destination, buffer.to_vec())?;
-    Ok(())
+    Ok(tauri::async_runtime::block_on(
+        service().download_files(payload),
+    )?)
 }
 
 pub fn delete_object(payload: CloudObjectPayload) -> Result<(), AppError> {
-    let operator = build_operator(&payload.config_id, &payload.provider, &payload.config)?;
-    tauri::async_runtime::block_on(async move { operator.delete(&payload.key).await })?;
-    Ok(())
+    Ok(tauri::async_runtime::block_on(
+        service().delete_object(payload),
+    )?)
 }
 
 pub fn list_objects(payload: CloudListPayload) -> Result<Vec<CloudObjectMeta>, AppError> {
-    let operator = build_operator(&payload.config_id, &payload.provider, &payload.config)?;
-    let prefix = payload.prefix.clone().unwrap_or_default();
-    let entries =
-        tauri::async_runtime::block_on(async { operator.list_with(&prefix).recursive(true).await })?;
-
-    let mut metas = Vec::new();
-    for entry in entries {
-        let metadata = entry.metadata();
-        if metadata.is_dir() {
-            continue;
-        }
-        metas.push(CloudObjectMeta {
-            key: entry.path().to_string(),
-            size: metadata.content_length(),
-            last_modified: metadata.last_modified().map(|time| time.to_rfc3339()),
-        });
-        if let Some(limit) = payload.limit {
-            if metas.len() >= limit {
-                break;
-            }
-        }
-    }
-    Ok(metas)
+    Ok(tauri::async_runtime::block_on(
+        service().list_objects(payload),
+    )?)
 }

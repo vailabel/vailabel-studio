@@ -1,0 +1,24 @@
+[package]
+name = "vailabel-cloud"
+version = "0.1.0"
+edition = "2021"
+description = "Cloud Storage module: object-store sync to S3/Azure/GCS. The provider wiring, batch transfer policy (never fail-fast; report successes/failures separately), and object listing as a layered DDD module. The application/domain/contracts layers are pure; the OpenDAL + filesystem access lives behind the ObjectStore port in infrastructure."
+
+[lib]
+name = "vailabel_cloud"
+
+[dependencies]
+vailabel-core = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+async-trait = { workspace = true }
+# Infrastructure layer only: object-store access over S3/Azure/GCS, behind the
+# `ObjectStore` port so the pure layers never see OpenDAL.
+opendal = { version = "0.54", default-features = false, features = [
+    "services-s3",
+    "services-azblob",
+    "services-gcs",
+] }
+# Infrastructure layer only: GCS expects the service-account JSON as a
+# base64-encoded credential string.
+base64 = "0.22"

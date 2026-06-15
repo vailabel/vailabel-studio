@@ -61,8 +61,6 @@ pub enum AppError {
     #[error(transparent)]
     Keyring(#[from] keyring::Error),
     #[error(transparent)]
-    Cloud(#[from] opendal::Error),
-    #[error(transparent)]
     Tauri(#[from] tauri::Error),
     #[error(transparent)]
     Runtime(#[from] runtime_manager::RuntimeError),
