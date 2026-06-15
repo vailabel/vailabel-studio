@@ -13,3 +13,7 @@ vailabel-shared = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 async-trait = { workspace = true }
+# Infrastructure layer only: the training_jobs table lives in this module's own
+# Diesel schema, querying the shared vailabel-db connection.
+vailabel-db = { workspace = true }
+diesel = { workspace = true }

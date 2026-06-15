@@ -16,14 +16,14 @@ use std::path::{Path, PathBuf};
 
 /// Crates whose ENTIRE `src/` must be infrastructure-free.
 const FULLY_PURE: &[&str] = &[
-    "core", "shared", "plugin", "analysis", "video", "models", "copilot", "search", "training",
+    "core", "shared", "plugin", "analysis", "video", "models", "copilot", "search",
 ];
 
 /// Module crates that own a typed-Diesel `infrastructure/` layer. Their
 /// `domain`/`application`/`contracts` layers must stay pure; `infrastructure/`
 /// legitimately depends on diesel + `vailabel-db`, so it is scanned at folder
 /// granularity and its `Cargo.toml` is exempt from the dependency check.
-const LAYERED: &[&str] = &["project", "dataset", "annotation"];
+const LAYERED: &[&str] = &["project", "dataset", "annotation", "training"];
 
 /// The layers of a LAYERED crate that must remain pure.
 const PURE_LAYERS: &[&str] = &["domain", "application", "contracts"];
