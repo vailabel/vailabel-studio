@@ -10,6 +10,8 @@ lastUpdated: May 18, 2025
 
 Welcome to Vision AI Label Studio! This guide will help you install the application on your Windows or macOS desktop and troubleshoot any issues related to unsigned app warnings.
 
+> **Before you start:** check the [System Requirements](/docs/system-requirements) to confirm your OS and hardware are supported.
+
 ## Unsigned App Warning
 
 When installing Vision AI Label Studio, you might encounter warnings about the app being from an unidentified developer or not being signed. Follow the appropriate section below for your operating system to proceed safely.
@@ -50,6 +52,16 @@ xattr -c /Applications/Vision\ AI\ Label\ Studio.app
 > **Warning:** This command removes all extended attributes (such as the 'quarantine' flag) from the application, which macOS may set when you download an app from the internet. Removing these attributes can help resolve issues where the app won't launch due to security restrictions. However, it will remove all extended attributes, not just the quarantine flag, and may bypass some of macOS's built-in security protections. Only use this if you trust the source of the application.
 
 **Warning:** Only bypass this warning if you trust the source of the application.
+
+## Enabling AI features (optional)
+
+Vision AI Label Studio includes offline, on-device AI for faster labeling. It is
+**not required** to start labeling, and it runs locally with no cloud calls.
+
+- The AI runtime (ONNX Runtime) is loaded at runtime and is not bundled. To turn
+  on detection and optionally accelerate it with an NVIDIA GPU, follow the
+  [AI & GPU Setup guide](/docs/ai-gpu-setup).
+- For what the assistant can do, see the [AI Copilot guide](/docs/ai-copilot).
 
 ## ⚠️ Seeking Contributors with Signing Credentials
 
