@@ -14,6 +14,7 @@ members = [
     "crates/project",
     "crates/dataset",
     "crates/analysis",
+    "crates/video",
     "crates/annotation",
     "crates/search",
     "crates/training",
@@ -37,6 +38,7 @@ vailabel-shared = { path = "crates/shared" }
 vailabel-project = { path = "crates/project" }
 vailabel-dataset = { path = "crates/dataset" }
 vailabel-analysis = { path = "crates/analysis" }
+vailabel-video = { path = "crates/video" }
 vailabel-plugin = { path = "crates/plugin" }
 vailabel-runtime = { path = "crates/runtime" }
 vailabel-annotation = { path = "crates/annotation" }
@@ -80,6 +82,7 @@ vailabel-shared = { workspace = true }
 vailabel-project = { workspace = true }
 vailabel-dataset = { workspace = true }
 vailabel-analysis = { workspace = true }
+vailabel-video = { workspace = true }
 diesel = { version = "2", features = ["sqlite"] }
 libsqlite3-sys = { version = "0.28", features = ["bundled"] }
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls", "json"] }
