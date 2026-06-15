@@ -1,4 +1,3 @@
-pub mod commands;
 pub mod copilot;
 pub mod engines;
 pub mod llm;

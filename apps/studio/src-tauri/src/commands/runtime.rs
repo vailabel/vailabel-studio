@@ -395,7 +395,7 @@ pub async fn export_openvino(
 
 #[tauri::command]
 pub fn runtime_models_list(state: State<AppState>) -> Result<Vec<Value>, AppError> {
-    super::glue::list_models(&state.store)
+    crate::modules::runtime::glue::list_models(&state.store)
 }
 
 #[tauri::command]
@@ -408,7 +408,7 @@ pub async fn runtime_models_install(
     let app2 = app.clone();
     let id = payload.id;
     let saved = tauri::async_runtime::spawn_blocking(move || {
-        super::glue::install_runtime_model(&app2, store, &id)
+        crate::modules::runtime::glue::install_runtime_model(&app2, store, &id)
     })
     .await
     .map_err(|e| AppError::Message(format!("Model install task failed: {e}")))??;

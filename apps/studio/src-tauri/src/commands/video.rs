@@ -7,7 +7,7 @@ use tauri::State;
 
 use crate::{AppError, AppState};
 
-use super::model::{
+use crate::modules::video::model::{
     EntityIdPayload, ExportTracksRequest, ImportVideoRequest, IngestRequest, JobIdPayload,
     ProjectIdPayload, Track, VideoIdPayload,
 };
