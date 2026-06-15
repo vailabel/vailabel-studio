@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use serde_json::{json, Value};
 use vailabel_core::{DomainError, DomainResult};
-use vailabel_shared::{new_id, now_iso, EventPublisher, PortError};
+use vailabel_shared::{now_iso, EventPublisher, PortError};
 
 use crate::application::commands::{StartTrainingCommand, StopTrainingCommand};
 use crate::application::ports::{TrainingRuntime, TrainingStartReq};
@@ -40,7 +40,7 @@ impl TrainingAppService {
     /// stored run — propagating the runtime error after persisting `failed`,
     /// matching the pre-refactor `training_start`.
     pub async fn start(&self, command: StartTrainingCommand) -> DomainResult<TrainingRun> {
-        let job_id = new_id();
+        let job_id = command.job_id.clone();
         let now = now_iso();
         let name = command
             .name
@@ -119,6 +119,11 @@ impl TrainingAppService {
     /// All training runs (across projects) — the `training_list` query.
     pub fn list(&self) -> DomainResult<Vec<TrainingRun>> {
         self.repo.list()
+    }
+
+    /// Fetch one run by id (used for the `training_logs` on-disk fallback).
+    pub fn get(&self, id: &str) -> DomainResult<Option<TrainingRun>> {
+        self.repo.get(id)
     }
 
     /// On a runtime crash, mark every in-flight run `failed` and emit an updated

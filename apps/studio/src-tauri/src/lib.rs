@@ -3,6 +3,7 @@
 pub mod composition;
 pub mod domain;
 pub mod plugins;
+pub mod training_runtime;
 mod gpu;
 mod inference;
 mod schema;
@@ -40,6 +41,7 @@ pub struct AppState {
     pub video_service: Arc<VideoService>,
     pub runtime_service: Arc<runtime_manager::RuntimeService>,
     pub plugin_registry: Arc<Mutex<vailabel_plugin::PluginRegistry>>,
+    pub training_service: Arc<vailabel_training::application::TrainingAppService>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -1014,6 +1016,23 @@ pub fn run() {
             let runtime_service =
                 Arc::new(runtime_manager::RuntimeService::new(runtime_config));
 
+            // Training module: typed Diesel repo over the shared `db`, the runtime
+            // port backed by the runtime service, events via the shared publisher.
+            let training_repo: Arc<dyn vailabel_training::domain::TrainingRepository> = Arc::new(
+                vailabel_training::infrastructure::DieselTrainingRepository::new(db.clone())?,
+            );
+            let training_runtime: Arc<dyn vailabel_training::application::TrainingRuntime> =
+                Arc::new(crate::training_runtime::BinaryTrainingRuntime::new(
+                    runtime_service.clone(),
+                ));
+            let training_service = Arc::new(
+                vailabel_training::application::TrainingAppService::new(
+                    training_repo,
+                    training_runtime,
+                    event_publisher.clone(),
+                ),
+            );
+
             // Plugin framework: register the runtime-backed reference detector and
             // drive it install→load→enable. Surfaced to the UI via `plugins_list`.
             let plugin_registry = {
@@ -1037,6 +1056,7 @@ pub fn run() {
                 video_service,
                 runtime_service: runtime_service.clone(),
                 plugin_registry,
+                training_service,
             });
 
             // 10s health/metrics loop → frontend events. On a terminal crash,

@@ -2,10 +2,12 @@
 
 use serde_json::Value;
 
-/// Start a training run. The composition root supplies `log_path` (it owns the
-/// filesystem) and `config`; the application service mints the job id and the
-/// default name, persists the pending run, and drives the runtime.
+/// Start a training run. The composition root supplies the `job_id` (it embeds
+/// it in the `{job_id}.log` path it creates) and `log_path`/`config`; the
+/// application service resolves the default name, persists the pending run, and
+/// drives the runtime.
 pub struct StartTrainingCommand {
+    pub job_id: String,
     pub project_id: String,
     pub model_id: Option<String>,
     pub model_family: String,
