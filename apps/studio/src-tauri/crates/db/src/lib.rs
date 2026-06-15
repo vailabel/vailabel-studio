@@ -41,6 +41,21 @@ pub enum DbError {
 #[derive(Clone)]
 pub struct Db(Arc<Mutex<SqliteConnection>>);
 
+// SAFETY: diesel's `SqliteConnection` is `!Send`/`!Sync` (it owns a raw sqlite
+// pointer), but it is only ever accessed here while the `Mutex` is held, which
+// guarantees exclusive, single-threaded access at any instant. This is the same
+// soundness argument the binary's `DesktopStore` relied on with its
+// `unsafe impl Send`. The connection is never moved or aliased outside the lock.
+unsafe impl Send for Db {}
+unsafe impl Sync for Db {}
+
+// Compile-time proof the handle is shareable across threads (held by the Tauri
+// managed state and by per-module repositories behind `Arc<dyn …>`).
+const _: fn() = || {
+    fn assert_send_sync<T: Send + Sync>() {}
+    assert_send_sync::<Db>();
+};
+
 impl Db {
     /// Open (or create) the database at `path`, applying the app's standard
     /// PRAGMAs (`journal_mode=WAL`, `foreign_keys=ON`) before any query runs.
