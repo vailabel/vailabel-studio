@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use crate::modules::ai::model::{InferenceAnnotationDraft, InferencePoint};
+use crate::ai::model::{InferenceAnnotationDraft, InferencePoint};
 use crate::AppError;
 
 #[cfg(feature = "yolo-inference")]
