@@ -2,10 +2,11 @@
 name = "vailabel-copilot"
 version = "0.1.0"
 edition = "2021"
-description = "Copilot module: chat-turn, approved-action, and connection-test request/response contracts for the local AI labeling copilot. Phase 1 extracts the pure DTOs; session/message aggregates, tool execution, and routing remain in the binary."
+description = "Copilot module for the local AI labeling copilot. `contracts` holds the command request/response DTOs; `domain` holds the pure intent router, LLM plan parser, QA-diff logic, label-suggestion parsing, and the LLM config. Tool execution + LLM/inference orchestration live in the application layer (later phases) against ports; nothing here touches HTTP, Tauri, or the inference engines."
 
 [lib]
 name = "vailabel_copilot"
 
 [dependencies]
 serde = { workspace = true }
+serde_json = { workspace = true }
