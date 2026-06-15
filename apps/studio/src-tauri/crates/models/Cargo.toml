@@ -1,0 +1,11 @@
+[package]
+name = "vailabel-models"
+version = "0.1.0"
+edition = "2021"
+description = "Models module: install/import/activation request contracts for AI model management (download/install/update/verify). Phase 1 extracts the pure request DTOs; the ModelArtifact/ModelVersion aggregates and service logic come later."
+
+[lib]
+name = "vailabel_models"
+
+[dependencies]
+serde = { workspace = true }

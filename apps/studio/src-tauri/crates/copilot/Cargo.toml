@@ -1,0 +1,11 @@
+[package]
+name = "vailabel-copilot"
+version = "0.1.0"
+edition = "2021"
+description = "Copilot module: chat-turn, approved-action, and connection-test request/response contracts for the local AI labeling copilot. Phase 1 extracts the pure DTOs; session/message aggregates, tool execution, and routing remain in the binary."
+
+[lib]
+name = "vailabel_copilot"
+
+[dependencies]
+serde = { workspace = true }
