@@ -4,6 +4,8 @@
 //!   built-in family table.
 //! - [`identity`] — inferring a model's family/variant/rank/runtime and its
 //!   registry version string from its name + file path.
+//! - [`registry`] — the static catalog of known models (task, capabilities,
+//!   ONNX components, availability) driving the AI Assistant UI + plugin dispatch.
 //!
 //! All pure: depends only on `serde_json` + `std::path`. No filesystem, ONNX,
 //! HTTP, or feature gates (the feature-gated `prediction_unsupported_reason`
@@ -11,6 +13,7 @@
 
 pub mod class_names;
 pub mod identity;
+pub mod registry;
 
 pub use class_names::{
     builtin_class_names, extract_class_names_from_value, extract_named_value_list,
