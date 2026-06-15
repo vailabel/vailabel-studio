@@ -6,14 +6,34 @@ fastapi==0.115.*
 uvicorn[standard]==0.32.*
 pydantic==2.*
 
-# Vision/AI (CPU build is bundled; the CUDA build is an optional on-demand
+# Vision/AI core (CPU build is bundled; the CUDA build is an optional on-demand
 # download wired via RuntimeConfiguration.extra_path/extra_pythonpath):
 torch==2.*
+pillow
+numpy
 
-# Model-family adapters — uncomment as the corresponding adapters under
-# inference/ and training/ are implemented:
-# ultralytics        # YOLO / RT-DETR train + infer
-# transformers       # Florence-2, Qwen-VL
-# paddleocr          # OCR
-# onnx               # ONNX export
-# openvino-dev       # OpenVINO export
+# --- Model-family adapters --------------------------------------------------
+# These are LARGE. Trim the blocks for families you don't ship; each adapter
+# lazy-imports its deps, so a missing block degrades to a clean per-capability
+# error instead of breaking the runtime.
+
+# Detection (YOLO / RT-DETR) + promptable segmentation (SAM / SAM2) + training +
+# ONNX/TensorRT/OpenVINO export — all via ultralytics:
+ultralytics
+opencv-python-headless          # mask -> polygon tracing (inference/segment.py)
+
+# Florence-2 + Qwen-VL (caption / OCR-with-region / grounded detection / VQA):
+transformers
+accelerate
+einops
+timm
+
+# OCR (PaddleOCR):
+paddleocr
+paddlepaddle
+
+# Export toolchains:
+onnx
+openvino
+# tensorrt                       # NVIDIA TensorRT engine export — install the
+                                 # wheel matching your CUDA/TensorRT toolchain.

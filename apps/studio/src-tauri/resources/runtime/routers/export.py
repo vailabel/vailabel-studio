@@ -1,14 +1,18 @@
 """Model export endpoints (ONNX / TensorRT / OpenVINO).
 
-Returns an `ExportResult { ok, output_path, error }`. Until an exporter is wired
-it reports `ok: false` with an explanatory error (HTTP 200 so the caller can show
-a friendly message instead of a hard failure).
+Each returns an `ExportResult { ok, output_path, error }`. Exporters never raise:
+a missing toolchain reports `ok: false` (HTTP 200) so the caller can show a
+friendly message instead of a hard failure. The blocking export runs in a
+threadpool so the event loop stays free.
 """
 
 from typing import Dict
 
 from fastapi import APIRouter
+from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
+
+from export import onnx, openvino, tensorrt
 
 router = APIRouter(prefix="/export")
 
@@ -20,25 +24,16 @@ class ExportReq(BaseModel):
     opts: Dict = {}
 
 
-def _not_wired(fmt: str, req: ExportReq):
-    # from export.onnx import run; run(req); return {"ok": True, ...}
-    return {
-        "ok": False,
-        "output_path": req.output_path,
-        "error": f"{fmt} exporter is not installed in this runtime build",
-    }
-
-
 @router.post("/onnx")
-async def onnx(req: ExportReq):
-    return _not_wired("ONNX", req)
+async def export_onnx(req: ExportReq):
+    return await run_in_threadpool(onnx.run, req)
 
 
 @router.post("/tensorrt")
-async def tensorrt(req: ExportReq):
-    return _not_wired("TensorRT", req)
+async def export_tensorrt(req: ExportReq):
+    return await run_in_threadpool(tensorrt.run, req)
 
 
 @router.post("/openvino")
-async def openvino(req: ExportReq):
-    return _not_wired("OpenVINO", req)
+async def export_openvino(req: ExportReq):
+    return await run_in_threadpool(openvino.run, req)

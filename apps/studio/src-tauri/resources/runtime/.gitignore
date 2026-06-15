@@ -1,0 +1,16 @@
+# Python bytecode / caches — build artifacts, never commit these.
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Test / type / lint tool caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local virtual environments (the bundled interpreter is generated elsewhere)
+.venv/
+venv/
+env/

@@ -11,6 +11,16 @@ from services import device
 router = APIRouter()
 
 
+def _loaded_models() -> list:
+    """Keys currently resident in the inference model cache (best-effort)."""
+    try:
+        from inference.loader import CACHE
+
+        return CACHE.loaded_keys()
+    except Exception:
+        return []
+
+
 @router.get("/health")
 async def health(request: Request):
     start = getattr(request.app.state, "start_time", time.time())
@@ -19,7 +29,7 @@ async def health(request: Request):
         "version": getattr(request.app.state, "version", "0.0.0"),
         "uptime_s": time.time() - start,
         "gpu_available": device.gpu_available(),
-        "loaded_models": [],
+        "loaded_models": _loaded_models(),
     }
 
 
