@@ -2,6 +2,7 @@
 
 pub mod composition;
 pub mod domain;
+pub mod plugins;
 mod gpu;
 mod inference;
 mod schema;
@@ -38,6 +39,7 @@ pub struct AppState {
     pub analysis_service: Arc<AnalysisService>,
     pub video_service: Arc<VideoService>,
     pub runtime_service: Arc<runtime_manager::RuntimeService>,
+    pub plugin_registry: Arc<Mutex<vailabel_plugin::PluginRegistry>>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -1012,6 +1014,19 @@ pub fn run() {
             let runtime_service =
                 Arc::new(runtime_manager::RuntimeService::new(runtime_config));
 
+            // Plugin framework: register the runtime-backed reference detector and
+            // drive it install→load→enable. Surfaced to the UI via `plugins_list`.
+            let plugin_registry = {
+                let mut registry = vailabel_plugin::PluginRegistry::new();
+                let detector = Arc::new(crate::plugins::RuntimeDetectorPlugin::new(
+                    runtime_service.clone(),
+                ));
+                registry.register_detector(detector)?;
+                registry.load("runtime-detector")?;
+                registry.enable("runtime-detector")?;
+                Arc::new(Mutex::new(registry))
+            };
+
             app.manage(AppState {
                 store: store_arc,
                 project_service,
@@ -1021,6 +1036,7 @@ pub fn run() {
                 analysis_service,
                 video_service,
                 runtime_service: runtime_service.clone(),
+                plugin_registry,
             });
 
             // 10s health/metrics loop → frontend events. On a terminal crash,
@@ -1147,6 +1163,7 @@ pub fn run() {
             domain::cloud::commands::cloud_download_files,
             domain::cloud::commands::cloud_delete_object,
             domain::cloud::commands::cloud_list_objects,
+            plugins::plugins_list,
             updater_status,
         ])
         .run(tauri::generate_context!())
