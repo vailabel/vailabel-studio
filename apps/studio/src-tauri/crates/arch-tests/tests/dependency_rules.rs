@@ -16,16 +16,19 @@ use std::path::{Path, PathBuf};
 
 /// Crates whose ENTIRE `src/` must be infrastructure-free.
 const FULLY_PURE: &[&str] = &[
-    "core", "shared", "plugin", "analysis", "models", "copilot", "search",
+    "core", "shared", "plugin", "models", "copilot", "search",
 ];
 
 /// Module crates that own an `infrastructure/` layer (typed Diesel; for `cloud`
-/// an OpenDAL object store; for `video` the FFmpeg CLI). Their
-/// `domain`/`application`/`contracts` layers must stay pure; `infrastructure/`
-/// legitimately depends on its backing technology (diesel + `vailabel-db`,
-/// opendal + `std::fs`, or `std::process` + `std::fs`), so it is scanned at
-/// folder granularity and its `Cargo.toml` is exempt from the dependency check.
-const LAYERED: &[&str] = &["project", "dataset", "annotation", "training", "cloud", "video"];
+/// an OpenDAL object store; for `video` the FFmpeg CLI; for `analysis` the
+/// `image`-crate pixel decoder). Their `domain`/`application`/`contracts` layers
+/// must stay pure; `infrastructure/` legitimately depends on its backing
+/// technology (diesel + `vailabel-db`, opendal, the FFmpeg CLI, or `image` +
+/// filesystem reads), so it is scanned at folder granularity and its
+/// `Cargo.toml` is exempt from the dependency check.
+const LAYERED: &[&str] = &[
+    "project", "dataset", "annotation", "training", "cloud", "video", "analysis",
+];
 
 /// The layers of a LAYERED crate that must remain pure.
 const PURE_LAYERS: &[&str] = &["domain", "application", "contracts"];
@@ -101,6 +104,27 @@ fn dependencies_block(manifest: &str) -> String {
     rest[..end].to_string()
 }
 
+/// True if `code` uses `token` as a real path segment — i.e. `token` appears at
+/// least once NOT immediately preceded by an identifier character. This rejects
+/// substring false-positives where the token is the tail of a larger identifier
+/// (`ImageQualityReport::` / `export::` / `sort::` matching `ort::`) while still
+/// catching `use ort::`, `crate::ort::`, `tauri::`, `std::fs`, etc. (the
+/// trailing `::` / `std::` shape is already baked into each token).
+fn uses_token(code: &str, token: &str) -> bool {
+    let bytes = code.as_bytes();
+    let mut start = 0;
+    while let Some(pos) = code[start..].find(token) {
+        let idx = start + pos;
+        let preceded_by_ident =
+            idx > 0 && (bytes[idx - 1] == b'_' || bytes[idx - 1].is_ascii_alphanumeric());
+        if !preceded_by_ident {
+            return true;
+        }
+        start = idx + 1;
+    }
+    false
+}
+
 /// Scan every `.rs` file under `dir` for forbidden usages, recording any in
 /// `violations`. Returns the number of files scanned.
 fn scan_dir(dir: &Path, violations: &mut Vec<String>) -> usize {
@@ -110,7 +134,7 @@ fn scan_dir(dir: &Path, violations: &mut Vec<String>) -> usize {
     for file in files {
         let code = strip_line_comments(&fs::read_to_string(&file).expect("read source"));
         for token in FORBIDDEN_USAGES {
-            if code.contains(token) {
+            if uses_token(&code, token) {
                 violations.push(format!("{} uses forbidden `{}`", file.display(), token));
             }
         }
@@ -159,6 +183,14 @@ fn scanner_matches_real_usage_and_ignores_comments() {
     assert!(!strip_line_comments("let report = export_thing();").contains("ort::"));
     // `std::fmt` must NOT match the forbidden `std::fs` token.
     assert!(!strip_line_comments("use std::fmt::Debug;").contains("std::fs"));
+
+    // `uses_token` rejects a token that is only the tail of a larger identifier
+    // (`Report::`/`export::`/`sort::` → `ort::`) but still catches real paths.
+    assert!(!uses_token("let x = ImageQualityReport::default();", "ort::"));
+    assert!(!uses_token("values.sort_by(|a, b| a.cmp(b));", "ort::"));
+    assert!(uses_token("use ort::Session;", "ort::"));
+    assert!(uses_token("crate::ort::init();", "ort::"));
+    assert!(uses_token("    tauri::command", "tauri::"));
 }
 
 #[test]
