@@ -951,9 +951,14 @@ pub fn run() {
             // Project module: a typed Diesel repository over the shared `db`,
             // plus a Tauri-backed EventPublisher. The binary's ProjectService is
             // a thin facade over the ProjectAppService.
-            let event_publisher: Arc<dyn vailabel_shared::EventPublisher> = Arc::new(
-                crate::composition::TauriEventPublisher::new(app.handle().clone()),
-            );
+            // Domain events fan out through an in-process bus to its subscribers;
+            // the Tauri subscriber emits on `studio://domain-event` (wire format
+            // unchanged). Add more subscribers (audit, integrations) here later.
+            let event_subscribers: Vec<Arc<dyn vailabel_shared::EventSubscriber>> = vec![Arc::new(
+                crate::composition::TauriEventSubscriber::new(app.handle().clone()),
+            )];
+            let event_publisher: Arc<dyn vailabel_shared::EventPublisher> =
+                Arc::new(vailabel_shared::EventBus::new(event_subscribers));
             let project_repo: Arc<dyn vailabel_project::domain::ProjectRepository> = Arc::new(
                 vailabel_project::infrastructure::DieselProjectRepository::new(db.clone()),
             );
