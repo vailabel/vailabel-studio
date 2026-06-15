@@ -3,7 +3,12 @@
 # tauri.conf.json, build.rs, gen/, migrations/ and `cargo tauri dev/build` keep
 # resolving the same path — zero churn for the existing app.
 [workspace]
-members = ["crates/runtime-manager"]
+members = [
+    "crates/runtime-manager",
+    # DDD Phase 1 crates (added incrementally; each is a workspace member so the
+    # binary and inter-crate deps pin one version via [workspace.dependencies]).
+    "crates/core",
+]
 
 [workspace.dependencies]
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream"] }
@@ -13,6 +18,12 @@ tokio = { version = "1", features = ["rt-multi-thread", "process", "time", "io-u
 sysinfo = "0.32"
 thiserror = "2"
 tracing = "0.1"
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+# Internal workspace crates (DDD modules). Path deps so the binary and crates
+# reference one shared version.
+vailabel-core = { path = "crates/core" }
 
 [package]
 name = "vailabel-studio"
