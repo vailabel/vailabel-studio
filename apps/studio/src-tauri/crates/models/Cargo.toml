@@ -10,3 +10,11 @@ name = "vailabel_models"
 [dependencies]
 serde = { workspace = true }
 serde_json = { workspace = true }
+# Infrastructure layer only (gated): ONNX Runtime for GPU/runtime capability
+# detection. Must match the binary's `ort` features (api-22 + the bundled DLL).
+ort = { version = "2.0.0-rc.12", optional = true, default-features = false, features = ["load-dynamic", "cuda", "api-22"] }
+
+[features]
+# Pulls the `ort` runtime for the infrastructure layer. The binary's
+# `local-inference`/`yolo-inference` feature enables this.
+local-inference = ["dep:ort"]

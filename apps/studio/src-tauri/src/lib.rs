@@ -10,7 +10,6 @@ pub mod runtime;
 pub mod copilot_ports;
 pub mod plugins;
 pub mod training_runtime;
-mod gpu;
 mod inference;
 mod schema;
 mod store;

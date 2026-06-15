@@ -126,5 +126,5 @@ default = ["yolo-inference"]
 # ORT runtime + array/image-processing crates. `yolo-inference` is kept as an
 # alias so existing `#[cfg(feature = "yolo-inference")]` gates and the default
 # build are unchanged; new engines (SAM, …) gate on `local-inference`.
-local-inference = ["ort", "ndarray", "zip", "imageproc"]
+local-inference = ["ort", "ndarray", "zip", "imageproc", "vailabel-models/local-inference"]
 yolo-inference = ["local-inference"]
