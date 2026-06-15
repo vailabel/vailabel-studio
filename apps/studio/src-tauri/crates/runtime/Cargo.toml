@@ -1,0 +1,11 @@
+[package]
+name = "vailabel-runtime"
+version = "0.1.0"
+edition = "2021"
+description = "Runtime module facade: anti-corruption layer to the embedded Python/FastAPI AI runtime. Re-exports the Tauri-free runtime-manager crate under the vailabel module namespace."
+
+[lib]
+name = "vailabel_runtime"
+
+[dependencies]
+runtime-manager = { path = "../runtime-manager" }
