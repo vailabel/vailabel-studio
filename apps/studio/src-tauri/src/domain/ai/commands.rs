@@ -210,19 +210,20 @@ pub fn ai_runtime_restart(app: tauri::AppHandle) {
 }
 
 /// Local AI copilot: one chat turn. Runs on a blocking thread because it may
-/// invoke the ONNX detector (same as `predictions_generate`).
+/// invoke the ONNX detector (same as `predictions_generate`). The orchestration
+/// lives in the copilot module; the inference port (which holds its own
+/// `AppHandle`) emits `predictions:generated` exactly as before.
 #[tauri::command]
 pub async fn ai_copilot_turn(
-    app: tauri::AppHandle,
     state: State<'_, AppState>,
     payload: CopilotTurnPayload,
 ) -> Result<CopilotTurnResult, AppError> {
-    let ai_service = state.ai_service.clone();
-    let app = app.clone();
+    let copilot_service = state.copilot_service.clone();
 
-    tauri::async_runtime::spawn_blocking(move || ai_service.copilot_turn(&app, payload))
+    tauri::async_runtime::spawn_blocking(move || copilot_service.turn(payload))
         .await
         .map_err(|error| AppError::Message(format!("AI copilot task failed: {error}")))?
+        .map_err(AppError::from)
 }
 
 /// Local AI copilot: apply a user-approved action (relabel / delete / new label).
@@ -243,8 +244,8 @@ pub async fn ai_copilot_test_connection(
     state: State<'_, AppState>,
     payload: CopilotTestPayload,
 ) -> Result<CopilotTestResult, AppError> {
-    let ai_service = state.ai_service.clone();
-    tauri::async_runtime::spawn_blocking(move || ai_service.copilot_test_connection(payload))
+    let copilot_service = state.copilot_service.clone();
+    tauri::async_runtime::spawn_blocking(move || copilot_service.test_connection(payload))
         .await
         .map_err(|error| AppError::Message(format!("AI copilot test task failed: {error}")))
 }

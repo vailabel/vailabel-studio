@@ -604,7 +604,7 @@ impl AiService {
     /// filter powers prompt-to-detect ("find all cars") on a closed-vocabulary
     /// model — and on an open-vocabulary one (YOLO-World) it narrows the broad
     /// vocabulary to the requested phrase. `None` keeps every detection.
-    fn generate_predictions_filtered(
+    pub fn generate_predictions_filtered(
         &self,
         app: &tauri::AppHandle,
         payload: PredictionGeneratePayload,
@@ -1019,7 +1019,7 @@ impl AiService {
     /// model exists at all, the copilot just uses it.
     /// Class names of the active detection model, for routing-vocab class
     /// extraction. Best-effort: returns empty when there's no model or metadata.
-    fn active_detector_class_names(&self) -> Vec<String> {
+    pub fn active_detector_class_names(&self) -> Vec<String> {
         let Ok(Some(model_id)) = self.resolve_model_id() else {
             return Vec::new();
         };
@@ -1037,7 +1037,7 @@ impl AiService {
             .unwrap_or_default()
     }
 
-    fn resolve_model_id(&self) -> Result<Option<String>, AppError> {
+    pub fn resolve_model_id(&self) -> Result<Option<String>, AppError> {
         let models = self.store.list_entities("ai_models")?;
         if let Some(model) = models.iter().find(|model| {
             model
@@ -1383,7 +1383,7 @@ impl AiService {
     }
 
     /// Id of an installed segmentation (SAM) model, if any.
-    fn resolve_segmentation_model_id(&self) -> Result<Option<String>, AppError> {
+    pub fn resolve_segmentation_model_id(&self) -> Result<Option<String>, AppError> {
         let models = self.store.list_entities("ai_models")?;
         Ok(models
             .iter()

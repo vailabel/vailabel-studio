@@ -1,6 +1,7 @@
 ﻿#![recursion_limit = "256"]
 
 pub mod composition;
+pub mod copilot_ports;
 pub mod domain;
 pub mod plugins;
 pub mod training_runtime;
@@ -42,6 +43,7 @@ pub struct AppState {
     pub runtime_service: Arc<runtime_manager::RuntimeService>,
     pub plugin_registry: Arc<Mutex<vailabel_plugin::PluginRegistry>>,
     pub training_service: Arc<vailabel_training::application::TrainingAppService>,
+    pub copilot_service: Arc<vailabel_copilot::application::CopilotAppService>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -1031,6 +1033,26 @@ pub fn run() {
                 ),
             );
 
+            // Copilot module: the LLM brain (owns the resolution cache + reads
+            // copilot settings/secret) and the grounding side (the AiService
+            // predictions/pipeline engine + a cloned AppHandle + the store) as
+            // ports behind the pure CopilotAppService.
+            let copilot_llm: Arc<dyn vailabel_copilot::application::CopilotLlm> = Arc::new(
+                crate::copilot_ports::BinaryCopilotLlm::new(entity_store.clone()),
+            );
+            let copilot_inference: Arc<dyn vailabel_copilot::application::CopilotInference> =
+                Arc::new(crate::copilot_ports::BinaryCopilotInference::new(
+                    ai_service.clone(),
+                    entity_store.clone(),
+                    app.handle().clone(),
+                ));
+            let copilot_service = Arc::new(
+                vailabel_copilot::application::CopilotAppService::new(
+                    copilot_llm,
+                    copilot_inference,
+                ),
+            );
+
             // Plugin framework: register the runtime-backed reference detector and
             // drive it install→load→enable. Surfaced to the UI via `plugins_list`.
             let plugin_registry = {
@@ -1055,6 +1077,7 @@ pub fn run() {
                 runtime_service: runtime_service.clone(),
                 plugin_registry,
                 training_service,
+                copilot_service,
             });
 
             // 10s health/metrics loop → frontend events. On a terminal crash,
