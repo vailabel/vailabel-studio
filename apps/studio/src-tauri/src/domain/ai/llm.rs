@@ -187,10 +187,17 @@ const VISION_MODEL_HINTS: &[&str] = &[
     "internvl",
     "smolvlm",
     "gemma-3",
+    "gemma3",
     "qwen2-vl",
     "qwen2.5-vl",
     "phi-3-vision",
     "phi-3.5-vision",
+    "multimodal",
+    "molmo",
+    "idefics",
+    "glm-4v",
+    "paligemma",
+    "kosmos",
 ];
 
 fn looks_like_vision_model(model: &str) -> bool {
@@ -208,21 +215,9 @@ fn pick_model(models: &[String]) -> Option<(String, bool)> {
     models.first().map(|model| (model.clone(), false))
 }
 
-/// Quickly probe a single server's `/models` endpoint; returns its model ids if
-/// reachable. Uses short timeouts so probing a server that's down doesn't stall
-/// a chat turn.
-fn probe_models(base_url: &str) -> Option<Vec<String>> {
-    let client = Client::builder()
-        .connect_timeout(Duration::from_millis(700))
-        .timeout(Duration::from_secs(3))
-        .build()
-        .ok()?;
-    let response = client.get(models_endpoint(base_url)).send().ok()?;
-    if !response.status().is_success() {
-        return None;
-    }
-    let payload: Value = response.json().ok()?;
-    let models = payload
+/// Extract the model ids from an OpenAI-compatible `/models` response body.
+fn parse_model_ids(payload: &Value) -> Vec<String> {
+    payload
         .get("data")
         .and_then(Value::as_array)
         .map(|entries| {
@@ -233,12 +228,37 @@ fn probe_models(base_url: &str) -> Option<Vec<String>> {
                 })
                 .collect::<Vec<_>>()
         })
-        .unwrap_or_default();
+        .unwrap_or_default()
+}
+
+/// Quickly probe a single server's `/models` endpoint; returns its model ids if
+/// reachable. Uses short timeouts so probing a server that's down doesn't stall
+/// a chat turn. `api_key` adds a bearer header for servers that require auth.
+fn probe_models_with(base_url: &str, api_key: Option<&str>) -> Option<Vec<String>> {
+    let client = Client::builder()
+        .connect_timeout(Duration::from_millis(700))
+        .timeout(Duration::from_secs(3))
+        .build()
+        .ok()?;
+    let mut request = client.get(models_endpoint(base_url));
+    if let Some(key) = api_key.filter(|key| !key.trim().is_empty()) {
+        request = request.bearer_auth(key);
+    }
+    let response = request.send().ok()?;
+    if !response.status().is_success() {
+        return None;
+    }
+    let payload: Value = response.json().ok()?;
+    let models = parse_model_ids(&payload);
     if models.is_empty() {
         None
     } else {
         Some(models)
     }
+}
+
+fn probe_models(base_url: &str) -> Option<Vec<String>> {
+    probe_models_with(base_url, None)
 }
 
 /// Auto-discover a local OpenAI-compatible server + model for the copilot. The
@@ -259,4 +279,115 @@ pub fn discover_local_llm() -> Option<CopilotLlmConfig> {
         }
     }
     None
+}
+
+/// How a manually configured copilot should treat image (vision) input.
+#[derive(Debug, Clone, Copy)]
+pub enum VisionPref {
+    /// Infer from the model id (a VLM-looking name accepts images).
+    Auto,
+    /// Always send the current image (the user knows the model is a VLM).
+    On,
+    /// Never send images (text-only model).
+    Off,
+}
+
+impl VisionPref {
+    /// Parse the `copilot.vision` setting value. Anything unrecognized is `Auto`.
+    pub fn from_setting(value: &str) -> Self {
+        match value.trim().to_lowercase().as_str() {
+            "on" | "true" | "yes" => Self::On,
+            "off" | "false" | "no" => Self::Off,
+            _ => Self::Auto,
+        }
+    }
+
+    /// Override a resolved config's vision flag with an explicit preference.
+    /// `Auto` leaves the name-based guess in place; `On`/`Off` force it — so a
+    /// VLM whose id the heuristic doesn't recognize still gets the image.
+    pub fn apply(self, vision: &mut bool) {
+        match self {
+            Self::On => *vision = true,
+            Self::Off => *vision = false,
+            Self::Auto => {}
+        }
+    }
+}
+
+/// Build a copilot LLM config from an explicit server (Settings → AI Copilot).
+/// When no model is pinned, the server's `/models` is probed and a model picked
+/// (preferring a vision-capable one). Returns `None` when the server is empty,
+/// or unreachable with no pinned model — the caller then falls back to
+/// auto-discovery so the copilot still works.
+pub fn configure_llm(
+    base_url: &str,
+    model: Option<&str>,
+    vision: VisionPref,
+    api_key: Option<&str>,
+) -> Option<CopilotLlmConfig> {
+    let base_url = base_url.trim();
+    if base_url.is_empty() {
+        return None;
+    }
+    let pinned = model.map(str::trim).filter(|model| !model.is_empty());
+    let (model, looks_vision) = match pinned {
+        // Trust an explicitly pinned model even without probing — a transient
+        // server hiccup shouldn't drop us back to auto-discovery.
+        Some(model) => (model.to_string(), looks_like_vision_model(model)),
+        None => pick_model(&probe_models_with(base_url, api_key)?)?,
+    };
+    let vision = match vision {
+        VisionPref::On => true,
+        VisionPref::Off => false,
+        VisionPref::Auto => looks_vision,
+    };
+    Some(CopilotLlmConfig {
+        provider: "manual".to_string(),
+        base_url: base_url.to_string(),
+        model,
+        vision,
+    })
+}
+
+/// Validate a manual copilot server config by probing its `/models`. Returns the
+/// reachable model ids on success, or a human-readable error explaining why it
+/// failed (so the settings UI can surface the exact problem).
+pub fn test_connection(base_url: &str, api_key: Option<&str>) -> Result<Vec<String>, String> {
+    let base_url = base_url.trim();
+    if base_url.is_empty() {
+        return Err("Enter a server URL first.".to_string());
+    }
+    let endpoint = models_endpoint(base_url);
+    let client = Client::builder()
+        .connect_timeout(Duration::from_millis(1500))
+        .timeout(Duration::from_secs(5))
+        .build()
+        .map_err(|error| error.to_string())?;
+    let mut request = client.get(&endpoint);
+    if let Some(key) = api_key.filter(|key| !key.trim().is_empty()) {
+        request = request.bearer_auth(key);
+    }
+    let response = request.send().map_err(|error| {
+        format!(
+            "Couldn't reach {endpoint} ({error}). Is the server running (e.g. LM Studio \u{2192} \
+             Developer \u{2192} Start Server)?"
+        )
+    })?;
+    if !response.status().is_success() {
+        let status = response.status();
+        let detail = response.text().unwrap_or_default();
+        return Err(format!(
+            "Server returned {status}: {}",
+            detail.chars().take(200).collect::<String>()
+        ));
+    }
+    let payload: Value = response
+        .json()
+        .map_err(|error| format!("Server replied with a non-JSON body: {error}"))?;
+    let models = parse_model_ids(&payload);
+    if models.is_empty() {
+        Err("Server reachable, but it reported no loaded models. Load a model first.".to_string())
+    } else {
+        Ok(models)
+    }
 }

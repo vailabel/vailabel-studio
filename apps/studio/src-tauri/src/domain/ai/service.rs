@@ -1,9 +1,9 @@
 use crate::domain::ai::copilot::{self, Capability, CopilotTurnResult};
 use crate::domain::ai::llm;
 use crate::domain::ai::model::{
-    CopilotActionPayload, CopilotLlmConfig, CopilotTurnPayload, GitHubReleaseLookupPayload,
-    InferenceAnnotationDraft, ModelImportPayload, ModelInstallPayload, PipelineRunPayload,
-    PredictionGeneratePayload,
+    CopilotActionPayload, CopilotLlmConfig, CopilotTestPayload, CopilotTestResult,
+    CopilotTurnPayload, GitHubReleaseLookupPayload, InferenceAnnotationDraft, ModelImportPayload,
+    ModelInstallPayload, PipelineRunPayload, PredictionGeneratePayload,
 };
 use crate::domain::ai::plugin;
 use crate::inference::{self, InferenceEngine};
@@ -135,10 +135,13 @@ const COCO_80_CLASS_NAMES: &[&str] = &[
     "toothbrush",
 ];
 
-/// A cached result of auto-discovering a local LLM, with the time it was probed
-/// so the copilot can re-check periodically.
+/// A cached result of resolving the copilot's local LLM (saved config or
+/// auto-discovery), with the time it was probed so the copilot can re-check
+/// periodically. `signature` captures the saved config so editing it in Settings
+/// invalidates the cache immediately instead of waiting out the TTL.
 struct LlmCacheEntry {
     config: Option<CopilotLlmConfig>,
+    signature: String,
     checked_at: Instant,
 }
 
@@ -191,26 +194,70 @@ impl AiService {
         }
     }
 
-    /// Auto-discover a local OpenAI-compatible LLM/VLM the copilot can use,
-    /// caching the result briefly so we don't re-probe on every turn. The
-    /// copilot picks the model itself — there is no manual configuration.
+    /// Read a non-secret copilot setting (`copilot.<key>`) as a trimmed string,
+    /// returning `None` when it is unset or empty.
+    fn copilot_setting(&self, key: &str) -> Option<String> {
+        self.store
+            .get_entity("settings", &format!("copilot.{key}"))
+            .ok()
+            .flatten()
+            .and_then(|setting| value_string(&setting, "value", "value"))
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty())
+    }
+
+    /// Resolve the local OpenAI-compatible LLM/VLM the copilot should use. A
+    /// server saved in Settings → AI Copilot takes priority; otherwise (or when
+    /// that server can't be used) it falls back to auto-discovery. The result is
+    /// cached briefly so we don't re-probe on every turn, keyed by the saved
+    /// config so an edit takes effect on the next turn.
     fn resolve_llm(&self) -> Option<CopilotLlmConfig> {
+        let base_url = self.copilot_setting("baseUrl");
+        let model = self.copilot_setting("model");
+        let vision_setting = self.copilot_setting("vision");
+        let signature = format!(
+            "{}|{}|{}",
+            base_url.as_deref().unwrap_or(""),
+            model.as_deref().unwrap_or(""),
+            vision_setting.as_deref().unwrap_or("auto"),
+        );
+
         if let Ok(guard) = self.llm_cache.lock() {
             if let Some(entry) = guard.as_ref() {
-                if entry.checked_at.elapsed() < LLM_CACHE_TTL {
+                if entry.signature == signature && entry.checked_at.elapsed() < LLM_CACHE_TTL {
                     return entry.config.clone();
                 }
             }
         }
 
-        let discovered = llm::discover_local_llm();
+        let vision_pref =
+            llm::VisionPref::from_setting(vision_setting.as_deref().unwrap_or("auto"));
+        let resolved = match base_url {
+            // Manual config wins; fall back to discovery if it can't be resolved
+            // (e.g. server down with no pinned model) so the copilot still works.
+            Some(ref url) => {
+                let api_key = crate::read_secret("copilot", "apiKey").ok().flatten();
+                llm::configure_llm(url, model.as_deref(), vision_pref, api_key.as_deref())
+                    .or_else(llm::discover_local_llm)
+            }
+            None => llm::discover_local_llm(),
+        }
+        // Honor an explicit Vision preference for *any* resolved model — including
+        // an auto-discovered one — so a VLM the name heuristic misses still gets
+        // the image when the user sets Vision to "Always send the image".
+        .map(|mut config| {
+            vision_pref.apply(&mut config.vision);
+            config
+        });
+
         if let Ok(mut guard) = self.llm_cache.lock() {
             *guard = Some(LlmCacheEntry {
-                config: discovered.clone(),
+                config: resolved.clone(),
+                signature,
                 checked_at: Instant::now(),
             });
         }
-        discovered
+        resolved
     }
 
     /// Drop the cached LLM so the next turn re-discovers one — called when a
@@ -218,6 +265,37 @@ impl AiService {
     fn invalidate_llm(&self) {
         if let Ok(mut guard) = self.llm_cache.lock() {
             *guard = None;
+        }
+    }
+
+    /// Validate a manual copilot server config (Settings → AI Copilot) by probing
+    /// its `/models`. Reports the reachable models, or a clear error. A typed key
+    /// in the payload is used when present, else the saved keychain key.
+    pub fn copilot_test_connection(&self, payload: CopilotTestPayload) -> CopilotTestResult {
+        let api_key = payload
+            .api_key
+            .filter(|key| !key.trim().is_empty())
+            .or_else(|| crate::read_secret("copilot", "apiKey").ok().flatten());
+        match llm::test_connection(&payload.base_url, api_key.as_deref()) {
+            Ok(models) => {
+                // A successful test means the config is usable now; drop the cache
+                // so the next turn picks it up instead of waiting out the TTL.
+                self.invalidate_llm();
+                let count = models.len();
+                CopilotTestResult {
+                    ok: true,
+                    message: format!(
+                        "Connected \u{2014} {count} model{} available.",
+                        if count == 1 { "" } else { "s" }
+                    ),
+                    models,
+                }
+            }
+            Err(message) => CopilotTestResult {
+                ok: false,
+                message,
+                models: Vec::new(),
+            },
         }
     }
 
@@ -1044,17 +1122,34 @@ impl AiService {
         // may chain steps, e.g. detect → segment-each). When the LLM is absent or
         // its output is unusable, fall back to the deterministic keyword router, so
         // the orchestrator can only ever improve on today's behavior.
-        let plan = self
+        let mut plan = self
             .plan_message(&payload.message, &vocab, llm)
             .unwrap_or_else(|| copilot::route_to_plan(&payload.message, &vocab));
 
-        if plan.steps.len() <= 1 {
+        // Honor the user's Tools menu: drop any planned step for a tool they
+        // turned off, so a disabled tool never runs even if the message asks.
+        let enabled = payload.enabled_tools.as_deref();
+        plan.steps
+            .retain(|step| copilot::tool_enabled(step.capability.tool_id(), enabled));
+
+        if plan.steps.is_empty() {
+            // Everything this message routed to is off — re-route once to name the
+            // intended tool, and either run it (if it's actually on) or explain.
+            let intent = copilot::route(&payload.message, &vocab);
+            if copilot::tool_enabled(intent.capability.as_str(), enabled) {
+                return self.dispatch_intent(
+                    app, &intent, &image, &payload.image_id, &payload.message, llm,
+                );
+            }
+            return Ok(CopilotTurnResult::reply_only(
+                &Capability::Help,
+                copilot::disabled_tools_reply(enabled),
+            ));
+        }
+
+        if plan.steps.len() == 1 {
             // Single step → reuse the existing per-capability dispatch unchanged.
-            let intent = plan
-                .steps
-                .first()
-                .map(copilot::PlanStep::to_routed_intent)
-                .unwrap_or_else(|| copilot::route(&payload.message, &vocab));
+            let intent = plan.steps[0].to_routed_intent();
             return self.dispatch_intent(app, &intent, &image, &payload.image_id, &payload.message, llm);
         }
 
@@ -1129,11 +1224,12 @@ impl AiService {
                 // model hallucinate a description/OCR — ask for a vision model.
                 Some(_) => Ok(CopilotTurnResult::reply_only(
                     &intent.capability,
-                    "I found a local model, but it can\u{2019}t see images. Load a vision model \
+                    "I found a local model, but I don\u{2019}t think it can see images. If it \
+                     actually is a vision model, set Vision to \u{201c}Always send the image\u{201d} \
+                     in Settings \u{2192} AI Copilot and ask again. Otherwise load a vision model \
                      (look for a \u{201c}-VL\u{201d}, LLaVA, or Moondream model in LM Studio or \
-                     Ollama) and I\u{2019}ll describe the image and read its text. For now I can \
-                     still run the detector \u{2014} try \u{201c}detect objects\u{201d} or \
-                     \u{201c}check what I missed\u{201d}.",
+                     Ollama). For now I can still run the detector \u{2014} try \u{201c}detect \
+                     objects\u{201d} or \u{201c}check what I missed\u{201d}.",
                 )),
                 None => Ok(CopilotTurnResult::reply_only(
                     &intent.capability,

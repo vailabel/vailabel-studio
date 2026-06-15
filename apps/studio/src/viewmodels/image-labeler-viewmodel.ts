@@ -42,10 +42,14 @@ export const useImageLabelerViewModel = (
   const [isSegmenting, setIsSegmenting] = useState(false)
   const [error, setError] = useState<unknown>(null)
 
-  const loadData = useCallback(async () => {
+  // `silent` skips the loading-flag flip so an event-driven refresh updates the
+  // data in place instead of flashing the whole labeler through a loading state
+  // (e.g. after approving a copilot action). The initial mount load is not silent.
+  const loadData = useCallback(async (options?: { silent?: boolean }) => {
     if (!imageId) return
 
-    setIsLoading(true)
+    const silent = options?.silent ?? false
+    if (!silent) setIsLoading(true)
     setError(null)
     try {
       const nextImage = await services.getImageService().getImage(imageId)
@@ -79,7 +83,7 @@ export const useImageLabelerViewModel = (
     } catch (nextError) {
       setError(nextError)
     } finally {
-      setIsLoading(false)
+      if (!silent) setIsLoading(false)
     }
   }, [imageId, projectId])
 
@@ -103,7 +107,9 @@ export const useImageLabelerViewModel = (
           !eventProjectId || !activeProjectId || eventProjectId === activeProjectId
 
         if (matchesImage && matchesProject) {
-          void loadData()
+          // Silent: a save/approve elsewhere shouldn't flash the labeler through
+          // its loading state — just reconcile the data in place.
+          void loadData({ silent: true })
         }
       },
       ["annotations", "predictions", "labels", "images", "ai_models"]
@@ -306,7 +312,9 @@ export const useImageLabelerViewModel = (
         current.filter((prediction) => prediction.id !== predictionId)
       )
       setAnnotations((current) => [createdAnnotation, ...current])
-      await loadData()
+      // Already updated optimistically above; reconcile quietly so accepting a
+      // prediction doesn't flash the labeler through its loading state.
+      await loadData({ silent: true })
       return createdAnnotation
     },
     rejectPrediction: async (predictionId: string) => {

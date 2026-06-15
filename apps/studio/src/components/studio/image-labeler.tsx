@@ -237,6 +237,9 @@ export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => 
     setActiveLabelId: viewModel.setActiveLabelId,
     onNextImage: viewModel.goToNextImage,
     onPreviousImage: viewModel.goToPreviousImage,
+    onToggleCrosshair: viewModel.toggleCrosshair,
+    onToggleCoordinates: viewModel.toggleCoordinates,
+    onToggleRuler: viewModel.toggleRuler,
   })
 
   return (
@@ -293,8 +296,10 @@ export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => 
             onResetView={viewModel.resetView}
             showCrosshair={viewModel.showCrosshair}
             showCoordinates={viewModel.showCoordinates}
+            showRuler={viewModel.showRuler}
             onToggleCrosshair={viewModel.toggleCrosshair}
             onToggleCoordinates={viewModel.toggleCoordinates}
+            onToggleRuler={viewModel.toggleRuler}
             canUndo={viewModel.canUndo}
             canRedo={viewModel.canRedo}
             onUndo={viewModel.undo}
@@ -544,7 +549,7 @@ const StudioBottomBar = memo(
             />
             <TooltipContent side="top">
               Previous image
-              <kbd className="ml-2 rounded border border-border bg-muted px-1.5 text-xs">
+              <kbd className="ml-2 rounded border border-background/30 bg-background/20 px-1.5 text-xs text-background">
                 Left Arrow
               </kbd>
             </TooltipContent>
@@ -576,7 +581,7 @@ const StudioBottomBar = memo(
             />
             <TooltipContent side="top">
               Next image
-              <kbd className="ml-2 rounded border border-border bg-muted px-1.5 text-xs">
+              <kbd className="ml-2 rounded border border-background/30 bg-background/20 px-1.5 text-xs text-background">
                 Right Arrow
               </kbd>
             </TooltipContent>

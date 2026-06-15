@@ -150,6 +150,9 @@ export interface CopilotTurnRequest {
   projectId?: string
   imageId: string
   message: string
+  /** Tool ids the user has enabled (Tools menu). Omitted/empty = all tools on.
+   *  A disabled tool is never run, even if the message asks for it. */
+  enabledTools?: string[]
 }
 
 // The shape sent back to apply an approved action. Mirrors the Rust
@@ -158,3 +161,26 @@ export type CopilotApplyAction =
   | { kind: "relabel"; annotationId: string; toLabel: string }
   | { kind: "delete"; annotationId: string }
   | { kind: "createLabel"; name: string; color?: string; projectId: string }
+
+// How the copilot should treat image input for a manually configured model.
+export type CopilotVisionPref = "auto" | "on" | "off"
+
+// The user's saved copilot LLM/VLM server config (Settings → AI Copilot). Stored
+// as plain `copilot.*` settings; the API key lives in the keychain, not here.
+// When `baseUrl` is empty the backend auto-discovers a local server instead.
+export interface CopilotConfig {
+  /** UI hint for the chosen preset: "auto" | "lmstudio" | "ollama" | … */
+  provider: string
+  /** Server base URL, e.g. http://localhost:1234/v1. Empty = auto-detect. */
+  baseUrl: string
+  /** Pinned model id; empty = let the server's loaded model be picked. */
+  model: string
+  vision: CopilotVisionPref
+}
+
+// Result of probing a manual copilot server. Mirrors the Rust `CopilotTestResult`.
+export interface CopilotTestResult {
+  ok: boolean
+  message: string
+  models: string[]
+}

@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils"
+import { cn, getContentBoxColor } from "@/lib/utils"
 import { ChevronDown, Sparkles, Tags } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -138,13 +138,15 @@ const LabelItem = memo(
 
     return (
       <div
+        // Tint each item with its own label color (handles hex + rgb) so classes
+        // are visually distinct at a glance; the armed item keeps the primary ring.
+        style={{
+          backgroundColor: getContentBoxColor(label.color, 0.1),
+          borderColor: getContentBoxColor(label.color, 0.55),
+        }}
         className={cn(
-          "flex cursor-pointer items-center gap-2 rounded-lg border border-border p-3 transition-colors hover:bg-muted",
-          isActive
-            ? "border-primary bg-primary/5 ring-2 ring-primary"
-            : label.isAIGenerated
-              ? "border-emerald-300/70 bg-emerald-50/40 dark:border-emerald-900 dark:bg-emerald-950/20"
-              : ""
+          "flex cursor-pointer items-center gap-2 rounded-lg border p-3 transition-colors hover:brightness-95 dark:hover:brightness-125",
+          isActive && "ring-2 ring-primary"
         )}
         onClick={handleClick}
         aria-pressed={isActive}

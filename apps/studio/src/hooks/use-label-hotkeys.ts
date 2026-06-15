@@ -7,6 +7,10 @@ interface UseLabelHotkeysOptions {
   setActiveLabelId: (id: string | null) => void
   onNextImage: () => void
   onPreviousImage: () => void
+  /** View toggles — H = crosshair, X = coordinates, R = ruler. */
+  onToggleCrosshair?: () => void
+  onToggleCoordinates?: () => void
+  onToggleRuler?: () => void
   /** Disable while another surface (e.g. a modal) owns the keyboard. */
   enabled?: boolean
 }
@@ -35,6 +39,9 @@ export function useLabelHotkeys({
   setActiveLabelId,
   onNextImage,
   onPreviousImage,
+  onToggleCrosshair,
+  onToggleCoordinates,
+  onToggleRuler,
   enabled = true,
 }: UseLabelHotkeysOptions) {
   useEffect(() => {
@@ -55,6 +62,21 @@ export function useLabelHotkeys({
       }
       if (event.key === "Escape") {
         if (activeLabelId) setActiveLabelId(null)
+        return
+      }
+
+      // View toggles (single, non-conflicting letters — tools use other keys).
+      const lower = event.key.toLowerCase()
+      if (lower === "h" && onToggleCrosshair) {
+        onToggleCrosshair()
+        return
+      }
+      if (lower === "x" && onToggleCoordinates) {
+        onToggleCoordinates()
+        return
+      }
+      if (lower === "r" && onToggleRuler) {
+        onToggleRuler()
         return
       }
 
@@ -80,6 +102,9 @@ export function useLabelHotkeys({
     setActiveLabelId,
     onNextImage,
     onPreviousImage,
+    onToggleCrosshair,
+    onToggleCoordinates,
+    onToggleRuler,
     enabled,
   ])
 }

@@ -483,15 +483,18 @@ export function useCanvasHandlers(
       }
 
       if (e.ctrlKey || e.metaKey) {
-        switch (e.key) {
-          case "z":
-            e.preventDefault()
-            void L.annotationsStore.undo()
-            return
-          case "y":
-            e.preventDefault()
-            void L.annotationsStore.redo()
-            return
+        const comboKey = e.key.toLowerCase()
+        // Ctrl/Cmd+Z = undo, Ctrl/Cmd+Shift+Z = redo, Ctrl/Cmd+Y = redo.
+        if (comboKey === "z") {
+          e.preventDefault()
+          if (e.shiftKey) void L.annotationsStore.redo()
+          else void L.annotationsStore.undo()
+          return
+        }
+        if (comboKey === "y") {
+          e.preventDefault()
+          void L.annotationsStore.redo()
+          return
         }
         return
       }

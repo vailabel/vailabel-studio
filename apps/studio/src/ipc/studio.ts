@@ -4,6 +4,7 @@ import type {
   AiGpuInfo,
   AiRegistryModel,
   CopilotApplyAction,
+  CopilotTestResult,
   CopilotTurnRequest,
   CopilotTurnResult,
   RuntimeInstallResult,
@@ -36,6 +37,15 @@ import type {
   VideoJob,
   VideoMeta,
 } from "@/types/video"
+import type {
+  ExportRequest,
+  ExportResult,
+  RuntimeModel,
+  RuntimeStatus,
+  TrainingJob,
+  TrainingLogChunk,
+  TrainingStartRequest,
+} from "@/types/ai-runtime"
 
 interface SuccessResponse {
   success: boolean
@@ -186,6 +196,8 @@ export const studioCommands = {
     call<CopilotTurnResult>("ai_copilot_turn", { payload }),
   aiCopilotApplyAction: (payload: CopilotApplyAction) =>
     call<unknown>("ai_copilot_apply_action", { payload }),
+  aiCopilotTestConnection: (payload: { baseUrl: string; apiKey?: string }) =>
+    call<CopilotTestResult>("ai_copilot_test_connection", { payload }),
 
   // Dataset Intelligence (Phase 2): analysis jobs + persisted reports.
   analysisRun: (payload: { projectId: string; config?: AnalysisConfig }) =>
@@ -228,6 +240,35 @@ export const studioCommands = {
     endFrame?: number
     step?: number
   }) => call<MaterializedShape[]>("video_export_tracks", { payload }),
+
+  // Embedded AI Runtime: lifecycle, model manager, training, export.
+  runtimeStart: () => call<RuntimeStatus>("runtime_start"),
+  runtimeStop: () => call<RuntimeStatus>("runtime_stop"),
+  runtimeRestart: () => call<RuntimeStatus>("runtime_restart"),
+  runtimeStatus: () => call<RuntimeStatus>("runtime_status"),
+  runtimeLogs: () => call<string>("runtime_logs"),
+  runtimeSystemInfo: () => call<unknown>("runtime_system_info"),
+
+  runtimeModelsList: () => call<RuntimeModel[]>("runtime_models_list"),
+  runtimeModelsInstall: (id: string) =>
+    call<RuntimeModel>("runtime_models_install", { payload: { id } }),
+  runtimeModelsDelete: (id: string) =>
+    call<SuccessResponse>("runtime_models_delete", { payload: { id } }),
+
+  trainingStart: (payload: TrainingStartRequest) =>
+    call<TrainingJob>("training_start", { payload }),
+  trainingStop: (id: string) =>
+    call<TrainingJob>("training_stop", { payload: { id } }),
+  trainingList: () => call<TrainingJob[]>("training_list"),
+  trainingLogs: (jobId: string, offset = 0) =>
+    call<TrainingLogChunk>("training_logs", { payload: { jobId, offset } }),
+
+  exportOnnx: (payload: ExportRequest) =>
+    call<ExportResult>("export_onnx", { payload }),
+  exportTensorrt: (payload: ExportRequest) =>
+    call<ExportResult>("export_tensorrt", { payload }),
+  exportOpenvino: (payload: ExportRequest) =>
+    call<ExportResult>("export_openvino", { payload }),
 }
 
 export type StudioCommands = typeof studioCommands

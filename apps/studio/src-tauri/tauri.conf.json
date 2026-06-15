@@ -31,6 +31,10 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "icon": ["icons/icon.ico"]
+    "icon": ["icons/icon.ico"],
+    "resources": {
+      "resources/python": "resources/python",
+      "resources/runtime": "resources/runtime"
+    }
   }
 }

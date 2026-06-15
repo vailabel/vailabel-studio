@@ -5,6 +5,8 @@ import {
   Settings as SettingsIcon,
   Palette,
   Brain,
+  Sparkles,
+  Zap,
   Keyboard,
   Cog,
   Cloud,
@@ -21,11 +23,15 @@ import { KeyboardShortcuts } from "@/components/settings/keyboard-shortcuts"
 import { ModelSelection } from "@/components/settings/model-selection"
 import AdvancedSettings from "@/components/settings/advanced-settings"
 import CloudStorageSettings from "@/components/settings/cloud-storage-settings"
+import CopilotSettings from "@/components/settings/copilot-settings"
+import RuntimeSettings from "@/components/settings/runtime-settings"
 
 const CATEGORY_ICONS = {
   general: SettingsIcon,
   appearance: Palette,
   model: Brain,
+  copilot: Sparkles,
+  runtime: Zap,
   shortcuts: Keyboard,
   cloud: Cloud,
   advanced: Cog,
@@ -139,7 +145,7 @@ function SettingsView() {
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="overflow-x-auto pb-2">
-            <TabsList className="grid w-full min-w-[620px] grid-cols-6">
+            <TabsList className="grid w-full min-w-[800px] grid-cols-8">
               {categories.map((category) => {
                 const Icon =
                   CATEGORY_ICONS[category.id as keyof typeof CATEGORY_ICONS]
@@ -165,6 +171,12 @@ function SettingsView() {
           </TabsContent>
           <TabsContent value="model" className="mt-6">
             <ModelSelection />
+          </TabsContent>
+          <TabsContent value="copilot" className="mt-6">
+            <CopilotSettings />
+          </TabsContent>
+          <TabsContent value="runtime" className="mt-6">
+            <RuntimeSettings />
           </TabsContent>
           <TabsContent value="shortcuts" className="mt-6">
             <KeyboardShortcuts

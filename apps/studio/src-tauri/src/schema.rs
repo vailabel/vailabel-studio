@@ -169,6 +169,43 @@ diesel::table! {
     }
 }
 
+diesel::table! {
+    training_jobs (id) {
+        id -> Text,
+        project_id -> Text,
+        model_id -> Nullable<Text>,
+        name -> Text,
+        status -> Text,
+        config_json -> Nullable<Text>,
+        metrics_json -> Nullable<Text>,
+        progress -> Float,
+        log_path -> Nullable<Text>,
+        error -> Nullable<Text>,
+        created_at -> Text,
+        updated_at -> Text,
+        started_at -> Nullable<Text>,
+        finished_at -> Nullable<Text>,
+    }
+}
+
+diesel::table! {
+    runtime_models (id) {
+        id -> Text,
+        name -> Text,
+        family -> Text,
+        version -> Text,
+        size -> BigInt,
+        download_url -> Nullable<Text>,
+        local_path -> Nullable<Text>,
+        sha256 -> Nullable<Text>,
+        status -> Text,
+        capabilities_json -> Nullable<Text>,
+        installed_at -> Nullable<Text>,
+        created_at -> Text,
+        updated_at -> Text,
+    }
+}
+
 diesel::allow_tables_to_appear_in_same_query!(
     ai_models,
     annotations,
@@ -177,7 +214,9 @@ diesel::allow_tables_to_appear_in_same_query!(
     labels,
     predictions,
     projects,
+    runtime_models,
     secret_keys,
     settings,
     tasks,
+    training_jobs,
 );

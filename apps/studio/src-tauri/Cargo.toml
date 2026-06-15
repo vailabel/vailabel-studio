@@ -1,3 +1,19 @@
+# This manifest is BOTH the workspace root and a workspace member. Keeping the
+# existing package here (rather than moving it under a members/ dir) means
+# tauri.conf.json, build.rs, gen/, migrations/ and `cargo tauri dev/build` keep
+# resolving the same path — zero churn for the existing app.
+[workspace]
+members = ["crates/runtime-manager"]
+
+[workspace.dependencies]
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "process", "time", "io-util", "fs", "sync", "macros"] }
+sysinfo = "0.32"
+thiserror = "2"
+tracing = "0.1"
+
 [package]
 name = "vailabel-studio"
 version = "1.0.14"
@@ -24,12 +40,17 @@ opendal = { version = "0.54", default-features = false, features = [
     "services-gcs",
 ] }
 rfd = "0.15"
+# Embedded Python/FastAPI runtime lifecycle manager (Tauri-free; this crate owns
+# spawn/health/monitor/HTTP-bridge for the resources/runtime FastAPI service).
+runtime-manager = { path = "crates/runtime-manager" }
 diesel = { version = "2", features = ["sqlite"] }
 libsqlite3-sys = { version = "0.28", features = ["bundled"] }
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls", "json"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"
+# SHA-256 verification of downloaded runtime model weights.
+sha2 = "0.10"
 tauri = { version = "2", features = ["protocol-asset"] }
 thiserror = "2"
 uuid = { version = "1", features = ["v4", "serde"] }

@@ -17,7 +17,15 @@ import {
   Spline,
   Circle,
   Wand2,
+  Ruler,
 } from "lucide-react"
+
+// Keycap badge inside tooltips. The tooltip is `bg-foreground text-background`,
+// so a plain `bg-muted` kbd inherits `text-background` and renders invisibly
+// (light-on-light / dark-on-dark). These classes use the tooltip's own text
+// color so the shortcut is always legible in both themes.
+const KBD_CLASS =
+  "ml-2 rounded border border-background/30 bg-background/20 px-1.5 text-xs text-background"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -42,8 +50,10 @@ interface ToolbarProps {
   onResetView: () => void
   showCrosshair: boolean
   showCoordinates: boolean
+  showRuler: boolean
   onToggleCrosshair: () => void | Promise<void>
   onToggleCoordinates: () => void | Promise<void>
+  onToggleRuler: () => void | Promise<void>
   canUndo: boolean
   canRedo: boolean
   onUndo: () => void | Promise<void>
@@ -92,8 +102,10 @@ export const Toolbar = memo(
     onResetView,
     showCrosshair,
     showCoordinates,
+    showRuler,
     onToggleCrosshair,
     onToggleCoordinates,
+    onToggleRuler,
     canUndo,
     canRedo,
     onUndo,
@@ -105,7 +117,7 @@ export const Toolbar = memo(
           id: "undo",
           name: "Undo",
           icon: RotateCcw,
-          shortcut: "Cmd+Z",
+          shortcut: "Ctrl+Z",
           disabled: !canUndo,
           onClick: onUndo,
         },
@@ -113,7 +125,7 @@ export const Toolbar = memo(
           id: "redo",
           name: "Redo",
           icon: RotateCw,
-          shortcut: "Cmd+Shift+Z",
+          shortcut: "Ctrl+Shift+Z",
           disabled: !canRedo,
           onClick: onRedo,
         },
@@ -127,7 +139,7 @@ export const Toolbar = memo(
           id: "crosshair",
           name: "Crosshair",
           icon: Crosshair,
-          shortcut: "C",
+          shortcut: "H",
           active: showCrosshair,
           onClick: onToggleCrosshair,
         },
@@ -135,16 +147,26 @@ export const Toolbar = memo(
           id: "coordinates",
           name: "Coordinates",
           icon: MousePointer,
-          shortcut: "Alt+Shift+C",
+          shortcut: "X",
           active: showCoordinates,
           onClick: onToggleCoordinates,
+        },
+        {
+          id: "ruler",
+          name: "Ruler",
+          icon: Ruler,
+          shortcut: "R",
+          active: showRuler,
+          onClick: onToggleRuler,
         },
       ],
       [
         onToggleCoordinates,
         onToggleCrosshair,
+        onToggleRuler,
         showCoordinates,
         showCrosshair,
+        showRuler,
       ]
     )
 
@@ -177,9 +199,7 @@ export const Toolbar = memo(
                 <TooltipContent side="bottom">
                   <div className="flex items-center">
                     <span>{tool.name}</span>
-                    <kbd className="ml-2 rounded border border-border bg-muted px-1.5 text-xs">
-                      {tool.shortcut}
-                    </kbd>
+                    <kbd className={KBD_CLASS}>{tool.shortcut}</kbd>
                   </div>
                 </TooltipContent>
               </Tooltip>
@@ -207,9 +227,7 @@ export const Toolbar = memo(
                 <TooltipContent side="bottom">
                   <div className="flex items-center">
                     <span>{tool.name}</span>
-                    <kbd className="ml-2 rounded border border-border bg-muted px-1.5 text-xs">
-                      {tool.shortcut}
-                    </kbd>
+                    <kbd className={KBD_CLASS}>{tool.shortcut}</kbd>
                   </div>
                 </TooltipContent>
               </Tooltip>
@@ -295,9 +313,7 @@ export const Toolbar = memo(
                 <TooltipContent side="bottom">
                   <div className="flex items-center">
                     <span>{tool.name}</span>
-                    <kbd className="ml-2 rounded border border-border bg-muted px-1.5 text-xs">
-                      {tool.shortcut}
-                    </kbd>
+                    <kbd className={KBD_CLASS}>{tool.shortcut}</kbd>
                   </div>
                 </TooltipContent>
               </Tooltip>

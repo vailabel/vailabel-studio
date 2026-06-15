@@ -133,13 +133,15 @@ pub struct InferenceAnnotationDraft {
     pub is_ai_generated: bool,
 }
 
-/// A local OpenAI-compatible LLM/VLM the copilot auto-discovers and uses for its
-/// conversational + vision replies (LM Studio, Ollama, llama.cpp). It is built on
-/// the backend by `llm::discover_local_llm` — there is no client-side config, so
-/// this is constructed in Rust, never deserialized from the webview.
+/// A local OpenAI-compatible LLM/VLM the copilot uses for its conversational +
+/// vision replies (LM Studio, Ollama, llama.cpp). It is built on the backend
+/// either from the user's saved config (Settings → AI Copilot, via
+/// `llm::configure_llm`) or by auto-discovery (`llm::discover_local_llm`) when no
+/// server is configured — so it is constructed in Rust, never deserialized raw
+/// from the webview.
 #[derive(Debug, Clone)]
 pub struct CopilotLlmConfig {
-    /// Discovery source tag, e.g. "auto".
+    /// How this config was resolved: "manual" (saved settings) or "auto".
     pub provider: String,
     /// Base URL including the `/v1` suffix, e.g. http://localhost:1234/v1.
     pub base_url: String,
@@ -156,6 +158,11 @@ pub struct CopilotTurnPayload {
     pub project_id: Option<String>,
     pub image_id: String,
     pub message: String,
+    /// Tool ids the user has enabled in the copilot's Tools menu (matching
+    /// `Capability::as_str`). `None`/empty = all tools on (back-compat); a
+    /// disabled tool is never run, even if the message asks for it.
+    #[serde(default)]
+    pub enabled_tools: Option<Vec<String>>,
 }
 
 /// A human-approved mutation the copilot proposed (relabel / delete / new label).
@@ -177,4 +184,25 @@ pub enum CopilotActionPayload {
         color: Option<String>,
         project_id: String,
     },
+}
+
+/// Probe a manual copilot server config (Settings → AI Copilot) before relying
+/// on it for a turn. `api_key` lets the UI test a key the user just typed but
+/// hasn't saved to the keychain yet; when absent the saved key is used.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CopilotTestPayload {
+    pub base_url: String,
+    #[serde(default)]
+    pub api_key: Option<String>,
+}
+
+/// Result of `ai_copilot_test_connection`: whether the server answered and the
+/// model ids it reported (so the UI can offer them as choices).
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CopilotTestResult {
+    pub ok: bool,
+    pub message: String,
+    pub models: Vec<String>,
 }
