@@ -7,13 +7,13 @@
 //!   `ModelComponent`, `ModelInstallPayload`, `GitHubReleaseLookupPayload`,
 //!   `ModelActivationPayload`, `RuntimeInstallPayload`).
 //! - copilot payloads → `vailabel-copilot` (`CopilotTurnPayload`,
-//!   `CopilotActionPayload`, `CopilotTestPayload`, `CopilotTestResult`).
+//!   `CopilotActionPayload`, `CopilotTestPayload`, `CopilotTestResult`), and the
+//!   `CopilotLlmConfig` (`vailabel_copilot::domain`).
 //!
 //! The prediction/inference types below stay here: they are coupled to the
 //! plugin/inference engine (`PipelineRunPayload` carries a [`PromptInput`];
 //! `InferencePoint`/`InferenceAnnotationDraft` are produced by `inference`,
-//! `plugin`, and `engines::sam`), and `CopilotLlmConfig` is built in Rust by
-//! `llm`, never deserialized. These migrate in a later phase.
+//! `plugin`, and `engines::sam`). These migrate in a later phase.
 
 use serde::{Deserialize, Serialize};
 
@@ -22,6 +22,7 @@ use crate::domain::ai::plugin::PromptInput;
 pub use vailabel_copilot::contracts::{
     CopilotActionPayload, CopilotTestPayload, CopilotTestResult, CopilotTurnPayload,
 };
+pub use vailabel_copilot::domain::CopilotLlmConfig;
 pub use vailabel_models::contracts::{
     GitHubReleaseLookupPayload, ModelActivationPayload, ModelComponent, ModelImportPayload,
     ModelInstallPayload, RuntimeInstallPayload,
@@ -88,21 +89,4 @@ pub struct InferenceAnnotationDraft {
     pub label_name: Option<String>,
     pub label_color: Option<String>,
     pub is_ai_generated: bool,
-}
-
-/// A local OpenAI-compatible LLM/VLM the copilot uses for its conversational +
-/// vision replies (LM Studio, Ollama, llama.cpp). It is built on the backend
-/// either from the user's saved config (Settings → AI Copilot, via
-/// `llm::configure_llm`) or by auto-discovery (`llm::discover_local_llm`) when no
-/// server is configured — so it is constructed in Rust, never deserialized raw
-/// from the webview.
-#[derive(Debug, Clone)]
-pub struct CopilotLlmConfig {
-    /// How this config was resolved: "manual" (saved settings) or "auto".
-    pub provider: String,
-    /// Base URL including the `/v1` suffix, e.g. http://localhost:1234/v1.
-    pub base_url: String,
-    pub model: String,
-    /// Whether the picked model accepts image input (VLM).
-    pub vision: bool,
 }
