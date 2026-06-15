@@ -1,0 +1,19 @@
+# Pinned dependencies for the embedded runtime. `build-runtime` installs these
+# into resources/python/ (the bundled, hermetic interpreter).
+#
+# Minimal set needed to serve /health, /system and the API surface:
+fastapi==0.115.*
+uvicorn[standard]==0.32.*
+pydantic==2.*
+
+# Vision/AI (CPU build is bundled; the CUDA build is an optional on-demand
+# download wired via RuntimeConfiguration.extra_path/extra_pythonpath):
+torch==2.*
+
+# Model-family adapters — uncomment as the corresponding adapters under
+# inference/ and training/ are implemented:
+# ultralytics        # YOLO / RT-DETR train + infer
+# transformers       # Florence-2, Qwen-VL
+# paddleocr          # OCR
+# onnx               # ONNX export
+# openvino-dev       # OpenVINO export

@@ -1,23 +1,37 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import {
   AlertTriangle,
   Check,
   Cpu,
+  Lasso,
   Loader2,
   Plus,
   ScanSearch,
+  ScanText,
   Send,
   ShieldCheck,
+  SlidersHorizontal,
   Sparkles,
   SquarePen,
   Tags,
   Text,
   X,
 } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Markdown } from "@/components/ui/markdown"
-import { useAiCopilotViewModel } from "@/viewmodels/ai-copilot-viewmodel"
+import { Switch } from "@/components/ui/switch"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import {
+  useAiCopilotViewModel,
+  useCopilotTools,
+} from "@/viewmodels/ai-copilot-viewmodel"
 import type { CopilotMessage } from "@/viewmodels/ai-copilot-viewmodel"
+import { COPILOT_TOOLS, type CopilotTool } from "@/lib/copilot-tools"
 
 interface AiCopilotPanelProps {
   projectId?: string
@@ -26,41 +40,17 @@ interface AiCopilotPanelProps {
   onClose: () => void
 }
 
-interface Suggestion {
-  label: string
-  hint: string
-  prompt: string
-  icon: typeof ScanSearch
+// Icon per tool id, kept in the view layer (the tool list itself is UI-agnostic).
+const TOOL_ICONS: Record<string, LucideIcon> = {
+  suggest_labels: Tags,
+  detect: ScanSearch,
+  segment: Lasso,
+  qa_review: ShieldCheck,
+  describe: Text,
+  ocr: ScanText,
 }
 
-// Quick actions the copilot can run on the current image. These map to the
-// deterministic capability router on the backend.
-const SUGGESTIONS: Suggestion[] = [
-  {
-    label: "Suggest labels",
-    hint: "Recommend label names from the image",
-    prompt: "Suggest labels for this image",
-    icon: Tags,
-  },
-  {
-    label: "Detect objects",
-    hint: "Run the on-device detector",
-    prompt: "Detect objects",
-    icon: ScanSearch,
-  },
-  {
-    label: "Check what I missed",
-    hint: "Review my labels for gaps",
-    prompt: "Check what I missed",
-    icon: ShieldCheck,
-  },
-  {
-    label: "Describe this image",
-    hint: "Summarize what's here",
-    prompt: "Describe this image",
-    icon: Text,
-  },
-]
+const toolIcon = (id: string): LucideIcon => TOOL_ICONS[id] ?? Sparkles
 
 export function AiCopilotPanel({
   projectId,
@@ -70,6 +60,7 @@ export function AiCopilotPanel({
 }: AiCopilotPanelProps) {
   const { messages, isSending, send, resolveAction, clear } =
     useAiCopilotViewModel()
+  const { enabledTools, toggleTool, isToolEnabled } = useCopilotTools()
   const [draft, setDraft] = useState("")
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -79,9 +70,16 @@ export function AiCopilotPanel({
 
   const disabled = !imageId || isSending
 
+  // Only enabled tools surface as quick actions; the same set is sent with each
+  // turn so the backend won't run a tool the user switched off.
+  const activeTools = useMemo(
+    () => COPILOT_TOOLS.filter((tool) => enabledTools.includes(tool.id)),
+    [enabledTools]
+  )
+
   const submit = (message: string) => {
     if (!imageId || !message.trim() || isSending) return
-    void send({ projectId, imageId, message })
+    void send({ projectId, imageId, message, enabledTools })
     setDraft("")
   }
 
@@ -99,6 +97,11 @@ export function AiCopilotPanel({
             {imageName ? imageName : "On-device assistant"}
           </p>
         </div>
+        <ToolsMenu
+          enabledCount={enabledTools.length}
+          isToolEnabled={isToolEnabled}
+          onToggle={toggleTool}
+        />
         {messages.length > 0 ? (
           <Button
             variant="ghost"
@@ -125,7 +128,11 @@ export function AiCopilotPanel({
         className="flex flex-1 flex-col gap-3 overflow-y-auto p-3.5"
       >
         {messages.length === 0 ? (
-          <CopilotEmptyState onPick={submit} disabled={disabled} />
+          <CopilotEmptyState
+            tools={activeTools}
+            onPick={submit}
+            disabled={disabled}
+          />
         ) : (
           messages.map((message) => (
             <CopilotMessageView
@@ -144,17 +151,18 @@ export function AiCopilotPanel({
       </div>
 
       <div className="border-t border-border p-3">
-        {messages.length > 0 ? (
+        {messages.length > 0 && activeTools.length > 0 ? (
           <div className="mb-2 flex flex-wrap gap-1.5">
-            {SUGGESTIONS.map((suggestion) => (
+            {activeTools.map((tool) => (
               <button
-                key={suggestion.prompt}
+                key={tool.id}
                 type="button"
                 disabled={disabled}
-                onClick={() => submit(suggestion.prompt)}
+                onClick={() => submit(tool.prompt)}
+                title={tool.hint}
                 className="rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
               >
-                {suggestion.label}
+                {tool.label}
               </button>
             ))}
           </div>
@@ -192,10 +200,78 @@ export function AiCopilotPanel({
   )
 }
 
+// Floating Tools menu: switch each copilot tool on/off. The choice persists and
+// gates both the quick actions and what the backend is allowed to run.
+function ToolsMenu({
+  enabledCount,
+  isToolEnabled,
+  onToggle,
+}: {
+  enabledCount: number
+  isToolEnabled: (id: string) => boolean
+  onToggle: (id: string) => void
+}) {
+  return (
+    <Popover>
+      <PopoverTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Tools"
+            title="Tools the copilot can use"
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+          </Button>
+        }
+      />
+      <PopoverContent align="end" className="w-72 gap-0 p-0">
+        <div className="border-b border-border px-3.5 py-2.5">
+          <p className="text-sm font-semibold leading-tight">Tools</p>
+          <p className="text-xs text-muted-foreground">
+            {enabledCount} of {COPILOT_TOOLS.length} on · choose what I can use
+          </p>
+        </div>
+        <div className="max-h-80 overflow-y-auto p-1.5">
+          {COPILOT_TOOLS.map((tool) => {
+            const Icon = toolIcon(tool.id)
+            const on = isToolEnabled(tool.id)
+            return (
+              <label
+                key={tool.id}
+                className="flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 hover:bg-muted"
+              >
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                  <Icon className="h-4 w-4" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-medium leading-tight">
+                    {tool.label}
+                  </span>
+                  <span className="block truncate text-xs text-muted-foreground">
+                    {tool.hint}
+                  </span>
+                </span>
+                <Switch
+                  checked={on}
+                  onCheckedChange={() => onToggle(tool.id)}
+                  aria-label={`Toggle ${tool.label}`}
+                />
+              </label>
+            )
+          })}
+        </div>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
 function CopilotEmptyState({
+  tools,
   onPick,
   disabled,
 }: {
+  tools: CopilotTool[]
   onPick: (prompt: string) => void
   disabled: boolean
 }) {
@@ -210,29 +286,40 @@ function CopilotEmptyState({
           I run on-device — detect, review, or describe this image.
         </p>
       </div>
-      <div className="w-full space-y-1.5 text-left">
-        {SUGGESTIONS.map((suggestion) => (
-          <button
-            key={suggestion.prompt}
-            type="button"
-            disabled={disabled}
-            onClick={() => onPick(suggestion.prompt)}
-            className="flex w-full items-center gap-2.5 rounded-lg border border-border bg-background p-2.5 text-left hover:bg-muted disabled:opacity-50"
-          >
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
-              <suggestion.icon className="h-4 w-4" />
-            </span>
-            <span className="min-w-0">
-              <span className="block text-sm font-medium leading-tight">
-                {suggestion.label}
-              </span>
-              <span className="block truncate text-xs text-muted-foreground">
-                {suggestion.hint}
-              </span>
-            </span>
-          </button>
-        ))}
-      </div>
+      {tools.length > 0 ? (
+        <div className="w-full space-y-1.5 text-left">
+          {tools.map((tool) => {
+            const Icon = toolIcon(tool.id)
+            return (
+              <button
+                key={tool.id}
+                type="button"
+                disabled={disabled}
+                onClick={() => onPick(tool.prompt)}
+                className="flex w-full items-center gap-2.5 rounded-lg border border-border bg-background p-2.5 text-left hover:bg-muted disabled:opacity-50"
+              >
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                  <Icon className="h-4 w-4" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium leading-tight">
+                    {tool.label}
+                  </span>
+                  <span className="block truncate text-xs text-muted-foreground">
+                    {tool.hint}
+                  </span>
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          All tools are off. Open the{" "}
+          <SlidersHorizontal className="inline h-3 w-3" /> Tools menu above to
+          switch some on.
+        </p>
+      )}
     </div>
   )
 }

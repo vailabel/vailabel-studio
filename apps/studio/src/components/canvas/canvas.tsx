@@ -7,6 +7,7 @@ import { type Annotation, type ImageData, type Label } from "@/types/core"
 import { Crosshair } from "@/components/canvas/crosshair-context"
 import { CreateAnnotation } from "@/components/canvas/create-annotation"
 import { ToolStatus } from "@/components/canvas/tool-status"
+import { Ruler } from "@/components/canvas/ruler"
 import {
   useCanvasPan,
   useCanvasZoom,
@@ -14,6 +15,7 @@ import {
   useCanvasSelection,
   useCanvasContainer,
   useCanvasDisplay,
+  useCanvasFit,
 } from "@/contexts/canvas-context"
 import { TempAnnotation } from "./temp-annotation"
 import { Prediction } from "@/types/core"
@@ -95,16 +97,21 @@ export const Canvas = memo(
     onSmartSegment,
   }: CanvasProps) => {
     // Use Context hooks instead of Zustand
-    const { zoom } = useCanvasZoom()
-    const { panOffset } = useCanvasPan()
+    const { zoom, setZoom } = useCanvasZoom()
+    const { panOffset, setPanOffset } = useCanvasPan()
     const { selectedTool, setToolState } = useCanvasTool()
     const { setSelectedAnnotation } = useCanvasSelection()
     const { container, setContainer } = useCanvasContainer()
-    const { showCrosshair, showCoordinates } = useCanvasDisplay()
+    const { showCrosshair, showCoordinates, showRuler } = useCanvasDisplay()
+    const { fitSignal } = useCanvasFit()
 
     const canvasRef = useRef<HTMLDivElement | null>(null)
     const resizeFrameRef = useRef<number | null>(null)
     const lastMeasuredSizeRef = useRef({ width: 0, height: 0 })
+    const fitStateRef = useRef<{ imageId: string; appliedZoom: number } | null>(
+      null
+    )
+    const lastFitSignalRef = useRef(fitSignal)
 
     useEffect(() => {
       const node = canvasRef.current
@@ -159,6 +166,51 @@ export const Canvas = memo(
         }
       }
     }, [setContainer])
+
+    // Fit-to-canvas: render the image scaled to fit the available area (centered,
+    // with a small margin) instead of at 100%, so it's never too big or too small.
+    // Re-fits on a new image, on container resize while still fitted, and on an
+    // explicit "reset view" — but leaves the view alone once the user has zoomed.
+    useEffect(() => {
+      if (!image || !container.width || !container.height) return
+      if (!image.width || !image.height) return
+
+      const fitZoom = Math.min(
+        Math.max(
+          Math.min(
+            container.width / image.width,
+            container.height / image.height
+          ) * 0.96,
+          0.1
+        ),
+        5
+      )
+
+      const isNewImage = fitStateRef.current?.imageId !== image.id
+      const stillFitted =
+        !!fitStateRef.current &&
+        Math.abs(zoom - fitStateRef.current.appliedZoom) < 0.001
+      const forced = fitSignal !== lastFitSignalRef.current
+      lastFitSignalRef.current = fitSignal
+
+      if (!(isNewImage || stillFitted || forced)) return
+
+      fitStateRef.current = { imageId: image.id, appliedZoom: fitZoom }
+      if (Math.abs(zoom - fitZoom) > 0.001) {
+        setZoom(fitZoom)
+        setPanOffset({ x: 0, y: 0 })
+      } else if (isNewImage || forced) {
+        setPanOffset({ x: 0, y: 0 })
+      }
+    }, [
+      image,
+      container.width,
+      container.height,
+      zoom,
+      fitSignal,
+      setZoom,
+      setPanOffset,
+    ])
 
     const centerOffset = useMemo(
       () =>
@@ -422,6 +474,7 @@ export const Canvas = memo(
                 {showCoordinates && (
                   <PositionCoordinates baseOffset={baseOffset} />
                 )}
+                {showRuler && <Ruler baseOffset={baseOffset} />}
 
                 <ToolStatus
                   tool={selectedTool}

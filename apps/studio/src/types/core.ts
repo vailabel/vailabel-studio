@@ -20,6 +20,8 @@ export class Project {
   metadata?: Record<string, any>
   labels?: Label[]
   images?: ImageData[]
+  /** Derived count of images in the project (from list/get queries). */
+  imageCount?: number
   createdAt?: Date
   updatedAt?: Date
 }

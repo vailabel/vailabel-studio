@@ -31,8 +31,14 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
   const { selectedTool, setSelectedTool } = useCanvasTool()
   const { zoom, zoomIn, zoomOut } = useCanvasZoom()
   const { resetView } = useCanvasPan()
-  const { showCrosshair, showCoordinates, setShowCrosshair, setShowCoordinates } =
-    useCanvasDisplay()
+  const {
+    showCrosshair,
+    showCoordinates,
+    showRuler,
+    setShowCrosshair,
+    setShowCoordinates,
+    toggleRuler,
+  } = useCanvasDisplay()
 
   const [project, setProject] = useState<Project | null>(null)
   const [projectImages, setProjectImages] = useState<ImageData[]>([])
@@ -82,7 +88,10 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
     setShowCoordinates(settings.showCoordinates)
   }, [setShowCoordinates, settings.showCoordinates])
 
-  const refreshProjectSummary = useCallback(async () => {
+  // `silent` skips the loading-flag flip so an event-driven refresh (after a
+  // save/approve) updates stats and the file panel in place, instead of flashing
+  // the header and file list through their loading states.
+  const refreshProjectSummary = useCallback(async (options?: { silent?: boolean }) => {
     if (!effectiveProjectId) {
       setProject(null)
       setProjectStats({
@@ -94,7 +103,8 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
       return
     }
 
-    setIsProjectSummaryLoading(true)
+    const silent = options?.silent ?? false
+    if (!silent) setIsProjectSummaryLoading(true)
 
     try {
       const [nextProject, images, annotations, labels] = await Promise.all([
@@ -119,7 +129,7 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
         totalLabels: labels.length,
       })
     } finally {
-      setIsProjectSummaryLoading(false)
+      if (!silent) setIsProjectSummaryLoading(false)
     }
   }, [effectiveProjectId])
 
@@ -139,7 +149,7 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
           !eventProjectId || eventProjectId === effectiveProjectId
 
         if (matchesProject) {
-          void refreshProjectSummary()
+          void refreshProjectSummary({ silent: true })
         }
       },
       ["projects", "images", "annotations", "labels"]
@@ -334,6 +344,7 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
     zoom,
     showCrosshair,
     showCoordinates,
+    showRuler,
     contextMenu,
     container,
     canUndo: canvasSession.canUndo,
@@ -354,6 +365,7 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
     resetView,
     toggleCrosshair,
     toggleCoordinates,
+    toggleRuler,
     openContextMenu,
     closeContextMenu,
     openSettingsModal: () => setShowSettingsModal(true),

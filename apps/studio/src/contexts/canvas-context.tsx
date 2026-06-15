@@ -37,12 +37,16 @@ interface CanvasContextType {
   container: { width: number; height: number }
   showCrosshair: boolean
   showCoordinates: boolean
+  showRuler: boolean
   setZoom: (zoom: number) => void
   zoomIn: () => void
   zoomOut: () => void
   setPanOffset: (pan: Point) => void
   panTo: (x: number, y: number) => void
   resetView: () => void
+  /** Incremented to ask the Canvas (which knows the image size) to fit-to-screen. */
+  fitSignal: number
+  requestFit: () => void
   setSelectedTool: (tool: string) => void
   setToolState: (state: Partial<ToolState>) => void
   setSelectedAnnotation: (annotation: any) => void
@@ -57,8 +61,10 @@ interface CanvasContextType {
   setContainer: (container: { width: number; height: number }) => void
   setShowCrosshair: (showCrosshair: boolean) => void
   setShowCoordinates: (showCoordinates: boolean) => void
+  setShowRuler: (showRuler: boolean) => void
   toggleCrosshair: () => void
   toggleCoordinates: () => void
+  toggleRuler: () => void
   resetCanvas: () => void
 }
 
@@ -102,6 +108,9 @@ export const CanvasProvider = ({ children }: { children: ReactNode }) => {
   const [container, setContainerState] = useState({ width: 0, height: 0 })
   const [showCrosshair, setShowCrosshair] = useState(true)
   const [showCoordinates, setShowCoordinates] = useState(true)
+  const [showRuler, setShowRuler] = useState(false)
+  // Bumped to ask the Canvas to fit the image to the available area.
+  const [fitSignal, setFitSignal] = useState(0)
 
   const setZoom = useCallback((nextZoom: number) => {
     const normalizedZoom = Number.isFinite(nextZoom) ? nextZoom : 1
@@ -124,12 +133,19 @@ export const CanvasProvider = ({ children }: { children: ReactNode }) => {
     setPanOffset({ x, y })
   }, [])
 
+  const requestFit = useCallback(() => {
+    setFitSignal((current) => current + 1)
+  }, [])
+
+  // "Reset view" now fits the image to the canvas (the desktop default) instead
+  // of snapping to 100%. The actual fit zoom is computed in the Canvas, which
+  // knows the image dimensions; here we just reset pan and signal a fit.
   const resetView = useCallback(() => {
-    setZoom(1)
+    requestFit()
     setPanOffset({ x: 0, y: 0 })
     setIsPanning(false)
     setLastPanPoint(null)
-  }, [setZoom])
+  }, [requestFit])
 
   const setContainer = useCallback(
     (nextContainer: { width: number; height: number }) => {
@@ -152,6 +168,10 @@ export const CanvasProvider = ({ children }: { children: ReactNode }) => {
 
   const toggleCoordinates = useCallback(() => {
     setShowCoordinates((current) => !current)
+  }, [])
+
+  const toggleRuler = useCallback(() => {
+    setShowRuler((current) => !current)
   }, [])
 
   const resetCanvas = useCallback(() => {
@@ -181,6 +201,8 @@ export const CanvasProvider = ({ children }: { children: ReactNode }) => {
       setPanOffset,
       panTo,
       resetView,
+      fitSignal,
+      requestFit,
       setSelectedTool,
       setToolState,
       setSelectedAnnotation,
@@ -190,8 +212,11 @@ export const CanvasProvider = ({ children }: { children: ReactNode }) => {
       setContainer,
       setShowCrosshair,
       setShowCoordinates,
+      setShowRuler,
+      showRuler,
       toggleCrosshair,
       toggleCoordinates,
+      toggleRuler,
       resetCanvas,
     }),
     [
@@ -212,9 +237,13 @@ export const CanvasProvider = ({ children }: { children: ReactNode }) => {
       panTo,
       setToolState,
       resetView,
+      fitSignal,
+      requestFit,
       setContainer,
       toggleCrosshair,
       toggleCoordinates,
+      toggleRuler,
+      showRuler,
       resetCanvas,
     ]
   )
@@ -254,6 +283,11 @@ export const useCanvasZoom = () => {
 export const useCanvasPan = () => {
   const { panOffset, setPanOffset, panTo, resetView } = useCanvas()
   return { panOffset, setPanOffset, panTo, resetView }
+}
+
+export const useCanvasFit = () => {
+  const { fitSignal, requestFit } = useCanvas()
+  return { fitSignal, requestFit }
 }
 
 // Readers of the cursor position (crosshair, coordinate overlay). These DO
@@ -308,18 +342,24 @@ export const useCanvasDisplay = () => {
   const {
     showCrosshair,
     showCoordinates,
+    showRuler,
     setShowCrosshair,
     setShowCoordinates,
+    setShowRuler,
     toggleCrosshair,
     toggleCoordinates,
+    toggleRuler,
   } = useCanvas()
 
   return {
     showCrosshair,
     showCoordinates,
+    showRuler,
     setShowCrosshair,
     setShowCoordinates,
+    setShowRuler,
     toggleCrosshair,
     toggleCoordinates,
+    toggleRuler,
   }
 }

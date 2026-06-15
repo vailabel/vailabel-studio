@@ -1,10 +1,18 @@
-import { useCallback, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
 import { aiCopilotService } from "@/services/ai-copilot-service"
+import { services } from "@/services"
+import {
+  ALL_COPILOT_TOOL_IDS,
+  sanitizeToolIds,
+} from "@/lib/copilot-tools"
 import type {
   CopilotProposedAction,
   CopilotTurnResult,
 } from "@/types/ai-assistant"
+
+/** Settings key holding the JSON array of enabled copilot tool ids. */
+const ENABLED_TOOLS_KEY = "copilot.enabledTools"
 
 export interface CopilotMessage {
   id: string
@@ -34,6 +42,7 @@ export function useAiCopilotViewModel() {
       projectId?: string
       imageId: string
       message: string
+      enabledTools?: string[]
     }) => {
       const text = args.message.trim()
       if (!text || isSending) return
@@ -49,6 +58,7 @@ export function useAiCopilotViewModel() {
           projectId: args.projectId,
           imageId: args.imageId,
           message: text,
+          enabledTools: args.enabledTools,
         })
         setMessages((prev) => [
           ...prev,
@@ -135,4 +145,64 @@ export function useAiCopilotViewModel() {
   const clear = useCallback(() => setMessages([]), [])
 
   return { messages, isSending, send, resolveAction, clear }
+}
+
+/**
+ * Which copilot tools are enabled, persisted in settings (`copilot.enabledTools`).
+ * Defaults to all tools on. The enabled set both curates the quick-action chips
+ * and is sent with each turn so the backend never runs a disabled tool.
+ */
+export function useCopilotTools() {
+  const [enabledTools, setEnabledTools] =
+    useState<string[]>(ALL_COPILOT_TOOL_IDS)
+
+  useEffect(() => {
+    let cancelled = false
+    void services
+      .getSettingsService()
+      .getByKey(ENABLED_TOOLS_KEY)
+      .then((setting) => {
+        if (cancelled || !setting.value) return
+        try {
+          const parsed = JSON.parse(setting.value)
+          if (Array.isArray(parsed)) setEnabledTools(sanitizeToolIds(parsed))
+        } catch {
+          // Corrupt value — keep the all-on default.
+        }
+      })
+      .catch(() => {
+        // No desktop backend / read failed — keep the all-on default.
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const persist = useCallback((next: string[]) => {
+    setEnabledTools(next)
+    void services
+      .getSettingsService()
+      .update(ENABLED_TOOLS_KEY, JSON.stringify(next))
+      .catch(() => {
+        // Best-effort: the in-memory toggle still applies for this session.
+      })
+  }, [])
+
+  const toggleTool = useCallback(
+    (toolId: string) => {
+      const has = enabledTools.includes(toolId)
+      const next = has
+        ? enabledTools.filter((id) => id !== toolId)
+        : sanitizeToolIds([...enabledTools, toolId])
+      persist(next)
+    },
+    [enabledTools, persist]
+  )
+
+  const isToolEnabled = useCallback(
+    (toolId: string) => enabledTools.includes(toolId),
+    [enabledTools]
+  )
+
+  return { enabledTools, toggleTool, isToolEnabled }
 }

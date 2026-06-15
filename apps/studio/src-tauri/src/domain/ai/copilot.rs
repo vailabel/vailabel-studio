@@ -48,6 +48,66 @@ impl Capability {
     }
 }
 
+/// Tools the user can switch on/off in the copilot's Tools menu, in display
+/// order. `help` and `summarize` are intentionally excluded — they explain or
+/// navigate rather than run a model, so they are always available.
+pub const TOGGLEABLE_TOOLS: &[&str] = &[
+    "suggest_labels",
+    "detect",
+    "segment",
+    "qa_review",
+    "describe",
+    "ocr",
+];
+
+/// Human label for a tool id, for messages back to the user.
+pub fn tool_label(tool_id: &str) -> &'static str {
+    match tool_id {
+        "detect" => "Detect objects",
+        "segment" => "Outline / segment",
+        "qa_review" => "Check what I missed",
+        "suggest_labels" => "Suggest labels",
+        "describe" => "Describe image",
+        "ocr" => "Read text (OCR)",
+        _ => "that tool",
+    }
+}
+
+/// Whether a tool may run given the user's enabled set. `None`/empty = all on
+/// (back-compat for older clients). `help`/`summarize` are always allowed.
+pub fn tool_enabled(tool_id: &str, enabled: Option<&[String]>) -> bool {
+    if matches!(tool_id, "help" | "summarize") {
+        return true;
+    }
+    match enabled {
+        None => true,
+        Some(list) if list.is_empty() => true,
+        Some(list) => list.iter().any(|entry| entry == tool_id),
+    }
+}
+
+/// Reply when everything a message routed to is turned off — name the tools that
+/// are still on so the user knows what they can ask for.
+pub fn disabled_tools_reply(enabled: Option<&[String]>) -> String {
+    let on: Vec<&str> = TOGGLEABLE_TOOLS
+        .iter()
+        .copied()
+        .filter(|tool| tool_enabled(tool, enabled))
+        .map(tool_label)
+        .collect();
+    if on.is_empty() {
+        "All of my tools are turned off. Open the Tools menu at the top of this panel and switch on \
+         the ones you want me to use."
+            .to_string()
+    } else {
+        format!(
+            "That tool is turned off. Turn it back on in the Tools menu, or ask me to use one that\u{2019}s \
+             on: {}.",
+            on.join(", ")
+        )
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct RoutedIntent {
     pub capability: Capability,
@@ -263,6 +323,20 @@ impl PlanCapability {
 
     fn is_detect(&self) -> bool {
         matches!(self, Self::PromptToDetect | Self::DetectAll)
+    }
+
+    /// The toggleable tool id this step belongs to (for enable/disable gating).
+    pub fn tool_id(&self) -> &'static str {
+        match self {
+            Self::PromptToDetect | Self::DetectAll => "detect",
+            Self::SegmentEachDetection | Self::SegmentAtPoints => "segment",
+            Self::QaReview => "qa_review",
+            Self::SuggestLabels => "suggest_labels",
+            Self::Describe => "describe",
+            Self::Ocr => "ocr",
+            Self::Summarize => "summarize",
+            Self::Help => "help",
+        }
     }
 }
 
@@ -663,6 +737,26 @@ mod tests {
             "name": name,
             "coordinates": [{ "x": x0, "y": y0 }, { "x": x1, "y": y1 }],
         })
+    }
+
+    #[test]
+    fn tool_gating_respects_the_enabled_set() {
+        // None / empty = everything on (back-compat for older clients).
+        assert!(tool_enabled("detect", None));
+        assert!(tool_enabled("detect", Some(&[])));
+
+        // A non-empty set turns off anything not listed…
+        let only_qa = vec!["qa_review".to_string()];
+        assert!(tool_enabled("qa_review", Some(&only_qa)));
+        assert!(!tool_enabled("detect", Some(&only_qa)));
+
+        // …but help/summarize are always available (not user-toggleable).
+        assert!(tool_enabled("help", Some(&only_qa)));
+        assert!(tool_enabled("summarize", Some(&only_qa)));
+
+        // Plan steps map to the right tool id for gating.
+        assert_eq!(PlanCapability::DetectAll.tool_id(), "detect");
+        assert_eq!(PlanCapability::SegmentEachDetection.tool_id(), "segment");
     }
 
     #[test]

@@ -1,8 +1,9 @@
 use crate::domain::ai::copilot::CopilotTurnResult;
 use crate::domain::ai::model::{
-    CopilotActionPayload, CopilotTurnPayload, GitHubReleaseLookupPayload, ImageIdPayload,
-    ModelActivationPayload, ModelImportPayload, ModelInstallPayload, PipelineRunPayload,
-    PredictionActionPayload, PredictionGeneratePayload, RuntimeInstallPayload,
+    CopilotActionPayload, CopilotTestPayload, CopilotTestResult, CopilotTurnPayload,
+    GitHubReleaseLookupPayload, ImageIdPayload, ModelActivationPayload, ModelImportPayload,
+    ModelInstallPayload, PipelineRunPayload, PredictionActionPayload, PredictionGeneratePayload,
+    RuntimeInstallPayload,
 };
 use crate::domain::projects::model::{EntityIdPayload, ProjectIdPayload};
 use crate::{AppError, AppState};
@@ -232,4 +233,18 @@ pub fn ai_copilot_apply_action(
     payload: CopilotActionPayload,
 ) -> Result<Value, AppError> {
     state.ai_service.copilot_apply_action(&app, payload)
+}
+
+/// Local AI copilot: test a manually configured server (Settings → AI Copilot)
+/// by probing its `/models`. Runs on a blocking thread because it does network
+/// I/O with short timeouts.
+#[tauri::command]
+pub async fn ai_copilot_test_connection(
+    state: State<'_, AppState>,
+    payload: CopilotTestPayload,
+) -> Result<CopilotTestResult, AppError> {
+    let ai_service = state.ai_service.clone();
+    tauri::async_runtime::spawn_blocking(move || ai_service.copilot_test_connection(payload))
+        .await
+        .map_err(|error| AppError::Message(format!("AI copilot test task failed: {error}")))
 }

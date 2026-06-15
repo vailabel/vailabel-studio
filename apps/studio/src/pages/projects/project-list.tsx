@@ -178,7 +178,7 @@ const ProjectList = memo(() => {
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{project.name}</p>
                   <p className="truncate text-xs text-muted-foreground">
-                    {project.images?.length || 0} images
+                    {project.imageCount ?? project.images?.length ?? 0} images
                   </p>
                 </div>
               </button>
@@ -265,7 +265,7 @@ const ProjectList = memo(() => {
                     </CardDescription>
                   </div>
                   <Badge variant="secondary">
-                    {project.images?.length || 0} images
+                    {project.imageCount ?? project.images?.length ?? 0} images
                   </Badge>
                 </div>
               </CardHeader>
@@ -274,7 +274,7 @@ const ProjectList = memo(() => {
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <ImageIcon className="h-4 w-4" />
-                    <span>{project.images?.length || 0} images</span>
+                    <span>{project.imageCount ?? project.images?.length ?? 0} images</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Clock className="h-4 w-4" />

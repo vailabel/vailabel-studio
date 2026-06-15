@@ -36,6 +36,7 @@ pub struct AppState {
     pub ai_service: Arc<AiService>,
     pub analysis_service: Arc<AnalysisService>,
     pub video_service: Arc<VideoService>,
+    pub runtime_service: Arc<runtime_manager::RuntimeService>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -58,6 +59,8 @@ pub enum AppError {
     Cloud(#[from] opendal::Error),
     #[error(transparent)]
     Tauri(#[from] tauri::Error),
+    #[error(transparent)]
+    Runtime(#[from] runtime_manager::RuntimeError),
     #[cfg(feature = "yolo-inference")]
     #[error(transparent)]
     Ort(#[from] ort::Error),
@@ -972,6 +975,14 @@ pub fn run() {
                 app_dir.join("video-frames"),
             ));
 
+            // Embedded AI Runtime. Built but NOT started here — the heavyweight
+            // Python process spins up lazily on first training/export/heavy
+            // inference (or an explicit Start). The monitor loop runs regardless
+            // and reports `stopped` until then.
+            let runtime_config = crate::domain::runtime::glue::build_config(app.handle())?;
+            let runtime_service =
+                Arc::new(runtime_manager::RuntimeService::new(runtime_config));
+
             app.manage(AppState {
                 store: store_arc,
                 project_service,
@@ -980,6 +991,27 @@ pub fn run() {
                 ai_service,
                 analysis_service,
                 video_service,
+                runtime_service: runtime_service.clone(),
+            });
+
+            // 10s health/metrics loop → frontend events. On a terminal crash,
+            // reconcile any in-flight training jobs to "failed".
+            let monitor_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                runtime_service
+                    .run_monitor(move |evt| {
+                        let _ = monitor_handle.emit(evt.channel(), evt.payload());
+                        if let runtime_manager::RuntimeEvent::Status(s) = &evt {
+                            if s.give_up
+                                || matches!(s.state, runtime_manager::RuntimeState::Crashed)
+                            {
+                                crate::domain::runtime::glue::reconcile_jobs_on_crash(
+                                    &monitor_handle,
+                                );
+                            }
+                        }
+                    })
+                    .await;
             });
             Ok(())
         })
@@ -1026,6 +1058,7 @@ pub fn run() {
             domain::ai::commands::ai_runtime_restart,
             domain::ai::commands::ai_copilot_turn,
             domain::ai::commands::ai_copilot_apply_action,
+            domain::ai::commands::ai_copilot_test_connection,
             domain::analysis::commands::analysis_run,
             domain::analysis::commands::analysis_job_status,
             domain::analysis::commands::analysis_reports_list,
@@ -1043,6 +1076,26 @@ pub fn run() {
             domain::video::commands::video_track_save,
             domain::video::commands::video_track_delete,
             domain::video::commands::video_export_tracks,
+            domain::runtime::commands::runtime_start,
+            domain::runtime::commands::runtime_stop,
+            domain::runtime::commands::runtime_restart,
+            domain::runtime::commands::runtime_status,
+            domain::runtime::commands::runtime_logs,
+            domain::runtime::commands::runtime_system_info,
+            domain::runtime::commands::runtime_detect,
+            domain::runtime::commands::runtime_segment,
+            domain::runtime::commands::runtime_caption,
+            domain::runtime::commands::runtime_ocr,
+            domain::runtime::commands::training_start,
+            domain::runtime::commands::training_stop,
+            domain::runtime::commands::training_list,
+            domain::runtime::commands::training_logs,
+            domain::runtime::commands::export_onnx,
+            domain::runtime::commands::export_tensorrt,
+            domain::runtime::commands::export_openvino,
+            domain::runtime::commands::runtime_models_list,
+            domain::runtime::commands::runtime_models_install,
+            domain::runtime::commands::runtime_models_delete,
             system_info,
             open_path_dialog,
             open_external,
