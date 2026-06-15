@@ -1,0 +1,13 @@
+[package]
+name = "vailabel-video"
+version = "0.1.0"
+edition = "2021"
+description = "Video Annotation module: video metadata, CVAT-style keyframe tracks, ingest job/progress, and request DTOs. Pure domain types (FFmpeg/decode work stays in the binary)."
+
+[lib]
+name = "vailabel_video"
+
+[dependencies]
+vailabel-core = { workspace = true }
+vailabel-shared = { workspace = true }
+serde = { workspace = true }
