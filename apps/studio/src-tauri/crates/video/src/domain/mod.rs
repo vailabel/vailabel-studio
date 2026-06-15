@@ -6,6 +6,11 @@ use serde::{Deserialize, Serialize};
 use vailabel_core::Identifiable;
 use vailabel_shared::now_iso;
 
+pub mod interpolation;
+pub mod repository;
+
+pub use repository::VideoRepository;
+
 /// A 2D point in **image space** (same convention as image annotations).
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub struct Point {

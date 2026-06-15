@@ -1003,9 +1003,21 @@ pub fn run() {
             let analysis_service = Arc::new(
                 crate::domain::analysis::service::AnalysisService::new(store_arc.clone()),
             );
-            let video_service = Arc::new(crate::domain::video::service::VideoService::new(
-                store_arc.clone(),
+            // Video module: persistence is a binary adapter over the residual
+            // store; the FFmpeg pipeline is the crate's infrastructure. The
+            // binary VideoService owns only the ingest job lifecycle.
+            let video_repo: Arc<dyn vailabel_video::domain::VideoRepository> = Arc::new(
+                crate::domain::video::repository::VideoStoreRepository::new(store_arc.clone()),
+            );
+            let video_pipeline: Arc<dyn vailabel_video::application::VideoPipeline> =
+                Arc::new(vailabel_video::infrastructure::FfmpegPipeline::new());
+            let video_app_service = Arc::new(vailabel_video::application::VideoAppService::new(
+                video_repo,
+                video_pipeline,
                 app_dir.join("video-frames"),
+            ));
+            let video_service = Arc::new(crate::domain::video::service::VideoService::new(
+                video_app_service,
             ));
 
             // Embedded AI Runtime. Built but NOT started here — the heavyweight

@@ -16,16 +16,16 @@ use std::path::{Path, PathBuf};
 
 /// Crates whose ENTIRE `src/` must be infrastructure-free.
 const FULLY_PURE: &[&str] = &[
-    "core", "shared", "plugin", "analysis", "video", "models", "copilot", "search",
+    "core", "shared", "plugin", "analysis", "models", "copilot", "search",
 ];
 
-/// Module crates that own an `infrastructure/` layer (typed Diesel, or — for
-/// `cloud` — an OpenDAL object store). Their `domain`/`application`/`contracts`
-/// layers must stay pure; `infrastructure/` legitimately depends on its backing
-/// technology (diesel + `vailabel-db`, or opendal + `std::fs`), so it is scanned
-/// at folder granularity and its `Cargo.toml` is exempt from the dependency
-/// check.
-const LAYERED: &[&str] = &["project", "dataset", "annotation", "training", "cloud"];
+/// Module crates that own an `infrastructure/` layer (typed Diesel; for `cloud`
+/// an OpenDAL object store; for `video` the FFmpeg CLI). Their
+/// `domain`/`application`/`contracts` layers must stay pure; `infrastructure/`
+/// legitimately depends on its backing technology (diesel + `vailabel-db`,
+/// opendal + `std::fs`, or `std::process` + `std::fs`), so it is scanned at
+/// folder granularity and its `Cargo.toml` is exempt from the dependency check.
+const LAYERED: &[&str] = &["project", "dataset", "annotation", "training", "cloud", "video"];
 
 /// The layers of a LAYERED crate that must remain pure.
 const PURE_LAYERS: &[&str] = &["domain", "application", "contracts"];
