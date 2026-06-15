@@ -1,5 +1,6 @@
 ﻿#![recursion_limit = "256"]
 
+pub mod composition;
 pub mod domain;
 mod gpu;
 mod inference;
