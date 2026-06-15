@@ -1,20 +1,24 @@
 //! Hardware / runtime capability detection for the local AI assistant.
 //!
-//! Phase 1: report which ONNX Runtime execution providers are compiled into this
-//! build plus basic host info, so the UI can tell the user whether GPU
-//! acceleration is available and which backend inference will use. We
-//! deliberately report *compiled-in capability* rather than probing/inventing
-//! GPU specs — the CUDA provider is attempted at session creation and silently
-//! falls back to CPU when no compatible device is present (see `inference.rs`).
+//! Reports which ONNX Runtime execution providers are compiled into this build
+//! plus basic host info, so the UI can tell the user whether GPU acceleration is
+//! available and which backend inference will use. We deliberately report
+//! *compiled-in capability* rather than probing/inventing GPU specs — the CUDA
+//! provider is attempted at session creation and silently falls back to CPU when
+//! no compatible device is present.
+//!
+//! The `local-inference` feature (enabled by the binary's `yolo-inference`)
+//! pulls the `ort` crate; without it `gpu_info` reports a CPU-only/unloaded
+//! snapshot.
 
 use serde_json::{json, Value};
 
 /// ONNX Runtime (`ort`) is compiled into this build.
-const ONNX_ENABLED: bool = cfg!(feature = "yolo-inference");
+const ONNX_ENABLED: bool = cfg!(feature = "local-inference");
 
 /// The CUDA execution provider is compiled in (the `ort` "cuda" feature ships
-/// together with the `yolo-inference` feature).
-const CUDA_COMPILED: bool = cfg!(feature = "yolo-inference");
+/// together with the `local-inference` feature).
+const CUDA_COMPILED: bool = cfg!(feature = "local-inference");
 
 /// What the runtime probe found. `build_info` is the **actually-loaded** ONNX
 /// Runtime's build string (version/commit/flags) — distinct from the compile-time
@@ -31,7 +35,7 @@ struct RuntimeProbe {
 /// Actually probe the runtime: does ONNX Runtime load, is the CUDA provider usable
 /// on this host, and what version actually loaded? This is the difference between
 /// "compiled in" and "actually works".
-#[cfg(feature = "yolo-inference")]
+#[cfg(feature = "local-inference")]
 fn runtime_probe() -> RuntimeProbe {
     use ort::execution_providers::{CUDAExecutionProvider, ExecutionProvider};
 
@@ -85,7 +89,7 @@ fn runtime_probe() -> RuntimeProbe {
     }
 }
 
-#[cfg(not(feature = "yolo-inference"))]
+#[cfg(not(feature = "local-inference"))]
 fn runtime_probe() -> RuntimeProbe {
     RuntimeProbe::default()
 }

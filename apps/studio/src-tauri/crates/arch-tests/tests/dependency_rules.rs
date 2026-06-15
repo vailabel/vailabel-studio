@@ -16,18 +16,18 @@ use std::path::{Path, PathBuf};
 
 /// Crates whose ENTIRE `src/` must be infrastructure-free.
 const FULLY_PURE: &[&str] = &[
-    "core", "shared", "plugin", "models", "copilot", "search",
+    "core", "shared", "plugin", "copilot", "search",
 ];
 
 /// Module crates that own an `infrastructure/` layer (typed Diesel; for `cloud`
 /// an OpenDAL object store; for `video` the FFmpeg CLI; for `analysis` the
-/// `image`-crate pixel decoder). Their `domain`/`application`/`contracts` layers
-/// must stay pure; `infrastructure/` legitimately depends on its backing
-/// technology (diesel + `vailabel-db`, opendal, the FFmpeg CLI, or `image` +
-/// filesystem reads), so it is scanned at folder granularity and its
-/// `Cargo.toml` is exempt from the dependency check.
+/// `image`-crate pixel decoder; for `models` the `ort` ONNX runtime). Their
+/// `domain`/`application`/`contracts` layers must stay pure; `infrastructure/`
+/// legitimately depends on its backing technology (diesel + `vailabel-db`,
+/// opendal, the FFmpeg CLI, `image`, or `ort`), so it is scanned at folder
+/// granularity and its `Cargo.toml` is exempt from the dependency check.
 const LAYERED: &[&str] = &[
-    "project", "dataset", "annotation", "training", "cloud", "video", "analysis",
+    "project", "dataset", "annotation", "training", "cloud", "video", "analysis", "models",
 ];
 
 /// The layers of a LAYERED crate that must remain pure.

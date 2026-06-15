@@ -150,7 +150,7 @@ pub fn predictions_reject(
 /// (GPU detection / runtime capabilities).
 #[tauri::command]
 pub fn ai_gpu_info() -> Result<Value, AppError> {
-    Ok(crate::gpu::gpu_info())
+    Ok(vailabel_models::infrastructure::gpu_info())
 }
 
 /// Local AI assistant: the model registry (catalog of models, their task,
