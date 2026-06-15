@@ -21,5 +21,5 @@ pub mod id;
 
 pub use clock::{now_iso, Clock, SystemClock};
 pub use error::PortError;
-pub use event::EventPublisher;
+pub use event::{EventBus, EventPublisher, EventSubscriber};
 pub use id::{new_id, Id};
