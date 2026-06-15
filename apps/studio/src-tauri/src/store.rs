@@ -2,8 +2,7 @@ use crate::schema;
 use chrono::Utc;
 use diesel::prelude::*;
 use serde_json::{json, Value};
-use std::cell::RefCell;
-use std::path::PathBuf;
+use vailabel_db::Db;
 use std::sync::{Arc, Mutex, MutexGuard};
 use uuid::Uuid;
 
@@ -980,19 +979,15 @@ impl IfEmpty for String {
 // ── DesktopStore ──────────────────────────────────────────────────────────────
 
 pub struct DesktopStore {
-    connection: RefCell<SqliteConnection>,
+    db: Db,
 }
 
-// SAFETY: DesktopStore is always accessed through Arc<Mutex<DesktopStore>>,
-// guaranteeing exclusive access. RefCell is never accessed from multiple threads.
-unsafe impl Send for DesktopStore {}
-
 impl DesktopStore {
-    pub fn open(path: PathBuf) -> Result<Self, StoreError> {
-        let url = path.to_string_lossy().to_string();
-        let mut conn = SqliteConnection::establish(&url)?;
-        diesel::sql_query("PRAGMA journal_mode=WAL").execute(&mut conn)?;
-        diesel::sql_query("PRAGMA foreign_keys=ON").execute(&mut conn)?;
+    /// Build the residual store over the SHARED connection. PRAGMAs are applied
+    /// in `Db::open`; this only ensures the (centrally-owned) tables exist. The
+    /// per-module Diesel repositories borrow the same `Db`.
+    pub fn open(db: Db) -> Result<Self, StoreError> {
+        let mut conn = db.lock();
 
         // Ensure every table exists WITHOUT destroying existing data.
         // `CREATE TABLE IF NOT EXISTS` is idempotent, so annotations and all
@@ -1014,7 +1009,7 @@ impl DesktopStore {
                 created_at    TEXT NOT NULL,
                 updated_at    TEXT NOT NULL
             )",
-        ).execute(&mut conn)?;
+        ).execute(&mut *conn)?;
 
         diesel::sql_query(
             "CREATE TABLE IF NOT EXISTS labels (
@@ -1028,7 +1023,7 @@ impl DesktopStore {
                 created_at      TEXT NOT NULL,
                 updated_at      TEXT NOT NULL
             )",
-        ).execute(&mut conn)?;
+        ).execute(&mut *conn)?;
 
         diesel::sql_query(
             "CREATE TABLE IF NOT EXISTS images (
@@ -1043,7 +1038,7 @@ impl DesktopStore {
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
             )",
-        ).execute(&mut conn)?;
+        ).execute(&mut *conn)?;
 
         diesel::sql_query(
             "CREATE TABLE IF NOT EXISTS tasks (
@@ -1057,7 +1052,7 @@ impl DesktopStore {
                 created_at  TEXT NOT NULL,
                 updated_at  TEXT NOT NULL
             )",
-        ).execute(&mut conn)?;
+        ).execute(&mut *conn)?;
 
         diesel::sql_query(
             "CREATE TABLE IF NOT EXISTS annotations (
@@ -1076,7 +1071,7 @@ impl DesktopStore {
                 created_at       TEXT NOT NULL,
                 updated_at       TEXT NOT NULL
             )",
-        ).execute(&mut conn)?;
+        ).execute(&mut *conn)?;
 
         diesel::sql_query(
             "CREATE TABLE IF NOT EXISTS predictions (
@@ -1104,7 +1099,7 @@ impl DesktopStore {
                 created_at       TEXT NOT NULL,
                 updated_at       TEXT NOT NULL
             )",
-        ).execute(&mut conn)?;
+        ).execute(&mut *conn)?;
 
         diesel::sql_query(
             "CREATE TABLE IF NOT EXISTS ai_models (
@@ -1136,7 +1131,7 @@ impl DesktopStore {
                 created_at                   TEXT NOT NULL,
                 updated_at                   TEXT NOT NULL
             )",
-        ).execute(&mut conn)?;
+        ).execute(&mut *conn)?;
 
         diesel::sql_query(
             "CREATE TABLE IF NOT EXISTS settings (
@@ -1146,7 +1141,7 @@ impl DesktopStore {
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
             )",
-        ).execute(&mut conn)?;
+        ).execute(&mut *conn)?;
 
         diesel::sql_query(
             "CREATE TABLE IF NOT EXISTS history (
@@ -1159,7 +1154,7 @@ impl DesktopStore {
                 created_at    TEXT NOT NULL,
                 updated_at    TEXT NOT NULL
             )",
-        ).execute(&mut conn)?;
+        ).execute(&mut *conn)?;
 
         diesel::sql_query(
             "CREATE TABLE IF NOT EXISTS secret_keys (
@@ -1168,7 +1163,7 @@ impl DesktopStore {
                 name      TEXT NOT NULL,
                 UNIQUE(namespace, name)
             )",
-        ).execute(&mut conn)?;
+        ).execute(&mut *conn)?;
 
         // Dataset Intelligence reports. The full report is stored as a JSON blob
         // (`report_json`); `summary_json` is a lighter slice for list views.
@@ -1180,11 +1175,11 @@ impl DesktopStore {
                 summary_json TEXT NOT NULL,
                 report_json  TEXT NOT NULL
             )",
-        ).execute(&mut conn)?;
+        ).execute(&mut *conn)?;
         diesel::sql_query(
             "CREATE INDEX IF NOT EXISTS idx_analysis_reports_project
                 ON analysis_reports (project_id, created_at)",
-        ).execute(&mut conn)?;
+        ).execute(&mut *conn)?;
 
         // Video Annotation (Phase 5). Videos and tracks are stored as JSON blobs
         // (`video_json` / `track_json`) keyed by indexed columns, mirroring the
@@ -1198,11 +1193,11 @@ impl DesktopStore {
                 updated_at  TEXT NOT NULL,
                 video_json  TEXT NOT NULL
             )",
-        ).execute(&mut conn)?;
+        ).execute(&mut *conn)?;
         diesel::sql_query(
             "CREATE INDEX IF NOT EXISTS idx_videos_project
                 ON videos (project_id, created_at)",
-        ).execute(&mut conn)?;
+        ).execute(&mut *conn)?;
 
         diesel::sql_query(
             "CREATE TABLE IF NOT EXISTS tracks (
@@ -1213,11 +1208,11 @@ impl DesktopStore {
                 updated_at  TEXT NOT NULL,
                 track_json  TEXT NOT NULL
             )",
-        ).execute(&mut conn)?;
+        ).execute(&mut *conn)?;
         diesel::sql_query(
             "CREATE INDEX IF NOT EXISTS idx_tracks_video
                 ON tracks (video_id, created_at)",
-        ).execute(&mut conn)?;
+        ).execute(&mut *conn)?;
 
         // Embedded AI Runtime — training jobs queued/run by the Python runtime.
         // `config_json` / `metrics_json` are flexible blobs so the trainer config
@@ -1239,11 +1234,11 @@ impl DesktopStore {
                 started_at   TEXT,
                 finished_at  TEXT
             )",
-        ).execute(&mut conn)?;
+        ).execute(&mut *conn)?;
         diesel::sql_query(
             "CREATE INDEX IF NOT EXISTS idx_training_jobs_project
                 ON training_jobs (project_id, created_at)",
-        ).execute(&mut conn)?;
+        ).execute(&mut *conn)?;
 
         // Embedded AI Runtime — Model Manager registry. Weights download to
         // app-data on demand; `size` is a 64-bit byte count (checkpoints can be
@@ -1264,22 +1259,22 @@ impl DesktopStore {
                 created_at        TEXT NOT NULL,
                 updated_at        TEXT NOT NULL
             )",
-        ).execute(&mut conn)?;
+        ).execute(&mut *conn)?;
 
         // ── Additive schema evolution (no destructive migration) ──────────────
         // Bring databases created before these columns existed up to the current
         // schema. New columns are nullable, so existing rows stay byte-identical
         // until re-saved. `add_column_if_missing` treats a "duplicate column
         // name" error as success, so this is safe to run on every startup.
-        add_column_if_missing(&mut conn, "projects", "modality", "TEXT")?;
-        add_column_if_missing(&mut conn, "projects", "task", "TEXT")?;
-        add_column_if_missing(&mut conn, "annotations", "meta_json", "TEXT")?;
+        add_column_if_missing(&mut *conn,"projects", "modality", "TEXT")?;
+        add_column_if_missing(&mut *conn,"projects", "task", "TEXT")?;
+        add_column_if_missing(&mut *conn,"annotations", "meta_json", "TEXT")?;
 
         // Backfill the two-axis taxonomy for legacy projects from their original
         // single `project_type`, so existing projects open with a correct
         // modality/task without any user action.
         diesel::sql_query("UPDATE projects SET modality = 'image' WHERE modality IS NULL")
-            .execute(&mut conn)?;
+            .execute(&mut *conn)?;
         diesel::sql_query(
             "UPDATE projects SET task = CASE project_type \
                  WHEN 'object_detection' THEN 'detection' \
@@ -1292,17 +1287,16 @@ impl DesktopStore {
                  ELSE 'detection' END \
              WHERE task IS NULL",
         )
-        .execute(&mut conn)?;
+        .execute(&mut *conn)?;
 
-        diesel::sql_query("PRAGMA foreign_keys=ON").execute(&mut conn)?;
+        diesel::sql_query("PRAGMA foreign_keys=ON").execute(&mut *conn)?;
 
-        Ok(DesktopStore {
-            connection: RefCell::new(conn),
-        })
+        drop(conn);
+        Ok(DesktopStore { db })
     }
 
-    fn conn(&self) -> std::cell::RefMut<'_, SqliteConnection> {
-        self.connection.borrow_mut()
+    fn conn(&self) -> MutexGuard<'_, SqliteConnection> {
+        self.db.lock()
     }
 
     /// Image counts keyed by project id, via a single grouped query.
@@ -2188,6 +2182,7 @@ impl EntityStore for StoreHandle {
 #[cfg(test)]
 mod runtime_schema_tests {
     use super::*;
+    use std::path::PathBuf;
     use std::sync::atomic::{AtomicU32, Ordering};
 
     static COUNTER: AtomicU32 = AtomicU32::new(0);
@@ -2200,7 +2195,8 @@ mod runtime_schema_tests {
             n
         ));
         let _ = std::fs::remove_file(&path);
-        (DesktopStore::open(path.clone()).expect("open store"), path)
+        let db = Db::open(&path).expect("open db");
+        (DesktopStore::open(db).expect("open store"), path)
     }
 
     #[test]
@@ -2269,7 +2265,7 @@ mod runtime_schema_tests {
             .unwrap();
         drop(store);
         // Re-opening the same DB must not wipe rows (CREATE TABLE IF NOT EXISTS).
-        let store2 = DesktopStore::open(path).expect("reopen");
+        let store2 = DesktopStore::open(Db::open(&path).expect("reopen db")).expect("reopen");
         assert_eq!(store2.list_entities("runtime_models").unwrap().len(), 1);
     }
 }

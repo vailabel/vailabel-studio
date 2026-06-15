@@ -90,6 +90,7 @@ runtime-manager = { path = "crates/runtime-manager" }
 # (diesel/tauri/...).
 vailabel-core = { workspace = true }
 vailabel-shared = { workspace = true }
+vailabel-db = { workspace = true }
 vailabel-project = { workspace = true }
 vailabel-dataset = { workspace = true }
 vailabel-analysis = { workspace = true }
