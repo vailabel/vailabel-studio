@@ -10,9 +10,9 @@ use tauri::State;
 use crate::store::DesktopStore;
 use crate::{emit_domain_event, AppError, AppState};
 use runtime_manager::{
-    CaptionRequest, DetectRequest, ExportRequest, JobIdRequest, OcrRequest, RuntimeStatus,
-    SegmentRequest, TrainingStartRequest,
+    CaptionRequest, DetectRequest, ExportRequest, OcrRequest, RuntimeStatus, SegmentRequest,
 };
+use vailabel_training::application::{StartTrainingCommand, StopTrainingCommand};
 
 // ---------------------------------------------------------------------------
 // Payloads
@@ -97,10 +97,6 @@ fn lock_store<'a>(
     store
         .lock()
         .map_err(|_| AppError::Message("Desktop store is unavailable".into()))
-}
-
-fn now_iso() -> String {
-    chrono::Utc::now().to_rfc3339()
 }
 
 // ---------------------------------------------------------------------------
@@ -241,116 +237,50 @@ pub async fn training_start(
 ) -> Result<Value, AppError> {
     use tauri::Manager;
 
-    let svc = state.runtime_service.clone();
-    let store = state.store.clone();
+    // The binary owns the filesystem: mint the job id and create its log path.
     let job_id = uuid::Uuid::new_v4().to_string();
-
     let logs_dir = app.path().app_data_dir()?.join("runtime").join("training-logs");
     std::fs::create_dir_all(&logs_dir)?;
-    let log_path = logs_dir.join(format!("{job_id}.log"));
-    let log_path_str = log_path.to_string_lossy().to_string();
+    let log_path = logs_dir
+        .join(format!("{job_id}.log"))
+        .to_string_lossy()
+        .to_string();
 
-    // Persist the pending job up front so it shows in the UI immediately.
-    let name = payload
-        .name
-        .clone()
-        .unwrap_or_else(|| format!("{} training", payload.model_family));
-    let pending = {
-        let guard = lock_store(&store)?;
-        guard.upsert_entity(
-            "training_job",
-            json!({
-                "id": job_id,
-                "projectId": payload.project_id,
-                "modelId": payload.model_id,
-                "name": name,
-                "status": "pending",
-                "progress": 0.0,
-                "config": payload.config,
-                "logPath": log_path_str,
-                "startedAt": now_iso(),
-            }),
-        )?
-    };
-    let _ = emit_domain_event(&app, "training_job", "created", &pending);
-
-    // Lazily start the runtime and kick off training.
-    let client = svc.ensure_started().await?;
-    let started = client
-        .training_start(&TrainingStartRequest {
-            job_id: job_id.clone(),
-            project_id: pending["projectId"].as_str().unwrap_or_default().to_string(),
+    let run = state
+        .training_service
+        .start(StartTrainingCommand {
+            job_id,
+            project_id: payload.project_id,
+            model_id: payload.model_id,
             model_family: payload.model_family,
             dataset_path: payload.dataset_path,
-            config: pending["config"].clone(),
-            log_path: log_path_str,
+            name: payload.name,
+            config: payload.config,
+            log_path,
         })
-        .await;
-
-    // Reconcile the row to running/failed (full-row upsert preserves all fields).
-    let mut updated = pending.clone();
-    if let Some(obj) = updated.as_object_mut() {
-        match &started {
-            Ok(_) => {
-                obj.insert("status".into(), json!("running"));
-            }
-            Err(e) => {
-                obj.insert("status".into(), json!("failed"));
-                obj.insert("error".into(), json!(e.to_string()));
-                obj.insert("finishedAt".into(), json!(now_iso()));
-            }
-        }
-    }
-    let saved = {
-        let guard = lock_store(&store)?;
-        guard.upsert_entity("training_job", updated)?
-    };
-    let _ = emit_domain_event(&app, "training_job", "updated", &saved);
-
-    started?;
-    Ok(saved)
+        .await?;
+    Ok(serde_json::to_value(run)?)
 }
 
 #[tauri::command]
 pub async fn training_stop(
-    app: tauri::AppHandle,
     state: State<'_, AppState>,
     payload: IdPayload,
 ) -> Result<Value, AppError> {
-    let svc = state.runtime_service.clone();
-    let store = state.store.clone();
-
-    if let Some(client) = svc.try_client() {
-        let _ = client
-            .training_stop(&JobIdRequest {
-                job_id: payload.id.clone(),
-            })
-            .await;
-    }
-
-    let existing = {
-        let guard = lock_store(&store)?;
-        guard.get_entity("training_job", &payload.id)?
-    };
-    let saved = match existing {
-        Some(mut v) => {
-            if let Some(obj) = v.as_object_mut() {
-                obj.insert("status".into(), json!("canceled"));
-                obj.insert("finishedAt".into(), json!(now_iso()));
-            }
-            let guard = lock_store(&store)?;
-            guard.upsert_entity("training_job", v)?
-        }
-        None => json!({ "id": payload.id, "status": "canceled" }),
-    };
-    let _ = emit_domain_event(&app, "training_job", "updated", &saved);
-    Ok(saved)
+    Ok(state
+        .training_service
+        .stop(StopTrainingCommand::new(payload.id))
+        .await?)
 }
 
 #[tauri::command]
 pub fn training_list(state: State<AppState>) -> Result<Vec<Value>, AppError> {
-    let guard = lock_store(&state.store)?;
-    Ok(guard.list_entities("training_jobs")?)
+    state
+        .training_service
+        .list()?
+        .into_iter()
+        .map(|run| serde_json::to_value(run).map_err(AppError::from))
+        .collect()
 }
 
 /// Stream per-job training logs from the runtime (falls back to the on-disk file
@@ -366,18 +296,11 @@ pub async fn training_logs(
             return Ok(serde_json::to_value(chunk)?);
         }
     }
-    // Fallback: read the persisted log file.
-    let path = {
-        let guard = lock_store(&state.store)?;
-        guard
-            .get_entity("training_job", &payload.job_id)?
-            .and_then(|v| {
-                v.get("logPath")
-                    .or_else(|| v.get("log_path"))
-                    .and_then(Value::as_str)
-                    .map(str::to_owned)
-            })
-    };
+    // Fallback: read the persisted log file (log path from the training module).
+    let path = state
+        .training_service
+        .get(&payload.job_id)?
+        .and_then(|run| run.log_path);
     let lines = match path {
         Some(p) => std::fs::read_to_string(p)
             .unwrap_or_default()

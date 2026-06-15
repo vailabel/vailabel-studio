@@ -340,32 +340,12 @@ fn now_iso() -> String {
     chrono::Utc::now().to_rfc3339()
 }
 
-/// On a runtime crash, mark any in-flight training jobs as failed — their
+/// On a runtime crash, mark any in-flight training runs as failed — their
 /// in-memory torch state can't resume. Called from the monitor's event callback.
+/// Delegates to the training module, which transitions the runs and emits an
+/// `updated` event per changed run.
 pub fn reconcile_jobs_on_crash(app: &tauri::AppHandle) {
-    let state = match app.try_state::<crate::AppState>() {
-        Some(s) => s,
-        None => return,
-    };
-    let store = state.store.clone();
-    let jobs = match lock_store(&store).and_then(|g| g.list_entities("training_jobs").map_err(Into::into)) {
-        Ok(jobs) => jobs,
-        Err(_) => return,
-    };
-    for mut job in jobs {
-        let status = job.get("status").and_then(Value::as_str).unwrap_or("");
-        if status != "running" && status != "pending" {
-            continue;
-        }
-        if let Some(obj) = job.as_object_mut() {
-            obj.insert("status".into(), json!("failed"));
-            obj.insert("error".into(), json!("runtime crashed"));
-            obj.insert("finishedAt".into(), json!(now_iso()));
-        }
-        if let Ok(saved) =
-            lock_store(&store).and_then(|g| g.upsert_entity("training_job", job).map_err(Into::into))
-        {
-            let _ = crate::emit_domain_event(app, "training_job", "updated", &saved);
-        }
+    if let Some(state) = app.try_state::<crate::AppState>() {
+        let _ = state.training_service.reconcile_in_flight_failed();
     }
 }

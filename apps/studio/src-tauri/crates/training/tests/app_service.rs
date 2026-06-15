@@ -119,6 +119,7 @@ fn service(
 
 fn start_cmd() -> StartTrainingCommand {
     StartTrainingCommand {
+        job_id: "job-1".into(),
         project_id: "p1".into(),
         model_id: None,
         model_family: "yolo".into(),
