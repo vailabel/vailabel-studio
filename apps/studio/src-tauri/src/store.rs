@@ -185,26 +185,6 @@ struct AiModelRow {
 }
 
 #[derive(Queryable, Selectable, Insertable, Debug, Clone)]
-#[diesel(table_name = schema::training_jobs)]
-#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
-struct TrainingJobRow {
-    id: String,
-    project_id: String,
-    model_id: Option<String>,
-    name: String,
-    status: String,
-    config_json: Option<String>,
-    metrics_json: Option<String>,
-    progress: f32,
-    log_path: Option<String>,
-    error: Option<String>,
-    created_at: String,
-    updated_at: String,
-    started_at: Option<String>,
-    finished_at: Option<String>,
-}
-
-#[derive(Queryable, Selectable, Insertable, Debug, Clone)]
 #[diesel(table_name = schema::runtime_models)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 struct RuntimeModelRow {
@@ -600,36 +580,6 @@ fn ai_model_to_json(r: AiModelRow) -> Value {
     })
 }
 
-fn training_job_to_json(r: TrainingJobRow) -> Value {
-    let config = parse_json_field(r.config_json.as_deref());
-    let metrics = parse_json_field(r.metrics_json.as_deref());
-    json!({
-        "id": r.id,
-        "projectId": r.project_id,
-        "project_id": r.project_id,
-        "modelId": r.model_id,
-        "model_id": r.model_id,
-        "name": r.name,
-        "status": r.status,
-        "config": config,
-        "config_json": config,
-        "metrics": metrics,
-        "metrics_json": metrics,
-        "progress": r.progress,
-        "logPath": r.log_path,
-        "log_path": r.log_path,
-        "error": r.error,
-        "createdAt": r.created_at,
-        "created_at": r.created_at,
-        "updatedAt": r.updated_at,
-        "updated_at": r.updated_at,
-        "startedAt": r.started_at,
-        "started_at": r.started_at,
-        "finishedAt": r.finished_at,
-        "finished_at": r.finished_at,
-    })
-}
-
 fn runtime_model_to_json(r: RuntimeModelRow) -> Value {
     let capabilities = parse_json_field(r.capabilities_json.as_deref());
     json!({
@@ -870,37 +820,6 @@ fn ai_model_row_from(v: &Value, now: &str) -> AiModelRow {
             .unwrap_or(now)
             .to_owned(),
         updated_at: now.to_owned(),
-    }
-}
-
-fn training_job_row_from(v: &Value, now: &str) -> TrainingJobRow {
-    let config_json = v
-        .get("config")
-        .or_else(|| v.get("config_json"))
-        .filter(|val| !val.is_null())
-        .map(|val| val.to_string());
-    let metrics_json = v
-        .get("metrics")
-        .or_else(|| v.get("metrics_json"))
-        .filter(|val| !val.is_null())
-        .map(|val| val.to_string());
-    TrainingJobRow {
-        id: get_id(v),
-        project_id: str_owned(v, "project_id", "projectId"),
-        model_id: opt_str(v, "model_id", "modelId"),
-        name: str_owned(v, "name", "name"),
-        status: str_owned(v, "status", "status").if_empty("pending"),
-        config_json,
-        metrics_json,
-        progress: f64_val(v, "progress", "progress") as f32,
-        log_path: opt_str(v, "log_path", "logPath"),
-        error: opt_str(v, "error", "error"),
-        created_at: str_val(v, "created_at", "createdAt")
-            .unwrap_or(now)
-            .to_owned(),
-        updated_at: now.to_owned(),
-        started_at: opt_str(v, "started_at", "startedAt"),
-        finished_at: opt_str(v, "finished_at", "finishedAt"),
     }
 }
 
@@ -1214,32 +1133,6 @@ impl DesktopStore {
                 ON tracks (video_id, created_at)",
         ).execute(&mut *conn)?;
 
-        // Embedded AI Runtime — training jobs queued/run by the Python runtime.
-        // `config_json` / `metrics_json` are flexible blobs so the trainer config
-        // and reported metrics can evolve without a schema migration.
-        diesel::sql_query(
-            "CREATE TABLE IF NOT EXISTS training_jobs (
-                id           TEXT PRIMARY KEY NOT NULL,
-                project_id   TEXT NOT NULL,
-                model_id     TEXT,
-                name         TEXT NOT NULL DEFAULT '',
-                status       TEXT NOT NULL DEFAULT 'pending',
-                config_json  TEXT,
-                metrics_json TEXT,
-                progress     REAL NOT NULL DEFAULT 0.0,
-                log_path     TEXT,
-                error        TEXT,
-                created_at   TEXT NOT NULL,
-                updated_at   TEXT NOT NULL,
-                started_at   TEXT,
-                finished_at  TEXT
-            )",
-        ).execute(&mut *conn)?;
-        diesel::sql_query(
-            "CREATE INDEX IF NOT EXISTS idx_training_jobs_project
-                ON training_jobs (project_id, created_at)",
-        ).execute(&mut *conn)?;
-
         // Embedded AI Runtime — Model Manager registry. Weights download to
         // app-data on demand; `size` is a 64-bit byte count (checkpoints can be
         // multi-GB, so this is wider than `ai_models.model_size`).
@@ -1519,7 +1412,6 @@ impl DesktopStore {
             "annotation" | "annotations" => self.upsert_annotation(value),
             "prediction" | "predictions" => self.upsert_prediction(value),
             "ai_model" | "ai_models" => self.upsert_ai_model(value),
-            "training_job" | "training_jobs" => self.upsert_training_job(value),
             "runtime_model" | "runtime_models" => self.upsert_runtime_model(value),
             "setting" | "settings" => self.upsert_setting(value),
             "history" => self.upsert_history(value),
@@ -1536,7 +1428,6 @@ impl DesktopStore {
             "annotation" | "annotations" => self.get_annotation(id),
             "prediction" | "predictions" => self.get_prediction(id),
             "ai_model" | "ai_models" => self.get_ai_model(id),
-            "training_job" | "training_jobs" => self.get_training_job(id),
             "runtime_model" | "runtime_models" => self.get_runtime_model(id),
             "setting" | "settings" => self.get_setting_entity(id),
             "history" => self.get_history(id),
@@ -1553,7 +1444,6 @@ impl DesktopStore {
             "annotation" | "annotations" => self.list_annotations(),
             "prediction" | "predictions" => self.list_predictions(),
             "ai_model" | "ai_models" => self.list_ai_models(),
-            "training_job" | "training_jobs" => self.list_training_jobs(),
             "runtime_model" | "runtime_models" => self.list_runtime_models(),
             "setting" | "settings" => self.list_settings(),
             "history" => self.list_history(),
@@ -1580,9 +1470,6 @@ impl DesktopStore {
                 self.list_predictions_by_project(val)
             }
             ("history", "project_id") => self.list_history_by_project(val),
-            ("training_job" | "training_jobs", "project_id") => {
-                self.list_training_jobs_by_project(val)
-            }
             _ => Ok(vec![]),
         }
     }
@@ -1596,7 +1483,6 @@ impl DesktopStore {
             "annotation" | "annotations" => self.delete_annotation(id),
             "prediction" | "predictions" => self.delete_prediction(id),
             "ai_model" | "ai_models" => self.delete_ai_model(id),
-            "training_job" | "training_jobs" => self.delete_training_job(id),
             "runtime_model" | "runtime_models" => self.delete_runtime_model(id),
             "setting" | "settings" => self.delete_setting(id),
             "history" => self.delete_history(id),
@@ -1961,48 +1847,6 @@ impl DesktopStore {
         Ok(())
     }
 
-    // ── TRAINING JOBS ─────────────────────────────────────────────────────────
-
-    fn upsert_training_job(&self, value: Value) -> Result<Value, StoreError> {
-        let now = now_iso();
-        let row = training_job_row_from(&value, &now);
-        let result = training_job_to_json(row.clone());
-        diesel::replace_into(schema::training_jobs::table)
-            .values(&row)
-            .execute(&mut *self.conn())?;
-        Ok(result)
-    }
-
-    fn get_training_job(&self, id: &str) -> Result<Option<Value>, StoreError> {
-        let row = schema::training_jobs::table
-            .find(id)
-            .select(TrainingJobRow::as_select())
-            .first::<TrainingJobRow>(&mut *self.conn())
-            .optional()?;
-        Ok(row.map(training_job_to_json))
-    }
-
-    fn list_training_jobs(&self) -> Result<Vec<Value>, StoreError> {
-        let rows = schema::training_jobs::table
-            .select(TrainingJobRow::as_select())
-            .load::<TrainingJobRow>(&mut *self.conn())?;
-        Ok(rows.into_iter().map(training_job_to_json).collect())
-    }
-
-    fn list_training_jobs_by_project(&self, project_id: &str) -> Result<Vec<Value>, StoreError> {
-        use schema::training_jobs::dsl;
-        let rows = dsl::training_jobs
-            .filter(dsl::project_id.eq(project_id))
-            .select(TrainingJobRow::as_select())
-            .load::<TrainingJobRow>(&mut *self.conn())?;
-        Ok(rows.into_iter().map(training_job_to_json).collect())
-    }
-
-    fn delete_training_job(&self, id: &str) -> Result<(), StoreError> {
-        diesel::delete(schema::training_jobs::table.find(id)).execute(&mut *self.conn())?;
-        Ok(())
-    }
-
     // ── RUNTIME MODELS (Model Manager) ────────────────────────────────────────
 
     fn upsert_runtime_model(&self, value: Value) -> Result<Value, StoreError> {
@@ -2197,39 +2041,6 @@ mod runtime_schema_tests {
         let _ = std::fs::remove_file(&path);
         let db = Db::open(&path).expect("open db");
         (DesktopStore::open(db).expect("open store"), path)
-    }
-
-    #[test]
-    fn training_job_round_trips() {
-        let (store, _path) = temp_store();
-        let saved = store
-            .upsert_entity(
-                "training_job",
-                json!({
-                    "id": "job-1",
-                    "projectId": "proj-1",
-                    "modelFamily": "yolo",
-                    "status": "running",
-                    "progress": 0.42,
-                    "config": { "epochs": 10 },
-                }),
-            )
-            .expect("upsert");
-        assert_eq!(saved["status"], "running");
-        assert_eq!(saved["projectId"], "proj-1");
-        assert_eq!(saved["config"]["epochs"], 10);
-
-        let fetched = store.get_entity("training_job", "job-1").expect("get").unwrap();
-        assert_eq!(fetched["id"], "job-1");
-        assert_eq!(fetched["progress"].as_f64().unwrap(), 0.42_f32 as f64);
-
-        let by_project = store
-            .list_by_field("training_jobs", "project_id", "proj-1")
-            .expect("list_by_field");
-        assert_eq!(by_project.len(), 1);
-
-        store.delete_entity("training_job", "job-1").expect("delete");
-        assert!(store.get_entity("training_job", "job-1").unwrap().is_none());
     }
 
     #[test]
