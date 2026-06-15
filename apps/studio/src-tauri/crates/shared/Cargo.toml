@@ -1,0 +1,16 @@
+[package]
+name = "vailabel-shared"
+version = "0.1.0"
+edition = "2021"
+description = "Cross-cutting shared kernel for Vailabel Studio: clock, ids, and the persistence/event infrastructure *ports* module layers depend on. Pure — no diesel/tauri/http."
+
+[lib]
+name = "vailabel_shared"
+
+[dependencies]
+vailabel-core = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }

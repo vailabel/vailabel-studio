@@ -8,6 +8,7 @@ members = [
     # DDD Phase 1 crates (added incrementally; each is a workspace member so the
     # binary and inter-crate deps pin one version via [workspace.dependencies]).
     "crates/core",
+    "crates/shared",
 ]
 
 [workspace.dependencies]
@@ -24,6 +25,7 @@ chrono = { version = "0.4", features = ["serde"] }
 # Internal workspace crates (DDD modules). Path deps so the binary and crates
 # reference one shared version.
 vailabel-core = { path = "crates/core" }
+vailabel-shared = { path = "crates/shared" }
 
 [package]
 name = "vailabel-studio"
