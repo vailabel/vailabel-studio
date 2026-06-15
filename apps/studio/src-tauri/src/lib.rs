@@ -2,6 +2,8 @@
 
 pub mod composition;
 pub mod commands;
+pub mod ai;
+pub mod runtime;
 pub mod copilot_ports;
 pub mod modules;
 pub mod plugins;
@@ -12,7 +14,7 @@ mod schema;
 mod store;
 
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
-use modules::ai::service::AiService;
+use ai::service::AiService;
 use modules::analysis::service::AnalysisService;
 use modules::images::service::ImageService;
 use modules::labels::service::LabelService;
@@ -998,7 +1000,7 @@ pub fn run() {
             let image_service = Arc::new(crate::modules::images::service::ImageService::new(
                 image_app_service,
             ));
-            let ai_service = Arc::new(crate::modules::ai::service::AiService::new(
+            let ai_service = Arc::new(crate::ai::service::AiService::new(
                 entity_store.clone(),
             ));
             // Analysis module: source rows + reports persist through a binary
@@ -1037,7 +1039,7 @@ pub fn run() {
             // Python process spins up lazily on first training/export/heavy
             // inference (or an explicit Start). The monitor loop runs regardless
             // and reports `stopped` until then.
-            let runtime_config = crate::modules::runtime::glue::build_config(app.handle())?;
+            let runtime_config = crate::runtime::glue::build_config(app.handle())?;
             let runtime_service =
                 Arc::new(runtime_manager::RuntimeService::new(runtime_config));
 
@@ -1116,7 +1118,7 @@ pub fn run() {
                             if s.give_up
                                 || matches!(s.state, runtime_manager::RuntimeState::Crashed)
                             {
-                                crate::modules::runtime::glue::reconcile_jobs_on_crash(
+                                crate::runtime::glue::reconcile_jobs_on_crash(
                                     &monitor_handle,
                                 );
                             }

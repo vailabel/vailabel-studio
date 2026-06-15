@@ -16,10 +16,10 @@ use vailabel_copilot::application::{BoxPrompt, CopilotInference, CopilotLlm};
 use vailabel_copilot::domain::CopilotLlmConfig;
 use vailabel_core::{DomainError, DomainResult};
 
-use crate::modules::ai::llm;
-use crate::modules::ai::model::{PipelineRunPayload, PredictionGeneratePayload};
-use crate::modules::ai::plugin::{self, PromptInput};
-use crate::modules::ai::service::AiService;
+use crate::ai::llm;
+use crate::ai::model::{PipelineRunPayload, PredictionGeneratePayload};
+use crate::ai::plugin::{self, PromptInput};
+use crate::ai::service::AiService;
 use crate::store::EntityStore;
 use crate::value_string;
 

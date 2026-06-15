@@ -9,7 +9,7 @@ use serde_json::{json, Value};
 use std::path::Path;
 use std::time::Duration;
 
-use crate::modules::ai::model::CopilotLlmConfig;
+use crate::ai::model::CopilotLlmConfig;
 use crate::AppError;
 
 /// Normalize whatever the user typed to the OpenAI `/v1` base. Accepts a bare

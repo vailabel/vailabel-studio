@@ -1,5 +1,5 @@
-use crate::modules::ai::copilot::CopilotTurnResult;
-use crate::modules::ai::model::{
+use crate::ai::copilot::CopilotTurnResult;
+use crate::ai::model::{
     CopilotActionPayload, CopilotTestPayload, CopilotTestResult, CopilotTurnPayload,
     GitHubReleaseLookupPayload, ImageIdPayload, ModelActivationPayload, ModelImportPayload,
     ModelInstallPayload, PipelineRunPayload, PredictionActionPayload, PredictionGeneratePayload,
@@ -157,7 +157,7 @@ pub fn ai_gpu_info() -> Result<Value, AppError> {
 /// capabilities, required ONNX components, and whether the engine is wired).
 #[tauri::command]
 pub fn ai_model_registry() -> Result<Vec<Value>, AppError> {
-    Ok(crate::modules::ai::registry::registry_json())
+    Ok(crate::ai::registry::registry_json())
 }
 
 /// Auto-provision the ONNX Runtime native library (and cuDNN for CUDA) by
@@ -174,7 +174,7 @@ pub async fn ai_runtime_install(
         let gpu = payload.gpu.unwrap_or(true);
         let app = app.clone();
         return tauri::async_runtime::spawn_blocking(move || {
-            crate::modules::ai::runtime_setup::ensure_runtime(&app, gpu)
+            crate::ai::runtime_setup::ensure_runtime(&app, gpu)
         })
         .await
         .map_err(|error| AppError::Message(format!("Runtime install task failed: {error}")))?;
@@ -193,7 +193,7 @@ pub async fn ai_runtime_install(
 pub fn ai_runtime_status(app: tauri::AppHandle) -> Result<Value, AppError> {
     #[cfg(feature = "yolo-inference")]
     {
-        return Ok(crate::modules::ai::runtime_setup::status(&app));
+        return Ok(crate::ai::runtime_setup::status(&app));
     }
     #[cfg(not(feature = "yolo-inference"))]
     {
