@@ -1,149 +1,124 @@
-import { data } from "@/app/data"
-import { Mail, MessageSquare } from "lucide-react"
-import { GithubIcon } from "@/components/icons/github-icon"
 import Link from "next/link"
+import Image from "next/image"
+import { Mail, MessageSquare } from "lucide-react"
+import { data } from "@/app/data"
+import { GithubIcon } from "@/components/icons/github-icon"
+import { Container } from "@/components/ui/section"
+
+const columns: { title: string; links: { label: string; href: string }[] }[] = [
+  {
+    title: "Product",
+    links: [
+      { label: "Download", href: "/#download" },
+      { label: "Features", href: "/#features" },
+      { label: "Roadmap", href: "/#roadmap" },
+      { label: "Updates", href: "/updates" },
+    ],
+  },
+  {
+    title: "Resources",
+    links: [
+      { label: "Documentation", href: "/docs/getting-started" },
+      { label: "AI & GPU Setup", href: "/docs/ai-gpu-setup" },
+      { label: "Tutorials", href: "/docs/tutorials" },
+      { label: "Blog", href: "/blogs" },
+    ],
+  },
+  {
+    title: "Community",
+    links: [
+      { label: "GitHub", href: data.repoUrl },
+      { label: "Discord", href: data.discordUrl },
+      { label: "Contributing", href: data.contributingUrl },
+    ],
+  },
+  {
+    title: "Legal",
+    links: [
+      { label: "License (GPL-3.0)", href: data.licenseUrl },
+      { label: "Privacy Policy", href: data.privacyUrl },
+      { label: "Terms of Use", href: data.termsUrl },
+    ],
+  },
+]
 
 export default function Footer() {
   return (
-    <footer className="relative py-14 border-t border-black/5 dark:border-white/10 bg-white/50 dark:bg-white/[0.02] backdrop-blur-sm">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          <div>
-            <h3 className="font-bold text-lg mb-4 brand-accent">
-              Vision AI Label Studio
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
-              A powerful, open-source image labeling tool with AI assistance.
+    <footer className="border-t border-border bg-muted/30">
+      <Container className="py-14">
+        <div className="grid grid-cols-2 gap-10 md:grid-cols-6">
+          <div className="col-span-2">
+            <Link href="/" className="flex items-center gap-2.5">
+              <Image
+                src="/logo.png"
+                alt={`${data.appName} logo`}
+                width={32}
+                height={32}
+                className="h-8 w-8 rounded-md"
+              />
+              <span className="text-base font-semibold tracking-tight">
+                {data.appName}
+              </span>
+            </Link>
+            <p className="mt-4 max-w-xs text-sm text-muted-foreground">
+              {data.appDescription}
             </p>
-            <div className="flex items-center gap-4">
+            <div className="mt-5 flex items-center gap-3">
               <a
                 href={data.repoUrl}
-                className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                aria-label="GitHub"
+                className="text-muted-foreground transition-colors hover:text-foreground"
               >
                 <GithubIcon size={20} />
               </a>
               <a
-                href="https://discord.gg/vailabel"
-                className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                href={data.discordUrl}
+                aria-label="Discord"
+                className="text-muted-foreground transition-colors hover:text-foreground"
               >
-                <MessageSquare className="w-5 h-5" />
+                <MessageSquare className="h-5 w-5" />
               </a>
               <a
-                href="mailto:nathvichea1@gmail.com"
-                className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                href={`mailto:${data.email}`}
+                aria-label="Email"
+                className="text-muted-foreground transition-colors hover:text-foreground"
               >
-                <Mail className="w-5 h-5" />
+                <Mail className="h-5 w-5" />
               </a>
             </div>
           </div>
 
-          <div>
-            <h3 className="font-bold text-lg mb-4">Resources</h3>
-            <ul className="space-y-2">
-              <li>
-                <Link
-                  href="/docs"
-                  className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-                >
-                  Documentation
-                </Link>
-              </li>
-              <li>
-                <a
-                  href="/docs/tutorials"
-                  className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-                >
-                  Tutorials
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/docs/api-reference"
-                  className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-                >
-                  API Reference
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/docs/examples"
-                  className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-                >
-                  Examples
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="font-bold text-lg mb-4">Community</h3>
-            <ul className="space-y-2">
-              <li>
-                <a
-                  href={data.repoUrl}
-                  className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-                >
-                  GitHub
-                </a>
-              </li>
-              <li>
-                <a
-                  href={data.discordUrl}
-                  className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-                >
-                  Discord
-                </a>
-              </li>
-              <li>
-                <a
-                  href={data.twitterUrl}
-                  className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-                >
-                  Twitter
-                </a>
-              </li>
-              <li>
-                <a
-                  href={data.contributingUrl}
-                  className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-                >
-                  Contributing
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="font-bold text-lg mb-4">Legal</h3>
-            <ul className="space-y-2">
-              <li>
-                <a
-                  href="https://github.com/vailabel/vailabel-studio/blob/main/LICENSE"
-                  className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-                >
-                  License (GNU GPL)
-                </a>
-              </li>
-              <li>
-                <a
-                  href={data.privacyUrl}
-                  className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-                >
-                  Privacy Policy
-                </a>
-              </li>
-              <li>
-                <a
-                  href={data.termsUrl}
-                  className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-                >
-                  Terms of Use
-                </a>
-              </li>
-            </ul>
-          </div>
+          {columns.map((col) => (
+            <div key={col.title}>
+              <h3 className="text-sm font-semibold text-foreground">
+                {col.title}
+              </h3>
+              <ul className="mt-4 space-y-3">
+                {col.links.map((link) => (
+                  <li key={link.label}>
+                    <Link
+                      href={link.href}
+                      className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
-      </div>
+
+        <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-border pt-6 sm:flex-row">
+          <p className="text-sm text-muted-foreground">
+            © {new Date().getFullYear()} {data.appName}. Open source under
+            GPL-3.0.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Built with Tauri, React &amp; Rust.
+          </p>
+        </div>
+      </Container>
     </footer>
   )
 }

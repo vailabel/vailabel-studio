@@ -1,16 +1,18 @@
 "use client"
 
-import { container, item } from "@/lib/motion"
 import { motion } from "framer-motion"
+import { container, item } from "@/lib/motion"
 import {
   Shapes,
   Wand2,
   FileDown,
-  Database,
+  ShieldCheck,
   Cloud,
-  Laptop,
+  Clapperboard,
   type LucideIcon,
 } from "lucide-react"
+import { Card } from "@/components/ui/card"
+import { Section, SectionHeading } from "@/components/ui/section"
 
 type Feature = {
   icon: LucideIcon
@@ -22,93 +24,80 @@ type Feature = {
 const features: Feature[] = [
   {
     icon: Shapes,
-    title: "Annotation Tools",
+    title: "Every annotation tool",
     description:
-      "Draw boxes, polygons, points, lines, circles, and free-form masks with precise editing.",
-    tint: "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400",
+      "Bounding boxes, polygons, points, lines, circles, free-draw, and SAM smart-segment — each with a single-key shortcut.",
+    tint: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400",
   },
   {
     icon: Wand2,
-    title: "AI-Assisted Labeling",
+    title: "Offline AI copilot",
     description:
-      "Auto-detect objects with local ONNX models (YOLO-family) — GPU-accelerated and fully offline.",
-    tint: "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400",
+      "Ask it to detect, segment, suggest labels, or QA your work. Local ONNX models, human-in-the-loop, zero cloud calls.",
+    tint: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
   },
   {
     icon: FileDown,
-    title: "Multi-Format Export",
-    description: "Export annotations to LabelMe, COCO, YOLO, and Pascal VOC.",
-    tint: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400",
+    title: "Export anywhere",
+    description:
+      "One click to LabelMe, COCO, YOLO (detection & segmentation), and Pascal VOC — ready for any training pipeline.",
+    tint: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
   },
   {
-    icon: Database,
-    title: "Local-First & Offline",
+    icon: ShieldCheck,
+    title: "Local-first & private",
     description:
-      "Projects are stored locally in SQLite — your data never leaves your machine.",
-    tint: "bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400",
+      "Projects live in a local SQLite database on your machine. Nothing is uploaded unless you choose to.",
+    tint: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
   },
   {
     icon: Cloud,
-    title: "Cloud Storage",
+    title: "Bring your own cloud",
     description:
-      "Optionally connect your own S3, Azure, or GCS bucket for image storage.",
-    tint: "bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400",
+      "Optionally connect S3, Azure Blob, or Google Cloud Storage. Credentials are kept in your OS keychain.",
+    tint: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
   },
   {
-    icon: Laptop,
-    title: "Cross-Platform Desktop",
-    description: "Runs natively on Windows, macOS, and Linux — built with Tauri.",
-    tint: "bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400",
+    icon: Clapperboard,
+    title: "Video & multi-modal",
+    description:
+      "Frame-by-frame video labeling with object tracking, plus a multi-modal architecture spanning image, video, text & audio.",
+    tint: "bg-pink-500/10 text-pink-600 dark:text-pink-400",
   },
 ]
 
-const FeatureHighlights = () => {
+export default function FeatureHighlights() {
   return (
-    <section className="relative py-20">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div
-          className="text-center mb-16"
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-        >
-          <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
-            Powerful <span className="brand-accent">Features</span>
-          </h2>
-          <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
-            Everything you need for efficient image annotation and labeling
-          </p>
-        </motion.div>
+    <Section id="features">
+      <SectionHeading
+        eyebrow="Features"
+        title="Everything you need to label faster"
+        description="A focused, native annotation studio — not a browser tab. Built for speed, privacy, and real ML workflows."
+      />
 
-        <motion.div
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
-          variants={container}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true }}
-        >
-          {features.map((feature) => (
-            <motion.div
-              key={feature.title}
-              className="surface cloud-card rounded-2xl p-6 shadow-sm hover:shadow-md"
-              variants={item}
-            >
+      <motion.div
+        className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3"
+        variants={container}
+        initial="hidden"
+        whileInView="show"
+        viewport={{ once: true, margin: "-80px" }}
+      >
+        {features.map((feature) => (
+          <motion.div key={feature.title} variants={item}>
+            <Card className="cloud-card h-full p-6 hover:shadow-md">
               <div
-                className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${feature.tint}`}
+                className={`mb-4 flex h-11 w-11 items-center justify-center rounded-xl ${feature.tint}`}
               >
-                <feature.icon className="w-6 h-6" />
+                <feature.icon className="h-5 w-5" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
-              <p className="text-gray-600 dark:text-gray-400">
+              <h3 className="text-lg font-semibold">{feature.title}</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
                 {feature.description}
               </p>
-            </motion.div>
-          ))}
-        </motion.div>
-      </div>
-    </section>
+            </Card>
+          </motion.div>
+        ))}
+      </motion.div>
+    </Section>
   )
 }
-
-export default FeatureHighlights

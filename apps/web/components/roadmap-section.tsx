@@ -1,139 +1,120 @@
 "use client"
 
-import { container, item } from "@/lib/motion"
 import { motion } from "framer-motion"
+import { container, item } from "@/lib/motion"
 import { Check, Clock, Circle, type LucideIcon } from "lucide-react"
-import React from "react"
+import { Card } from "@/components/ui/card"
+import { Section, SectionHeading } from "@/components/ui/section"
 
 type Status = "done" | "progress" | "planned"
 
-const statusIcon: Record<Status, LucideIcon> = {
-  done: Check,
-  progress: Clock,
-  planned: Circle,
+const meta: Record<
+  Status,
+  { icon: LucideIcon; title: string; dot: string; tint: string }
+> = {
+  done: {
+    icon: Check,
+    title: "Shipped",
+    dot: "bg-emerald-500",
+    tint: "text-emerald-600 dark:text-emerald-400",
+  },
+  progress: {
+    icon: Clock,
+    title: "In progress",
+    dot: "bg-amber-500",
+    tint: "text-amber-600 dark:text-amber-400",
+  },
+  planned: {
+    icon: Circle,
+    title: "Planned",
+    dot: "bg-primary",
+    tint: "text-primary",
+  },
 }
 
-const columns: {
-  status: Status
-  title: string
-  dot: string
-  tint: string
-  items: { title: string; description: string }[]
-}[] = [
+const columns: { status: Status; items: { title: string; desc: string }[] }[] = [
   {
     status: "done",
-    title: "Completed",
-    dot: "bg-green-500",
-    tint: "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400",
     items: [
-      {
-        title: "Annotation tools",
-        description: "Boxes, polygons, points, lines, circles, free-draw",
-      },
-      {
-        title: "AI-assisted labeling",
-        description: "Local ONNX models (YOLO-family)",
-      },
-      {
-        title: "Multi-format export",
-        description: "LabelMe, COCO, YOLO, Pascal VOC",
-      },
+      { title: "Full annotation toolset", desc: "Box, polygon, point, line, circle, free-draw" },
+      { title: "AI copilot", desc: "Detect, segment, suggest & QA labels" },
+      { title: "YOLO + MobileSAM", desc: "Local ONNX inference, optional CUDA" },
+      { title: "Multi-format export", desc: "COCO, YOLO, YOLO-Seg, VOC, LabelMe" },
+      { title: "Cloud storage", desc: "S3, Azure Blob & GCS buckets" },
+      { title: "Video annotation", desc: "Frame-by-frame with object tracking" },
     ],
   },
   {
     status: "progress",
-    title: "In Progress",
-    dot: "bg-yellow-500",
-    tint: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400",
     items: [
-      { title: "Video annotation", description: "Frame-by-frame labeling" },
-      {
-        title: "Dataset intelligence",
-        description: "Quality insights & analytics",
-      },
-      { title: "Cloud storage", description: "S3, Azure, and GCS buckets" },
+      { title: "Florence-2 engine", desc: "Captioning, OCR & open-vocab tasks" },
+      { title: "SAM 2", desc: "Higher-quality interactive segmentation" },
+      { title: "Dataset intelligence", desc: "Deeper quality & outlier insights" },
+      { title: "Conversational copilot", desc: "Multi-turn labeling dialogue" },
     ],
   },
   {
     status: "planned",
-    title: "Planned",
-    dot: "bg-blue-500",
-    tint: "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400",
     items: [
-      { title: "Team collaboration", description: "Multi-user projects" },
-      { title: "Active learning", description: "Model-in-the-loop labeling" },
-      { title: "Cloud sync", description: "Optional project backup" },
+      { title: "Grounding DINO", desc: "Open-vocabulary detection" },
+      { title: "Text & audio editors", desc: "NER, relations, ASR, segments" },
+      { title: "OCR as a task", desc: "First-class text recognition" },
+      { title: "Team collaboration", desc: "Multi-user projects" },
     ],
   },
 ]
 
-const RoadmapSection = () => {
+export default function RoadmapSection() {
   return (
-    <section className="py-20">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div
-          className="text-center mb-16"
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-        >
-          <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
-            <span className="brand-accent">Roadmap</span>
-          </h2>
-          <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
-            See what&apos;s completed, in progress, and planned for future
-            releases
-          </p>
-        </motion.div>
+    <Section id="roadmap">
+      <SectionHeading
+        eyebrow="Roadmap"
+        title="Shipped, building, and next"
+        description="An honest view of where the studio is today and where it's headed."
+      />
 
-        <div className="max-w-3xl mx-auto">
-          <motion.div
-            className="grid grid-cols-1 md:grid-cols-3 gap-8"
-            variants={container}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true }}
-          >
-            {columns.map((col) => {
-              const Icon = statusIcon[col.status]
-              return (
-                <motion.div key={col.title} variants={item} className="space-y-4">
-                  <div className="flex items-center gap-2 mb-4">
-                    <div
-                      className={`w-6 h-6 rounded-full flex items-center justify-center text-white ${col.dot}`}
-                    >
-                      <Icon size={14} />
+      <motion.div
+        className="grid grid-cols-1 gap-6 md:grid-cols-3"
+        variants={container}
+        initial="hidden"
+        whileInView="show"
+        viewport={{ once: true }}
+      >
+        {columns.map((col) => {
+          const m = meta[col.status]
+          const Icon = m.icon
+          return (
+            <motion.div key={col.status} variants={item}>
+              <div className="mb-4 flex items-center gap-2">
+                <span
+                  className={`flex h-6 w-6 items-center justify-center rounded-full text-white ${m.dot}`}
+                >
+                  <Icon size={13} />
+                </span>
+                <h3 className="font-semibold">{m.title}</h3>
+              </div>
+              <div className="space-y-3">
+                {col.items.map((entry) => (
+                  <Card
+                    key={entry.title}
+                    className="flex items-start gap-3 p-3.5"
+                  >
+                    <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${m.tint}`} />
+                    <div>
+                      <p className="text-sm font-medium leading-tight">
+                        {entry.title}
+                      </p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {entry.desc}
+                      </p>
                     </div>
-                    <h3 className="font-bold text-lg">{col.title}</h3>
-                  </div>
-
-                  {col.items.map((entry) => (
-                    <div
-                      key={entry.title}
-                      className="surface cloud-card p-3 rounded-xl flex items-start gap-2 hover:shadow-md"
-                    >
-                      <div
-                        className={`w-5 h-5 rounded-full flex items-center justify-center mt-0.5 ${col.tint}`}
-                      >
-                        <Icon size={12} />
-                      </div>
-                      <div>
-                        <p className="font-medium">{entry.title}</p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {entry.description}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </motion.div>
-              )
-            })}
-          </motion.div>
-        </div>
-      </div>
-    </section>
+                  </Card>
+                ))}
+              </div>
+            </motion.div>
+          )
+        })}
+      </motion.div>
+    </Section>
   )
 }
-
-export default RoadmapSection

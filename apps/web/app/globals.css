@@ -4,88 +4,89 @@
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 222 47% 11%;
 
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
+    /* Brand: modern indigo */
+    --primary: 243 75% 59%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 222 47% 11%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 220 14% 96%;
+    --accent-foreground: 222 47% 11%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 243 75% 59%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
     /* Typography colors for light mode */
     --tw-prose-body: #374151;
     --tw-prose-headings: #111827;
-    --tw-prose-links: #2563eb;
-    --tw-prose-links-hover: #1d4ed8;
+    --tw-prose-links: #4f46e5;
+    --tw-prose-links-hover: #4338ca;
     --tw-prose-code: #111827;
     --tw-prose-code-bg: #f3f4f6;
-    --tw-prose-pre-bg: #1f2937;
+    --tw-prose-pre-bg: #0f172a;
     --tw-prose-pre-code: #e5e7eb;
     --tw-prose-th-borders: #d1d5db;
     --tw-prose-td-borders: #e5e7eb;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 222 47% 5%;
     --foreground: 210 40% 98%;
 
-    --card: 222.2 84% 4.9%;
+    --card: 222 41% 8%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 222.2 84% 4.9%;
+    --popover: 222 41% 8%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 243 80% 70%;
+    --primary-foreground: 222 47% 11%;
 
-    --secondary: 217.2 32.6% 17.5%;
+    --secondary: 217 33% 17%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 217 33% 15%;
+    --muted-foreground: 215 20% 65%;
 
-    --accent: 217.2 32.6% 17.5%;
+    --accent: 217 33% 17%;
     --accent-foreground: 210 40% 98%;
 
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 63% 45%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    --border: 217 33% 18%;
+    --input: 217 33% 20%;
+    --ring: 243 80% 70%;
 
     /* Typography colors for dark mode */
     --tw-prose-body: #d1d5db;
     --tw-prose-headings: #f3f4f6;
-    --tw-prose-links: #60a5fa;
-    --tw-prose-links-hover: #93c5fd;
+    --tw-prose-links: #a5b4fc;
+    --tw-prose-links-hover: #c7d2fe;
     --tw-prose-code: #f3f4f6;
-    --tw-prose-code-bg: #374151;
-    --tw-prose-pre-bg: #111827;
+    --tw-prose-code-bg: #1e293b;
+    --tw-prose-pre-bg: #0b1120;
     --tw-prose-pre-code: #e5e7eb;
-    --tw-prose-th-borders: #4b5563;
-    --tw-prose-td-borders: #374151;
+    --tw-prose-th-borders: #334155;
+    --tw-prose-td-borders: #1e293b;
   }
 }
 
@@ -94,28 +95,37 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  ::selection {
+    background-color: hsl(var(--primary) / 0.18);
   }
 }
 
-/* ── Design system ────────────────────────────────────────────────────── */
+/* ── Design system utilities ──────────────────────────────────────────── */
 @layer components {
-  /* Solid brand accent for emphasised words */
-  .brand-accent {
-    color: #2563eb;
-  }
-  .dark .brand-accent {
-    color: #60a5fa;
+  /* Gradient text for emphasised words */
+  .text-gradient {
+    background-image: linear-gradient(
+      to right,
+      hsl(var(--primary)),
+      hsl(243 75% 70%)
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
 
-  /* Clean card surface used by feature/roadmap cards and the header */
-  .surface {
-    background-color: #ffffff;
-    border: 1px solid rgb(15 23 42 / 0.08);
+  /* Legacy brand accent (kept for not-yet-migrated pages) */
+  .brand-accent {
+    color: hsl(var(--primary));
   }
-  .dark .surface {
-    background-color: rgb(17 24 39 / 1);
-    border-color: rgb(255 255 255 / 0.08);
+
+  /* Clean card surface (kept for not-yet-migrated pages) */
+  .surface {
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
   }
 
   /* Card hover lift */
@@ -127,6 +137,27 @@
   }
   .cloud-card:hover {
     transform: translateY(-3px);
+  }
+}
+
+/* ── Decorative backgrounds ───────────────────────────────────────────── */
+@layer utilities {
+  /* Subtle dotted grid backdrop for hero/sections */
+  .bg-grid {
+    background-image: radial-gradient(
+      hsl(var(--foreground) / 0.07) 1px,
+      transparent 1px
+    );
+    background-size: 22px 22px;
+  }
+
+  /* Soft radial glow */
+  .bg-glow {
+    background: radial-gradient(
+      60% 60% at 50% 0%,
+      hsl(var(--primary) / 0.18) 0%,
+      transparent 70%
+    );
   }
 }
 

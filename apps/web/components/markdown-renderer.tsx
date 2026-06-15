@@ -16,7 +16,7 @@ export function MarkdownRenderer({ children }: { children: string }) {
       <div className={"hljs-dark"}>
         <style>{`pre { padding: 0 !important; }`}</style>
         <ReactMarkdown
-          remarkPlugins={[remarkGfm, remarkMermaidPlugin]}
+          remarkPlugins={[remarkGfm, remarkMermaidPlugin as never]}
           rehypePlugins={[
             [rehypeHighlight, { ignoreMissing: true }],
             rehypeRaw,
@@ -32,7 +32,7 @@ export function MarkdownRenderer({ children }: { children: string }) {
                       {...props}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-500 hover:underline"
+                      className="text-primary hover:underline"
                     />
                   )
                 }

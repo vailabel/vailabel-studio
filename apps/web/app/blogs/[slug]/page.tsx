@@ -5,7 +5,12 @@ import { Metadata } from "next"
 import BlogSidebar from "../blog-sidebar"
 import { MarkdownRenderer } from "@/components/markdown-renderer"
 
-export async function generateMetadata({ params: { slug } }: { params: { slug: string } }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>
+}): Promise<Metadata> {
+  const { slug } = await params
   const blogsDir = path.join(process.cwd(), "blogs")
   const filePath = path.join(blogsDir, `${slug}.md`)
 
@@ -36,7 +41,12 @@ export async function generateMetadata({ params: { slug } }: { params: { slug: s
   }
 }
 
-export default async function BlogDetailPage({ params: { slug } }: { params: { slug: string } }) {
+export default async function BlogDetailPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>
+}) {
+  const { slug } = await params
   const blogsDir = path.join(process.cwd(), "blogs")
   const filePath = path.join(blogsDir, `${slug}.md`)
 
@@ -59,13 +69,21 @@ export default async function BlogDetailPage({ params: { slug } }: { params: { s
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 flex flex-col lg:flex-row gap-12">
-        <main className="flex-1">
-          <header className="mb-8">
-            <h1 className="text-4xl font-bold mb-2">{metadata.title}</h1>
-            <p className="text-gray-600 dark:text-gray-400">
-              {metadata.date} • {metadata.author}
+    <div className="min-h-screen bg-background">
+      <div className="mx-auto flex max-w-6xl flex-col gap-12 px-4 py-14 sm:px-6 lg:flex-row lg:px-8">
+        <main className="min-w-0 flex-1">
+          <header className="mb-8 border-b border-border pb-6">
+            <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
+              {metadata.title}
+            </h1>
+            {metadata.description && (
+              <p className="mt-2 text-lg text-muted-foreground">
+                {metadata.description}
+              </p>
+            )}
+            <p className="mt-3 text-sm text-muted-foreground">
+              {metadata.date}
+              {metadata.author ? ` • ${metadata.author}` : ""}
             </p>
           </header>
           <MarkdownRenderer>{markdownContent}</MarkdownRenderer>

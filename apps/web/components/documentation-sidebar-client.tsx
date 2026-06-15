@@ -2,7 +2,9 @@
 
 import Link from "next/link"
 import { useState } from "react"
-import type React from "react"
+import { usePathname } from "next/navigation"
+import { Search } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface Doc {
   slug: string
@@ -15,7 +17,9 @@ interface SidebarProps {
 }
 
 export function DocumentationSidebarClient({ docs }: SidebarProps) {
-  // Group docs by category
+  const pathname = usePathname()
+  const [search, setSearch] = useState("")
+
   const docsByCategory = docs.reduce(
     (acc, doc) => {
       const category = doc.category || "General"
@@ -30,61 +34,72 @@ export function DocumentationSidebarClient({ docs }: SidebarProps) {
     if (b === "General") return 1
     return a.localeCompare(b)
   })
-  const [search, setSearch] = useState("")
-  const filteredDocsByCategory = search.trim()
+
+  const q = search.trim().toLowerCase()
+  const filteredDocsByCategory = q
     ? Object.fromEntries(
         sortedCategories.map((category) => [
           category,
           docsByCategory[category].filter(
             (doc) =>
-              doc.title.toLowerCase().includes(search.toLowerCase()) ||
-              doc.slug.toLowerCase().includes(search.toLowerCase())
+              doc.title.toLowerCase().includes(q) ||
+              doc.slug.toLowerCase().includes(q)
           ),
         ])
       )
     : docsByCategory
+
   return (
-    <>
-      <div className="relative w-full max-w-xs mb-6">
+    <div className="py-6">
+      <div className="relative mb-6">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <input
           type="text"
-          placeholder="Search docs..."
+          placeholder="Search docs…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full rounded border border-gray-200 dark:border-gray-700 px-3 py-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+          className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
         />
       </div>
-      <div>
+
+      <nav className="space-y-6">
         {sortedCategories.map((category) => {
           const docsInCategory = filteredDocsByCategory[category] || []
           if (docsInCategory.length === 0) return null
           return (
-            <div key={category} className="mb-4">
-              <h3 className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-2">
+            <div key={category}>
+              <h3 className="mb-2 px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {category}
               </h3>
-              <ul className="space-y-1">
-                {docsInCategory.map((doc) => (
-                  <li key={doc.slug}>
-                    <Link
-                      href={`/docs/${doc.slug}`}
-                      className="block px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-sm text-gray-800 dark:text-gray-100"
-                    >
-                      {doc.title}
-                    </Link>
-                  </li>
-                ))}
+              <ul className="space-y-0.5">
+                {docsInCategory.map((doc) => {
+                  const active = pathname === `/docs/${doc.slug}`
+                  return (
+                    <li key={doc.slug}>
+                      <Link
+                        href={`/docs/${doc.slug}`}
+                        className={cn(
+                          "block rounded-lg px-2 py-1.5 text-sm transition-colors",
+                          active
+                            ? "bg-primary/10 font-medium text-primary"
+                            : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                        )}
+                      >
+                        {doc.title}
+                      </Link>
+                    </li>
+                  )
+                })}
               </ul>
             </div>
           )
         })}
-        {search.trim() &&
-          Object.values(filteredDocsByCategory).flat().length === 0 && (
-            <div className="text-sm text-gray-500 dark:text-gray-400 px-2 py-4">
-              No documentation found.
-            </div>
-          )}
-      </div>
-    </>
+        {q && Object.values(filteredDocsByCategory).flat().length === 0 && (
+          <p className="px-2 py-4 text-sm text-muted-foreground">
+            No documentation found.
+          </p>
+        )}
+      </nav>
+    </div>
   )
 }

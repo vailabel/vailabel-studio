@@ -1,19 +1,16 @@
 "use client"
+
 import Link from "next/link"
-import { Sun, Moon, Menu as MenuIcon } from "lucide-react"
+import Image from "next/image"
+import { useEffect, useState } from "react"
+import { usePathname } from "next/navigation"
+import { Sun, Moon, Menu as MenuIcon, Download } from "lucide-react"
 import { Popover } from "@base-ui/react/popover"
 import { useTheme } from "next-themes"
-import { data } from "@/app/data"
-import { usePathname } from "next/navigation"
+import { data, navLinks } from "@/app/data"
+import { cn } from "@/lib/utils"
+import { buttonVariants } from "@/components/ui/button"
 import GitHubButton from "./github-button"
-import { useEffect, useState } from "react"
-import Image from "next/image"
-
-const navLinks = [
-  { href: "/docs/getting-started", label: "Docs", match: "/docs" },
-  { href: "/blogs", label: "Blog", match: "/blogs" },
-  { href: "/updates", label: "Updates", match: "/updates" },
-]
 
 export default function Header() {
   const { theme, setTheme } = useTheme()
@@ -21,103 +18,124 @@ export default function Header() {
   const [mounted, setMounted] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  useEffect(() => setMounted(true), [])
 
-  const toggleDarkMode = () => setTheme(theme === "dark" ? "light" : "dark")
+  const toggleTheme = () => setTheme(theme === "dark" ? "light" : "dark")
 
   const isActive = (path: string) =>
     pathname === path || pathname?.startsWith(`${path}/`)
 
   const linkClass = (match: string) =>
-    isActive(match)
-      ? "text-gray-900 dark:text-white font-semibold"
-      : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
+    cn(
+      "text-sm font-medium transition-colors",
+      isActive(match)
+        ? "text-foreground"
+        : "text-muted-foreground hover:text-foreground"
+    )
 
   return (
-    <header className="sticky top-0 z-50 surface border-b border-black/5 dark:border-white/10">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center py-4">
-          <Link href="/" className="flex items-center space-x-2">
-            <Image
-              src="/logo.png"
-              alt="Logo"
-              width={32}
-              height={32}
-              className="h-8 w-8"
-            />
-            <span className="text-xl font-bold brand-accent">
-              Vision AI Label Studio
-            </span>
+    <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <Link href="/" className="flex items-center gap-2.5">
+          <Image
+            src="/logo.png"
+            alt={`${data.appName} logo`}
+            width={32}
+            height={32}
+            className="h-8 w-8 rounded-md"
+          />
+          <span className="text-base font-semibold tracking-tight">
+            {data.appName}
+          </span>
+        </Link>
+
+        {/* Desktop nav */}
+        <nav className="hidden items-center gap-7 md:flex">
+          {navLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={linkClass(link.match)}
+            >
+              {link.label}
+            </Link>
+          ))}
+        </nav>
+
+        <div className="hidden items-center gap-2 md:flex">
+          <GitHubButton repoUrl={data.repoUrl} />
+          {mounted && (
+            <button
+              onClick={toggleTheme}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              aria-label="Toggle dark mode"
+            >
+              {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+          )}
+          <Link
+            href="/#download"
+            className={buttonVariants({ size: "sm", className: "ml-1" })}
+          >
+            <Download size={16} />
+            Download
           </Link>
+        </div>
 
-          {/* Desktop nav */}
-          <div className="hidden md:flex items-center space-x-6">
-            {navLinks.map((link) => (
-              <Link key={link.href} href={link.href} className={linkClass(link.match)}>
-                {link.label}
-              </Link>
-            ))}
-            <GitHubButton repoUrl={data.repoUrl} />
-            {mounted && (
-              <button
-                onClick={toggleDarkMode}
-                className="p-2 rounded-full surface text-gray-700 dark:text-gray-300 hover:shadow-md transition-shadow"
-                aria-label="Toggle dark mode"
-              >
-                {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-              </button>
-            )}
-          </div>
-
-          {/* Mobile nav */}
-          <div className="md:hidden flex items-center">
-            <Popover.Root open={menuOpen} onOpenChange={setMenuOpen}>
-              <Popover.Trigger
-                className="p-2 rounded-md text-gray-700 dark:text-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-                aria-label="Toggle menu"
-              >
-                <MenuIcon className="h-6 w-6" />
-              </Popover.Trigger>
-              <Popover.Portal>
-                <Popover.Positioner
-                  side="bottom"
-                  align="end"
-                  sideOffset={8}
-                  className="z-50"
-                >
-                  <Popover.Popup className="surface rounded-2xl shadow-xl p-4 w-56 flex flex-col gap-2 animate-fade-in">
-                    {navLinks.map((link) => (
-                      <Link
-                        key={link.href}
-                        href={link.href}
-                        className={linkClass(link.match)}
-                        onClick={() => setMenuOpen(false)}
-                      >
-                        {link.label}
-                      </Link>
-                    ))}
-                    <div className="pt-2 border-t border-black/5 dark:border-white/10">
-                      <GitHubButton repoUrl={data.repoUrl} />
-                    </div>
+        {/* Mobile nav */}
+        <div className="flex items-center md:hidden">
+          <Popover.Root open={menuOpen} onOpenChange={setMenuOpen}>
+            <Popover.Trigger
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label="Toggle menu"
+            >
+              <MenuIcon className="h-5 w-5" />
+            </Popover.Trigger>
+            <Popover.Portal>
+              <Popover.Positioner side="bottom" align="end" sideOffset={10}>
+                <Popover.Popup className="z-50 flex w-60 flex-col gap-1 rounded-2xl border border-border bg-popover p-3 text-popover-foreground shadow-xl animate-fade-in">
+                  {navLinks.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className={cn(
+                        "rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent",
+                        isActive(link.match)
+                          ? "text-foreground"
+                          : "text-muted-foreground"
+                      )}
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                  <Link
+                    href="/#download"
+                    onClick={() => setMenuOpen(false)}
+                    className={buttonVariants({
+                      size: "sm",
+                      className: "mt-1 w-full",
+                    })}
+                  >
+                    <Download size={16} />
+                    Download
+                  </Link>
+                  <div className="mt-1 flex items-center justify-between border-t border-border pt-2">
+                    <GitHubButton repoUrl={data.repoUrl} />
                     {mounted && (
                       <button
-                        onClick={toggleDarkMode}
-                        className="mt-1 flex items-center gap-2 p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                        onClick={toggleTheme}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
                         aria-label="Toggle dark mode"
                       >
                         {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-                        <span className="text-sm">
-                          {theme === "dark" ? "Light mode" : "Dark mode"}
-                        </span>
                       </button>
                     )}
-                  </Popover.Popup>
-                </Popover.Positioner>
-              </Popover.Portal>
-            </Popover.Root>
-          </div>
+                  </div>
+                </Popover.Popup>
+              </Popover.Positioner>
+            </Popover.Portal>
+          </Popover.Root>
         </div>
       </div>
     </header>

@@ -6,8 +6,18 @@ import {
   getGitHubReleases,
   getGitHubStarsContributorsPullRequests,
 } from "@/lib/api"
-import { GitCommit, Star, Bug, GitFork, ArrowRight } from "lucide-react"
+import {
+  GitCommit,
+  Star,
+  Bug,
+  GitFork,
+  ArrowRight,
+  ExternalLink,
+} from "lucide-react"
 import { GithubIcon } from "@/components/icons/github-icon"
+import { Card } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { buttonVariants } from "@/components/ui/button"
 
 function formatDate(dateString: string) {
   if (!dateString) return "Unknown date"
@@ -52,165 +62,147 @@ export default function UpdatesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        Loading...
+      <div className="flex min-h-[60vh] items-center justify-center text-muted-foreground">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-primary" />
       </div>
     )
   }
 
+  const statCards = [
+    {
+      icon: Star,
+      label: "Stars",
+      value: stats.stargazers_count,
+      tint: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    },
+    {
+      icon: Bug,
+      label: "Open issues",
+      value: stats.open_issues_count,
+      tint: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+    },
+    {
+      icon: GitFork,
+      label: "Forks",
+      value: stats.forks_count,
+      tint: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+    },
+  ]
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center gap-3 mb-8">
-            <GithubIcon size={24} className="text-gray-700 dark:text-gray-300" />
-            <h1 className="text-3xl font-bold">Latest Updates</h1>
-          </div>
-
-          {/* Project Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 flex items-center gap-4">
-              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center text-blue-600 dark:text-blue-400">
-                <Star size={24} />
-              </div>
-              <div>
-                <div className="text-2xl font-bold">
-                  {stats.stargazers_count}
-                </div>
-                <div className="text-gray-600 dark:text-gray-400">Stars</div>
-              </div>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 flex items-center gap-4">
-              <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center text-purple-600 dark:text-purple-400">
-                <Bug size={24} />
-              </div>
-              <div>
-                <div className="text-2xl font-bold">
-                  {stats.open_issues_count}
-                </div>
-                <div className="text-gray-600 dark:text-gray-400">
-                  Open Issues
-                </div>
-              </div>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 flex items-center gap-4">
-              <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center text-green-600 dark:text-green-400">
-                <GitFork size={24} />
-              </div>
-              <div>
-                <div className="text-2xl font-bold">{stats.forks_count}</div>
-                <div className="text-gray-600 dark:text-gray-400">Forks</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Releases */}
-          <section className="mb-12">
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-              <Star size={24} />
-              Latest Releases
-            </h2>
-            <div className="space-y-6">
-              {releases.map((release) => (
-                <div
-                  key={release.id}
-                  className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6"
-                >
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
-                    <h3 className="text-xl font-bold">{release.name}</h3>
-                    <div className="flex items-center gap-2 mt-2 md:mt-0">
-                      <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-sm px-3 py-1 rounded-full">
-                        {release.tag_name}
-                      </span>
-                      <span className="text-gray-600 dark:text-gray-400 text-sm">
-                        {formatDate(release?.published_at || "")}
-                      </span>
-                    </div>
-                  </div>
-                  <MarkdownRenderer>{release.body}</MarkdownRenderer>
-
-                  <a
-                    href={release.html_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 dark:text-blue-400 hover:underline text-sm flex items-center gap-1"
-                  >
-                    View on GitHub
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={1.5}
-                      stroke="currentColor"
-                      className="w-4 h-4"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"
-                      />
-                    </svg>
-                  </a>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* Commits */}
-          <section>
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-              <GitCommit size={24} />
-              Recent Commits
-            </h2>
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
-              <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-                {commits.map((commit) => (
-                  <li
-                    key={commit.sha}
-                    className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                  >
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-                      <div className="flex-1">
-                        <a
-                          href={buildCommitUrl(commit.sha)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="font-medium hover:underline"
-                        >
-                          {commit.commit.message}
-                        </a>
-                        <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                          <span>{commit.commit.author?.name}</span>
-                          <span className="mx-2">•</span>
-                          <span>
-                            {formatDate(
-                              commit.commit.author?.date ??
-                                new Date().toString()
-                            )}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="mt-2 md:mt-0 text-gray-500 dark:text-gray-400 text-sm font-mono">
-                        {commit.sha.substring(0, 7)}
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="mt-6 text-center">
-              <a
-                href={
-                  "https://github.com/vailabel/vailabel-studio/commits/main/"
-                }
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-lg text-gray-800 dark:text-gray-200 transition-colors"
-              >
-                View all commits
-                <ArrowRight size={16} />
-              </a>
-            </div>
-          </section>
+    <div className="min-h-screen bg-background">
+      <main className="mx-auto max-w-4xl px-4 py-14 sm:px-6 lg:px-8">
+        <div className="mb-3 flex items-center gap-3">
+          <GithubIcon size={22} className="text-foreground" />
+          <h1 className="text-3xl font-bold tracking-tight">Latest updates</h1>
         </div>
+        <p className="mb-10 text-muted-foreground">
+          Releases and recent activity, straight from GitHub.
+        </p>
+
+        {/* Project stats */}
+        <div className="mb-12 grid grid-cols-1 gap-4 md:grid-cols-3">
+          {statCards.map((s) => (
+            <Card key={s.label} className="flex items-center gap-4 p-5">
+              <div
+                className={`flex h-12 w-12 items-center justify-center rounded-xl ${s.tint}`}
+              >
+                <s.icon size={22} />
+              </div>
+              <div>
+                <div className="text-2xl font-bold">
+                  {s.value.toLocaleString()}
+                </div>
+                <div className="text-sm text-muted-foreground">{s.label}</div>
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        {/* Releases */}
+        <section className="mb-12">
+          <h2 className="mb-6 flex items-center gap-2 text-xl font-semibold">
+            <Star size={20} className="text-primary" />
+            Latest releases
+          </h2>
+          <div className="space-y-5">
+            {releases.map((release) => (
+              <Card key={release.id} className="p-6">
+                <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                  <h3 className="text-lg font-semibold">{release.name}</h3>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="default">{release.tag_name}</Badge>
+                    <span className="text-sm text-muted-foreground">
+                      {formatDate(release?.published_at || "")}
+                    </span>
+                  </div>
+                </div>
+                <MarkdownRenderer>{release.body}</MarkdownRenderer>
+                <a
+                  href={release.html_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                >
+                  View on GitHub
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+              </Card>
+            ))}
+          </div>
+        </section>
+
+        {/* Commits */}
+        <section>
+          <h2 className="mb-6 flex items-center gap-2 text-xl font-semibold">
+            <GitCommit size={20} className="text-primary" />
+            Recent commits
+          </h2>
+          <Card className="overflow-hidden p-0">
+            <ul className="divide-y divide-border">
+              {commits.map((commit) => (
+                <li
+                  key={commit.sha}
+                  className="p-4 transition-colors hover:bg-muted/50"
+                >
+                  <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <a
+                        href={buildCommitUrl(commit.sha)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="line-clamp-1 font-medium hover:underline"
+                      >
+                        {commit.commit.message}
+                      </a>
+                      <div className="mt-1 text-sm text-muted-foreground">
+                        <span>{commit.commit.author?.name}</span>
+                        <span className="mx-2">•</span>
+                        <span>
+                          {formatDate(
+                            commit.commit.author?.date ?? new Date().toString()
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="rounded-md bg-muted px-2 py-0.5 font-mono text-xs text-muted-foreground">
+                      {commit.sha.substring(0, 7)}
+                    </span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </Card>
+          <div className="mt-6 text-center">
+            <a
+              href="https://github.com/vailabel/vailabel-studio/commits/main/"
+              className={buttonVariants({ variant: "outline" })}
+            >
+              View all commits
+              <ArrowRight size={16} />
+            </a>
+          </div>
+        </section>
       </main>
     </div>
   )

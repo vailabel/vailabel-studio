@@ -1,53 +1,60 @@
 "use client"
 
 import { motion } from "framer-motion"
+import Link from "next/link"
 import { ArrowRight } from "lucide-react"
+import { data } from "@/app/data"
 import { GithubIcon } from "@/components/icons/github-icon"
-import React from "react"
+import { buttonVariants } from "@/components/ui/button"
+import { Container } from "@/components/ui/section"
+import { cn } from "@/lib/utils"
 
-const CTASection = () => {
+export default function CTASection() {
   return (
-    <section className="py-20">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div
-          className="rounded-3xl bg-blue-600 text-white px-6 py-16 md:py-20 text-center"
-          initial={{ opacity: 0, scale: 0.96 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-        >
-          <div className="max-w-3xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">
-              Ready to transform your image labeling workflow?
-            </h2>
-            <p className="text-xl mb-8 text-blue-100">
-              Download Vision AI Label Studio today and experience the power of
-              AI-assisted annotation.
-            </p>
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <motion.a
-                href="#download"
-                className="px-8 py-3.5 rounded-xl bg-white text-blue-700 font-semibold hover:bg-blue-50 transition-colors flex items-center justify-center gap-2"
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.96 }}
-              >
-                Download Now <ArrowRight size={18} />
-              </motion.a>
-              <motion.a
-                href="https://github.com/vailabel/vailabel-studio"
-                target="_blank"
-                className="px-8 py-3.5 rounded-xl bg-blue-700 text-white font-semibold ring-1 ring-white/30 hover:bg-blue-800 transition-colors flex items-center justify-center gap-2"
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.96 }}
-              >
-                <GithubIcon size={18} /> Star on GitHub
-              </motion.a>
-            </div>
+    <Container className="py-20">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.97 }}
+        whileInView={{ opacity: 1, scale: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.5 }}
+        className="relative overflow-hidden rounded-3xl border border-border bg-primary px-6 py-16 text-center md:py-20"
+      >
+        <div className="absolute inset-0 -z-0 bg-grid opacity-20" />
+        <div className="relative z-10 mx-auto max-w-2xl">
+          <h2 className="text-3xl font-bold text-primary-foreground md:text-4xl">
+            Start labeling in minutes
+          </h2>
+          <p className="mt-4 text-lg text-primary-foreground/80">
+            Download {data.appName} for free and put an offline AI copilot to
+            work on your dataset today.
+          </p>
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Link
+              href="/#download"
+              className={buttonVariants({
+                size: "lg",
+                variant: "secondary",
+                className: "bg-background text-foreground hover:bg-background/90",
+              })}
+            >
+              Download now
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <a
+              href={data.repoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                buttonVariants({ size: "lg", variant: "outline" }),
+                "border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
+              )}
+            >
+              <GithubIcon className="h-4 w-4" />
+              Star on GitHub
+            </a>
           </div>
-        </motion.div>
-      </div>
-    </section>
+        </div>
+      </motion.div>
+    </Container>
   )
 }
-
-export default CTASection

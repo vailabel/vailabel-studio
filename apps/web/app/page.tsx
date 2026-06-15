@@ -1,49 +1,51 @@
 import HeroSection from "@/components/hero-section"
 import FeatureHighlights from "@/components/feature-highlights"
-import DocumentationBlog from "@/components/documentation-blog"
+import AiCopilotSection from "@/components/ai-copilot-section"
+import WorkflowSection from "@/components/workflow-section"
 import DemoSection from "@/components/demo-section"
 import RoadmapSection from "@/components/roadmap-section"
 import CTASection from "@/components/cta-section"
+import { data } from "@/app/data"
+
+const title = `${data.appName} — Local-first data labeling with an offline AI copilot`
+const description = data.appDescription
 
 export const metadata = {
-  title: "VAI Labeling - Smart Image Annotation Platform",
-  description:
-    "Empowering the future of AI with open-source, collaborative, and smart image annotation tools. Try demos, read documentation, and join our roadmap!",
+  title,
+  description,
+  metadataBase: new URL(data.productionUrl),
   openGraph: {
-    title: "VAI Labeling - Smart Image Annotation Platform",
-    description:
-      "Empowering the future of AI with open-source, collaborative, and smart image annotation tools. Try demos, read documentation, and join our roadmap!",
-    url: "https://vailabel.com",
-    siteName: "VAI Labeling",
+    title,
+    description,
+    url: data.productionUrl,
+    siteName: data.appName,
     images: [
       {
-        url: "https://vailabel.com/logo.png",
+        url: data.appLogo,
         width: 1200,
         height: 630,
-        alt: "VAI Labeling - Smart Image Annotation Platform",
+        alt: data.appName,
       },
     ],
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "VAI Labeling - Smart Image Annotation Platform",
-    description:
-      "Empowering the future of AI with open-source, collaborative, and smart image annotation tools.",
+    title,
+    description,
   },
 }
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
-      <main>
-        <HeroSection />
-        <FeatureHighlights />
-        <DocumentationBlog />
-        <DemoSection />
-        <RoadmapSection />
-        <CTASection />
-      </main>
-    </div>
+    <main className="bg-background">
+      <HeroSection />
+      <FeatureHighlights />
+      <AiCopilotSection />
+      <WorkflowSection />
+      <DemoSection />
+      <RoadmapSection />
+      <CTASection />
+    </main>
   )
 }

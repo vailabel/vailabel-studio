@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web",
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": ["workspace", "web", "dev"],
+      "port": 3000,
+      "autoPort": true
+    }
+  ]
+}

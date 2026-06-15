@@ -69,13 +69,12 @@ export default async function DocumentationLayout({
   })
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-b from-background to-background/80">
-      <div className="h-1 w-full bg-gradient-to-r from-primary/80 via-primary to-primary/80" />
-      <div className="container flex-1 items-start md:grid md:grid-cols-[220px_minmax(0,1fr)] lg:grid-cols-[240px_minmax(0,1fr)] md:gap-6 lg:gap-10 py-8">
-        <aside className="fixed top-14 z-30 hidden h-[calc(100vh-3.5rem)] w-full shrink-0 md:sticky md:block border-r md:border-r-0 pr-4 overflow-y-auto">
+    <div className="min-h-screen bg-background">
+      <div className="mx-auto w-full max-w-6xl flex-1 items-start px-4 sm:px-6 lg:px-8 md:grid md:grid-cols-[230px_minmax(0,1fr)] md:gap-10">
+        <aside className="top-16 z-30 hidden h-[calc(100vh-4rem)] w-full shrink-0 overflow-y-auto border-r border-border pr-4 md:sticky md:block">
           <DocumentationSidebarClient docs={docs} />
         </aside>
-        <main className="relative py-6 md:py-0">
+        <main className="relative min-w-0 py-10">
           <Suspense>{children}</Suspense>
         </main>
       </div>
