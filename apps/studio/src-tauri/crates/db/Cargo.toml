@@ -1,0 +1,13 @@
+[package]
+name = "vailabel-db"
+version = "0.1.0"
+edition = "2021"
+description = "Shared SQLite connection handle for Vailabel Studio. The one database is shared infrastructure; per-module Diesel repositories and the residual store all borrow this connection. Re-exports diesel so every consumer pins one version."
+
+[lib]
+name = "vailabel_db"
+
+[dependencies]
+diesel = { workspace = true }
+libsqlite3-sys = { workspace = true }
+thiserror = { workspace = true }

@@ -21,6 +21,7 @@ members = [
     "crates/search",
     "crates/training",
     "crates/arch-tests",
+    "crates/db",
 ]
 
 [workspace.dependencies]
@@ -33,6 +34,10 @@ thiserror = "2"
 tracing = "0.1"
 uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
+# Shared across the binary and the vailabel-db / per-module-infra crates so the
+# whole workspace pins one diesel + sqlite version.
+diesel = { version = "2", features = ["sqlite"] }
+libsqlite3-sys = { version = "0.28", features = ["bundled"] }
 
 # Internal workspace crates (DDD modules). Path deps so the binary and crates
 # reference one shared version.
@@ -49,6 +54,7 @@ vailabel-runtime = { path = "crates/runtime" }
 vailabel-annotation = { path = "crates/annotation" }
 vailabel-search = { path = "crates/search" }
 vailabel-training = { path = "crates/training" }
+vailabel-db = { path = "crates/db" }
 
 [package]
 name = "vailabel-studio"
@@ -90,8 +96,8 @@ vailabel-analysis = { workspace = true }
 vailabel-video = { workspace = true }
 vailabel-models = { workspace = true }
 vailabel-copilot = { workspace = true }
-diesel = { version = "2", features = ["sqlite"] }
-libsqlite3-sys = { version = "0.28", features = ["bundled"] }
+diesel = { workspace = true }
+libsqlite3-sys = { workspace = true }
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls", "json"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
