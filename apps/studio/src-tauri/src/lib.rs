@@ -940,7 +940,10 @@ pub fn run() {
 
             let app_dir = app.path().app_data_dir()?;
             fs::create_dir_all(&app_dir)?;
-            let store = DesktopStore::open(app_dir.join("vailabel-desktop.sqlite"))?;
+            // One shared SQLite connection: the residual DesktopStore and the
+            // per-module Diesel repositories all borrow this `Db`.
+            let db = vailabel_db::Db::open(app_dir.join("vailabel-desktop.sqlite"))?;
+            let store = DesktopStore::open(db)?;
             let store_arc = Arc::new(Mutex::new(store));
             let entity_store: Arc<dyn store::EntityStore> =
                 Arc::new(store::StoreHandle::new(store_arc.clone()));
