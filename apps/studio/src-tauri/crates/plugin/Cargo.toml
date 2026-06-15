@@ -10,3 +10,4 @@ name = "vailabel_plugin"
 [dependencies]
 vailabel-core = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
