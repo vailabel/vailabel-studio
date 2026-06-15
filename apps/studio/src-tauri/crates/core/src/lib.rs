@@ -23,7 +23,7 @@ pub mod specification;
 
 pub use entity::{AggregateRoot, Entity, Identifiable, ValueObject};
 pub use error::{DomainError, DomainResult, Result};
-pub use event::{DomainEvent, EventEnvelope};
+pub use event::DomainEvent;
 pub use paging::{PageRequest, PagedResult};
-pub use repository::{PagedRepository, Repository, UnitOfWork};
+pub use repository::{PagedRepository, Repository};
 pub use specification::Specification;

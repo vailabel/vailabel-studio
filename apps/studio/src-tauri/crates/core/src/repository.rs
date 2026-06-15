@@ -34,12 +34,8 @@ pub trait PagedRepository<T>: Repository<T> {
     fn list_paged(&self, page: PageRequest) -> DomainResult<PagedResult<T>>;
 }
 
-/// A transactional boundary around one or more repository operations.
-///
-/// Implementations begin work on construction and commit on [`UnitOfWork::commit`];
-/// dropping without committing rolls back. The domain depends on the trait; the
-/// concrete transaction lives in infrastructure.
-pub trait UnitOfWork {
-    /// Commit all work performed within this unit.
-    fn commit(self) -> DomainResult<()>;
-}
+// NOTE: the unit-of-work / transactional boundary is delivered as
+// `vailabel_db::Db::transaction` (a closure transaction over the shared SQLite
+// connection) consumed by the per-module repositories' atomic `save_atomic`/
+// `delete_returning` methods. A commit-style `UnitOfWork` trait was removed in
+// Phase 3 — it was unused and mismatched diesel's closure transactions.
