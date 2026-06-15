@@ -1,65 +1,31 @@
+//! AI request/response payloads.
+//!
+//! The pure, self-contained DTOs have been extracted to module crates and are
+//! re-exported below so existing `crate::domain::ai::model::*` paths are
+//! unchanged:
+//! - model-management payloads → `vailabel-models` (`ModelImportPayload`,
+//!   `ModelComponent`, `ModelInstallPayload`, `GitHubReleaseLookupPayload`,
+//!   `ModelActivationPayload`, `RuntimeInstallPayload`).
+//! - copilot payloads → `vailabel-copilot` (`CopilotTurnPayload`,
+//!   `CopilotActionPayload`, `CopilotTestPayload`, `CopilotTestResult`).
+//!
+//! The prediction/inference types below stay here: they are coupled to the
+//! plugin/inference engine (`PipelineRunPayload` carries a [`PromptInput`];
+//! `InferencePoint`/`InferenceAnnotationDraft` are produced by `inference`,
+//! `plugin`, and `engines::sam`), and `CopilotLlmConfig` is built in Rust by
+//! `llm`, never deserialized. These migrate in a later phase.
+
 use serde::{Deserialize, Serialize};
 
 use crate::domain::ai::plugin::PromptInput;
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ModelImportPayload {
-    pub name: String,
-    pub description: String,
-    pub version: String,
-    pub category: String,
-    #[serde(rename = "type")]
-    pub model_type: String,
-    pub model_file_path: String,
-    pub config_file_path: Option<String>,
-    pub project_id: Option<String>,
-}
-
-/// An extra file that belongs to a multi-file model download (e.g. SAM's
-/// `mask_decoder.onnx` alongside the primary `image_encoder.onnx`, or a
-/// `tokenizer.json`). Downloaded into the same model directory as the primary
-/// asset and resolved by the plugin via its conventional filename.
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ModelComponent {
-    /// Target filename. When omitted it is derived from the URL. Only the final
-    /// path component is used (no directory traversal).
-    pub file_name: Option<String>,
-    pub url: String,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ModelInstallPayload {
-    pub name: String,
-    pub description: String,
-    pub version: String,
-    pub category: String,
-    #[serde(rename = "type")]
-    pub model_type: String,
-    pub task_type: Option<String>,
-    pub download_url: String,
-    pub file_name: Option<String>,
-    pub project_id: Option<String>,
-    /// Extra files for multi-file models (SAM = encoder + decoder, open-vocab =
-    /// model + tokenizer). Empty for single-file models like YOLO.
-    #[serde(default)]
-    pub components: Vec<ModelComponent>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct GitHubReleaseLookupPayload {
-    pub owner: String,
-    pub repo: String,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ModelActivationPayload {
-    pub model_id: String,
-}
+pub use vailabel_copilot::contracts::{
+    CopilotActionPayload, CopilotTestPayload, CopilotTestResult, CopilotTurnPayload,
+};
+pub use vailabel_models::contracts::{
+    GitHubReleaseLookupPayload, ModelActivationPayload, ModelComponent, ModelImportPayload,
+    ModelInstallPayload, RuntimeInstallPayload,
+};
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -103,15 +69,6 @@ pub struct PipelineRunPayload {
     pub prompt: PromptInput,
 }
 
-/// Options for the on-demand ONNX Runtime installer. `gpu` defaults to true so
-/// the GPU package (which also runs on CPU) is fetched and cuDNN is attempted.
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct RuntimeInstallPayload {
-    #[serde(default)]
-    pub gpu: Option<bool>,
-}
-
 #[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct InferencePoint {
@@ -148,61 +105,4 @@ pub struct CopilotLlmConfig {
     pub model: String,
     /// Whether the picked model accepts image input (VLM).
     pub vision: bool,
-}
-
-/// One chat turn for the local AI copilot. The copilot auto-discovers the local
-/// model itself, so the client sends no LLM configuration.
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CopilotTurnPayload {
-    pub project_id: Option<String>,
-    pub image_id: String,
-    pub message: String,
-    /// Tool ids the user has enabled in the copilot's Tools menu (matching
-    /// `Capability::as_str`). `None`/empty = all tools on (back-compat); a
-    /// disabled tool is never run, even if the message asks for it.
-    #[serde(default)]
-    pub enabled_tools: Option<Vec<String>>,
-}
-
-/// A human-approved mutation the copilot proposed (relabel / delete / new label).
-/// Tagged by `kind` so the frontend can round-trip a `ProposedAction` back.
-#[derive(Debug, Deserialize)]
-#[serde(tag = "kind", rename_all = "camelCase")]
-pub enum CopilotActionPayload {
-    #[serde(rename_all = "camelCase")]
-    Relabel {
-        annotation_id: String,
-        to_label: String,
-    },
-    #[serde(rename_all = "camelCase")]
-    Delete { annotation_id: String },
-    #[serde(rename_all = "camelCase")]
-    CreateLabel {
-        name: String,
-        #[serde(default)]
-        color: Option<String>,
-        project_id: String,
-    },
-}
-
-/// Probe a manual copilot server config (Settings → AI Copilot) before relying
-/// on it for a turn. `api_key` lets the UI test a key the user just typed but
-/// hasn't saved to the keychain yet; when absent the saved key is used.
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CopilotTestPayload {
-    pub base_url: String,
-    #[serde(default)]
-    pub api_key: Option<String>,
-}
-
-/// Result of `ai_copilot_test_connection`: whether the server answered and the
-/// model ids it reported (so the UI can offer them as choices).
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CopilotTestResult {
-    pub ok: bool,
-    pub message: String,
-    pub models: Vec<String>,
 }
