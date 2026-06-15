@@ -1,46 +1,56 @@
-use crate::domain::common::service::{delete_entity, get_entity, list_entities, save_entity};
-use crate::domain::projects::model::{EntityIdPayload, Project};
-use crate::domain::projects::repository::ProjectRepository;
-use crate::AppError;
-use serde_json::Value;
+//! Thin facade over the `vailabel-project` application service.
+//!
+//! Kept at this path with the original method signatures so the Tauri commands
+//! in `commands.rs` and the `AppState.project_service` field are unchanged. It
+//! adapts to the crate's [`ProjectAppService`] (which owns the repository and
+//! event ports). The per-command `app: &AppHandle` is now unused — event
+//! emission goes through the `EventPublisher` the app service was built with at
+//! startup (same handle, same `studio://domain-event` wire format). Domain
+//! errors convert to `AppError` via the `From` impl in `crate::composition`.
+//!
+//! Reverting Phase 1 for the project module = restoring this file (and
+//! `model.rs`/`repository.rs`) to their prior bodies.
+
 use std::sync::Arc;
 
+use serde_json::Value;
+
+use crate::domain::projects::model::{EntityIdPayload, Project};
+use crate::AppError;
+use vailabel_project::application::{
+    DeleteProjectCommand, GetProjectQuery, ListProjectsQuery, ProjectAppService, SaveProjectCommand,
+};
+
 pub struct ProjectService {
-    repo: Arc<dyn ProjectRepository + Send + Sync>,
+    inner: Arc<ProjectAppService>,
 }
 
 impl ProjectService {
-    pub fn new(repo: Arc<dyn ProjectRepository + Send + Sync>) -> Self {
-        Self { repo }
+    pub fn new(inner: Arc<ProjectAppService>) -> Self {
+        Self { inner }
     }
 
     pub fn list_projects(&self) -> Result<Vec<Project>, AppError> {
-        list_entities(self.repo.as_ref())
+        Ok(self.inner.list(ListProjectsQuery)?)
     }
 
     pub fn get_project(&self, payload: EntityIdPayload) -> Result<Project, AppError> {
-        get_entity(self.repo.as_ref(), &payload.id, "Project not found")
+        Ok(self.inner.get(GetProjectQuery::new(payload.id))?)
     }
 
     pub fn save_project(
         &self,
-        app: &tauri::AppHandle,
+        _app: &tauri::AppHandle,
         payload: Value,
     ) -> Result<Project, AppError> {
-        save_entity(self.repo.as_ref(), app, "projects", payload)
+        Ok(self.inner.save(SaveProjectCommand::new(payload))?)
     }
 
     pub fn delete_project(
         &self,
-        app: &tauri::AppHandle,
+        _app: &tauri::AppHandle,
         payload: EntityIdPayload,
     ) -> Result<Value, AppError> {
-        delete_entity::<Project, _>(
-            self.repo.as_ref(),
-            app,
-            "projects",
-            &payload.id,
-            "Project not found",
-        )
+        Ok(self.inner.delete(DeleteProjectCommand::new(payload.id))?)
     }
 }

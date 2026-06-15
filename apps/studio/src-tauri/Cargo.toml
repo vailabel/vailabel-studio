@@ -68,10 +68,12 @@ rfd = "0.15"
 # Embedded Python/FastAPI runtime lifecycle manager (Tauri-free; this crate owns
 # spawn/health/monitor/HTTP-bridge for the resources/runtime FastAPI service).
 runtime-manager = { path = "crates/runtime-manager" }
-# DDD Phase 1: pure domain abstractions + shared kernel. The binary is the
-# composition root that wires these to infrastructure (diesel/tauri/...).
+# DDD Phase 1: pure domain abstractions + shared kernel + module crates. The
+# binary is the composition root that wires these to infrastructure
+# (diesel/tauri/...).
 vailabel-core = { workspace = true }
 vailabel-shared = { workspace = true }
+vailabel-project = { workspace = true }
 diesel = { version = "2", features = ["sqlite"] }
 libsqlite3-sys = { version = "0.28", features = ["bundled"] }
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls", "json"] }
