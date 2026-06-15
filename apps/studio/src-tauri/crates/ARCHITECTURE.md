@@ -1,4 +1,4 @@
-# Architecture — DDD Modular Monolith (Phases 1–3)
+# Architecture — DDD Modular Monolith (Phases 1–4)
 
 VaiLabel Studio's backend is a **modular monolith** organized by business domain
 and layered with **Clean Architecture**. This document describes the crate
@@ -37,15 +37,20 @@ vailabel-studio    the Tauri binary = composition root (tauri, opendal, ort,
   `domain`/`application`/`contracts` layers are **pure**; their `infrastructure`
   layer owns the module's own `diesel::table!` + Row mapping + typed repository,
   querying the shared `vailabel-db` connection.
-- **`plugin`** is a pure trait crate (capability + lifecycle interfaces).
+- **`plugin`** is a pure framework crate: object-safe capability traits
+  (Detector/Segmenter/Ocr/Exporter/Trainer/Embedding, `&Value → DomainResult<Value>`)
+  + a `PluginRegistry` that tracks each plugin's `PluginState` lifecycle and
+  offers typed lookup. Concrete plugins live at the composition root.
 - **`runtime`** is the anti-corruption layer to the Python runtime; it re-exports
   the Tauri-free `runtime-manager` crate (excluded from the purity rule).
 - The **binary** (`vailabel-studio`) is the composition root. It opens the `Db`,
   builds each module's Diesel repository, registers the `EventBus`'s subscribers
   (`TauriEventSubscriber` in `src/composition.rs`, which emits on
-  `studio://domain-event`), wires the application services, and exposes Tauri
-  commands. It also keeps the **residual `DesktopStore`** (typed methods + the
-  `EntityStore` trait) for entities not yet migrated to a module.
+  `studio://domain-event`), builds the `PluginRegistry` (registering concrete
+  plugins like the runtime-backed `RuntimeDetectorPlugin` in `src/plugins.rs`),
+  wires the application services, and exposes Tauri commands. It also keeps the
+  **residual `DesktopStore`** (typed methods + the `EntityStore` trait) for
+  entities not yet migrated to a module.
 
 A module must not reach into another module's persistence. Cross-module
 communication goes through public contracts and domain events.
@@ -61,6 +66,19 @@ fans the event out to its subscribers. The only subscriber today is the
 `TauriEventSubscriber` (UI refresh via `studio://domain-event`); audit or
 integration subscribers can be added at the composition root without touching any
 module. The domain never names the transport.
+
+## Plugin framework
+
+AI capabilities are pluggable. The `plugin` crate defines object-safe capability
+traits (`DetectorPlugin`/`SegmenterPlugin`/`OcrPlugin`/`ExporterPlugin`/
+`TrainerPlugin`/`EmbeddingPlugin`, each `&Value → DomainResult<Value>`) and a
+`PluginRegistry` that registers plugins, looks them up by id/kind, and drives the
+`PluginState` lifecycle (`Installed → Loaded → Enabled ⇄ Disabled`, `→ Unloaded`)
+as a validated state machine. Concrete plugins live at the composition root,
+where they may use infrastructure — e.g. `RuntimeDetectorPlugin` (`src/plugins.rs`)
+bridges the framework to the runtime ACL. The registry is held in `AppState`; the
+`plugins_list` command surfaces the installed plugins to the UI. (Routing the
+inference commands *through* the registry is a later, load-bearing step.)
 
 ## Module layout
 
@@ -105,8 +123,14 @@ that it catches real usage. The compiler additionally enforces the crate DAG.
   (typed `ProjectEvent`/`ImageEvent`/`LabelEvent`); the unit-of-work boundary as
   `Db::transaction` + atomic `save_atomic`/`delete_returning` repo methods. The
   dead `core::UnitOfWork` (commit-style) and `core::EventEnvelope` were removed.
+- **Phase 4** — plugin framework made usable: object-safe capability traits + a
+  `PluginRegistry` (lifecycle state machine, typed lookup), a runtime-backed
+  reference plugin registered in `AppState`, and a `plugins_list` command. The
+  runtime module was already the ACL (`runtime-manager`). The dead `&mut`-self
+  `PluginLifecycle` trait was removed (lifecycle is the registry state machine).
 
-Deferred to later phases: migrating the remaining entities and the `ai`/
-`analysis`/`video` service logic into modules/application layers; full
-ai/copilot/models wiring + plugin implementations; runtime-glue extraction;
-cross-process/integration event transport; the React feature reorg.
+Deferred to later phases: routing the inference commands through the
+`PluginRegistry` (so plugins are the execution path) + more concrete plugins;
+migrating the remaining entities and the `ai`/`analysis`/`video` service logic
+into modules/application layers; full ai/copilot/models wiring; runtime-glue
+extraction; cross-process/integration event transport; the React feature reorg.
