@@ -17,3 +17,7 @@ async-trait = { workspace = true }
 # Diesel schema, querying the shared vailabel-db connection.
 vailabel-db = { workspace = true }
 diesel = { workspace = true }
+
+[dev-dependencies]
+# Drives the async app-service tests (reuses the workspace tokio).
+tokio = { workspace = true }

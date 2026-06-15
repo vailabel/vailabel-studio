@@ -11,5 +11,6 @@ pub mod application;
 pub mod domain;
 pub mod infrastructure;
 
+pub use application::TrainingAppService;
 pub use domain::{TrainingRun, TrainingStatus};
 pub use infrastructure::DieselTrainingRepository;
