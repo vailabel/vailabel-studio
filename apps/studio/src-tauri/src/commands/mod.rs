@@ -12,3 +12,4 @@ pub mod labels;
 pub mod projects;
 pub mod runtime;
 pub mod video;
+pub mod entities;
