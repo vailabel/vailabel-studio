@@ -1,7 +1,7 @@
 //! AI request/response payloads.
 //!
 //! The pure, self-contained DTOs have been extracted to module crates and are
-//! re-exported below so existing `crate::domain::ai::model::*` paths are
+//! re-exported below so existing `crate::modules::ai::model::*` paths are
 //! unchanged:
 //! - model-management payloads → `vailabel-models` (`ModelImportPayload`,
 //!   `ModelComponent`, `ModelInstallPayload`, `GitHubReleaseLookupPayload`,
@@ -17,7 +17,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::domain::ai::plugin::PromptInput;
+use crate::modules::ai::plugin::PromptInput;
 
 pub use vailabel_copilot::contracts::{
     CopilotActionPayload, CopilotTestPayload, CopilotTestResult, CopilotTurnPayload,
@@ -56,7 +56,7 @@ pub struct PredictionActionPayload {
 /// (SAM click/box-to-segment, open-vocab prompt-to-detect, …). Mirrors
 /// [`PredictionGeneratePayload`] but carries a [`PromptInput`] and an optional
 /// `registry_id` so the service can dispatch to the right
-/// [`crate::domain::ai::plugin::ModelPlugin`]. When `registry_id` is omitted the
+/// [`crate::modules::ai::plugin::ModelPlugin`]. When `registry_id` is omitted the
 /// service derives it from the model entity (family / category / task).
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]

@@ -2,7 +2,7 @@
 //!
 //! The `Project` aggregate and its request DTOs now live in the `vailabel-project`
 //! crate (`domain` / `contracts`). This shim keeps the historical path
-//! `crate::domain::projects::model::{Project, EntityIdPayload, ProjectIdPayload}`
+//! `crate::modules::projects::model::{Project, EntityIdPayload, ProjectIdPayload}`
 //! valid so the ~6 existing importers compile unchanged. `Project` implements
 //! `vailabel_core::Identifiable` in the crate, which `HasId` now aliases — so the
 //! local `impl HasId for Project` that used to live here is gone (and would in

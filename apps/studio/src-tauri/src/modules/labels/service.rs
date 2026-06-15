@@ -9,8 +9,8 @@ use std::sync::Arc;
 
 use serde_json::Value;
 
-use crate::domain::labels::model::{Label, ProjectIdPayload};
-use crate::domain::projects::model::EntityIdPayload;
+use crate::modules::labels::model::{Label, ProjectIdPayload};
+use crate::modules::projects::model::EntityIdPayload;
 use crate::AppError;
 use vailabel_annotation::application::{
     DeleteLabelCommand, GetLabelQuery, LabelClassAppService, ListLabelsByProjectQuery,

@@ -2,7 +2,7 @@
 
 pub mod composition;
 pub mod copilot_ports;
-pub mod domain;
+pub mod modules;
 pub mod plugins;
 pub mod training_runtime;
 mod gpu;
@@ -11,12 +11,12 @@ mod schema;
 mod store;
 
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
-use domain::ai::service::AiService;
-use domain::analysis::service::AnalysisService;
-use domain::images::service::ImageService;
-use domain::labels::service::LabelService;
-use domain::projects::service::ProjectService;
-use domain::video::service::VideoService;
+use modules::ai::service::AiService;
+use modules::analysis::service::AnalysisService;
+use modules::images::service::ImageService;
+use modules::labels::service::LabelService;
+use modules::projects::service::ProjectService;
+use modules::video::service::VideoService;
 use keyring::Entry;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
@@ -972,7 +972,7 @@ pub fn run() {
                     event_publisher.clone(),
                 ),
             );
-            let project_service = Arc::new(crate::domain::projects::service::ProjectService::new(
+            let project_service = Arc::new(crate::modules::projects::service::ProjectService::new(
                 project_app_service,
             ));
             let label_repo: Arc<dyn vailabel_annotation::domain::LabelRepository> = Arc::new(
@@ -984,7 +984,7 @@ pub fn run() {
                     event_publisher.clone(),
                 ),
             );
-            let label_service = Arc::new(crate::domain::labels::service::LabelService::new(
+            let label_service = Arc::new(crate::modules::labels::service::LabelService::new(
                 label_app_service,
             ));
             let image_repo: Arc<dyn vailabel_dataset::domain::ImageRepository> = Arc::new(
@@ -994,17 +994,17 @@ pub fn run() {
                 image_repo,
                 event_publisher.clone(),
             ));
-            let image_service = Arc::new(crate::domain::images::service::ImageService::new(
+            let image_service = Arc::new(crate::modules::images::service::ImageService::new(
                 image_app_service,
             ));
-            let ai_service = Arc::new(crate::domain::ai::service::AiService::new(
+            let ai_service = Arc::new(crate::modules::ai::service::AiService::new(
                 entity_store.clone(),
             ));
             // Analysis module: source rows + reports persist through a binary
             // adapter over the residual store; the pixel decoder is the crate's
             // infrastructure. The binary AnalysisService owns the job lifecycle.
             let analysis_repo: Arc<dyn vailabel_analysis::domain::AnalysisRepository> = Arc::new(
-                crate::domain::analysis::repository::AnalysisStoreRepository::new(store_arc.clone()),
+                crate::modules::analysis::repository::AnalysisStoreRepository::new(store_arc.clone()),
             );
             let analysis_decoder: Arc<dyn vailabel_analysis::application::ImageDecoder> =
                 Arc::new(vailabel_analysis::infrastructure::ImageQualityDecoder::new());
@@ -1013,13 +1013,13 @@ pub fn run() {
                 analysis_decoder,
             ));
             let analysis_service = Arc::new(
-                crate::domain::analysis::service::AnalysisService::new(analysis_app_service),
+                crate::modules::analysis::service::AnalysisService::new(analysis_app_service),
             );
             // Video module: persistence is a binary adapter over the residual
             // store; the FFmpeg pipeline is the crate's infrastructure. The
             // binary VideoService owns only the ingest job lifecycle.
             let video_repo: Arc<dyn vailabel_video::domain::VideoRepository> = Arc::new(
-                crate::domain::video::repository::VideoStoreRepository::new(store_arc.clone()),
+                crate::modules::video::repository::VideoStoreRepository::new(store_arc.clone()),
             );
             let video_pipeline: Arc<dyn vailabel_video::application::VideoPipeline> =
                 Arc::new(vailabel_video::infrastructure::FfmpegPipeline::new());
@@ -1028,7 +1028,7 @@ pub fn run() {
                 video_pipeline,
                 app_dir.join("video-frames"),
             ));
-            let video_service = Arc::new(crate::domain::video::service::VideoService::new(
+            let video_service = Arc::new(crate::modules::video::service::VideoService::new(
                 video_app_service,
             ));
 
@@ -1036,7 +1036,7 @@ pub fn run() {
             // Python process spins up lazily on first training/export/heavy
             // inference (or an explicit Start). The monitor loop runs regardless
             // and reports `stopped` until then.
-            let runtime_config = crate::domain::runtime::glue::build_config(app.handle())?;
+            let runtime_config = crate::modules::runtime::glue::build_config(app.handle())?;
             let runtime_service =
                 Arc::new(runtime_manager::RuntimeService::new(runtime_config));
 
@@ -1115,7 +1115,7 @@ pub fn run() {
                             if s.give_up
                                 || matches!(s.state, runtime_manager::RuntimeState::Crashed)
                             {
-                                crate::domain::runtime::glue::reconcile_jobs_on_crash(
+                                crate::modules::runtime::glue::reconcile_jobs_on_crash(
                                     &monitor_handle,
                                 );
                             }
@@ -1127,18 +1127,18 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             health,
-            domain::projects::commands::projects_list,
-            domain::projects::commands::projects_get,
-            domain::projects::commands::projects_save,
-            domain::projects::commands::projects_delete,
-            domain::labels::commands::labels_list_by_project,
-            domain::labels::commands::labels_save,
-            domain::labels::commands::labels_delete,
-            domain::images::commands::images_list_by_project,
-            domain::images::commands::images_list_range,
-            domain::images::commands::images_get,
-            domain::images::commands::images_save,
-            domain::images::commands::images_delete,
+            modules::projects::commands::projects_list,
+            modules::projects::commands::projects_get,
+            modules::projects::commands::projects_save,
+            modules::projects::commands::projects_delete,
+            modules::labels::commands::labels_list_by_project,
+            modules::labels::commands::labels_save,
+            modules::labels::commands::labels_delete,
+            modules::images::commands::images_list_by_project,
+            modules::images::commands::images_list_range,
+            modules::images::commands::images_get,
+            modules::images::commands::images_save,
+            modules::images::commands::images_delete,
             annotations_list_by_project,
             annotations_list_by_image,
             annotations_save,
@@ -1148,64 +1148,64 @@ pub fn run() {
             settings_list,
             settings_get,
             settings_set,
-            domain::ai::commands::ai_models_list,
-            domain::ai::commands::ai_models_list_by_project,
-            domain::ai::commands::ai_models_save,
-            domain::ai::commands::ai_models_delete,
-            domain::ai::commands::ai_models_set_active,
-            domain::ai::commands::ai_models_import,
-            domain::ai::commands::ai_models_install,
-            domain::ai::commands::ai_models_catalog_releases,
-            domain::ai::commands::predictions_list_by_image,
-            domain::ai::commands::predictions_generate,
-            domain::ai::commands::pipeline_run,
-            domain::ai::commands::predictions_accept,
-            domain::ai::commands::predictions_reject,
-            domain::ai::commands::ai_gpu_info,
-            domain::ai::commands::ai_model_registry,
-            domain::ai::commands::ai_runtime_install,
-            domain::ai::commands::ai_runtime_status,
-            domain::ai::commands::ai_runtime_restart,
-            domain::ai::commands::ai_copilot_turn,
-            domain::ai::commands::ai_copilot_apply_action,
-            domain::ai::commands::ai_copilot_test_connection,
-            domain::analysis::commands::analysis_run,
-            domain::analysis::commands::analysis_job_status,
-            domain::analysis::commands::analysis_reports_list,
-            domain::analysis::commands::analysis_report_get,
-            domain::analysis::commands::analysis_report_latest,
-            domain::analysis::commands::analysis_report_delete,
-            domain::video::commands::video_ffmpeg_info,
-            domain::video::commands::video_import,
-            domain::video::commands::video_list,
-            domain::video::commands::video_get,
-            domain::video::commands::video_delete,
-            domain::video::commands::video_ingest,
-            domain::video::commands::video_job_status,
-            domain::video::commands::video_tracks_list,
-            domain::video::commands::video_track_save,
-            domain::video::commands::video_track_delete,
-            domain::video::commands::video_export_tracks,
-            domain::runtime::commands::runtime_start,
-            domain::runtime::commands::runtime_stop,
-            domain::runtime::commands::runtime_restart,
-            domain::runtime::commands::runtime_status,
-            domain::runtime::commands::runtime_logs,
-            domain::runtime::commands::runtime_system_info,
-            domain::runtime::commands::runtime_detect,
-            domain::runtime::commands::runtime_segment,
-            domain::runtime::commands::runtime_caption,
-            domain::runtime::commands::runtime_ocr,
-            domain::runtime::commands::training_start,
-            domain::runtime::commands::training_stop,
-            domain::runtime::commands::training_list,
-            domain::runtime::commands::training_logs,
-            domain::runtime::commands::export_onnx,
-            domain::runtime::commands::export_tensorrt,
-            domain::runtime::commands::export_openvino,
-            domain::runtime::commands::runtime_models_list,
-            domain::runtime::commands::runtime_models_install,
-            domain::runtime::commands::runtime_models_delete,
+            modules::ai::commands::ai_models_list,
+            modules::ai::commands::ai_models_list_by_project,
+            modules::ai::commands::ai_models_save,
+            modules::ai::commands::ai_models_delete,
+            modules::ai::commands::ai_models_set_active,
+            modules::ai::commands::ai_models_import,
+            modules::ai::commands::ai_models_install,
+            modules::ai::commands::ai_models_catalog_releases,
+            modules::ai::commands::predictions_list_by_image,
+            modules::ai::commands::predictions_generate,
+            modules::ai::commands::pipeline_run,
+            modules::ai::commands::predictions_accept,
+            modules::ai::commands::predictions_reject,
+            modules::ai::commands::ai_gpu_info,
+            modules::ai::commands::ai_model_registry,
+            modules::ai::commands::ai_runtime_install,
+            modules::ai::commands::ai_runtime_status,
+            modules::ai::commands::ai_runtime_restart,
+            modules::ai::commands::ai_copilot_turn,
+            modules::ai::commands::ai_copilot_apply_action,
+            modules::ai::commands::ai_copilot_test_connection,
+            modules::analysis::commands::analysis_run,
+            modules::analysis::commands::analysis_job_status,
+            modules::analysis::commands::analysis_reports_list,
+            modules::analysis::commands::analysis_report_get,
+            modules::analysis::commands::analysis_report_latest,
+            modules::analysis::commands::analysis_report_delete,
+            modules::video::commands::video_ffmpeg_info,
+            modules::video::commands::video_import,
+            modules::video::commands::video_list,
+            modules::video::commands::video_get,
+            modules::video::commands::video_delete,
+            modules::video::commands::video_ingest,
+            modules::video::commands::video_job_status,
+            modules::video::commands::video_tracks_list,
+            modules::video::commands::video_track_save,
+            modules::video::commands::video_track_delete,
+            modules::video::commands::video_export_tracks,
+            modules::runtime::commands::runtime_start,
+            modules::runtime::commands::runtime_stop,
+            modules::runtime::commands::runtime_restart,
+            modules::runtime::commands::runtime_status,
+            modules::runtime::commands::runtime_logs,
+            modules::runtime::commands::runtime_system_info,
+            modules::runtime::commands::runtime_detect,
+            modules::runtime::commands::runtime_segment,
+            modules::runtime::commands::runtime_caption,
+            modules::runtime::commands::runtime_ocr,
+            modules::runtime::commands::training_start,
+            modules::runtime::commands::training_stop,
+            modules::runtime::commands::training_list,
+            modules::runtime::commands::training_logs,
+            modules::runtime::commands::export_onnx,
+            modules::runtime::commands::export_tensorrt,
+            modules::runtime::commands::export_openvino,
+            modules::runtime::commands::runtime_models_list,
+            modules::runtime::commands::runtime_models_install,
+            modules::runtime::commands::runtime_models_delete,
             system_info,
             open_path_dialog,
             open_external,
@@ -1223,11 +1223,11 @@ pub fn run() {
             secret_get,
             secret_delete,
             secret_list,
-            domain::cloud::commands::cloud_test_connection,
-            domain::cloud::commands::cloud_upload_files,
-            domain::cloud::commands::cloud_download_files,
-            domain::cloud::commands::cloud_delete_object,
-            domain::cloud::commands::cloud_list_objects,
+            modules::cloud::commands::cloud_test_connection,
+            modules::cloud::commands::cloud_upload_files,
+            modules::cloud::commands::cloud_download_files,
+            modules::cloud::commands::cloud_delete_object,
+            modules::cloud::commands::cloud_list_objects,
             plugins::plugins_list,
             updater_status,
         ])

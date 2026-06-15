@@ -2,7 +2,7 @@
 //!
 //! `Label` is now the annotation module's `LabelClass` aggregate (in the
 //! `vailabel-annotation` crate). This shim keeps
-//! `crate::domain::labels::model::{Label, ProjectIdPayload}` valid for existing
+//! `crate::modules::labels::model::{Label, ProjectIdPayload}` valid for existing
 //! importers; the orphan-violating local `impl HasId for Label` is gone (the
 //! crate implements `core::Identifiable`).
 

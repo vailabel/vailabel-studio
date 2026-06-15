@@ -1,7 +1,7 @@
 //! Re-export shim.
 //!
 //! The `Image` asset and its request DTOs now live in the `vailabel-dataset`
-//! crate. This shim keeps `crate::domain::images::model::{Image, ProjectIdPayload,
+//! crate. This shim keeps `crate::modules::images::model::{Image, ProjectIdPayload,
 //! ImageRangePayload}` valid for existing importers. `Image` implements
 //! `vailabel_core::Identifiable` (which `HasId` aliases) in the crate, so the
 //! local `impl HasId for Image` is gone (it would be an orphan-rule violation
