@@ -16,9 +16,6 @@ mod store;
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use ai::service::AiService;
 use modules::analysis::service::AnalysisService;
-use modules::images::service::ImageService;
-use modules::labels::service::LabelService;
-use modules::projects::service::ProjectService;
 use modules::video::service::VideoService;
 use keyring::Entry;
 use serde::{Deserialize, Serialize};
@@ -37,9 +34,9 @@ const DOMAIN_EVENT_NAME: &str = "studio://domain-event";
 #[derive(Clone)]
 pub struct AppState {
     pub store: Arc<Mutex<DesktopStore>>,
-    pub project_service: Arc<ProjectService>,
-    pub label_service: Arc<LabelService>,
-    pub image_service: Arc<ImageService>,
+    pub project_service: Arc<vailabel_project::application::ProjectAppService>,
+    pub label_service: Arc<vailabel_annotation::application::LabelClassAppService>,
+    pub image_service: Arc<vailabel_dataset::application::ImageAppService>,
     pub ai_service: Arc<AiService>,
     pub analysis_service: Arc<AnalysisService>,
     pub video_service: Arc<VideoService>,
@@ -969,36 +966,27 @@ pub fn run() {
             let project_repo: Arc<dyn vailabel_project::domain::ProjectRepository> = Arc::new(
                 vailabel_project::infrastructure::DieselProjectRepository::new(db.clone()),
             );
-            let project_app_service = Arc::new(
-                vailabel_project::application::ProjectAppService::new(
-                    project_repo,
-                    event_publisher.clone(),
-                ),
-            );
-            let project_service = Arc::new(crate::modules::projects::service::ProjectService::new(
-                project_app_service,
+            // Command handlers call these crate application services directly
+            // (no binary facade); they are held in `AppState`.
+            let project_service = Arc::new(vailabel_project::application::ProjectAppService::new(
+                project_repo,
+                event_publisher.clone(),
             ));
             let label_repo: Arc<dyn vailabel_annotation::domain::LabelRepository> = Arc::new(
                 vailabel_annotation::infrastructure::DieselLabelRepository::new(db.clone()),
             );
-            let label_app_service = Arc::new(
+            let label_service = Arc::new(
                 vailabel_annotation::application::LabelClassAppService::new(
                     label_repo,
                     event_publisher.clone(),
                 ),
             );
-            let label_service = Arc::new(crate::modules::labels::service::LabelService::new(
-                label_app_service,
-            ));
             let image_repo: Arc<dyn vailabel_dataset::domain::ImageRepository> = Arc::new(
                 vailabel_dataset::infrastructure::DieselImageRepository::new(db.clone()),
             );
-            let image_app_service = Arc::new(vailabel_dataset::application::ImageAppService::new(
+            let image_service = Arc::new(vailabel_dataset::application::ImageAppService::new(
                 image_repo,
                 event_publisher.clone(),
-            ));
-            let image_service = Arc::new(crate::modules::images::service::ImageService::new(
-                image_app_service,
             ));
             let ai_service = Arc::new(crate::ai::service::AiService::new(
                 entity_store.clone(),
