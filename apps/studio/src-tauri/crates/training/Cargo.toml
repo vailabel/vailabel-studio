@@ -2,7 +2,7 @@
 name = "vailabel-training"
 version = "0.1.0"
 edition = "2021"
-description = "Training module (DDD Phase 1 boundary). Owns TrainingRun/Experiment aggregates and Metric/Checkpoint/TrainingLog entities. Domain types land in a later phase."
+description = "Training module: the TrainingRun aggregate (training-job lifecycle), its repository contract + Diesel persistence, and the application service that orchestrates persistence + events + the async runtime port."
 
 [lib]
 name = "vailabel_training"
@@ -10,3 +10,6 @@ name = "vailabel_training"
 [dependencies]
 vailabel-core = { workspace = true }
 vailabel-shared = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+async-trait = { workspace = true }

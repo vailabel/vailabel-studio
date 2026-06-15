@@ -1,16 +1,13 @@
-//! `vailabel-training` — the Training module (Phase 1 boundary).
+//! `vailabel-training` — the Training module.
 //!
-//! Will own the `TrainingRun` and `Experiment` aggregate roots and the `Metric`,
-//! `Checkpoint`, and `TrainingLog` entities, plus training-job orchestration,
-//! experiment tracking, metrics, evaluation, and model export. Today training
-//! is driven from the binary via the runtime module; the typed domain lands in
-//! a later phase. The layer modules below establish the boundary now.
+//! Owns the `TrainingRun` aggregate (the training-job lifecycle), its repository
+//! contract + Diesel persistence (`infrastructure`), and a `TrainingAppService`
+//! (`application`) that orchestrates persistence + domain events + an async
+//! `TrainingRuntime` port (backed by the embedded Python runtime at the
+//! composition root). Training *execution* is the runtime ACL's job; this module
+//! owns the run's domain + persistence + lifecycle.
 
-/// Entities, value objects, domain events, repository traits, errors.
-pub mod domain {}
-/// Commands, queries, handlers, DTOs, application services.
-pub mod application {}
-/// Repository implementations, mappers, adapters.
-pub mod infrastructure {}
-/// Public events/requests/responses other modules may depend on.
-pub mod contracts {}
+pub mod application;
+pub mod domain;
+
+pub use domain::{TrainingRun, TrainingStatus};

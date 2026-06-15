@@ -34,6 +34,7 @@ thiserror = "2"
 tracing = "0.1"
 uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
+async-trait = "0.1"
 # Shared across the binary and the vailabel-db / per-module-infra crates so the
 # whole workspace pins one diesel + sqlite version.
 diesel = { version = "2", features = ["sqlite"] }
