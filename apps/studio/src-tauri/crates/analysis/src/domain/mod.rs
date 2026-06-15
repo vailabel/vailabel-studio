@@ -7,6 +7,11 @@
 use serde::{Deserialize, Serialize};
 use vailabel_core::Identifiable;
 
+pub mod engine;
+pub mod repository;
+
+pub use repository::AnalysisRepository;
+
 // ── Configuration ───────────────────────────────────────────────────────────
 
 /// Tunable thresholds for the analysis. All optional — the `default` fills in

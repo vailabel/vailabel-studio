@@ -1000,8 +1000,20 @@ pub fn run() {
             let ai_service = Arc::new(crate::domain::ai::service::AiService::new(
                 entity_store.clone(),
             ));
+            // Analysis module: source rows + reports persist through a binary
+            // adapter over the residual store; the pixel decoder is the crate's
+            // infrastructure. The binary AnalysisService owns the job lifecycle.
+            let analysis_repo: Arc<dyn vailabel_analysis::domain::AnalysisRepository> = Arc::new(
+                crate::domain::analysis::repository::AnalysisStoreRepository::new(store_arc.clone()),
+            );
+            let analysis_decoder: Arc<dyn vailabel_analysis::application::ImageDecoder> =
+                Arc::new(vailabel_analysis::infrastructure::ImageQualityDecoder::new());
+            let analysis_app_service = Arc::new(vailabel_analysis::application::AnalysisAppService::new(
+                analysis_repo,
+                analysis_decoder,
+            ));
             let analysis_service = Arc::new(
-                crate::domain::analysis::service::AnalysisService::new(store_arc.clone()),
+                crate::domain::analysis::service::AnalysisService::new(analysis_app_service),
             );
             // Video module: persistence is a binary adapter over the residual
             // store; the FFmpeg pipeline is the crate's infrastructure. The

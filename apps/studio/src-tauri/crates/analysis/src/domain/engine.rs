@@ -1,25 +1,23 @@
-//! The analysis engine — pure computation over dataset metadata and image
-//! pixels. Nothing here touches the database, Tauri, or threads, so each
-//! function is independently testable and cheap to reason about.
+//! The analysis engine — pure computation over dataset metadata and decoded
+//! image metrics. Nothing here touches the database, the filesystem, Tauri, or
+//! threads, so each function is independently testable.
 //!
-//! Two passes:
-//!   * [`analyze_metadata`] works off the JSON rows already in SQLite (images,
-//!     annotations, labels). Fast, no disk I/O.
-//!   * [`analyze_pixels`] decodes a single image to derive blur/exposure/
-//!     embedding features. Slow; the service runs it on a worker thread and
-//!     reports progress.
+//! - [`analyze_metadata`] works off the JSON rows (images/annotations/labels).
+//! - [`embedding_outliers`] flags images far from the dataset feature centroid.
+//! - the report-assembly helpers ([`build_report`], [`collect_findings`],
+//!   [`health_summary`], [`classify_image_quality`]) fold the metadata pass and
+//!   the (infrastructure-provided) pixel pass into the final [`AnalysisReport`].
+//!
+//! The slow per-image pixel decode itself is the `ImageDecoder` port, lives in
+//! `infrastructure`, and yields the [`PixelMetrics`] / [`PixelOutcome`] consumed
+//! here.
 
 use std::collections::HashMap;
-use std::path::Path;
 
-use image::GenericImageView;
 use serde_json::Value;
+use vailabel_shared::{new_id, now_iso};
 
-use super::model::*;
-
-const SUPPORTED_DECODE_EXT: &[&str] = &["jpg", "jpeg", "png", "gif"];
-/// Longest edge an image is downscaled to before computing pixel metrics.
-const THUMB_EDGE: u32 = 256;
+use super::*;
 
 // ── Parsed metadata views ───────────────────────────────────────────────────
 
@@ -45,7 +43,7 @@ struct AnnMeta {
 }
 
 /// Everything the metadata pass produces. The service flattens this (plus the
-/// pixel pass) into a [`AnalysisReport`].
+/// pixel pass) into an [`AnalysisReport`].
 pub struct MetadataAnalysis {
     pub analytics: DatasetAnalytics,
     pub missing_labels: Vec<ImageRef>,
@@ -518,7 +516,7 @@ fn aspect_bucket(width: u32, height: u32) -> &'static str {
     }
 }
 
-// ── Pixel pass ──────────────────────────────────────────────────────────────
+// ── Pixel metrics (produced by the ImageDecoder port) ───────────────────────
 
 pub struct PixelMetrics {
     pub image_id: String,
@@ -537,139 +535,6 @@ pub enum PixelOutcome {
     Metrics(Box<PixelMetrics>),
     Corrupted(String),
     Unsupported,
-}
-
-pub fn analyze_pixels(image_id: &str, name: &str, path: &str, _cfg: &AnalysisConfig) -> PixelOutcome {
-    let file = Path::new(path);
-    let ext = file
-        .extension()
-        .and_then(|e| e.to_str())
-        .map(|e| e.to_lowercase())
-        .unwrap_or_default();
-
-    if path.is_empty() || !file.exists() {
-        return PixelOutcome::Corrupted("File not found".into());
-    }
-    if !SUPPORTED_DECODE_EXT.contains(&ext.as_str()) {
-        return PixelOutcome::Unsupported;
-    }
-
-    let img = match image::open(file) {
-        Ok(img) => img,
-        Err(err) => return PixelOutcome::Corrupted(format!("Decode failed: {err}")),
-    };
-    let (width, height) = img.dimensions();
-    if width == 0 || height == 0 {
-        return PixelOutcome::Corrupted("Zero-sized image".into());
-    }
-
-    let thumb = img.thumbnail(THUMB_EDGE, THUMB_EDGE);
-    let luma = thumb.to_luma8();
-    let rgb = thumb.to_rgb8();
-
-    let (brightness, contrast, clip_high, clip_low) = luma_stats(&luma);
-    let blur_score = variance_of_laplacian(&luma);
-    let (mean_r, mean_g, mean_b) = rgb_means(&rgb);
-
-    let aspect = width as f64 / height as f64;
-    let megapixels = (width as f64 * height as f64) / 1_000_000.0;
-    let features = vec![
-        mean_r,
-        mean_g,
-        mean_b,
-        brightness,
-        contrast,
-        (blur_score + 1.0).ln(),
-        aspect.ln(),
-        (megapixels + 0.001).ln(),
-    ];
-
-    PixelOutcome::Metrics(Box::new(PixelMetrics {
-        image_id: image_id.to_string(),
-        name: name.to_string(),
-        width,
-        height,
-        blur_score,
-        brightness,
-        clip_high,
-        clip_low,
-        features,
-    }))
-}
-
-/// Returns (mean brightness 0..1, contrast/stddev 0..1, clip-high frac, clip-low frac).
-fn luma_stats(luma: &image::GrayImage) -> (f64, f64, f64, f64) {
-    let pixels = luma.as_raw();
-    if pixels.is_empty() {
-        return (0.0, 0.0, 0.0, 0.0);
-    }
-    let n = pixels.len() as f64;
-    let mut sum = 0.0;
-    let mut sum_sq = 0.0;
-    let mut high = 0usize;
-    let mut low = 0usize;
-    for &p in pixels {
-        let v = p as f64;
-        sum += v;
-        sum_sq += v * v;
-        if p >= 250 {
-            high += 1;
-        }
-        if p <= 5 {
-            low += 1;
-        }
-    }
-    let mean = sum / n;
-    let variance = (sum_sq / n - mean * mean).max(0.0);
-    (
-        mean / 255.0,
-        variance.sqrt() / 255.0,
-        high as f64 / n,
-        low as f64 / n,
-    )
-}
-
-/// Variance of the Laplacian — the classic sharpness/blur metric.
-fn variance_of_laplacian(luma: &image::GrayImage) -> f64 {
-    let (w, h) = luma.dimensions();
-    if w < 3 || h < 3 {
-        return 0.0;
-    }
-    let at = |x: u32, y: u32| luma.get_pixel(x, y)[0] as f64;
-    let mut values = Vec::with_capacity(((w - 2) * (h - 2)) as usize);
-    for y in 1..h - 1 {
-        for x in 1..w - 1 {
-            let lap = at(x, y - 1)
-                + at(x - 1, y)
-                + at(x + 1, y)
-                + at(x, y + 1)
-                - 4.0 * at(x, y);
-            values.push(lap);
-        }
-    }
-    if values.is_empty() {
-        return 0.0;
-    }
-    let n = values.len() as f64;
-    let mean = values.iter().sum::<f64>() / n;
-    values.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / n
-}
-
-fn rgb_means(rgb: &image::RgbImage) -> (f64, f64, f64) {
-    let pixels = rgb.as_raw();
-    if pixels.is_empty() {
-        return (0.0, 0.0, 0.0);
-    }
-    let count = (pixels.len() / 3) as f64;
-    let mut r = 0.0;
-    let mut g = 0.0;
-    let mut b = 0.0;
-    for chunk in pixels.chunks_exact(3) {
-        r += chunk[0] as f64;
-        g += chunk[1] as f64;
-        b += chunk[2] as f64;
-    }
-    (r / count / 255.0, g / count / 255.0, b / count / 255.0)
 }
 
 /// Standardize each feature dimension (z-score) and flag images whose distance
@@ -727,6 +592,191 @@ pub fn embedding_outliers(metrics: &[PixelMetrics], z_threshold: f64) -> Vec<Out
     outliers.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
     outliers.truncate(50);
     outliers
+}
+
+// ── Report assembly ─────────────────────────────────────────────────────────
+
+/// Fold one image's [`PixelMetrics`] into the running image-quality report.
+pub fn classify_image_quality(
+    metric: &PixelMetrics,
+    cfg: &AnalysisConfig,
+    report: &mut ImageQualityReport,
+) {
+    let make_ref = |reason: String| ImageQualityRef {
+        image_id: metric.image_id.clone(),
+        name: metric.name.clone(),
+        width: metric.width,
+        height: metric.height,
+        blur_score: metric.blur_score,
+        brightness: metric.brightness,
+        reason,
+    };
+
+    if metric.blur_score < cfg.blur_threshold {
+        report
+            .blurry
+            .push(make_ref(format!("Low sharpness ({:.0})", metric.blur_score)));
+    }
+    if metric.brightness >= cfg.overexposed_threshold || metric.clip_high > 0.6 {
+        report.overexposed.push(make_ref(format!(
+            "Bright ({:.0}%, {:.0}% clipped)",
+            metric.brightness * 100.0,
+            metric.clip_high * 100.0
+        )));
+    }
+    if metric.brightness <= cfg.underexposed_threshold || metric.clip_low > 0.6 {
+        report.underexposed.push(make_ref(format!(
+            "Dark ({:.0}%, {:.0}% clipped)",
+            metric.brightness * 100.0,
+            metric.clip_low * 100.0
+        )));
+    }
+
+    let long_edge = metric.width.max(metric.height) as f64;
+    let short_edge = metric.width.min(metric.height).max(1) as f64;
+    let aspect = long_edge / short_edge;
+    if metric.width < cfg.min_resolution || metric.height < cfg.min_resolution {
+        report.low_resolution.push(make_ref(format!(
+            "Small ({}×{})",
+            metric.width, metric.height
+        )));
+    } else if aspect > cfg.max_aspect_ratio {
+        report
+            .low_resolution
+            .push(make_ref(format!("Extreme aspect ratio ({aspect:.1}:1)")));
+    }
+}
+
+/// Fold the metadata pass + pixel pass into the final persisted report.
+pub fn build_report(
+    project_id: &str,
+    metadata: MetadataAnalysis,
+    image_quality: ImageQualityReport,
+    corrupted_images: Vec<ImageRef>,
+    embedding_outliers: Vec<OutlierRef>,
+) -> AnalysisReport {
+    let MetadataAnalysis {
+        analytics,
+        missing_labels,
+        empty_annotations,
+        invalid_polygons,
+        rare_classes,
+        suspicious_labels,
+    } = metadata;
+
+    let quality = QualityValidation {
+        missing_labels,
+        empty_annotations,
+        invalid_polygons,
+        corrupted_images,
+    };
+    let outliers = OutlierReport {
+        embedding_outliers,
+        rare_classes,
+        suspicious_labels,
+    };
+
+    let findings = collect_findings(&quality, &image_quality, &outliers);
+    let health = health_summary(
+        &findings,
+        analytics.dataset_stats.total_images,
+        analytics.dataset_stats.total_annotations,
+    );
+
+    AnalysisReport {
+        id: new_id(),
+        project_id: project_id.to_string(),
+        created_at: now_iso(),
+        image_quality_analyzed: image_quality.analyzed > 0 || image_quality.skipped > 0,
+        image_count: analytics.dataset_stats.total_images,
+        annotation_count: analytics.dataset_stats.total_annotations,
+        label_count: analytics.label_distribution.len(),
+        health,
+        analytics,
+        quality,
+        image_quality,
+        outliers,
+        findings,
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn collect_findings(
+    quality: &QualityValidation,
+    image_quality: &ImageQualityReport,
+    outliers: &OutlierReport,
+) -> Vec<Finding> {
+    let mut findings = Vec::new();
+    let mut push = |category: &str, kind: &str, severity: &str, message: String, image_id: Option<String>, annotation_id: Option<String>, metric: Option<f64>| {
+        findings.push(Finding {
+            id: new_id(),
+            category: category.into(),
+            kind: kind.into(),
+            severity: severity.into(),
+            message,
+            image_id,
+            annotation_id,
+            metric,
+        });
+    };
+
+    for item in &quality.missing_labels {
+        push("quality", "missingLabels", "warning", format!("{}: no annotations", item.name), Some(item.image_id.clone()), None, None);
+    }
+    for item in &quality.empty_annotations {
+        push("quality", "emptyAnnotation", "error", format!("{} on {}: {}", item.label, item.image_name, item.reason), Some(item.image_id.clone()), Some(item.annotation_id.clone()), None);
+    }
+    for item in &quality.invalid_polygons {
+        push("quality", "invalidPolygon", "error", format!("{} on {}: {}", item.label, item.image_name, item.reason), Some(item.image_id.clone()), Some(item.annotation_id.clone()), None);
+    }
+    for item in &quality.corrupted_images {
+        push("quality", "corruptedImage", "error", format!("{}: {}", item.name, item.reason.clone().unwrap_or_default()), Some(item.image_id.clone()), None, None);
+    }
+    for item in &image_quality.blurry {
+        push("imageQuality", "blur", "warning", format!("{}: {}", item.name, item.reason), Some(item.image_id.clone()), None, Some(item.blur_score));
+    }
+    for item in &image_quality.overexposed {
+        push("imageQuality", "overexposed", "warning", format!("{}: {}", item.name, item.reason), Some(item.image_id.clone()), None, Some(item.brightness));
+    }
+    for item in &image_quality.underexposed {
+        push("imageQuality", "underexposed", "warning", format!("{}: {}", item.name, item.reason), Some(item.image_id.clone()), None, Some(item.brightness));
+    }
+    for item in &image_quality.low_resolution {
+        push("imageQuality", "lowResolution", "warning", format!("{}: {}", item.name, item.reason), Some(item.image_id.clone()), None, None);
+    }
+    for item in &outliers.embedding_outliers {
+        push("outlier", "embeddingOutlier", "info", format!("{}: {}", item.name, item.reason), Some(item.image_id.clone()), None, Some(item.score));
+    }
+    for item in &outliers.rare_classes {
+        push("outlier", "rareClass", "info", format!("Rare class '{}' ({} annotations)", item.label, item.count), None, None, Some(item.count as f64));
+    }
+    for item in &outliers.suspicious_labels {
+        push("outlier", "suspiciousLabel", "warning", format!("{} on {}: {}", item.label, item.image_name, item.reason), Some(item.image_id.clone()), Some(item.annotation_id.clone()), None);
+    }
+
+    findings
+}
+
+fn health_summary(findings: &[Finding], image_count: usize, annotation_count: usize) -> HealthSummary {
+    let mut errors = 0;
+    let mut warnings = 0;
+    let mut infos = 0;
+    for finding in findings {
+        match finding.severity.as_str() {
+            "error" => errors += 1,
+            "warning" => warnings += 1,
+            _ => infos += 1,
+        }
+    }
+    let total_checks = (image_count + annotation_count).max(1) as f64;
+    let weighted = errors as f64 + warnings as f64 * 0.5 + infos as f64 * 0.1;
+    let score = (100.0 * (1.0 - weighted / total_checks)).clamp(0.0, 100.0);
+    HealthSummary {
+        errors,
+        warnings,
+        infos,
+        score,
+    }
 }
 
 // ── Small numeric helpers ───────────────────────────────────────────────────
