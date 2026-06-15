@@ -1,4 +1,4 @@
-# Architecture — DDD Modular Monolith (Phases 1–2)
+# Architecture — DDD Modular Monolith (Phases 1–3)
 
 VaiLabel Studio's backend is a **modular monolith** organized by business domain
 and layered with **Clean Architecture**. This document describes the crate
@@ -24,12 +24,14 @@ vailabel-studio    the Tauri binary = composition root (tauri, opendal, ort,
 ```
 
 - **`core`** depends on nothing internal. It is the root.
-- **`shared`** depends only on `core`. It provides the clock, ids, the
-  [`EventPublisher`] port, and `PortError`. (Persistence is per-module, so there
-  is no generic persistence port.)
+- **`shared`** depends only on `core`. It provides the clock, ids, `PortError`,
+  and the event ports — the `EventPublisher` port plus an `EventBus` (fans a
+  published event out to N subscribers) and the `EventSubscriber` trait.
+  (Persistence is per-module, so there is no generic persistence port.)
 - **`vailabel-db`** owns the one shared `SqliteConnection` (a single database is
-  shared infrastructure). It exposes a cloneable `Db` handle (`lock`/`with_conn`)
-  and re-exports `diesel`. It is *not* a pure crate.
+  shared infrastructure). It exposes a cloneable `Db` handle (`lock`/`with_conn`/
+  `transaction`) and re-exports `diesel`. It is *not* a pure crate. `Db::transaction`
+  is the unit-of-work boundary (commit on `Ok`, rollback on `Err`).
 - **module crates** (`project`, `dataset`, `annotation`, `search`, `models`,
   `copilot`, `training`, plus `analysis`/`video`) depend on `core`/`shared`. Their
   `domain`/`application`/`contracts` layers are **pure**; their `infrastructure`
@@ -39,13 +41,26 @@ vailabel-studio    the Tauri binary = composition root (tauri, opendal, ort,
 - **`runtime`** is the anti-corruption layer to the Python runtime; it re-exports
   the Tauri-free `runtime-manager` crate (excluded from the purity rule).
 - The **binary** (`vailabel-studio`) is the composition root. It opens the `Db`,
-  builds each module's Diesel repository + a `TauriEventPublisher`
-  (`src/composition.rs`), wires the application services, and exposes Tauri
+  builds each module's Diesel repository, registers the `EventBus`'s subscribers
+  (`TauriEventSubscriber` in `src/composition.rs`, which emits on
+  `studio://domain-event`), wires the application services, and exposes Tauri
   commands. It also keeps the **residual `DesktopStore`** (typed methods + the
   `EntityStore` trait) for entities not yet migrated to a module.
 
 A module must not reach into another module's persistence. Cross-module
-communication goes through public contracts and (later) domain events.
+communication goes through public contracts and domain events.
+
+## Domain events & the unit of work
+
+A mutating use case runs inside a `Db::transaction` (existence-check + write in
+one atomic step — no get-then-write race) and, **after the transaction commits**,
+raises a typed domain event (`ProjectEvent`/`ImageEvent`/`LabelEvent`, each
+`impl core::DomainEvent`). The application service publishes it through the
+`EventPublisher` port, which the composition root backs with an `EventBus` that
+fans the event out to its subscribers. The only subscriber today is the
+`TauriEventSubscriber` (UI refresh via `studio://domain-event`); audit or
+integration subscribers can be added at the composition root without touching any
+module. The domain never names the transport.
 
 ## Module layout
 
@@ -86,8 +101,12 @@ that it catches real usage. The compiler additionally enforces the crate DAG.
   connection; `project`/`dataset`/`annotation` migrated to their own
   `infrastructure/` Diesel repositories; the generic JSON port + `common` service
   layer removed.
+- **Phase 3** — domain events through an in-process `EventBus`/`EventSubscriber`
+  (typed `ProjectEvent`/`ImageEvent`/`LabelEvent`); the unit-of-work boundary as
+  `Db::transaction` + atomic `save_atomic`/`delete_returning` repo methods. The
+  dead `core::UnitOfWork` (commit-style) and `core::EventEnvelope` were removed.
 
-Deferred to later phases: UnitOfWork/transactions; migrating the remaining
-entities and the `ai`/`analysis`/`video` service logic into modules/application
-layers; full ai/copilot/models wiring + plugin implementations; runtime-glue
-extraction; inter-module domain events; the React feature reorg.
+Deferred to later phases: migrating the remaining entities and the `ai`/
+`analysis`/`video` service logic into modules/application layers; full
+ai/copilot/models wiring + plugin implementations; runtime-glue extraction;
+cross-process/integration event transport; the React feature reorg.
