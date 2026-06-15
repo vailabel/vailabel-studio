@@ -57,11 +57,12 @@ impl ProjectAppService {
         let project: Project = serde_json::from_value(payload)
             .map_err(|e| DomainError::validation(e.to_string()))?;
 
-        let id = project.id().to_string();
-        let (stored, event) = if self.repo.get(&id)?.is_some() {
-            (self.repo.update(&project)?, ProjectEvent::Updated { id })
+        let (stored, created) = self.repo.save_atomic(&project)?;
+        let id = stored.id().to_string();
+        let event = if created {
+            ProjectEvent::Created { id }
         } else {
-            (self.repo.create(&project)?, ProjectEvent::Created { id })
+            ProjectEvent::Updated { id }
         };
 
         self.publish(&stored, &event)?;
@@ -73,9 +74,8 @@ impl ProjectAppService {
     pub fn delete(&self, command: DeleteProjectCommand) -> DomainResult<Value> {
         let existing = self
             .repo
-            .get(&command.id)?
+            .delete_returning(&command.id)?
             .ok_or_else(|| DomainError::not_found("Project"))?;
-        self.repo.delete(&command.id)?;
         self.publish(&existing, &ProjectEvent::Deleted { id: command.id })?;
         Ok(json!({ "success": true }))
     }

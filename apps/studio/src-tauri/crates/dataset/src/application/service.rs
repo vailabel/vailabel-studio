@@ -56,11 +56,12 @@ impl ImageAppService {
         let image: Image = serde_json::from_value(payload)
             .map_err(|e| DomainError::validation(e.to_string()))?;
 
-        let id = image.id().to_string();
-        let (stored, event) = if self.repo.get(&id)?.is_some() {
-            (self.repo.update(&image)?, ImageEvent::Updated { id })
+        let (stored, created) = self.repo.save_atomic(&image)?;
+        let id = stored.id().to_string();
+        let event = if created {
+            ImageEvent::Created { id }
         } else {
-            (self.repo.create(&image)?, ImageEvent::Created { id })
+            ImageEvent::Updated { id }
         };
 
         self.publish(&stored, &event)?;
@@ -71,9 +72,8 @@ impl ImageAppService {
     pub fn delete(&self, command: DeleteImageCommand) -> DomainResult<Value> {
         let existing = self
             .repo
-            .get(&command.id)?
+            .delete_returning(&command.id)?
             .ok_or_else(|| DomainError::not_found("Image"))?;
-        self.repo.delete(&command.id)?;
         self.publish(&existing, &ImageEvent::Deleted { id: command.id })?;
         Ok(json!({ "success": true }))
     }

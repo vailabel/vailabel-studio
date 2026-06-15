@@ -46,11 +46,12 @@ impl LabelClassAppService {
         let label: LabelClass = serde_json::from_value(payload)
             .map_err(|e| DomainError::validation(e.to_string()))?;
 
-        let id = label.id().to_string();
-        let (stored, event) = if self.repo.get(&id)?.is_some() {
-            (self.repo.update(&label)?, LabelEvent::Updated { id })
+        let (stored, created) = self.repo.save_atomic(&label)?;
+        let id = stored.id().to_string();
+        let event = if created {
+            LabelEvent::Created { id }
         } else {
-            (self.repo.create(&label)?, LabelEvent::Created { id })
+            LabelEvent::Updated { id }
         };
 
         self.publish(&stored, &event)?;
@@ -61,9 +62,8 @@ impl LabelClassAppService {
     pub fn delete(&self, command: DeleteLabelCommand) -> DomainResult<Value> {
         let existing = self
             .repo
-            .get(&command.id)?
+            .delete_returning(&command.id)?
             .ok_or_else(|| DomainError::not_found("Label"))?;
-        self.repo.delete(&command.id)?;
         self.publish(&existing, &LabelEvent::Deleted { id: command.id })?;
         Ok(json!({ "success": true }))
     }
