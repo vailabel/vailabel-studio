@@ -12,7 +12,7 @@ const config: Config = {
     "^@/(.*)$": "<rootDir>/src/$1",
   },
   // Add src/types to moduleDirectories so Jest picks up global type definitions
-  moduleDirectories: ["node_modules", "src/types", "src"],
+  moduleDirectories: ["node_modules", "src/shared/types", "src"],
 }
 
 export default config

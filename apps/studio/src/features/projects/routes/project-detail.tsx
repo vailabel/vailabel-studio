@@ -1,0 +1,581 @@
+import { memo, useMemo } from "react"
+import {
+  ArrowLeft,
+  ImageIcon,
+  Tag,
+  Calendar,
+  RefreshCw,
+  Edit,
+  Plus,
+  Trash2,
+  Upload,
+  Import,
+  FolderOpen,
+  Play,
+  Layers,
+  BarChart3,
+  CheckCircle2,
+  CloudUpload,
+  CloudDownload,
+  Brain,
+  Clapperboard,
+} from "lucide-react"
+import { Button } from "@/shared/ui/button"
+import { Badge } from "@/shared/ui/badge"
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/shared/ui/card"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/shared/ui/tabs"
+import { Progress } from "@/shared/ui/progress"
+import { Spinner } from "@/shared/ui/spinner"
+import { ImageTable } from "@/features/projects/components/image-table"
+import { TrainingMonitor } from "@/shared/components/training/training-monitor"
+import { EditProjectModal } from "@/features/projects/components/edit-project-modal"
+import { AddLabelModal } from "@/features/projects/components/add-label-modal"
+import { ImageGrid } from "@/features/projects/components/image-upload"
+import { useProjectDetailViewModel } from "@/features/projects/model/project-detail-viewmodel"
+import { useProjectCloudSync } from "@/features/projects/hooks/use-project-cloud-sync"
+import { useParams } from "react-router-dom"
+import { toast } from "sonner"
+import { cn } from "@/shared/lib/utils"
+
+const formatDate = (date: Date | string | undefined) => {
+  if (!date) return "Unknown"
+  const dateObj = typeof date === "string" ? new Date(date) : date
+  if (isNaN(dateObj.getTime())) return "Unknown"
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(dateObj)
+}
+
+const ProjectDetails = memo(() => {
+  const { projectId } = useParams<{ projectId: string }>()
+  const viewModel = useProjectDetailViewModel(projectId || "")
+  const cloudSync = useProjectCloudSync(
+    projectId || "",
+    viewModel.images,
+    viewModel.refreshData
+  )
+  const s = viewModel.projectStats
+
+  // First image still needing annotation (so "Continue Labeling" resumes work).
+  const annotatedImageIds = useMemo(
+    () =>
+      new Set(
+        viewModel.annotations
+          .map((a) => a.image_id ?? a.imageId)
+          .filter(Boolean) as string[]
+      ),
+    [viewModel.annotations]
+  )
+
+  const nextImageId = useMemo(() => {
+    const next = viewModel.images.find((img) => !annotatedImageIds.has(img.id))
+    return (next ?? viewModel.images[0])?.id
+  }, [viewModel.images, annotatedImageIds])
+
+  // Annotation count per class, for the distribution view.
+  const labelCounts = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const a of viewModel.annotations) {
+      const id = a.label_id ?? a.labelId
+      if (id) counts.set(id, (counts.get(id) ?? 0) + 1)
+    }
+    return counts
+  }, [viewModel.annotations])
+
+  const maxLabelCount = useMemo(
+    () =>
+      Math.max(1, ...viewModel.labels.map((l) => labelCounts.get(l.id) ?? 0)),
+    [viewModel.labels, labelCounts]
+  )
+
+  const labelingCta =
+    s.progress >= 100
+      ? "Review images"
+      : s.annotatedImages > 0
+        ? "Continue labeling"
+        : "Start labeling"
+
+  // Import a YOLO/Roboflow export folder and report what landed.
+  const handleImportDataset = async () => {
+    try {
+      const res = await viewModel.importDataset()
+      if (!res) return
+      toast.success(
+        `Imported ${res.imageCount} images · ${res.annotationCount} boxes · ${res.createdClassCount} new classes`,
+        {
+          description: res.warnings.length
+            ? `${res.warnings.length} item(s) were skipped — open the console for details.`
+            : "Switch to the Images tab to keep labeling, or Training to train on them.",
+        }
+      )
+      if (res.warnings.length) {
+        console.warn("Dataset import warnings:", res.warnings)
+      }
+    } catch (e) {
+      toast.error("Import failed", {
+        description: e instanceof Error ? e.message : String(e),
+      })
+    }
+  }
+
+  const stats = [
+    { label: "Images", value: s.totalImages, icon: ImageIcon },
+    {
+      label: "Annotated",
+      value: `${s.annotatedImages} / ${s.totalImages}`,
+      icon: CheckCircle2,
+    },
+    { label: "Annotations", value: s.totalAnnotations, icon: BarChart3 },
+    { label: "Classes", value: s.totalLabels, icon: Layers },
+  ]
+
+  return (
+    <div className="mx-auto flex max-w-6xl flex-col gap-6">
+      {/* Header */}
+      <div className="flex flex-col gap-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={viewModel.navigateBack}
+          className="-ml-2 w-fit gap-1.5 text-muted-foreground"
+        >
+          <ArrowLeft className="size-4" />
+          Projects
+        </Button>
+
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0 space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="truncate text-2xl font-bold text-foreground">
+                {viewModel.projectName}
+              </h1>
+              {viewModel.project?.type && (
+                <Badge variant="secondary" className="capitalize">
+                  {viewModel.project.type}
+                </Badge>
+              )}
+              {viewModel.project?.status && (
+                <Badge variant="outline" className="capitalize">
+                  {viewModel.project.status}
+                </Badge>
+              )}
+            </div>
+            <p className="max-w-2xl text-sm text-muted-foreground">
+              {viewModel.project?.description?.trim() ||
+                "No description yet — edit the project to add one."}
+            </p>
+            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Calendar className="size-3.5" />
+              Created {formatDate(viewModel.project?.createdAt)}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {viewModel.project?.modality === "video" && (
+              <Button
+                size="sm"
+                onClick={viewModel.openVideoEditor}
+                className="gap-1.5"
+              >
+                <Clapperboard className="size-4" />
+                Open video editor
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={viewModel.refreshData}
+              disabled={viewModel.isLoading}
+              className="gap-1.5"
+            >
+              <RefreshCw
+                className={cn("size-4", viewModel.isLoading && "animate-spin")}
+              />
+              Refresh
+            </Button>
+            {cloudSync.activeConfig && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={cloudSync.pushToCloud}
+                  disabled={cloudSync.isSyncing}
+                  className="gap-1.5"
+                  title={`Upload images to ${cloudSync.activeConfig.name}`}
+                >
+                  <CloudUpload
+                    className={cn(
+                      "size-4",
+                      cloudSync.isSyncing && "animate-pulse"
+                    )}
+                  />
+                  Push
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={cloudSync.pullFromCloud}
+                  disabled={cloudSync.isSyncing}
+                  className="gap-1.5"
+                  title={`Download images from ${cloudSync.activeConfig.name}`}
+                >
+                  <CloudDownload
+                    className={cn(
+                      "size-4",
+                      cloudSync.isSyncing && "animate-pulse"
+                    )}
+                  />
+                  Pull
+                </Button>
+              </>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={viewModel.openEditProjectModal}
+              className="gap-1.5"
+            >
+              <Edit className="size-4" />
+              Edit
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => nextImageId && viewModel.navigateToImage(nextImageId)}
+              disabled={!nextImageId}
+              className="gap-1.5"
+            >
+              <Play className="size-4" />
+              {labelingCta}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {viewModel.isLoading ? (
+        <div className="flex h-64 items-center justify-center">
+          <div className="flex flex-col items-center gap-3 text-muted-foreground">
+            <Spinner className="size-6" />
+            <p className="text-sm">Loading project data…</p>
+          </div>
+        </div>
+      ) : viewModel.error ? (
+        <Card className="border-destructive/40">
+          <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
+            <p className="font-medium text-destructive">Error loading project</p>
+            <p className="max-w-md text-sm text-muted-foreground">
+              {typeof viewModel.error === "string"
+                ? viewModel.error
+                : "An unexpected error occurred."}
+            </p>
+            <Button variant="outline" size="sm" onClick={viewModel.loadProjectData}>
+              Try again
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          {/* Stat cards */}
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {stats.map((stat) => (
+              <Card key={stat.label} size="sm">
+                <CardContent className="flex items-center gap-3">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                    <stat.icon className="size-4.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">{stat.label}</p>
+                    <p className="truncate text-lg font-semibold tabular-nums text-foreground">
+                      {stat.value}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Progress */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Labeling progress</CardTitle>
+              <CardAction>
+                <span className="text-sm tabular-nums text-muted-foreground">
+                  {s.annotatedImages} / {s.totalImages} images · {s.progress}%
+                </span>
+              </CardAction>
+            </CardHeader>
+            <CardContent>
+              <Progress value={s.progress} />
+            </CardContent>
+          </Card>
+
+          {/* Tabs */}
+          <Tabs
+            value={viewModel.activeTab}
+            onValueChange={(value) =>
+              viewModel.setActiveTab(
+                value as "images" | "upload" | "labels" | "training"
+              )
+            }
+            className="gap-4"
+          >
+            <TabsList>
+              <TabsTrigger value="images" className="gap-1.5">
+                <ImageIcon className="size-4" />
+                Images
+              </TabsTrigger>
+              <TabsTrigger value="labels" className="gap-1.5">
+                <Tag className="size-4" />
+                Classes
+              </TabsTrigger>
+              <TabsTrigger value="upload" className="gap-1.5">
+                <Upload className="size-4" />
+                Upload
+              </TabsTrigger>
+              <TabsTrigger value="training" className="gap-1.5">
+                <Brain className="size-4" />
+                Training
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="images" className="flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold">Images</h2>
+                <Badge variant="secondary">{s.totalImages} total</Badge>
+              </div>
+              <ImageTable
+                images={viewModel.images}
+                isLoading={viewModel.isLoading}
+                onImageClick={viewModel.navigateToImage}
+                onImageDelete={viewModel.deleteImage}
+                showActions
+                showPagination
+                pageSize={viewModel.pageSize}
+              />
+            </TabsContent>
+
+            <TabsContent value="labels" className="flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold">Classes</h2>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary">{s.totalLabels} total</Badge>
+                  <Button
+                    size="sm"
+                    onClick={viewModel.openAddLabelModal}
+                    className="gap-1.5"
+                  >
+                    <Plus className="size-4" />
+                    Add class
+                  </Button>
+                </div>
+              </div>
+
+              {viewModel.labels.length > 0 ? (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {viewModel.labels.map((label) => {
+                    const count = labelCounts.get(label.id) ?? 0
+                    const pct = Math.round((count / maxLabelCount) * 100)
+                    return (
+                      <Card key={label.id} size="sm">
+                        <CardContent className="flex flex-col gap-2.5">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="size-3 shrink-0 rounded-full ring-1 ring-foreground/10"
+                              style={{ backgroundColor: label.color }}
+                            />
+                            <span className="min-w-0 flex-1 truncate font-medium">
+                              {label.name}
+                            </span>
+                            <Badge variant="secondary" className="tabular-nums">
+                              {count}
+                            </Badge>
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              onClick={() => viewModel.deleteLabel(label.id)}
+                              disabled={viewModel.isCreatingLabel}
+                              className="text-muted-foreground hover:text-destructive"
+                              aria-label={`Delete ${label.name}`}
+                            >
+                              <Trash2 className="size-4" />
+                            </Button>
+                          </div>
+                          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                            <div
+                              className="h-full rounded-full"
+                              style={{
+                                width: `${pct}%`,
+                                backgroundColor: label.color,
+                              }}
+                            />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )
+                  })}
+                </div>
+              ) : (
+                <EmptyState
+                  icon={<Tag className="size-10 text-muted-foreground" />}
+                  title="No classes yet"
+                  description="Add classes to start annotating, or they'll be created on the fly while labeling."
+                  action={
+                    <Button onClick={viewModel.openAddLabelModal} className="gap-1.5">
+                      <Plus className="size-4" />
+                      Add your first class
+                    </Button>
+                  }
+                />
+              )}
+            </TabsContent>
+
+            <TabsContent value="upload" className="flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold">Upload images</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Reference a folder of images — files stay on disk, nothing is
+                    copied.
+                  </p>
+                </div>
+                <Badge variant="secondary">
+                  {viewModel.newImages.length} selected
+                </Badge>
+              </div>
+
+              <Button
+                variant="outline"
+                className="w-full gap-2"
+                onClick={viewModel.addImagesFromFolder}
+                disabled={viewModel.isUploading}
+              >
+                {viewModel.isUploading ? (
+                  <Spinner />
+                ) : (
+                  <FolderOpen className="size-5" />
+                )}
+                {viewModel.isUploading ? "Scanning folder…" : "Open image folder"}
+              </Button>
+
+              <div className="flex flex-col gap-1.5 rounded-lg border border-dashed p-3">
+                <Button
+                  variant="outline"
+                  className="w-full gap-2"
+                  onClick={handleImportDataset}
+                  disabled={viewModel.isImporting}
+                >
+                  {viewModel.isImporting ? (
+                    <Spinner />
+                  ) : (
+                    <Import className="size-5" />
+                  )}
+                  {viewModel.isImporting
+                    ? "Importing dataset…"
+                    : "Import labeled dataset (YOLO / Roboflow)"}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Point to a folder with <code>data.yaml</code> + images +{" "}
+                  <code>labels/*.txt</code>. Classes, images, and boxes are
+                  imported so you can keep labeling and training on them.
+                </p>
+              </div>
+
+              <ImageGrid
+                images={viewModel.newImages}
+                onRemove={viewModel.handleRemoveImage}
+              />
+
+              {viewModel.newImages.length > 0 && (
+                <div className="flex justify-end">
+                  <Button
+                    onClick={viewModel.saveImages}
+                    disabled={viewModel.isUploading || viewModel.isSaving}
+                    className="gap-1.5"
+                  >
+                    {viewModel.isSaving ? <Spinner /> : <Plus className="size-4" />}
+                    {viewModel.isSaving
+                      ? "Saving images…"
+                      : `Save ${viewModel.newImages.length} image${
+                          viewModel.newImages.length !== 1 ? "s" : ""
+                        }`}
+                  </Button>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="training" className="flex flex-col gap-4">
+              <div>
+                <h2 className="text-lg font-semibold">Train a model</h2>
+                <p className="max-w-2xl text-sm text-muted-foreground">
+                  Train on this project&apos;s labeled images, then export the
+                  result to ONNX — it becomes a detection model you can pick in
+                  the labeler&apos;s Auto-label control to pre-label the rest.
+                  Label a few → train → auto-label → correct → repeat.
+                </p>
+              </div>
+              <TrainingMonitor
+                projectId={projectId}
+                onUseForLabeling={() =>
+                  nextImageId && viewModel.navigateToImage(nextImageId)
+                }
+              />
+            </TabsContent>
+          </Tabs>
+        </>
+      )}
+
+      {/* Modals */}
+      <EditProjectModal
+        isOpen={viewModel.isEditProjectModalOpen}
+        onClose={viewModel.closeEditProjectModal}
+        onSave={viewModel.updateProject}
+        isLoading={viewModel.isEditingProject}
+        projectName={viewModel.projectName}
+        projectDescription={viewModel.project?.description ?? ""}
+      />
+
+      <AddLabelModal
+        isOpen={viewModel.isAddLabelModalOpen}
+        onClose={viewModel.closeAddLabelModal}
+        onCreate={viewModel.createLabel}
+        isLoading={viewModel.isCreatingLabel}
+      />
+    </div>
+  )
+})
+
+ProjectDetails.displayName = "ProjectDetails"
+
+const EmptyState = ({
+  icon,
+  title,
+  description,
+  action,
+}: {
+  icon: React.ReactNode
+  title: string
+  description: string
+  action?: React.ReactNode
+}) => (
+  <Card>
+    <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
+      {icon}
+      <div className="space-y-1">
+        <h3 className="font-semibold text-foreground">{title}</h3>
+        <p className="mx-auto max-w-sm text-sm text-muted-foreground">
+          {description}
+        </p>
+      </div>
+      {action}
+    </CardContent>
+  </Card>
+)
+
+export default ProjectDetails

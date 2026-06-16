@@ -1,6 +1,6 @@
 import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
-import App from "./App"
+import App from "./app/App"
 
 // Boot-timeline hooks defined inline in index.html (available before this
 // module's chunk loads). Optional so a plain web/test build without them is fine.

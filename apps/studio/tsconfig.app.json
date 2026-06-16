@@ -31,8 +31,8 @@
   "include": [
     "src/**/*.ts",
     "src/**/*.tsx",
-    "src/types/global.d.ts",
-    "src/types",
+    "src/shared/types/global.d.ts",
+    "src/shared/types",
     "src/**/*.d.ts"
   ]
 }
