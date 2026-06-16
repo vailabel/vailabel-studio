@@ -12,3 +12,7 @@ vailabel-core = { workspace = true }
 vailabel-shared = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+# Infrastructure layer only: the videos/tracks JSON-blob tables live in this
+# module's own Diesel schema over the shared vailabel-db connection.
+vailabel-db = { workspace = true }
+diesel = { workspace = true }

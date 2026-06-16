@@ -1,0 +1,18 @@
+[package]
+name = "vailabel-workspace"
+version = "0.1.0"
+edition = "2021"
+description = "Workspace module: app-level persistence that belongs to no business domain — key/value settings, per-project undo/redo history, and the keychain secret-key registry. Typed Diesel over the shared vailabel-db connection."
+
+[lib]
+name = "vailabel_workspace"
+
+[dependencies]
+vailabel-core = { workspace = true }
+vailabel-shared = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+# Infrastructure layer only: settings/history/secret_keys live in this module's
+# own Diesel schema, querying the shared vailabel-db connection.
+vailabel-db = { workspace = true }
+diesel = { workspace = true }

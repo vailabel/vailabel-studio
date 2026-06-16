@@ -13,3 +13,5 @@
 pub mod contracts;
 pub mod domain;
 pub mod infrastructure;
+
+pub use domain::{AiModel, RuntimeModel};

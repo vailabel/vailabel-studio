@@ -1,6 +1,48 @@
-//! LabelClass lifecycle domain events.
+//! LabelClass + Annotation lifecycle domain events.
 
 use vailabel_core::DomainEvent;
+
+/// A fact about an `Annotation`'s lifecycle. The [`AnnotationEvent::action`] verb
+/// is the `action` the `studio://domain-event` channel carries (entity
+/// `"annotations"`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AnnotationEvent {
+    /// A new annotation was created.
+    Created { id: String },
+    /// An existing annotation was updated.
+    Updated { id: String },
+    /// An annotation was deleted.
+    Deleted { id: String },
+}
+
+impl AnnotationEvent {
+    /// The UI-channel action verb for this event.
+    pub fn action(&self) -> &'static str {
+        match self {
+            AnnotationEvent::Created { .. } => "created",
+            AnnotationEvent::Updated { .. } => "updated",
+            AnnotationEvent::Deleted { .. } => "deleted",
+        }
+    }
+}
+
+impl DomainEvent for AnnotationEvent {
+    fn event_type(&self) -> &str {
+        match self {
+            AnnotationEvent::Created { .. } => "annotation.created",
+            AnnotationEvent::Updated { .. } => "annotation.updated",
+            AnnotationEvent::Deleted { .. } => "annotation.deleted",
+        }
+    }
+
+    fn aggregate_id(&self) -> Option<&str> {
+        match self {
+            AnnotationEvent::Created { id }
+            | AnnotationEvent::Updated { id }
+            | AnnotationEvent::Deleted { id } => Some(id),
+        }
+    }
+}
 
 /// A fact about a `LabelClass`'s lifecycle. The [`LabelEvent::action`] verb is
 /// the `action` the `studio://domain-event` channel carries (entity `"labels"`),

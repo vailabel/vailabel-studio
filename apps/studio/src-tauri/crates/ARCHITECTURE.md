@@ -20,7 +20,7 @@ vailabel-shared    shared kernel + event port (core + serde/uuid/chrono)
 vailabel-db        shared SQLite connection  ◄────────┘   (diesel + libsqlite3-sys)
    ▲
 vailabel-studio    the Tauri binary = composition root (tauri, opendal, ort,
-                   reqwest, fs, process, the residual DesktopStore — wires it all)
+                   reqwest, fs, process — wires it all)
 ```
 
 - **`core`** depends on nothing internal. It is the root.
@@ -33,28 +33,49 @@ vailabel-studio    the Tauri binary = composition root (tauri, opendal, ort,
   `transaction`) and re-exports `diesel`. It is *not* a pure crate. `Db::transaction`
   is the unit-of-work boundary (commit on `Ok`, rollback on `Err`).
 - **module crates** (`project`, `dataset`, `annotation`, `training`, `cloud`,
-  `search`, `models`, `copilot`, plus `analysis`/`video`) depend on `core`/`shared`.
-  Their `domain`/`application`/`contracts` layers are **pure**. Modules that own
-  persistence (`project`, `dataset`, `annotation`, `training`) add an
-  `infrastructure/` layer with the module's own `diesel::table!` + Row mapping +
-  typed repository over the shared `vailabel-db`; `cloud`'s `infrastructure/`
-  wraps OpenDAL instead. A module whose work is infrastructural but carries no
-  persistence of its own (`copilot`) stays **fully pure** and declares **outbound
-  ports** that the composition root implements (see *Outbound ports*).
+  `search`, `models`, `copilot`, `workspace`, plus `analysis`/`video`) depend on
+  `core`/`shared`. Their `domain`/`application`/`contracts` layers are **pure**.
+  Modules that own persistence (`project`, `dataset`, `annotation`→labels +
+  annotations + predictions, `training`, `models`→ai_models + runtime_models,
+  `workspace`→settings + history + secret-keys, `analysis`→reports, `video`→
+  videos/tracks) add an `infrastructure/` layer with the module's own
+  `diesel::table!` + Row mapping + typed repository over the shared `vailabel-db`;
+  `cloud`'s `infrastructure/` wraps OpenDAL instead. A module whose work is
+  infrastructural but carries no persistence of its own (`copilot`) stays **fully
+  pure** and declares **outbound ports** that the composition root implements (see
+  *Outbound ports*).
 - **`plugin`** is a pure framework crate: object-safe capability traits
   (Detector/Segmenter/Ocr/Exporter/Trainer/Embedding, `&Value → DomainResult<Value>`)
   + a `PluginRegistry` that tracks each plugin's `PluginState` lifecycle and
   offers typed lookup. Concrete plugins live at the composition root.
 - **`runtime`** is the anti-corruption layer to the Python runtime; it re-exports
   the Tauri-free `runtime-manager` crate (excluded from the purity rule).
-- The **binary** (`vailabel-studio`) is the composition root. It opens the `Db`,
+- The **binary** (`vailabel-studio`) is the composition root, organized by
+  **vertical feature slice**: `src/lib.rs` holds `AppState` + `AppError` + `run()`
+  (wiring + the `generate_handler!` registry); `src/shared/` holds the cross-cutting
+  kernel (JSON entity helpers, `studio://domain-event` emission, the
+  `TauriEventSubscriber`, keychain helpers); and `src/features/<slice>/` holds one
+  folder per bounded context — each with its `commands.rs` (the `#[tauri::command]`
+  handlers) next to the composition-root adapters it needs (`service.rs`, port
+  impls). Slices: `projects`, `annotation` (labels + annotations), `workspace`
+  (settings/history/secrets), `dataset` (images + YOLO), `ai`, `copilot`,
+  `analysis`, `video`, `cloud`, `runtime`, `training`, `plugins`, `system`. A Tauri
+  command just dispatches to its slice's service/app-service. It opens the `Db`,
+  runs the embedded `migrations/` (the single source of truth for the schema),
   builds each module's Diesel repository, registers the `EventBus`'s subscribers
-  (`TauriEventSubscriber` in `src/composition.rs`, which emits on
+  (`TauriEventSubscriber` in `src/shared/composition.rs`, which emits on
   `studio://domain-event`), builds the `PluginRegistry` (registering concrete
-  plugins like the runtime-backed `RuntimeDetectorPlugin` in `src/plugins.rs`),
-  wires the application services, and exposes Tauri commands. It also keeps the
-  **residual `DesktopStore`** (typed methods + the `EntityStore` trait) for
-  entities not yet migrated to a module.
+  plugins like the runtime-backed `RuntimeDetectorPlugin` in
+  `src/features/plugins/detector.rs`), wires the application services, and exposes
+  Tauri commands. There is no
+  generic persistence facade: `AiService`, the copilot ports, the dataset
+  import/export commands, and the runtime-model glue each hold the typed module
+  repositories they actually use and persist through them directly. `AiService`,
+  which still shapes `serde_json::Value` internally, does so over a small private
+  `RepoStore` shim (in `src/ai/service.rs`) that deserializes each JSON payload
+  into the owning module's aggregate and calls its repository — the dual-key
+  `to_value()` (camel + snake) vs plain-serde split per kind keeps the wire
+  format identical. Every entity is persisted through the repository pattern.
 
 A module must not reach into another module's persistence. Cross-module
 communication goes through public contracts and domain events.
@@ -115,25 +136,35 @@ types) and the composition root implements it, so the module stays pure:
   infrastructure/  the module's diesel schema + Row + typed repository (over vailabel-db)
 ```
 
-`project` is the fully-wired reference. `project`, `dataset` (images),
-`annotation` (the `LabelClass` aggregate), and `training` (the `TrainingRun`
-aggregate) persist via per-module Diesel; `cloud` persists via OpenDAL.
-`copilot` is a pure module driven through outbound ports (above). The remaining
-crates are still type-extracted (`analysis`, `video`, `models`) or a boundary
-stub (`search`).
+`project` is the fully-wired reference. Per-module Diesel persistence now covers
+`project`, `dataset` (images), `annotation` (`LabelClass` + `Annotation` +
+`Prediction`), `training` (`TrainingRun`), `models` (`AiModel` + `RuntimeModel`),
+`workspace` (settings + history + secret-keys), `analysis` (reports; source rows
+read through the dataset/annotation repos), and `video` (videos/tracks JSON
+blobs). `cloud` persists via OpenDAL. `copilot` is a pure module driven through
+outbound ports (above). `search` is still a boundary stub.
+
+Pure conversion logic that the Tauri commands used to inline now lives in the
+owning crate's `domain`: `dataset::domain::yolo` (the YOLO ⇄ annotation geometry
+for export/import) and `training::domain::results` (parsing ultralytics'
+`results.csv`). The filesystem/runtime orchestration around them stays at the
+composition root as thin adapters — `src/features/dataset/service.rs`
+(`DatasetService`, walks/writes the dataset folder) and
+`src/features/training/ops.rs` (training + export coordination over the runtime +
+AI services) — so each slice's `commands.rs` handlers are one-line dispatchers.
 
 ## Enforcement
 
 `vailabel-arch-tests` (run by `cargo test`) distinguishes two tiers:
 
-- **Fully pure crates** (`core`, `shared`, `plugin`, `copilot`, and the
-  not-yet-migrated module crates `analysis`/`video`/`models`/`search`): the
+- **Fully pure crates** (`core`, `shared`, `plugin`, `copilot`, `search`): the
   ENTIRE `src/` must be free of infrastructure imports
   (`diesel::`/`tauri::`/`rusqlite::`/`reqwest::`/`opendal::`/`ort::`/`std::process`/
   `std::fs`), and the `Cargo.toml` must declare no infrastructure dependency.
   `copilot` qualifies because its inference/LLM work lives behind outbound ports.
 - **Layered module crates** (`project`, `dataset`, `annotation`, `training`,
-  `cloud`): their `domain`/`application`/`contracts` layers must stay pure
+  `cloud`, `video`, `analysis`, `models`, `workspace`): their
+  `domain`/`application`/`contracts` layers must stay pure
   (scanned at folder granularity), but `infrastructure/` may use its backing
   technology — `diesel` + `vailabel-db`, or (for `cloud`) `opendal`.
 - `core` must depend on nothing internal.
@@ -170,11 +201,30 @@ that it catches real usage. The compiler additionally enforces the crate DAG.
   command responses and the `studio://domain-event` wire format are unchanged.
   (Alongside this, the cloud storage module was extracted into the layered
   `cloud` crate over OpenDAL.)
+- **Phase 6 (storage restructure)** — every entity now persists through the
+  per-module repository pattern and `migrations/` is the single source of truth.
+  `diesel_migrations` runs the embedded `migrations/` at startup (the runtime
+  `CREATE TABLE` bootstrap was removed). The remaining JSON-blob entities moved
+  onto typed Diesel repositories: `annotation` gained the `Annotation` +
+  `Prediction` aggregates; `models` gained `AiModel` + `RuntimeModel`; the new
+  `workspace` crate owns settings + history + the secret-key registry; the
+  `analysis`/`video` crates absorbed their Diesel impls (replacing the binary
+  adapters over the old store). The monolithic `DesktopStore` (Row structs +
+  camel/snake JSON converters) was deleted. The residual generic `EntityStore`
+  trait + `RepositoryEntityStore` adapter (`src/store.rs` / `src/repo_entity_store.rs`)
+  were then removed too: each consumer now holds the typed module repositories it
+  uses, and `AiService` keeps a private per-kind `RepoStore` shim for its internal
+  JSON shaping. Typed aggregates serialize camelCase and re-emit the snake_case
+  aliases the frontend reads via `to_value()`, so Tauri responses + the
+  `studio://domain-event` wire format are unchanged. The dead `tasks` table is no
+  longer modeled.
 
 Deferred to later phases: routing the inference commands through the
 `PluginRegistry` (so plugins are the execution path) + more concrete plugins;
-migrating the remaining entities and the `analysis`/`video`/`models` service
-logic into modules/application layers (and routing `copilot_apply_action`
-through the module); cross-process/integration event transport; the React
-feature reorg. (`--no-default-features` still has the pre-existing
-`ai/service.rs` build break, tracked separately.)
+fully retyping `AiService`'s internal JSON shaping onto the typed aggregates (it
+no longer goes through a generic facade, but still shapes `Value` over the
+private `RepoStore` shim rather than working in typed aggregates end to end);
+routing `copilot_apply_action` through a module; cross-process/integration event
+transport; the React feature reorg.
+(`--no-default-features` still has the pre-existing `ai/service.rs` build break,
+tracked separately.)

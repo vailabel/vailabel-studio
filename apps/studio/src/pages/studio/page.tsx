@@ -1,10 +1,10 @@
 import { memo, useMemo } from "react"
-import { ImageLabeler } from "@/components/studio/image-labeler"
+import { LabelingScreen } from "@/components/studio/labeling-screen"
 import { CanvasProvider } from "@/contexts/canvas-context"
 import { useParams } from "react-router-dom"
 
 // Memoized wrapper to prevent unnecessary re-renders
-const MemoizedImageLabeler = memo(ImageLabeler)
+const MemoizedLabelingScreen = memo(LabelingScreen)
 
 export default function ImageStudio() {
   const { projectId, imageId } = useParams<{
@@ -12,7 +12,7 @@ export default function ImageStudio() {
     imageId: string
   }>()
 
-  // Memoize the props to prevent unnecessary re-renders of ImageLabeler
+  // Memoize the props to prevent unnecessary re-renders of the labeling screen
   const labelerProps = useMemo(
     () => ({
       projectId,
@@ -23,7 +23,7 @@ export default function ImageStudio() {
 
   return (
     <CanvasProvider>
-      <MemoizedImageLabeler {...labelerProps} />
+      <MemoizedLabelingScreen {...labelerProps} />
     </CanvasProvider>
   )
 }

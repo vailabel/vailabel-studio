@@ -2,26 +2,32 @@ import { useCallback, useMemo } from "react"
 import type { Label } from "@/types/core"
 import type { StudioScreenViewModel } from "@/features/studio/use-studio-screen-viewmodel"
 
-// Whole-item, single-label classification shared by every editor (image or text).
-// One annotation of type "classification" per item; assigning replaces it.
+// Whole-item classification shared by every editor. Single-label (image / text
+// classification) replaces; multi-label (taxonomy) toggles. One annotation of
+// type "classification" per applied class.
 export function useClassification(viewModel: StudioScreenViewModel) {
-  const annotation = useMemo(
+  const classifications = useMemo(
     () =>
-      viewModel.data.annotations.find(
+      viewModel.data.annotations.filter(
         (entry) => entry.type === "classification"
       ),
     [viewModel.data.annotations]
   )
 
-  const clear = useCallback(async () => {
-    const existing = viewModel.data.annotations.filter(
-      (entry) => entry.type === "classification"
-    )
-    await Promise.all(
-      existing.map((entry) => viewModel.deleteAnnotation(entry.id))
-    )
-  }, [viewModel])
+  const annotation = classifications[0]
 
+  const selectedNames = useMemo(
+    () => new Set(classifications.map((entry) => entry.name)),
+    [classifications]
+  )
+
+  const clear = useCallback(async () => {
+    await Promise.all(
+      classifications.map((entry) => viewModel.deleteAnnotation(entry.id))
+    )
+  }, [classifications, viewModel])
+
+  // Single-label: replace any existing class with this one.
   const assign = useCallback(
     async (label: Label) => {
       await clear()
@@ -35,5 +41,23 @@ export function useClassification(viewModel: StudioScreenViewModel) {
     [viewModel, clear]
   )
 
-  return { annotation, assign, clear }
+  // Multi-label: add the class if absent, remove it if already applied.
+  const toggle = useCallback(
+    async (label: Label) => {
+      const existing = classifications.find((entry) => entry.name === label.name)
+      if (existing) {
+        await viewModel.deleteAnnotation(existing.id)
+      } else {
+        await viewModel.createAnnotationFromDraft({
+          name: label.name,
+          color: label.color,
+          type: "classification",
+          coordinates: [],
+        })
+      }
+    },
+    [classifications, viewModel]
+  )
+
+  return { annotation, selectedNames, assign, toggle, clear }
 }

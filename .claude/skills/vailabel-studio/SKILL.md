@@ -1,6 +1,6 @@
 ---
 name: vailabel-studio
-description: Architecture map and conventions for VaiLabel Studio (Tauri + React desktop image-annotation tool). Use when working anywhere in apps/studio — the canvas/labeling tools, annotation create/save/render flow, the React state/viewmodels, or the Rust backend (store.rs / lib.rs / domain). Orients you fast so you don't have to re-explore the codebase.
+description: Architecture map and conventions for VaiLabel Studio (Tauri + React desktop image-annotation tool). Use when working anywhere in apps/studio — the canvas/labeling tools, annotation create/save/render flow, the React state/viewmodels, or the Rust backend (lib.rs composition root / the per-module crates). Orients you fast so you don't have to re-explore the codebase.
 ---
 
 # VaiLabel Studio — codebase guide
@@ -41,30 +41,40 @@ Tools: `box`, `polygon`, `point`, `line`, `linestrip`, `circle`, `freeDraw`, plu
    what the Canvas actually calls).
 7. **Services → IPC**: `src/services/*-service.ts` → `src/ipc/studio.ts` (`studioCommands`, e.g.
    `annotations_save`, `annotations_list_by_image`) → `src/ipc/invoke.ts`.
-8. **Backend**: `src-tauri/src/lib.rs` Tauri commands → `src/store.rs`.
+8. **Backend**: organized by vertical feature slice. `src-tauri/src/features/<slice>/commands.rs`
+   holds the `#[tauri::command]` handlers (thin dispatchers) next to that slice's adapters
+   (`service.rs`, port impls); they call the owning module's app-service / typed Diesel repo (in
+   `src-tauri/crates/<module>/`). `src/lib.rs` = composition root (`AppState`/`run()`/`generate_handler!`);
+   `src/shared/` = cross-cutting kernel (entity JSON helpers, domain-event emit, keychain).
 
 **Coordinates**: stored in **image space**. `getCanvasCoords` (`src/tools/canvas-utils.ts`) maps
 client→image; annotations render inside a div transformed by `translate(baseOffset) scale(zoom)`.
 
 ## Backend persistence (Rust)
 
-- `store.rs` `DesktopStore` = one `SqliteConnection`. `open()` creates tables idempotently with
-  `CREATE TABLE IF NOT EXISTS` (Diesel embedded migrations were removed — do **not** drop tables
-  on startup; that wipes user data). Generic `EntityStore`: `upsert_entity` / `list_entities` /
-  `list_by_field` dispatch by `kind`.
-- `lib.rs` `save_entity`: update-by-id (`merge_patch`) else create; `normalize_entity` injects
-  id/createdAt/updatedAt and mirrors camel/snake aliases (e.g. `imageId`↔`image_id`) + ensures
-  `coordinates`. It returns the **normalized payload, not a re-read DB row**. Command payload
-  structs use `#[serde(rename_all = "camelCase")]`.
+- **DDD modular monolith** (see `crates/ARCHITECTURE.md`). Each domain is a crate under
+  `src-tauri/crates/` with `domain/application/contracts` (pure) + an `infrastructure/` layer
+  holding the module's own `diesel::table!` + typed repository over the shared `vailabel-db`
+  connection. The embedded `migrations/` are the single source of truth for the schema and run at
+  startup — there is **no** runtime `CREATE TABLE`, and no monolithic `DesktopStore`/`EntityStore`
+  anymore (both removed). Persistence-owning modules: `project`, `dataset` (images), `annotation`
+  (`LabelClass` + `Annotation` + `Prediction`), `models` (`AiModel` + `RuntimeModel`), `workspace`
+  (settings + history + secret-keys), `training`, `analysis`, `video`.
+- The binary (`src/`) is the composition root: it builds each repo, wires the app services, and
+  exposes Tauri commands. The few command handlers / adapters that still shape `serde_json::Value`
+  (`AiService`, the dataset import/export commands, the runtime-model glue, the copilot ports) hold
+  the typed repos they need and persist directly; `AiService` uses a private per-kind `RepoStore`
+  shim (`src/features/ai/service.rs`) for that.
+- `lib.rs` `normalize_entity` injects id/createdAt/updatedAt and mirrors camel/snake aliases (e.g.
+  `imageId`↔`image_id`) + ensures `coordinates`, then the JSON is deserialized into the module's
+  aggregate and saved via its repo (`save_atomic`). Aggregates serialize back with dual-key
+  `to_value()` (camel + snake), so the wire format is unchanged. Command payload structs use
+  `#[serde(rename_all = "camelCase")]`.
 - **Domain events**: `emit_domain_event` → `app.emit("studio://domain-event", {entity, action, id,
-  projectId, imageId})`. Frontend `src/ipc/events.ts` `listenToStudioEvents` filters by entity and
+  projectId, imageId})` (also reachable via the `EventBus` + `TauriEventSubscriber` in
+  `src/composition.rs`). Frontend `src/ipc/events.ts` `listenToStudioEvents` filters by entity and
   **only fires on desktop** (`isDesktopApp()`). Viewmodels subscribe and call `loadData()` to
   refetch after a save.
-
-### ⚠️ Non-obvious gotcha
-**Annotations have no `domain/` module.** `annotations`, `predictions`, `history`, and `settings`
-go through the generic JSON `EntityStore` in `store.rs` (+ `lib.rs` commands). Only
-`projects`, `tasks`, `labels`, `images`, and `ai` have typed Diesel modules under `src/domain/`.
 
 ## Conventions / preferences
 

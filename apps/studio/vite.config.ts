@@ -11,6 +11,15 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    // CodeMirror breaks if @codemirror/state (and friends) resolve to more than
+    // one copy — force a single instance across @uiw/react-codemirror,
+    // codemirror-json-schema, and their peers.
+    dedupe: [
+      "@codemirror/state",
+      "@codemirror/view",
+      "@codemirror/language",
+      "@lezer/common",
+    ],
   },
   server: {
     host: "0.0.0.0",

@@ -1,7 +1,12 @@
-//! The infrastructure layer: ONNX-runtime-backed capability detection (and,
-//! over later slices, the inference engines/installer). Gated behind the
-//! `local-inference` feature for the `ort` parts; the only layer allowed `ort::`.
+//! The infrastructure layer: ONNX-runtime-backed capability detection (gated
+//! behind `local-inference`; the only layer allowed `ort::`) plus the typed
+//! Diesel repositories for the `ai_models` / `runtime_models` tables over the
+//! shared `vailabel-db` connection.
 
 pub mod gpu;
+pub mod record;
+pub mod repository;
+pub mod schema;
 
 pub use gpu::gpu_info;
+pub use repository::{DieselAiModelRepository, DieselRuntimeModelRepository};

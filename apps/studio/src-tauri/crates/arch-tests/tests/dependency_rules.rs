@@ -28,6 +28,7 @@ const FULLY_PURE: &[&str] = &[
 /// granularity and its `Cargo.toml` is exempt from the dependency check.
 const LAYERED: &[&str] = &[
     "project", "dataset", "annotation", "training", "cloud", "video", "analysis", "models",
+    "workspace",
 ];
 
 /// The layers of a LAYERED crate that must remain pure.

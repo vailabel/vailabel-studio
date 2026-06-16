@@ -21,6 +21,7 @@ members = [
     "crates/annotation",
     "crates/search",
     "crates/training",
+    "crates/workspace",
     "crates/arch-tests",
     "crates/db",
 ]
@@ -58,6 +59,7 @@ vailabel-runtime = { path = "crates/runtime" }
 vailabel-annotation = { path = "crates/annotation" }
 vailabel-search = { path = "crates/search" }
 vailabel-training = { path = "crates/training" }
+vailabel-workspace = { path = "crates/workspace" }
 vailabel-db = { path = "crates/db" }
 
 [package]
@@ -100,6 +102,7 @@ vailabel-models = { workspace = true }
 vailabel-copilot = { workspace = true }
 vailabel-plugin = { workspace = true }
 vailabel-training = { workspace = true }
+vailabel-workspace = { workspace = true }
 async-trait = { workspace = true }
 diesel = { workspace = true }
 diesel_migrations = { workspace = true }

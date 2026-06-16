@@ -55,15 +55,57 @@ describe("resolveCapabilities (two-axis taxonomy)", () => {
     expect(caps.editor).toBe("text")
   })
 
-  it("routes audio and video projects to the timeline editor", () => {
+  it("treats span tasks (ner/qa/relation) as region tasks", () => {
+    for (const task of ["ner", "question_answering", "relation_extraction"] as const) {
+      const caps = resolveCapabilities({ modality: "text", task })
+      expect(caps.editor).toBe("text")
+      expect(caps.allowsRegions).toBe(true)
+      expect(caps.allowsClassification).toBe(false)
+    }
+  })
+
+  it("treats text_classification and taxonomy as classification tasks", () => {
+    for (const task of ["text_classification", "taxonomy"] as const) {
+      const caps = resolveCapabilities({ modality: "text", task })
+      expect(caps.allowsClassification).toBe(true)
+      expect(caps.allowsRegions).toBe(false)
+    }
+  })
+
+  it("routes translation to the text editor with no regions or classes", () => {
+    const caps = resolveCapabilities({ modality: "text", task: "translation" })
+    expect(caps.editor).toBe("text")
+    expect(caps.allowsRegions).toBe(false)
+    expect(caps.allowsClassification).toBe(false)
+  })
+
+  it("routes audio projects to the audio editor and video to the video editor", () => {
     expect(resolveCapabilities({ modality: "audio", task: "audio_classification" }).editor).toBe(
-      "timeline"
+      "audio"
     )
-    expect(resolveCapabilities({ modality: "video", task: "tracking" }).editor).toBe("timeline")
+    expect(resolveCapabilities({ modality: "video", task: "tracking" }).editor).toBe("video")
   })
 
   it("defaults to the image modality for an unknown/missing modality", () => {
     const caps = resolveCapabilities({ modality: "hologram" as never })
     expect(caps.modality).toBe("image")
+  })
+
+  it("gives image/text/audio the item-centric chrome", () => {
+    for (const modality of ["image", "text", "audio"] as const) {
+      const caps = resolveCapabilities({ modality, task: "detection" })
+      expect(caps.chrome.itemSource).toBe("project-images")
+      expect(caps.chrome.showFileList).toBe(true)
+      expect(caps.chrome.showLabelPalette).toBe(true)
+      expect(caps.chrome.showBottomBar).toBe(true)
+    }
+  })
+
+  it("hides the generic chrome for video (the editor owns its own layout)", () => {
+    const caps = resolveCapabilities({ modality: "video", task: "tracking" })
+    expect(caps.chrome.itemSource).toBe("editor")
+    expect(caps.chrome.showFileList).toBe(false)
+    expect(caps.chrome.showLabelPalette).toBe(false)
+    expect(caps.chrome.showBottomBar).toBe(false)
   })
 })

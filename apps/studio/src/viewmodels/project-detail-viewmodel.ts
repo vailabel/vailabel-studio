@@ -278,6 +278,9 @@ export const useProjectDetailViewModel = (projectId: string) => {
     loadProjectData: refreshData,
     navigateToImage: (imageId: string) =>
       navigate(`/projects/${projectId}/studio/${imageId}`),
+    // Video projects now label inside the unified studio shell (its VideoEditor
+    // mounts the clip library + FFmpeg pipeline) — no separate video route.
+    openVideoEditor: () => navigate(`/projects/${projectId}/studio`),
     deleteImage: async (imageId: string) => {
       await services.getImageService().deleteImage(imageId)
       setImages((current) => current.filter((image) => image.id !== imageId))

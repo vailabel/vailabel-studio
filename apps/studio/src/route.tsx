@@ -11,7 +11,6 @@ import ProjectDetails from "./pages/projects/project-detail"
 import { AutoUpdateBanner } from "./components/layout/auto-update-banner"
 import AIModelListPage from "./pages/ai-model"
 import DatasetIntelligence from "./pages/dataset-intelligence"
-import VideoAnnotation from "./pages/video-annotation"
 import { ProjectCreate } from "./pages/projects/project-create"
 
 const AppRoutes = () => {
@@ -35,7 +34,6 @@ const AppRoutes = () => {
             path="/dataset-intelligence"
             element={<DatasetIntelligence />}
           />
-          <Route path="/video-annotation" element={<VideoAnnotation />} />
           <Route path="/labels" element={<LabelsPage />} />
           <Route
             path="/cloud-storage"
@@ -44,6 +42,9 @@ const AppRoutes = () => {
           <Route path="/settings" element={<Setting />} />
         </Route>
 
+        {/* Param-less variant for projects whose items are imported inside the
+            editor (video clips); `imageId` is undefined, which the shell tolerates. */}
+        <Route path="/projects/:projectId/studio" element={<ImageStudio />} />
         <Route
           path="/projects/:projectId/studio/:imageId"
           element={<ImageStudio />}

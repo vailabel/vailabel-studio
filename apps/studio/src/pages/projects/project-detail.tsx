@@ -18,6 +18,7 @@ import {
   CloudUpload,
   CloudDownload,
   Brain,
+  Clapperboard,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -178,6 +179,16 @@ const ProjectDetails = memo(() => {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {viewModel.project?.modality === "video" && (
+              <Button
+                size="sm"
+                onClick={viewModel.openVideoEditor}
+                className="gap-1.5"
+              >
+                <Clapperboard className="size-4" />
+                Open video editor
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"

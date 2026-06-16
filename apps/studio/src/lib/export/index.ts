@@ -7,6 +7,8 @@ import { toYolo } from "./yolo-exporter"
 import { toVocXml, vocFileName } from "./voc-exporter"
 import { baseName } from "./geometry"
 import { toTextJsonl, type TextExportDoc } from "@/lib/text-spans"
+import { toAudioJsonl, type AudioExportClip } from "@/lib/audio-segments"
+import { toLabelStudioResults } from "@/lib/label-config/result"
 
 export type ExportFormat =
   | "labelme"
@@ -15,6 +17,8 @@ export type ExportFormat =
   | "yolo-seg"
   | "voc"
   | "jsonl"
+  | "audio-jsonl"
+  | "label-studio"
 
 export interface ExportDataset {
   images: ImageData[]
@@ -67,6 +71,18 @@ export const EXPORT_FORMATS: ExportFormatMeta[] = [
     description: "One documents.jsonl with text + spans + classes.",
     modality: "text",
   },
+  {
+    id: "audio-jsonl",
+    label: "JSONL (segments)",
+    description: "One audio.jsonl with time-range segments + transcripts.",
+    modality: "audio",
+  },
+  {
+    id: "label-studio",
+    label: "Label Studio JSON",
+    description: "One annotations.json of tasks with a generic result array.",
+    modality: "custom",
+  },
 ]
 
 /** Export formats applicable to a project's modality (defaults to image). */
@@ -98,22 +114,73 @@ export async function exportDataset(
         const text = (await readTextFile(image.path).catch(() => null)) ?? ""
         const label: Array<[number, number, string]> = []
         const cats: string[] = []
+        const spanById = new Map<string, [number, number]>()
+        let translation: string | undefined
+
         for (const annotation of annotations) {
-          if (annotation.meta?.kind === "text") {
-            label.push([
-              annotation.meta.charStart,
-              annotation.meta.charEnd,
-              annotation.name,
-            ])
+          const meta = annotation.meta
+          if (meta?.kind === "text") {
+            label.push([meta.charStart, meta.charEnd, annotation.name])
+            spanById.set(annotation.id, [meta.charStart, meta.charEnd])
+          } else if (meta?.kind === "value") {
+            translation = meta.text
           } else if (annotation.type === "classification") {
             cats.push(annotation.name)
           }
         }
+
+        // Relations reference entities by offset so the export is self-contained.
+        const relations: TextExportDoc["relations"] = []
+        for (const annotation of annotations) {
+          if (annotation.meta?.kind !== "relation") continue
+          const from = spanById.get(annotation.meta.fromId)
+          const to = spanById.get(annotation.meta.toId)
+          if (from && to) relations.push({ from, to, type: annotation.name })
+        }
+
         label.sort((a, b) => a[0] - b[0])
-        return { text, label, cats }
+        return { text, label, cats, relations, translation }
       })
     )
     await writeTextFile(join(outputDir, "documents.jsonl"), toTextJsonl(docs))
+    return 1
+  }
+
+  if (format === "audio-jsonl") {
+    const clips: AudioExportClip[] = images.map((image) => {
+      const annotations = annotationsByImage.get(image.id) || []
+      const segments = annotations
+        .filter((annotation) => annotation.meta?.kind === "audio")
+        .map((annotation) => {
+          const meta = annotation.meta as Extract<
+            NonNullable<typeof annotation.meta>,
+            { kind: "audio" }
+          >
+          return {
+            start: meta.tStart,
+            end: meta.tEnd,
+            label: annotation.name,
+            text: meta.text,
+          }
+        })
+        .sort((a, b) => a.start - b.start)
+      return { audio: image.name, segments }
+    })
+    await writeTextFile(join(outputDir, "audio.jsonl"), toAudioJsonl(clips))
+    return 1
+  }
+
+  if (format === "label-studio") {
+    const tasks = images.map((image) => ({
+      data: { item: image.name },
+      annotations: [
+        { result: toLabelStudioResults(annotationsByImage.get(image.id) || []) },
+      ],
+    }))
+    await writeTextFile(
+      join(outputDir, "annotations.json"),
+      JSON.stringify(tasks, null, 2)
+    )
     return 1
   }
 

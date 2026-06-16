@@ -1,6 +1,10 @@
+DROP TABLE IF EXISTS tracks;
+DROP TABLE IF EXISTS videos;
+DROP TABLE IF EXISTS analysis_reports;
 DROP TABLE IF EXISTS secret_keys;
 DROP TABLE IF EXISTS history;
 DROP TABLE IF EXISTS settings;
+DROP TABLE IF EXISTS runtime_models;
 DROP TABLE IF EXISTS ai_models;
 DROP TABLE IF EXISTS predictions;
 DROP TABLE IF EXISTS annotations;

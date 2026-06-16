@@ -26,6 +26,40 @@ export interface TextSegment {
   isEntityStart: boolean
 }
 
+/** A directed, typed link between two entity annotations. */
+export interface RelationLink {
+  id: string
+  fromId: string
+  toId: string
+  label: string
+}
+
+/** Pull relation links (relation extraction) out of a document's annotations. */
+export function annotationsToRelations(
+  annotations: Annotation[]
+): RelationLink[] {
+  const relations: RelationLink[] = []
+  for (const annotation of annotations) {
+    const meta = annotation.meta
+    if (!meta || meta.kind !== "relation") continue
+    relations.push({
+      id: annotation.id,
+      fromId: meta.fromId,
+      toId: meta.toId,
+      label: annotation.name,
+    })
+  }
+  return relations
+}
+
+/** Read the single free-text value (translation / response) for a document. */
+export function annotationsToValue(annotations: Annotation[]): string {
+  for (const annotation of annotations) {
+    if (annotation.meta?.kind === "value") return annotation.meta.text
+  }
+  return ""
+}
+
 /** Pull the labeled text spans out of a document's annotations. */
 export function annotationsToSpans(annotations: Annotation[]): EntitySpan[] {
   const spans: EntitySpan[] = []
@@ -136,15 +170,32 @@ export interface TextExportDoc {
   text: string
   /** NER spans as [start, end, label] triples (doccano `label` convention). */
   label: Array<[number, number, string]>
-  /** Whole-document classes (text classification). */
+  /** Whole-document classes (text / taxonomy classification). */
   cats: string[]
+  /** Relations as offset-addressed links (relation extraction). */
+  relations?: Array<{
+    from: [number, number]
+    to: [number, number]
+    type: string
+  }>
+  /** Free-text output (machine translation / response generation). */
+  translation?: string
 }
 
-/** Serialize text documents + their spans/classes to JSONL (one doc per line). */
+/** Serialize text documents + their spans/classes to JSONL (one doc per line).
+ *  Relations/translation keys are emitted only when present, so simpler tasks
+ *  stay clean. */
 export function toTextJsonl(docs: TextExportDoc[]): string {
   return docs
-    .map((doc) =>
-      JSON.stringify({ text: doc.text, label: doc.label, cats: doc.cats })
-    )
+    .map((doc) => {
+      const row: Record<string, unknown> = {
+        text: doc.text,
+        label: doc.label,
+        cats: doc.cats,
+      }
+      if (doc.relations && doc.relations.length > 0) row.relations = doc.relations
+      if (doc.translation) row.translation = doc.translation
+      return JSON.stringify(row)
+    })
     .join("\n")
 }

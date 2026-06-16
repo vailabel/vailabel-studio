@@ -1,7 +1,6 @@
 import * as React from "react"
 import {
   Brain,
-  Clapperboard,
   Folder,
   Home,
   ScanSearch,
@@ -36,7 +35,6 @@ const navigation: NavigationItem[] = [
     href: "/dataset-intelligence",
     icon: ScanSearch,
   },
-  { name: "Video Annotation", href: "/video-annotation", icon: Clapperboard },
   { name: "AI Assistant", href: "/ai-models", icon: Brain },
   { name: "Settings", href: "/settings", icon: Settings2 },
 ]

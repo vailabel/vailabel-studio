@@ -1,6 +1,8 @@
 import type { Annotation } from "@/types/core"
 import {
   annotationsToSpans,
+  annotationsToRelations,
+  annotationsToValue,
   buildSegments,
   trimRange,
   toTextJsonl,
@@ -73,6 +75,29 @@ describe("annotationsToSpans", () => {
   })
 })
 
+describe("annotationsToRelations", () => {
+  it("extracts relation-meta annotations", () => {
+    const annotations = [
+      { id: "r1", name: "works_at", meta: { kind: "relation", fromId: "a", toId: "b" } },
+      { id: "s1", name: "ORG", meta: { kind: "text", charStart: 0, charEnd: 3 } },
+    ] as unknown as Annotation[]
+    const relations = annotationsToRelations(annotations)
+    expect(relations).toEqual([
+      { id: "r1", fromId: "a", toId: "b", label: "works_at" },
+    ])
+  })
+})
+
+describe("annotationsToValue", () => {
+  it("returns the free-text value, or empty string", () => {
+    const withValue = [
+      { id: "v", name: "translation", meta: { kind: "value", text: "bonjour" } },
+    ] as unknown as Annotation[]
+    expect(annotationsToValue(withValue)).toBe("bonjour")
+    expect(annotationsToValue([])).toBe("")
+  })
+})
+
 describe("trimRange", () => {
   it("strips surrounding whitespace", () => {
     expect(trimRange("  hi  ", 0, 6)).toEqual({ start: 2, end: 4 })
@@ -95,5 +120,22 @@ describe("toTextJsonl", () => {
     expect(lines).toHaveLength(2)
     expect(JSON.parse(lines[0])).toEqual({ text: "Acme Inc", label: [[0, 4, "ORG"]], cats: [] })
     expect(JSON.parse(lines[1])).toEqual({ text: "spam", label: [], cats: ["junk"] })
+  })
+
+  it("includes relations and translation only when present", () => {
+    const jsonl = toTextJsonl([
+      {
+        text: "Ada works at Acme",
+        label: [[0, 3, "PER"], [13, 17, "ORG"]],
+        cats: [],
+        relations: [{ from: [0, 3], to: [13, 17], type: "works_at" }],
+      },
+      { text: "hello", label: [], cats: [], translation: "bonjour" },
+    ])
+    const [first, second] = jsonl.split("\n").map((line) => JSON.parse(line))
+    expect(first.relations).toEqual([{ from: [0, 3], to: [13, 17], type: "works_at" }])
+    expect(first.translation).toBeUndefined()
+    expect(second.translation).toBe("bonjour")
+    expect(second.relations).toBeUndefined()
   })
 })

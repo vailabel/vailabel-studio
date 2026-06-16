@@ -16,8 +16,47 @@ export interface LabelingConfig {
   allowsClassification: boolean
 }
 
-/** Which editor body the labeler shell mounts for a project (Phase 2 seam). */
-export type EditorKind = "canvas" | "classification" | "text" | "timeline"
+/** Which editor body the labeler shell mounts for a project. One per modality
+ *  family; the registry maps these to editor components. */
+export type EditorKind =
+  | "canvas"
+  | "classification"
+  | "text"
+  | "audio"
+  | "video"
+  | "custom"
+
+/**
+ * Declarative layout for the studio shell, resolved per project so the shell
+ * renders its chrome data-drivenly instead of branching on modality. `itemSource`
+ * says where the left file list draws items: "project-images" = dataset rows (the
+ * default), "editor" = the editor body owns item selection (video clips live in
+ * the VideoEditor, not the dataset). Each flag toggles a shell panel.
+ */
+export interface StudioChrome {
+  itemSource: "project-images" | "editor"
+  showFileList: boolean
+  showLabelPalette: boolean
+  showBottomBar: boolean
+}
+
+// Image / text / audio / custom all use the item-centric layout unchanged.
+const DEFAULT_CHROME: StudioChrome = {
+  itemSource: "project-images",
+  showFileList: true,
+  showLabelPalette: true,
+  showBottomBar: true,
+}
+
+// Video owns its own clip switcher, track panel, and timeline inside the editor
+// body, so the generic image-centric chrome is hidden to avoid two competing
+// navigators (and an always-empty image file list).
+const VIDEO_CHROME: StudioChrome = {
+  itemSource: "editor",
+  showFileList: false,
+  showLabelPalette: false,
+  showBottomBar: false,
+}
 
 /**
  * The full capability set for a project, resolved from the two-axis
@@ -30,6 +69,8 @@ export interface Capabilities extends LabelingConfig {
   modality: Modality
   task: Task
   editor: EditorKind
+  /** How the studio shell lays out its chrome for this project. */
+  chrome: StudioChrome
 }
 
 const ALL_TOOLS: CanvasTool[] = [
@@ -88,6 +129,7 @@ function normalizeModality(modality?: string): Modality {
     case "video":
     case "text":
     case "audio":
+    case "custom":
       return modality
     default:
       return "image"
@@ -139,6 +181,22 @@ export function resolveCapabilities(input: {
   const modality = normalizeModality(input.modality)
   const task = (input.task as Task) || deriveTaskFromLegacyType(input.projectType)
 
+  // Custom (config-driven) projects: the labeling config decides the UI, so the
+  // shell just mounts the config editor and the engine does the rest.
+  if (modality === "custom") {
+    return {
+      mode: "mixed",
+      tools: [],
+      defaultTool: "move",
+      allowsRegions: false,
+      allowsClassification: false,
+      modality,
+      task,
+      editor: "custom",
+      chrome: DEFAULT_CHROME,
+    }
+  }
+
   if (modality === "image") {
     const base = getLabelingConfig(input.projectType ?? legacyTypeForImageTask(task))
     return {
@@ -146,24 +204,32 @@ export function resolveCapabilities(input: {
       modality,
       task,
       editor: base.mode === "classification" ? "classification" : "canvas",
+      chrome: DEFAULT_CHROME,
     }
   }
 
   if (modality === "text") {
+    // Span tasks select character ranges; class tasks tag the whole document.
+    // Translation produces free text (neither). The text editor switches its
+    // interaction layer on `task`.
+    const spanTasks: Task[] = ["ner", "question_answering", "relation_extraction"]
+    const classTasks: Task[] = ["text_classification", "taxonomy"]
     return {
-      mode: task === "text_classification" ? "classification" : "regions",
+      mode: classTasks.includes(task) ? "classification" : "regions",
       tools: ["move", "delete"],
       defaultTool: "move",
-      allowsRegions: task !== "text_classification",
-      allowsClassification: task === "text_classification",
+      allowsRegions: spanTasks.includes(task),
+      allowsClassification: classTasks.includes(task),
       modality,
       task,
       editor: "text",
+      chrome: DEFAULT_CHROME,
     }
   }
 
-  // audio + video share a timeline-style editor; tooling is fleshed out in the
-  // dedicated modality phases.
+  // audio gets a waveform editor; video gets the full FFmpeg pipeline editor,
+  // which owns its own chrome (clip library + timeline + track panel).
+  const isVideo = modality === "video"
   return {
     mode: "regions",
     tools: ["move", "delete"],
@@ -172,6 +238,7 @@ export function resolveCapabilities(input: {
     allowsClassification: false,
     modality,
     task,
-    editor: "timeline",
+    editor: isVideo ? "video" : "audio",
+    chrome: isVideo ? VIDEO_CHROME : DEFAULT_CHROME,
   }
 }

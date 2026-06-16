@@ -1,5 +1,5 @@
 import { memo, useCallback, useMemo, useState } from "react"
-import { CheckCircle2, FileText, Flag, ImageIcon, Search } from "lucide-react"
+import { CheckCircle2, FileText, Flag, ImageIcon, Music, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -22,10 +22,15 @@ function hasFlags(image: ImageData) {
 }
 
 const IMAGE_EXTENSIONS = /\.(jpe?g|png|gif|bmp|webp|tiff?|avif)$/i
+const AUDIO_EXTENSIONS = /\.(wav|mp3|ogg|flac|m4a|aac)$/i
 
-/** Items can be images or text documents; only render a thumbnail for images. */
+/** Items can be images, documents, or audio; only images get a thumbnail. */
 function isImageItem(item: ImageData) {
   return IMAGE_EXTENSIONS.test(item.path || item.name || "")
+}
+
+function isAudioItem(item: ImageData) {
+  return AUDIO_EXTENSIONS.test(item.path || item.name || "")
 }
 
 const STATUS_FILTERS: Array<{ id: StatusFilter; label: string }> = [
@@ -162,6 +167,8 @@ const FileListItem = memo(
               />
             ) : isImageItem(image) ? (
               <ImageIcon className="m-2.5 h-5 w-5 text-muted-foreground" />
+            ) : isAudioItem(image) ? (
+              <Music className="m-2.5 h-5 w-5 text-muted-foreground" />
             ) : (
               <FileText className="m-2.5 h-5 w-5 text-muted-foreground" />
             )}

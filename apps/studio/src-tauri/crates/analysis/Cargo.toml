@@ -15,3 +15,10 @@ serde_json = { workspace = true }
 # Infrastructure layer only: decode image pixels for the blur/exposure/embedding
 # metrics, behind the `ImageDecoder` port.
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "gif"] }
+# Infrastructure layer only: persist reports in the analysis_reports table over
+# the shared vailabel-db connection, and read source rows (images/annotations/
+# labels) through the owning modules' repositories.
+vailabel-db = { workspace = true }
+diesel = { workspace = true }
+vailabel-dataset = { workspace = true }
+vailabel-annotation = { workspace = true }

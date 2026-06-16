@@ -9,6 +9,7 @@ use vailabel_core::{Entity, Identifiable};
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Image {
+    #[serde(default = "vailabel_shared::new_id")]
     pub id: String,
     pub name: String,
     /// Absolute on-disk path to the referenced image file (never base64).

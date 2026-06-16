@@ -8,8 +8,14 @@ description = "Models module: install/import/activation request contracts for AI
 name = "vailabel_models"
 
 [dependencies]
+vailabel-core = { workspace = true }
+vailabel-shared = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+# Infrastructure layer only: the ai_models / runtime_models tables live in this
+# module's own Diesel schema over the shared vailabel-db connection.
+vailabel-db = { workspace = true }
+diesel = { workspace = true }
 # Infrastructure layer only (gated): ONNX Runtime for GPU/runtime capability
 # detection. Must match the binary's `ort` features (api-22 + the bundled DLL).
 ort = { version = "2.0.0-rc.12", optional = true, default-features = false, features = ["load-dynamic", "cuda", "api-22"] }

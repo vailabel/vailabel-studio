@@ -29,9 +29,11 @@ import {
   LineChart,
   Activity,
   Sparkles,
+  SlidersHorizontal,
   type LucideIcon,
 } from "lucide-react"
 import type { Modality, Task } from "@/types/modality"
+import { LS_TEMPLATES } from "@/lib/label-config/ls-gallery"
 
 // Project types that map to a working editor today. Kept as string literals so
 // this catalog stays decoupled from the create viewmodel (which also exports
@@ -42,6 +44,8 @@ type WorkingProjectType =
   | "classification"
   | "image_annotation"
   | "text_annotation"
+  | "audio_annotation"
+  | "video_annotation"
 
 export type TemplateStatus = "available" | "pending"
 
@@ -68,6 +72,8 @@ export interface LabelingTemplate {
   modality?: Modality
   /** Labeling task within the modality (ner | text_classification | …). */
   task?: Task
+  /** Preview image (public path), e.g. "/templates/<id>.png". */
+  image?: string
   status: TemplateStatus
 }
 
@@ -75,6 +81,18 @@ export interface LabelingTemplate {
 // working editor today; everything else is declared as `pending` so the create
 // screen shows the full roadmap without offering broken flows.
 export const LABELING_TEMPLATES: LabelingTemplate[] = [
+  // ── Custom ───────────────────────────────────────────────────────────────
+  {
+    id: "custom",
+    label: "Custom labeling config",
+    description: "Define your own objects + controls (JSON or Label Studio XML)",
+    category: "Custom",
+    dataKind: "multimodal",
+    icon: SlidersHorizontal,
+    modality: "custom",
+    status: "available",
+  },
+
   // ── Computer Vision ──────────────────────────────────────────────────────
   {
     id: "image-classification",
@@ -161,7 +179,8 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     category: "Computer Vision",
     dataKind: "image",
     icon: MessageSquareText,
-    status: "pending",
+    modality: "custom",
+    status: "available",
   },
   {
     id: "visual-qa",
@@ -170,6 +189,34 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     category: "Computer Vision",
     dataKind: "image",
     icon: HelpCircle,
+    modality: "custom",
+    status: "available",
+  },
+  {
+    id: "multi-image-classification",
+    label: "Multi-Image Classification",
+    description: "Classify across several images per task",
+    category: "Computer Vision",
+    dataKind: "image",
+    icon: Tags,
+    status: "pending",
+  },
+  {
+    id: "medical-image-classification",
+    label: "Medical Image Classification",
+    description: "Boxes + class on medical images",
+    category: "Computer Vision",
+    dataKind: "image",
+    icon: Shapes,
+    status: "pending",
+  },
+  {
+    id: "ocr-pdf",
+    label: "OCR Labeling for PDFs",
+    description: "Transcribe text regions across PDF pages",
+    category: "Computer Vision",
+    dataKind: "image",
+    icon: ScanText,
     status: "pending",
   },
   {
@@ -190,7 +237,10 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     category: "Video",
     dataKind: "video",
     icon: Clapperboard,
-    status: "pending",
+    projectType: "video_annotation",
+    modality: "video",
+    task: "classification",
+    status: "available",
   },
   {
     id: "video-tracking",
@@ -199,7 +249,10 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     category: "Video",
     dataKind: "video",
     icon: Video,
-    status: "pending",
+    projectType: "video_annotation",
+    modality: "video",
+    task: "tracking",
+    status: "available",
   },
   {
     id: "video-timeline",
@@ -208,7 +261,10 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     category: "Video",
     dataKind: "video",
     icon: Film,
-    status: "pending",
+    projectType: "video_annotation",
+    modality: "video",
+    task: "tracking",
+    status: "available",
   },
 
   // ── Natural Language ─────────────────────────────────────────────────────
@@ -239,11 +295,14 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
   {
     id: "taxonomy",
     label: "Taxonomy",
-    description: "Apply hierarchical labels",
+    description: "Apply multiple labels per document",
     category: "Natural Language",
     dataKind: "text",
     icon: ListTree,
-    status: "pending",
+    projectType: "text_annotation",
+    modality: "text",
+    task: "taxonomy",
+    status: "available",
   },
   {
     id: "relation-extraction",
@@ -252,7 +311,10 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     category: "Natural Language",
     dataKind: "text",
     icon: Link2,
-    status: "pending",
+    projectType: "text_annotation",
+    modality: "text",
+    task: "relation_extraction",
+    status: "available",
   },
   {
     id: "question-answering",
@@ -261,7 +323,10 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     category: "Natural Language",
     dataKind: "text",
     icon: HelpCircle,
-    status: "pending",
+    projectType: "text_annotation",
+    modality: "text",
+    task: "question_answering",
+    status: "available",
   },
   {
     id: "translation",
@@ -270,27 +335,58 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     category: "Natural Language",
     dataKind: "text",
     icon: Languages,
-    status: "pending",
+    projectType: "text_annotation",
+    modality: "text",
+    task: "translation",
+    status: "available",
+  },
+  {
+    id: "text-summarization",
+    label: "Text Summarization",
+    description: "Write a summary of a document",
+    category: "Natural Language",
+    dataKind: "text",
+    icon: FileText,
+    modality: "custom",
+    status: "available",
+  },
+  {
+    id: "content-moderation",
+    label: "Content Moderation",
+    description: "Flag documents with policy categories",
+    category: "Natural Language",
+    dataKind: "text",
+    icon: Tags,
+    projectType: "text_annotation",
+    modality: "text",
+    task: "text_classification",
+    status: "available",
   },
 
   // ── Audio & Speech ───────────────────────────────────────────────────────
   {
     id: "audio-classification",
     label: "Audio Classification",
-    description: "Tag audio clips with classes",
+    description: "Tag regions of a clip with classes",
     category: "Audio & Speech",
     dataKind: "audio",
     icon: AudioLines,
-    status: "pending",
+    projectType: "audio_annotation",
+    modality: "audio",
+    task: "audio_classification",
+    status: "available",
   },
   {
     id: "asr",
     label: "Speech Recognition (ASR)",
-    description: "Transcribe speech to text",
+    description: "Transcribe speech regions to text",
     category: "Audio & Speech",
     dataKind: "audio",
     icon: Mic,
-    status: "pending",
+    projectType: "audio_annotation",
+    modality: "audio",
+    task: "transcription",
+    status: "available",
   },
   {
     id: "speaker-segmentation",
@@ -299,7 +395,46 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     category: "Audio & Speech",
     dataKind: "audio",
     icon: Waves,
-    status: "pending",
+    projectType: "audio_annotation",
+    modality: "audio",
+    task: "diarization",
+    status: "available",
+  },
+  {
+    id: "asr-segments",
+    label: "ASR using Segments",
+    description: "Transcribe speech region by region",
+    category: "Audio & Speech",
+    dataKind: "audio",
+    icon: Mic,
+    projectType: "audio_annotation",
+    modality: "audio",
+    task: "transcription",
+    status: "available",
+  },
+  {
+    id: "sound-event-detection",
+    label: "Sound Event Detection",
+    description: "Label sound events along the clip",
+    category: "Audio & Speech",
+    dataKind: "audio",
+    icon: AudioLines,
+    projectType: "audio_annotation",
+    modality: "audio",
+    task: "audio_classification",
+    status: "available",
+  },
+  {
+    id: "voice-activity-detection",
+    label: "Voice Activity Detection",
+    description: "Mark speech vs. non-speech regions",
+    category: "Audio & Speech",
+    dataKind: "audio",
+    icon: Activity,
+    projectType: "audio_annotation",
+    modality: "audio",
+    task: "audio_classification",
+    status: "available",
   },
 
   // ── Conversational AI ────────────────────────────────────────────────────
@@ -310,7 +445,8 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     category: "Conversational AI",
     dataKind: "text",
     icon: MessagesSquare,
-    status: "pending",
+    modality: "custom",
+    status: "available",
   },
   {
     id: "response-generation",
@@ -319,6 +455,16 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     category: "Conversational AI",
     dataKind: "text",
     icon: MessagesSquare,
+    modality: "custom",
+    status: "available",
+  },
+  {
+    id: "coreference",
+    label: "Coreference & Entity Linking",
+    description: "Link mentions that refer to the same entity",
+    category: "Conversational AI",
+    dataKind: "text",
+    icon: Link2,
     status: "pending",
   },
 
@@ -350,6 +496,24 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     icon: ListOrdered,
     status: "pending",
   },
+  {
+    id: "website-rating",
+    label: "Website Rating",
+    description: "Rate pages on quality scales",
+    category: "Ranking & Scoring",
+    dataKind: "ranking",
+    icon: Scale,
+    status: "pending",
+  },
+  {
+    id: "content-image-retrieval",
+    label: "Content-based Image Retrieval",
+    description: "Rank images by relevance to a query",
+    category: "Ranking & Scoring",
+    dataKind: "ranking",
+    icon: Search,
+    status: "pending",
+  },
 
   // ── Structured Data ──────────────────────────────────────────────────────
   {
@@ -370,6 +534,24 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     icon: Table,
     status: "pending",
   },
+  {
+    id: "html-classification",
+    label: "HTML Classification",
+    description: "Classify rendered HTML documents",
+    category: "Structured Data",
+    dataKind: "html",
+    icon: Code2,
+    status: "pending",
+  },
+  {
+    id: "pdf-classification",
+    label: "PDF Classification",
+    description: "Classify PDF documents",
+    category: "Structured Data",
+    dataKind: "html",
+    icon: FileText,
+    status: "pending",
+  },
 
   // ── Time Series ──────────────────────────────────────────────────────────
   {
@@ -385,6 +567,24 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     id: "change-point",
     label: "Change Point Detection",
     description: "Mark regime changes",
+    category: "Time Series",
+    dataKind: "timeseries",
+    icon: Activity,
+    status: "pending",
+  },
+  {
+    id: "timeseries-classification",
+    label: "Time Series Classification",
+    description: "Classify whole signals",
+    category: "Time Series",
+    dataKind: "timeseries",
+    icon: LineChart,
+    status: "pending",
+  },
+  {
+    id: "anomaly-detection",
+    label: "Outliers & Anomaly Detection",
+    description: "Mark anomalous regions in a signal",
     category: "Time Series",
     dataKind: "timeseries",
     icon: Activity,
@@ -410,10 +610,38 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     icon: MessagesSquare,
     status: "pending",
   },
+  {
+    id: "llm-response-grading",
+    label: "LLM Response Grading",
+    description: "Score a single model response",
+    category: "Generative AI / LLM",
+    dataKind: "multimodal",
+    icon: Sparkles,
+    status: "pending",
+  },
+  {
+    id: "side-by-side-llm",
+    label: "Side-by-Side LLM Comparison",
+    description: "Compare two model outputs",
+    category: "Generative AI / LLM",
+    dataKind: "multimodal",
+    icon: Scale,
+    status: "pending",
+  },
+  {
+    id: "rag-evaluation",
+    label: "RAG Evaluation",
+    description: "Rate retrieval-augmented answers",
+    category: "Generative AI / LLM",
+    dataKind: "multimodal",
+    icon: Sparkles,
+    status: "pending",
+  },
 ]
 
 // Category display order (Label Studio groups templates the same way).
 export const TEMPLATE_CATEGORY_ORDER = [
+  "Custom",
   "Computer Vision",
   "Video",
   "Natural Language",
@@ -423,7 +651,55 @@ export const TEMPLATE_CATEGORY_ORDER = [
   "Structured Data",
   "Time Series",
   "Generative AI / LLM",
+  "Community Contributions",
 ]
+
+// Merge in the authentic Label Studio templates (configs converted to our JSON
+// in ls-gallery.ts). Matched ids get LS's preview image; LS templates we don't
+// already have are appended as config-driven ("custom") entries.
+const LS_GROUP_CATEGORY: Record<string, string> = {
+  "Computer Vision": "Computer Vision",
+  "Natural Language Processing": "Natural Language",
+  "Audio/Speech Processing": "Audio & Speech",
+  "Ranking & Scoring": "Ranking & Scoring",
+  "Structured Data Parsing": "Structured Data",
+  "Time Series Analysis": "Time Series",
+  Videos: "Video",
+  "Community Contributions": "Community Contributions",
+}
+const LS_GROUP_ICON: Record<string, LucideIcon> = {
+  "Computer Vision": SquareDashed,
+  "Natural Language Processing": Type,
+  "Audio/Speech Processing": AudioLines,
+  "Ranking & Scoring": Scale,
+  "Structured Data Parsing": Table,
+  "Time Series Analysis": LineChart,
+  Videos: Video,
+  "Community Contributions": Sparkles,
+}
+
+const existingIds = new Set(LABELING_TEMPLATES.map((t) => t.id))
+for (const ls of LS_TEMPLATES) {
+  const match = LABELING_TEMPLATES.find((t) => t.id === ls.id)
+  if (match) {
+    // Upgrade an existing card with LS's authentic preview image.
+    if (ls.image && !match.image) match.image = ls.image
+    continue
+  }
+  if (existingIds.has(ls.id)) continue
+  existingIds.add(ls.id)
+  LABELING_TEMPLATES.push({
+    id: ls.id,
+    label: ls.label,
+    description: "Label Studio template",
+    category: LS_GROUP_CATEGORY[ls.group] ?? "Custom",
+    dataKind: ls.dataKind as DataKind,
+    icon: LS_GROUP_ICON[ls.group] ?? SlidersHorizontal,
+    modality: "custom",
+    image: ls.image,
+    status: ls.supported ? "available" : "pending",
+  })
+}
 
 export function templatesGroupedByCategory(): {
   category: string

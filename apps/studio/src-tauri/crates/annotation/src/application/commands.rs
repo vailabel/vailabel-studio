@@ -23,3 +23,25 @@ impl DeleteLabelCommand {
         Self { id: id.into() }
     }
 }
+
+/// Create-or-update an annotation from a payload (id minted when absent).
+pub struct SaveAnnotationCommand {
+    pub payload: Value,
+}
+
+impl SaveAnnotationCommand {
+    pub fn new(payload: Value) -> Self {
+        Self { payload }
+    }
+}
+
+/// Delete an annotation by id.
+pub struct DeleteAnnotationCommand {
+    pub id: String,
+}
+
+impl DeleteAnnotationCommand {
+    pub fn new(id: impl Into<String>) -> Self {
+        Self { id: id.into() }
+    }
+}

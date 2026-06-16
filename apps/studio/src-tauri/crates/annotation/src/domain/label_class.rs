@@ -11,6 +11,7 @@ use vailabel_core::{AggregateRoot, Entity, Identifiable};
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct LabelClass {
+    #[serde(default = "vailabel_shared::new_id")]
     pub id: String,
     pub name: String,
     pub color: String,
