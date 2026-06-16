@@ -192,6 +192,44 @@ impl AiService {
         Ok(model)
     }
 
+    /// Register an already-existing ONNX detector (e.g. weights produced by a
+    /// finished training run and exported to ONNX) as a usable detection model.
+    /// Seeds the class names so the model is prediction-ready for auto-labeling,
+    /// and emits the same `ai_models` created event as a normal import — so it
+    /// shows up in the model picker / auto-label control without a refresh.
+    pub fn register_trained_onnx(
+        &self,
+        app: &tauri::AppHandle,
+        model_path: &Path,
+        name: &str,
+        project_id: Option<&str>,
+        class_names: Vec<String>,
+    ) -> Result<Value, AppError> {
+        let model_id = Uuid::new_v4().to_string();
+        let seed_metadata = json!({ "classNames": class_names, "labelSource": "trained" });
+        let project_id_owned = project_id.map(ToString::to_string);
+        let model = build_ai_model_entity(AiModelEntityInput {
+            model_id: &model_id,
+            name,
+            description: "Trained with the embedded runtime",
+            version: "1.0.0",
+            category: "detection",
+            model_type: "detection",
+            task_type: None,
+            model_path,
+            config_path: "",
+            project_id: project_id_owned.as_ref(),
+            source: "local",
+            download_url: None,
+            seed_metadata: Some(&seed_metadata),
+        })?;
+        let model = self.store.upsert_entity("ai_models", model)?;
+        emit_domain_event(app, "ai_models", "created", &model)?;
+        // Make the freshly trained model the active detector so the labeler's
+        // Auto-label control auto-selects it — closes the train→auto-label loop.
+        self.set_active_model(app, &model_id)
+    }
+
     pub fn install_ai_model(
         &self,
         app: &tauri::AppHandle,
@@ -458,7 +496,9 @@ impl AiService {
 
             match cache.get_mut(&model_id) {
                 Some(CachedEngine::Detector(engine)) => {
-                    engine.predict(&image, &model, &labels, payload.threshold.unwrap_or(0.5))?
+                    // Default conf 0.25 matches ultralytics' predict default; 0.5
+                    // over-filtered freshly trained models (callers can still pin it).
+                    engine.predict(&image, &model, &labels, payload.threshold.unwrap_or(0.25))?
                 }
                 _ => return Err(AppError::Message("Failed to initialize inference engine".into())),
             }

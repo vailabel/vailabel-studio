@@ -7,6 +7,8 @@ import {
   Plus,
   X,
   Clock,
+  FileText,
+  FilePlus2,
 } from "lucide-react"
 import {
   Card,
@@ -65,6 +67,7 @@ export const ProjectCreate = memo(() => {
     [templateId]
   )
   const isImageData = (selectedTemplate?.dataKind ?? "image") === "image"
+  const isTextData = selectedTemplate?.dataKind === "text"
 
   const commitClass = () => {
     if (!className.trim()) return
@@ -144,6 +147,8 @@ export const ProjectCreate = memo(() => {
                             setTemplateId(template.id)
                             if (template.projectType)
                               viewModel.setType(template.projectType)
+                            viewModel.setModality(template.modality ?? "image")
+                            if (template.task) viewModel.setTask(template.task)
                           }}
                           className={cn(
                             "flex items-start gap-3 rounded-lg border p-3 text-left transition-colors",
@@ -319,6 +324,65 @@ export const ProjectCreate = memo(() => {
                   </Alert>
                 )}
               </>
+            ) : isTextData ? (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full gap-2"
+                  onClick={viewModel.openTextFiles}
+                >
+                  <FilePlus2 className="size-5" />
+                  {viewModel.documents.length > 0
+                    ? "Choose different text files"
+                    : "Choose text files (.txt, .md)"}
+                </Button>
+
+                {viewModel.documents.length > 0 ? (
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-2">
+                      <FileText className="size-5 text-primary" />
+                      <span className="font-semibold">Selected documents</span>
+                      <Badge variant="secondary">
+                        {viewModel.documents.length} file
+                        {viewModel.documents.length !== 1 ? "s" : ""}
+                      </Badge>
+                    </div>
+                    <ul className="divide-y divide-border rounded-lg border border-border">
+                      {viewModel.documents.map((doc, index) => (
+                        <li
+                          key={doc.id}
+                          className="flex items-center gap-2 px-3 py-2 text-sm"
+                        >
+                          <FileText className="size-4 shrink-0 text-muted-foreground" />
+                          <span
+                            className="min-w-0 flex-1 truncate"
+                            title={doc.path}
+                          >
+                            {doc.name}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => viewModel.removeDocument(index)}
+                            className="rounded-full p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                            aria-label={`Remove ${doc.name}`}
+                          >
+                            <X className="size-3.5" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <Alert>
+                    <Info className="size-4" />
+                    <AlertDescription>
+                      Each file becomes one document to label. Files are
+                      referenced in place, never copied.
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </>
             ) : (
               <Alert>
                 <Clock className="size-4" />
@@ -354,7 +418,11 @@ export const ProjectCreate = memo(() => {
 
           <Button
             onClick={() => void viewModel.createProject()}
-            disabled={!viewModel.canCreate || viewModel.isCreating || !isImageData}
+            disabled={
+              !viewModel.canCreate ||
+              viewModel.isCreating ||
+              !(isImageData || isTextData)
+            }
             className="gap-2"
           >
             {viewModel.isCreating && <Spinner />}

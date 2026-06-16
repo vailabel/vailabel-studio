@@ -1,5 +1,5 @@
 import { memo, useCallback, useMemo, useState } from "react"
-import { CheckCircle2, Flag, ImageIcon, Search } from "lucide-react"
+import { CheckCircle2, FileText, Flag, ImageIcon, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -19,6 +19,13 @@ interface FileListPanelProps {
 
 function hasFlags(image: ImageData) {
   return Object.values(image.flags || {}).some(Boolean)
+}
+
+const IMAGE_EXTENSIONS = /\.(jpe?g|png|gif|bmp|webp|tiff?|avif)$/i
+
+/** Items can be images or text documents; only render a thumbnail for images. */
+function isImageItem(item: ImageData) {
+  return IMAGE_EXTENSIONS.test(item.path || item.name || "")
 }
 
 const STATUS_FILTERS: Array<{ id: StatusFilter; label: string }> = [
@@ -146,15 +153,17 @@ const FileListItem = memo(
           )}
         >
           <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded border border-border bg-muted">
-            {image.path ? (
+            {image.path && isImageItem(image) ? (
               <img
                 src={toAssetUrl(image.path)}
                 alt={image.name}
                 loading="lazy"
                 className="h-full w-full object-cover"
               />
-            ) : (
+            ) : isImageItem(image) ? (
               <ImageIcon className="m-2.5 h-5 w-5 text-muted-foreground" />
+            ) : (
+              <FileText className="m-2.5 h-5 w-5 text-muted-foreground" />
             )}
           </div>
 

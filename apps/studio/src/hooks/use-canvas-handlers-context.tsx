@@ -13,6 +13,7 @@ import {
   useCanvasPan,
   useCanvasZoom,
   useCanvasTool,
+  useCanvasToolState,
   useCanvasPanning,
   useCanvasSelection
 } from "@/contexts/canvas-context"
@@ -130,7 +131,8 @@ export function useCanvasHandlers(
   const setCursorPosition = useSetCanvasCursor()
   const { panOffset, setPanOffset } = useCanvasPan()
   const { zoom, setZoom } = useCanvasZoom()
-  const { selectedTool, setSelectedTool, toolState, setToolState } = useCanvasTool()
+  const { selectedTool, setSelectedTool } = useCanvasTool()
+  const { toolState, setToolState } = useCanvasToolState()
   const { isPanning, setIsPanning, lastPanPoint, setLastPanPoint } = useCanvasPanning()
   const { selectedAnnotation, setSelectedAnnotation } = useCanvasSelection()
   const baseOffset = layout?.baseOffset || panOffset

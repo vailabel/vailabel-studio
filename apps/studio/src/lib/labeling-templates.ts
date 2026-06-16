@@ -31,6 +31,7 @@ import {
   Sparkles,
   type LucideIcon,
 } from "lucide-react"
+import type { Modality, Task } from "@/types/modality"
 
 // Project types that map to a working editor today. Kept as string literals so
 // this catalog stays decoupled from the create viewmodel (which also exports
@@ -40,6 +41,7 @@ type WorkingProjectType =
   | "segmentation"
   | "classification"
   | "image_annotation"
+  | "text_annotation"
 
 export type TemplateStatus = "available" | "pending"
 
@@ -62,6 +64,10 @@ export interface LabelingTemplate {
   icon: LucideIcon
   /** Set only for templates whose editor is implemented (status "available"). */
   projectType?: WorkingProjectType
+  /** Coarse data type the project is created with (image | text | …). */
+  modality?: Modality
+  /** Labeling task within the modality (ner | text_classification | …). */
+  task?: Task
   status: TemplateStatus
 }
 
@@ -78,6 +84,8 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     dataKind: "image",
     icon: Tags,
     projectType: "classification",
+    modality: "image",
+    task: "classification",
     status: "available",
   },
   {
@@ -88,6 +96,8 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     dataKind: "image",
     icon: SquareDashed,
     projectType: "object_detection",
+    modality: "image",
+    task: "detection",
     status: "available",
   },
   {
@@ -98,6 +108,8 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     dataKind: "image",
     icon: Shapes,
     projectType: "segmentation",
+    modality: "image",
+    task: "segmentation",
     status: "available",
   },
   {
@@ -108,6 +120,8 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     dataKind: "image",
     icon: Spline,
     projectType: "image_annotation",
+    modality: "image",
+    task: "keypoints",
     status: "available",
   },
   {
@@ -118,6 +132,8 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     dataKind: "image",
     icon: PenTool,
     projectType: "image_annotation",
+    modality: "image",
+    task: "detection",
     status: "available",
   },
   {
@@ -203,7 +219,10 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     category: "Natural Language",
     dataKind: "text",
     icon: Type,
-    status: "pending",
+    projectType: "text_annotation",
+    modality: "text",
+    task: "text_classification",
+    status: "available",
   },
   {
     id: "ner",
@@ -212,7 +231,10 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     category: "Natural Language",
     dataKind: "text",
     icon: FileText,
-    status: "pending",
+    projectType: "text_annotation",
+    modality: "text",
+    task: "ner",
+    status: "available",
   },
   {
     id: "taxonomy",

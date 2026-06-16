@@ -13,10 +13,17 @@ import { Label } from "@/types/core"
 import { memo, useMemo, useCallback, useState } from "react"
 
 interface LabelListPanelProps {
+  /** Single click: arm this class as the active class (new shapes inherit it). */
   onLabelSelect: (label: Label) => void
+  /** Double click: relabel the currently selected shape to this class. */
+  onLabelAssign: (label: Label) => void
   labels: Label[]
   /** Currently armed class (new shapes inherit it). */
   activeLabelId?: string | null
+  /** Class of the currently selected shape — marked as "current" in the list. */
+  selectedLabelId?: string | null
+  /** Whether a shape is selected (drives the relabel hint). */
+  hasSelectedShape?: boolean
   isLoading?: boolean
 }
 
@@ -32,7 +39,15 @@ function useHotkeyMap(labels: Label[]): Map<string, number> {
 }
 
 export const LabelListPanel = memo(
-  ({ onLabelSelect, labels, activeLabelId, isLoading = false }: LabelListPanelProps) => {
+  ({
+    onLabelSelect,
+    onLabelAssign,
+    labels,
+    activeLabelId,
+    selectedLabelId,
+    hasSelectedShape = false,
+    isLoading = false,
+  }: LabelListPanelProps) => {
     // Memoize grouped labels to prevent unnecessary recalculations
     const groupedLabels = useMemo(() => {
       return labels.reduce(
@@ -60,9 +75,11 @@ export const LabelListPanel = memo(
             </span>
           </div>
           <p className="text-xs text-muted-foreground">
-            {labels.length > 0
-              ? "Click or press 1–9 to set the active class"
-              : "Draw on the canvas to create your first class"}
+            {labels.length === 0
+              ? "Draw on the canvas to create your first class"
+              : hasSelectedShape
+                ? "Double-click a class to relabel the selected shape"
+                : "Click or press 1–9 to set the active class"}
           </p>
         </div>
 
@@ -73,7 +90,9 @@ export const LabelListPanel = memo(
             <LabelList
               labelGroup={groupedLabels}
               onLabelSelect={onLabelSelect}
+              onLabelAssign={onLabelAssign}
               activeLabelId={activeLabelId ?? null}
+              selectedLabelId={selectedLabelId ?? null}
               hotkeyByLabelId={hotkeyByLabelId}
             />
           )}
@@ -87,7 +106,10 @@ export const LabelListPanel = memo(
       prevProps.labels === nextProps.labels &&
       prevProps.isLoading === nextProps.isLoading &&
       prevProps.activeLabelId === nextProps.activeLabelId &&
-      prevProps.onLabelSelect === nextProps.onLabelSelect
+      prevProps.selectedLabelId === nextProps.selectedLabelId &&
+      prevProps.hasSelectedShape === nextProps.hasSelectedShape &&
+      prevProps.onLabelSelect === nextProps.onLabelSelect &&
+      prevProps.onLabelAssign === nextProps.onLabelAssign
     )
   }
 )
@@ -97,7 +119,9 @@ LabelListPanel.displayName = "LabelListPanel"
 interface LabelListProps {
   labelGroup: Record<string, Label[]>
   onLabelSelect: (label: Label) => void
+  onLabelAssign: (label: Label) => void
   activeLabelId: string | null
+  selectedLabelId: string | null
   hotkeyByLabelId: Map<string, number>
 }
 
@@ -124,17 +148,26 @@ const LabelItem = memo(
   ({
     label,
     onLabelSelect,
+    onLabelAssign,
     isActive,
+    isCurrent,
     hotkey,
   }: {
     label: Label
     onLabelSelect: (label: Label) => void
+    onLabelAssign: (label: Label) => void
     isActive: boolean
+    isCurrent: boolean
     hotkey?: number
   }) => {
+    // Single click arms this class; double click relabels the selected shape.
     const handleClick = useCallback(() => {
       onLabelSelect(label)
     }, [label, onLabelSelect])
+
+    const handleDoubleClick = useCallback(() => {
+      onLabelAssign(label)
+    }, [label, onLabelAssign])
 
     return (
       <div
@@ -145,10 +178,15 @@ const LabelItem = memo(
           borderColor: getContentBoxColor(label.color, 0.55),
         }}
         className={cn(
-          "flex cursor-pointer items-center gap-2 rounded-lg border p-3 transition-colors hover:brightness-95 dark:hover:brightness-125",
-          isActive && "ring-2 ring-primary"
+          "flex cursor-pointer select-none items-center gap-2 rounded-lg border p-3 transition-colors hover:brightness-95 dark:hover:brightness-125",
+          isActive && "ring-2 ring-primary",
+          // The selected shape's class gets a softer ring (plus the "current"
+          // badge) so it's clear which class a double-click would change away from.
+          isCurrent && !isActive && "ring-2 ring-primary/40"
         )}
         onClick={handleClick}
+        onDoubleClick={handleDoubleClick}
+        title="Click to set the active class · Double-click to relabel the selected shape"
         aria-pressed={isActive}
       >
         <span
@@ -161,6 +199,14 @@ const LabelItem = memo(
         <span className="min-w-0 flex-1 truncate text-sm font-medium">
           {label.name}
         </span>
+        {isCurrent && (
+          <Badge
+            variant="outline"
+            className="flex-shrink-0 border-primary/40 text-[10px] font-medium uppercase tracking-wide text-primary"
+          >
+            current
+          </Badge>
+        )}
         {label.isAIGenerated && (
           <Badge
             variant="outline"
@@ -186,14 +232,17 @@ const LabelItem = memo(
     )
   },
   (prevProps, nextProps) => {
-    // Only re-render if the label, active state, or hotkey changed
+    // Only re-render if the label, active/current state, handlers, or hotkey changed
     return (
       prevProps.label.id === nextProps.label.id &&
       prevProps.label.name === nextProps.label.name &&
       prevProps.label.color === nextProps.label.color &&
       prevProps.label.isAIGenerated === nextProps.label.isAIGenerated &&
       prevProps.isActive === nextProps.isActive &&
-      prevProps.hotkey === nextProps.hotkey
+      prevProps.isCurrent === nextProps.isCurrent &&
+      prevProps.hotkey === nextProps.hotkey &&
+      prevProps.onLabelSelect === nextProps.onLabelSelect &&
+      prevProps.onLabelAssign === nextProps.onLabelAssign
     )
   }
 )
@@ -206,13 +255,17 @@ const CategorySection = memo(
     category,
     labels,
     onLabelSelect,
+    onLabelAssign,
     activeLabelId,
+    selectedLabelId,
     hotkeyByLabelId,
   }: {
     category: string
     labels: Label[]
     onLabelSelect: (label: Label) => void
+    onLabelAssign: (label: Label) => void
     activeLabelId: string | null
+    selectedLabelId: string | null
     hotkeyByLabelId: Map<string, number>
   }) => {
     const [isOpen, setIsOpen] = useState(true)
@@ -247,7 +300,9 @@ const CategorySection = memo(
                 key={label.id}
                 label={label}
                 onLabelSelect={onLabelSelect}
+                onLabelAssign={onLabelAssign}
                 isActive={label.id === activeLabelId}
+                isCurrent={label.id === selectedLabelId}
                 hotkey={hotkeyByLabelId.get(label.id)}
               />
             ))}
@@ -261,7 +316,14 @@ const CategorySection = memo(
 CategorySection.displayName = "CategorySection"
 
 const LabelList = memo(
-  ({ labelGroup, onLabelSelect, activeLabelId, hotkeyByLabelId }: LabelListProps) => {
+  ({
+    labelGroup,
+    onLabelSelect,
+    onLabelAssign,
+    activeLabelId,
+    selectedLabelId,
+    hotkeyByLabelId,
+  }: LabelListProps) => {
     const hasLabels = Object.keys(labelGroup).length > 0
 
     return (
@@ -281,7 +343,9 @@ const LabelList = memo(
                   category={category}
                   labels={labels}
                   onLabelSelect={onLabelSelect}
+                  onLabelAssign={onLabelAssign}
                   activeLabelId={activeLabelId}
+                  selectedLabelId={selectedLabelId}
                   hotkeyByLabelId={hotkeyByLabelId}
                 />
               ))}

@@ -39,6 +39,7 @@ async-trait = "0.1"
 # Shared across the binary and the vailabel-db / per-module-infra crates so the
 # whole workspace pins one diesel + sqlite version.
 diesel = { version = "2", features = ["sqlite"] }
+diesel_migrations = "2"
 libsqlite3-sys = { version = "0.28", features = ["bundled"] }
 
 # Internal workspace crates (DDD modules). Path deps so the binary and crates
@@ -101,6 +102,7 @@ vailabel-plugin = { workspace = true }
 vailabel-training = { workspace = true }
 async-trait = { workspace = true }
 diesel = { workspace = true }
+diesel_migrations = { workspace = true }
 libsqlite3-sys = { workspace = true }
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls", "json"] }
 serde = { version = "1", features = ["derive"] }

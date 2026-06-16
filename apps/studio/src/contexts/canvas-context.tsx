@@ -25,14 +25,14 @@ type ToolState = {
   resizeHandle?: string | null
 }
 
+// The "stable-ish" canvas state. Pan offset and selection live in their OWN
+// providers below — they change on every pan frame / every click, and bundling
+// them here re-rendered every annotation (each subscribes via useCanvasZoom /
+// useCanvasTool). What's left changes rarely (zoom, tool, container, display
+// toggles) or is read by few consumers.
 interface CanvasContextType {
   zoom: number
-  panOffset: Point
   selectedTool: string
-  toolState: ToolState
-  selectedAnnotation: any
-  isPanning: boolean
-  lastPanPoint: Point | null
   contextMenu: { visible: boolean; x: number; y: number; items: any[] }
   container: { width: number; height: number }
   showCrosshair: boolean
@@ -41,17 +41,10 @@ interface CanvasContextType {
   setZoom: (zoom: number) => void
   zoomIn: () => void
   zoomOut: () => void
-  setPanOffset: (pan: Point) => void
-  panTo: (x: number, y: number) => void
-  resetView: () => void
   /** Incremented to ask the Canvas (which knows the image size) to fit-to-screen. */
   fitSignal: number
   requestFit: () => void
   setSelectedTool: (tool: string) => void
-  setToolState: (state: Partial<ToolState>) => void
-  setSelectedAnnotation: (annotation: any) => void
-  setIsPanning: (isPanning: boolean) => void
-  setLastPanPoint: (point: Point | null) => void
   setContextMenu: (menu: {
     visible: boolean
     x: number
@@ -70,6 +63,35 @@ interface CanvasContextType {
 
 const CanvasContext = createContext<CanvasContextType | undefined>(undefined)
 
+// ── Pan (high-frequency) ──────────────────────────────────────────────────────
+// panOffset + lastPanPoint are rewritten on every mousemove while panning. They
+// live in their own provider so a pan only re-renders the few things that
+// position by it (the Canvas transform, the crosshair/ruler overlays) — never the
+// annotations, which sit inside the transformed container and don't read pan.
+interface PanContextType {
+  panOffset: Point
+  isPanning: boolean
+  lastPanPoint: Point | null
+  setPanOffset: (pan: Point) => void
+  panTo: (x: number, y: number) => void
+  resetView: () => void
+  setIsPanning: (isPanning: boolean) => void
+  setLastPanPoint: (point: Point | null) => void
+}
+const PanContext = createContext<PanContextType | undefined>(undefined)
+
+// ── Selection ─────────────────────────────────────────────────────────────────
+// The selected annotation changes on every click. In its own provider, a
+// selection change re-renders only the AnnotationRenderer (which fans `isSelected`
+// out as a prop) and the two affected shapes — not the whole canvas.
+interface SelectionContextType {
+  selectedAnnotation: any
+  setSelectedAnnotation: (annotation: any) => void
+}
+const SelectionContext = createContext<SelectionContextType | undefined>(
+  undefined
+)
+
 // ── Cursor position (high-frequency) ─────────────────────────────────────────
 // The cursor moves on virtually every mousemove event. Keeping it inside the
 // main canvas context would re-render every consumer (all annotations, the
@@ -79,6 +101,20 @@ const CanvasContext = createContext<CanvasContextType | undefined>(undefined)
 // re-render, while only the crosshair/coordinate overlays subscribe to the value.
 const CursorValueContext = createContext<Point | null>(null)
 const CursorSetContext = createContext<(cursor: Point | null) => void>(() => {})
+
+// ── Tool state (high-frequency during draw / move / resize) ───────────────────
+// The live editing state (previewCoordinates, freeDrawPoints, tempAnnotation, the
+// in-progress flags…) is rewritten on every throttled mousemove while drawing or
+// editing a shape. Holding it in the main CanvasContext re-rendered EVERY
+// annotation on each tick — they all subscribe to zoom/tool/selection there, so a
+// new context value forced the whole list to reconcile. We give it its own
+// provider (value + setter split, like the cursor) so a tool-state update only
+// re-renders the Canvas shell and the single shape being edited — never the rest
+// of the annotation list. Annotations must NOT read this context.
+const ToolStateValueContext = createContext<ToolState>({})
+const ToolStateSetContext = createContext<(state: Partial<ToolState>) => void>(
+  () => {}
+)
 
 const CursorProvider = ({ children }: { children: ReactNode }) => {
   const [cursorPosition, setCursorPosition] = useState<Point | null>(null)
@@ -185,12 +221,7 @@ export const CanvasProvider = ({ children }: { children: ReactNode }) => {
   const value = useMemo<CanvasContextType>(
     () => ({
       zoom,
-      panOffset,
       selectedTool,
-      toolState,
-      selectedAnnotation,
-      isPanning,
-      lastPanPoint,
       contextMenu,
       container,
       showCrosshair,
@@ -198,16 +229,9 @@ export const CanvasProvider = ({ children }: { children: ReactNode }) => {
       setZoom,
       zoomIn,
       zoomOut,
-      setPanOffset,
-      panTo,
-      resetView,
       fitSignal,
       requestFit,
       setSelectedTool,
-      setToolState,
-      setSelectedAnnotation,
-      setIsPanning,
-      setLastPanPoint,
       setContextMenu,
       setContainer,
       setShowCrosshair,
@@ -221,12 +245,7 @@ export const CanvasProvider = ({ children }: { children: ReactNode }) => {
     }),
     [
       zoom,
-      panOffset,
       selectedTool,
-      toolState,
-      selectedAnnotation,
-      isPanning,
-      lastPanPoint,
       contextMenu,
       container,
       showCrosshair,
@@ -234,9 +253,6 @@ export const CanvasProvider = ({ children }: { children: ReactNode }) => {
       setZoom,
       zoomIn,
       zoomOut,
-      panTo,
-      setToolState,
-      resetView,
       fitSignal,
       requestFit,
       setContainer,
@@ -248,9 +264,36 @@ export const CanvasProvider = ({ children }: { children: ReactNode }) => {
     ]
   )
 
+  const panValue = useMemo<PanContextType>(
+    () => ({
+      panOffset,
+      isPanning,
+      lastPanPoint,
+      setPanOffset,
+      panTo,
+      resetView,
+      setIsPanning,
+      setLastPanPoint,
+    }),
+    [panOffset, isPanning, lastPanPoint, panTo, resetView]
+  )
+
+  const selectionValue = useMemo<SelectionContextType>(
+    () => ({ selectedAnnotation, setSelectedAnnotation }),
+    [selectedAnnotation]
+  )
+
   return (
     <CanvasContext.Provider value={value}>
-      <CursorProvider>{children}</CursorProvider>
+      <PanContext.Provider value={panValue}>
+        <SelectionContext.Provider value={selectionValue}>
+          <ToolStateSetContext.Provider value={setToolState}>
+            <ToolStateValueContext.Provider value={toolState}>
+              <CursorProvider>{children}</CursorProvider>
+            </ToolStateValueContext.Provider>
+          </ToolStateSetContext.Provider>
+        </SelectionContext.Provider>
+      </PanContext.Provider>
     </CanvasContext.Provider>
   )
 }
@@ -271,8 +314,35 @@ export const useCanvasState = <TSelected = CanvasContextType>(
 }
 
 export const useCanvasTool = () => {
-  const { selectedTool, setSelectedTool, toolState, setToolState } = useCanvas()
-  return { selectedTool, setSelectedTool, toolState, setToolState }
+  const { selectedTool, setSelectedTool } = useCanvas()
+  return { selectedTool, setSelectedTool }
+}
+
+// Live tool/editing state. Consumers here re-render on every draw/move/resize
+// tick — that's intentional and limited to the few that need it (the Canvas, the
+// tool handlers, the coordinate overlay). Annotation components must NOT read
+// this; they only need `selectedTool` from useCanvasTool() above, which stays put
+// while a shape is being edited.
+export const useCanvasToolState = () => {
+  const toolState = useContext(ToolStateValueContext)
+  const setToolState = useContext(ToolStateSetContext)
+  return { toolState, setToolState }
+}
+
+const usePan = () => {
+  const context = useContext(PanContext)
+  if (!context) {
+    throw new Error("usePan must be used within a CanvasProvider")
+  }
+  return context
+}
+
+const useSelection = () => {
+  const context = useContext(SelectionContext)
+  if (!context) {
+    throw new Error("useSelection must be used within a CanvasProvider")
+  }
+  return context
 }
 
 export const useCanvasZoom = () => {
@@ -281,7 +351,7 @@ export const useCanvasZoom = () => {
 }
 
 export const useCanvasPan = () => {
-  const { panOffset, setPanOffset, panTo, resetView } = useCanvas()
+  const { panOffset, setPanOffset, panTo, resetView } = usePan()
   return { panOffset, setPanOffset, panTo, resetView }
 }
 
@@ -303,7 +373,7 @@ export const useCanvasCursor = () => {
 export const useSetCanvasCursor = () => useContext(CursorSetContext)
 
 export const useCanvasSelection = () => {
-  const { selectedAnnotation, setSelectedAnnotation } = useCanvas()
+  const { selectedAnnotation, setSelectedAnnotation } = useSelection()
   return { selectedAnnotation, setSelectedAnnotation }
 }
 
@@ -326,7 +396,7 @@ export const useCanvasPanning = () => {
     setIsPanning,
     lastPanPoint,
     setLastPanPoint,
-  } = useCanvas()
+  } = usePan()
   return {
     panOffset,
     setPanOffset,

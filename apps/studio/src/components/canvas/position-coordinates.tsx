@@ -4,7 +4,7 @@ import {
   useCanvasDisplay,
   useCanvasZoom,
   useCanvasPan,
-  useCanvasTool,
+  useCanvasToolState,
 } from "@/contexts/canvas-context"
 
 type Offset = { x: number; y: number }
@@ -13,7 +13,7 @@ export const PositionCoordinates: React.FC<{ baseOffset?: Offset }> = memo(({ ba
   const { cursorPosition } = useCanvasCursor()
   const { zoom } = useCanvasZoom()
   const { panOffset } = useCanvasPan()
-  const { toolState } = useCanvasTool()
+  const { toolState } = useCanvasToolState()
   const { showCoordinates } = useCanvasDisplay()
   const offset = baseOffset || panOffset
   

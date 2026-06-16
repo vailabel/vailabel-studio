@@ -229,21 +229,46 @@ export const useImageLabelerViewModel = (
     [image]
   )
 
-  return {
-    image,
-    annotations,
-    predictions,
-    labels,
-    aiModels,
-    nextId: nextImage?.id ?? null,
-    prevId: prevImage?.id ?? null,
-    hasNext: Boolean(nextImage),
-    hasPrevious: Boolean(prevImage),
-    isLoading,
-    isGeneratingPredictions,
-    isSegmenting,
-    error,
-    createAnnotationFromDraft: async ({
+  // Stable identities: the canvas passes updateAnnotation down to every shape as
+  // a prop, so if it were recreated each render the per-shape memo would break and
+  // a single edit would re-render the whole canvas. These only touch `services`
+  // (a module singleton) and the state setters, so they can be fully stable.
+  const createAnnotation = useCallback(
+    async (annotation: Omit<Annotation, "id">) => {
+      const created = await services.getAnnotationService().createAnnotation(annotation)
+      setAnnotations((current) => [created, ...current])
+      return created
+    },
+    []
+  )
+
+  const updateAnnotation = useCallback(
+    async (annotationId: string, updates: Partial<Annotation>) => {
+      const updated = await services
+        .getAnnotationService()
+        .updateAnnotation(annotationId, updates)
+      setAnnotations((current) =>
+        current.map((annotation) =>
+          annotation.id === annotationId ? updated : annotation
+        )
+      )
+      return updated
+    },
+    []
+  )
+
+  const deleteAnnotation = useCallback(
+    async (annotationId: string) => {
+      await services.getAnnotationService().deleteAnnotation(annotationId)
+      setAnnotations((current) =>
+        current.filter((annotation) => annotation.id !== annotationId)
+      )
+    },
+    []
+  )
+
+  const createAnnotationFromDraft = useCallback(
+    async ({
       name,
       color,
       type,
@@ -281,28 +306,27 @@ export const useImageLabelerViewModel = (
       setAnnotations((current) => [createdAnnotation, ...current])
       return createdAnnotation
     },
-    createAnnotation: async (annotation: Omit<Annotation, "id">) => {
-      const created = await services.getAnnotationService().createAnnotation(annotation)
-      setAnnotations((current) => [created, ...current])
-      return created
-    },
-    updateAnnotation: async (annotationId: string, updates: Partial<Annotation>) => {
-      const updated = await services
-        .getAnnotationService()
-        .updateAnnotation(annotationId, updates)
-      setAnnotations((current) =>
-        current.map((annotation) =>
-          annotation.id === annotationId ? updated : annotation
-        )
-      )
-      return updated
-    },
-    deleteAnnotation: async (annotationId: string) => {
-      await services.getAnnotationService().deleteAnnotation(annotationId)
-      setAnnotations((current) =>
-        current.filter((annotation) => annotation.id !== annotationId)
-      )
-    },
+    [image, labels, projectId, ensureLabel]
+  )
+
+  return {
+    image,
+    annotations,
+    predictions,
+    labels,
+    aiModels,
+    nextId: nextImage?.id ?? null,
+    prevId: prevImage?.id ?? null,
+    hasNext: Boolean(nextImage),
+    hasPrevious: Boolean(prevImage),
+    isLoading,
+    isGeneratingPredictions,
+    isSegmenting,
+    error,
+    createAnnotationFromDraft,
+    createAnnotation,
+    updateAnnotation,
+    deleteAnnotation,
     generatePredictions,
     smartSegment,
     acceptPrediction: async (predictionId: string, labelId?: string) => {

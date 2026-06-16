@@ -1,9 +1,5 @@
 import type { Annotation } from "@/types/core"
-import {
-  useCanvasZoom,
-  useCanvasTool,
-  useCanvasSelection,
-} from "@/contexts/canvas-context"
+import { useCanvasZoom, useCanvasTool } from "@/contexts/canvas-context"
 import {
   AnnotationLabel,
   dashFor,
@@ -11,11 +7,13 @@ import {
   strokeWidthFor,
   HANDLE_RADIUS,
 } from "./annotation-styles"
+import { useVertexDrag } from "@/hooks/use-vertex-drag"
 import { memo, useCallback } from "react"
 
 interface CircleAnnotationProps {
   annotation: Annotation
   readOnly?: boolean
+  isSelected?: boolean
   onUpdateAnnotation?: (
     annotationId: string,
     updates: Partial<Annotation>
@@ -23,42 +21,35 @@ interface CircleAnnotationProps {
 }
 
 export const CircleAnnotation = memo(
-  ({ annotation, readOnly = false, onUpdateAnnotation }: CircleAnnotationProps) => {
+  ({
+    annotation,
+    readOnly = false,
+    isSelected = false,
+    onUpdateAnnotation,
+  }: CircleAnnotationProps) => {
     const { zoom } = useCanvasZoom()
     const { selectedTool } = useCanvasTool()
-    const { selectedAnnotation } = useCanvasSelection()
 
-    const isSelected = selectedAnnotation?.id === annotation.id
     const isMoveTool = selectedTool === "move"
 
-    const center = annotation.coordinates[0]
-    const edge = annotation.coordinates[1] || center
-    const radius = Math.hypot(edge.x - center.x, edge.y - center.y)
+    // Live preview while dragging the radius handle; commits once on release.
+    const { previewCoordinates, startDrag } = useVertexDrag({
+      annotationId: annotation.id,
+      zoom,
+      readOnly,
+      onUpdateAnnotation,
+    })
+    const coordinates = previewCoordinates ?? annotation.coordinates
+
+    const center = coordinates[0]
+    const edge = coordinates[1] || center
+    const radius = center ? Math.hypot(edge.x - center.x, edge.y - center.y) : 0
 
     const handleEdgeMouseDown = useCallback(
       (e: React.MouseEvent<SVGCircleElement>) => {
-        e.stopPropagation()
-        const svg = (e.target as SVGCircleElement).ownerSVGElement
-        if (!svg) return
-        const rect = svg.getBoundingClientRect()
-
-        function onMouseMove(moveEvent: MouseEvent) {
-          if (readOnly || !onUpdateAnnotation) return
-          const newX = (moveEvent.clientX - rect.left) / zoom
-          const newY = (moveEvent.clientY - rect.top) / zoom
-          void onUpdateAnnotation(annotation.id, {
-            coordinates: [center, { x: newX, y: newY }],
-            updatedAt: new Date(),
-          })
-        }
-        function onMouseUp() {
-          window.removeEventListener("mousemove", onMouseMove)
-          window.removeEventListener("mouseup", onMouseUp)
-        }
-        window.addEventListener("mousemove", onMouseMove)
-        window.addEventListener("mouseup", onMouseUp)
+        startDrag(e, (next) => [annotation.coordinates[0], next])
       },
-      [annotation.id, center, onUpdateAnnotation, readOnly, zoom]
+      [annotation.coordinates, startDrag]
     )
 
     if (!center) return null

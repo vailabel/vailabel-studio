@@ -91,10 +91,64 @@ export interface TrainingStartRequest {
   config?: unknown
 }
 
+export interface DatasetExportRequest {
+  projectId: string
+  valSplit?: number
+}
+
+export interface DatasetImportRequest {
+  projectId: string
+  /** Root folder of an unzipped YOLO/Roboflow export. */
+  folder: string
+}
+
+/** Summary of a YOLO/Roboflow dataset imported into a project. */
+export interface DatasetImportResult {
+  imageCount: number
+  annotationCount: number
+  classCount: number
+  createdClassCount: number
+  classNames: string[]
+  skippedImageCount: number
+  warnings: string[]
+}
+
+/** Summary of a YOLO dataset materialized from a project's annotations. */
+export interface DatasetExportResult {
+  /** The `data.yaml` path — feed this to `TrainingStartRequest.datasetPath`. */
+  datasetPath: string
+  root: string
+  imageCount: number
+  trainCount: number
+  valCount: number
+  labeledCount: number
+  annotationCount: number
+  classCount: number
+  classNames: string[]
+  warnings: string[]
+}
+
 export interface TrainingLogChunk {
   lines: string[]
   next_offset: number
   eof: boolean
+}
+
+export interface TrainingReportPlot {
+  label: string
+  /** Absolute path to a plot image; render via toAssetUrl(). */
+  path: string
+}
+
+export interface TrainingReport {
+  jobId: string
+  name: string
+  saveDir: string
+  epochs: number
+  /** Final-epoch row of ultralytics' results.csv, keyed by column name
+   * (e.g. "metrics/mAP50(B)"). Non-numeric cells come back as null. */
+  final: Record<string, number | null>
+  plots: TrainingReportPlot[]
 }
 
 export interface ExportRequest {

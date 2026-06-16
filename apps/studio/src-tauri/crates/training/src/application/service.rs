@@ -6,7 +6,9 @@ use serde_json::{json, Value};
 use vailabel_core::{DomainError, DomainResult};
 use vailabel_shared::{now_iso, EventPublisher, PortError};
 
-use crate::application::commands::{StartTrainingCommand, StopTrainingCommand};
+use crate::application::commands::{
+    StartTrainingCommand, StopTrainingCommand, SyncTrainingUpdate,
+};
 use crate::application::ports::{TrainingRuntime, TrainingStartReq};
 use crate::domain::{TrainingEvent, TrainingRepository, TrainingRun, TrainingStatus};
 
@@ -119,6 +121,49 @@ impl TrainingAppService {
     /// All training runs (across projects) — the `training_list` query.
     pub fn list(&self) -> DomainResult<Vec<TrainingRun>> {
         self.repo.list()
+    }
+
+    /// Reconcile in-flight runs against live runtime snapshots: persist any
+    /// change to status/progress/metrics/error, stamp `finished_at` on a
+    /// terminal transition, and emit an `updated` event per changed run. A
+    /// user-`canceled` run is never resurrected. Returns the runs that changed.
+    pub fn sync(&self, updates: Vec<SyncTrainingUpdate>) -> DomainResult<Vec<TrainingRun>> {
+        let mut changed = Vec::new();
+        for update in updates {
+            let Some(mut run) = self.repo.get(&update.job_id)? else {
+                continue;
+            };
+            if run.status.as_str() == "canceled" {
+                continue;
+            }
+
+            let new_status = TrainingStatus::new(update.status);
+            let status_changed = run.status != new_status;
+            let progress_changed = (run.progress - update.progress).abs() > f32::EPSILON;
+            let metrics_changed = !update.metrics.is_null() && run.metrics != update.metrics;
+            let error_changed = update.error.is_some() && run.error != update.error;
+            if !(status_changed || progress_changed || metrics_changed || error_changed) {
+                continue;
+            }
+
+            run.status = new_status;
+            run.progress = update.progress;
+            if !update.metrics.is_null() {
+                run.metrics = update.metrics;
+            }
+            if update.error.is_some() {
+                run.error = update.error;
+            }
+            run.updated_at = now_iso();
+            if !run.status.is_in_flight() && run.finished_at.is_none() {
+                run.finished_at = Some(now_iso());
+            }
+
+            let saved = self.repo.update(&run)?;
+            self.publish(&saved, &TrainingEvent::Updated { id: saved.id.clone() })?;
+            changed.push(saved);
+        }
+        Ok(changed)
     }
 
     /// Fetch one run by id (used for the `training_logs` on-disk fallback).

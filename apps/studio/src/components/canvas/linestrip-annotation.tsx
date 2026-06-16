@@ -1,20 +1,18 @@
 import type { Annotation, Point } from "@/types/core"
-import {
-  useCanvasZoom,
-  useCanvasTool,
-  useCanvasSelection,
-} from "@/contexts/canvas-context"
+import { useCanvasZoom, useCanvasTool } from "@/contexts/canvas-context"
 import {
   AnnotationLabel,
   dashFor,
   strokeWidthFor,
   HANDLE_RADIUS,
 } from "./annotation-styles"
+import { useVertexDrag } from "@/hooks/use-vertex-drag"
 import { memo, useCallback, useMemo } from "react"
 
 interface LinestripAnnotationProps {
   annotation: Annotation
   readOnly?: boolean
+  isSelected?: boolean
   onUpdateAnnotation?: (
     annotationId: string,
     updates: Partial<Annotation>
@@ -23,49 +21,41 @@ interface LinestripAnnotationProps {
 
 // Open polyline through the annotation's vertices (LabelMe "linestrip").
 export const LinestripAnnotation = memo(
-  ({ annotation, readOnly = false, onUpdateAnnotation }: LinestripAnnotationProps) => {
+  ({
+    annotation,
+    readOnly = false,
+    isSelected = false,
+    onUpdateAnnotation,
+  }: LinestripAnnotationProps) => {
     const { zoom } = useCanvasZoom()
     const { selectedTool } = useCanvasTool()
-    const { selectedAnnotation } = useCanvasSelection()
 
-    const isSelected = selectedAnnotation?.id === annotation.id
     const isMoveTool = selectedTool === "move"
 
+    // Live preview while dragging a vertex; commits once on release.
+    const { previewCoordinates, startDrag } = useVertexDrag({
+      annotationId: annotation.id,
+      zoom,
+      readOnly,
+      onUpdateAnnotation,
+    })
+    const coordinates = previewCoordinates ?? annotation.coordinates
+
     const pointsString = useMemo(
-      () => annotation.coordinates.map((p) => `${p.x},${p.y}`).join(" "),
-      [annotation.coordinates]
+      () => coordinates.map((p) => `${p.x},${p.y}`).join(" "),
+      [coordinates]
     )
 
     const handlePointMouseDown = useCallback(
       (e: React.MouseEvent<SVGCircleElement>, index: number) => {
-        e.stopPropagation()
-        const svg = (e.target as SVGCircleElement).ownerSVGElement
-        if (!svg) return
-        const rect = svg.getBoundingClientRect()
-
-        function onMouseMove(moveEvent: MouseEvent) {
-          if (readOnly || !onUpdateAnnotation) return
-          const newX = (moveEvent.clientX - rect.left) / zoom
-          const newY = (moveEvent.clientY - rect.top) / zoom
-          const newCoordinates = annotation.coordinates.map((p, i) =>
-            i === index ? { x: newX, y: newY } : p
-          )
-          void onUpdateAnnotation(annotation.id, {
-            coordinates: newCoordinates,
-            updatedAt: new Date(),
-          })
-        }
-        function onMouseUp() {
-          window.removeEventListener("mousemove", onMouseMove)
-          window.removeEventListener("mouseup", onMouseUp)
-        }
-        window.addEventListener("mousemove", onMouseMove)
-        window.addEventListener("mouseup", onMouseUp)
+        startDrag(e, (next) =>
+          annotation.coordinates.map((p, i) => (i === index ? next : p))
+        )
       },
-      [annotation.coordinates, annotation.id, onUpdateAnnotation, readOnly, zoom]
+      [annotation.coordinates, startDrag]
     )
 
-    const firstPoint = annotation.coordinates[0]
+    const firstPoint = coordinates[0]
     if (!firstPoint) return null
 
     return (
@@ -88,7 +78,7 @@ export const LinestripAnnotation = memo(
         />
         {isMoveTool &&
           !readOnly &&
-          annotation.coordinates.map((point: Point, index: number) => (
+          coordinates.map((point: Point, index: number) => (
             <circle
               key={index}
               cx={point.x}

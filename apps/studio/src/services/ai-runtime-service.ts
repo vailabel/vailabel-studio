@@ -1,5 +1,6 @@
 import { studioCommands } from "@/ipc/studio"
 import type {
+  DatasetExportRequest,
   ExportRequest,
   TrainingStartRequest,
 } from "@/types/ai-runtime"
@@ -19,12 +20,19 @@ export const aiRuntimeService = {
   installModel: (id: string) => studioCommands.runtimeModelsInstall(id),
   deleteModel: (id: string) => studioCommands.runtimeModelsDelete(id),
 
+  exportDataset: (payload: DatasetExportRequest) =>
+    studioCommands.datasetExportYolo(payload),
+
   startTraining: (payload: TrainingStartRequest) =>
     studioCommands.trainingStart(payload),
   stopTraining: (id: string) => studioCommands.trainingStop(id),
   listTraining: () => studioCommands.trainingList(),
+  syncTraining: () => studioCommands.trainingSync(),
+  exportTrainedModel: (jobId: string) =>
+    studioCommands.trainingExportOnnx(jobId),
   trainingLogs: (jobId: string, offset = 0) =>
     studioCommands.trainingLogs(jobId, offset),
+  trainingReport: (jobId: string) => studioCommands.trainingReport(jobId),
 
   exportOnnx: (payload: ExportRequest) => studioCommands.exportOnnx(payload),
   exportTensorrt: (payload: ExportRequest) =>

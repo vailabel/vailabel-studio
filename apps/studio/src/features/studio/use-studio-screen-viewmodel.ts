@@ -15,6 +15,7 @@ import { listenToStudioEvents } from "@/ipc/events"
 import { services } from "@/services"
 import type { Annotation, ImageData, Label, Project } from "@/types/core"
 import { openPathDialog } from "@/lib/desktop"
+import { simplifyPolyline } from "@/lib/canvas-utils"
 import { exportDataset, type ExportFormat } from "@/lib/export"
 import { useImageLabelerViewModel } from "@/viewmodels/image-labeler-viewmodel"
 import { useSettingsViewModel } from "@/viewmodels/settings-viewmodel"
@@ -258,6 +259,57 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
     [imageLabeler, navigate]
   )
 
+  // Reduce a vertex-dense polygon / free-draw shape (typically a SAM mask) to a
+  // handful of meaningful vertices so it's actually editable by hand. One commit
+  // → one undo step; epsilon scales with the shape's size so it behaves the same
+  // at any image resolution.
+  const canSimplifySelected =
+    selectedAnnotation?.type === "polygon" ||
+    selectedAnnotation?.type === "freeDraw"
+
+  const simplifySelectedAnnotation = useCallback(async () => {
+    const annotation = selectedAnnotation
+    if (
+      !annotation ||
+      (annotation.type !== "polygon" && annotation.type !== "freeDraw")
+    ) {
+      return
+    }
+
+    const points = annotation.coordinates
+    const minPoints = annotation.type === "polygon" ? 3 : 2
+    if (points.length <= minPoints) {
+      toast.info("This shape is already minimal.")
+      return
+    }
+
+    let minX = Infinity
+    let minY = Infinity
+    let maxX = -Infinity
+    let maxY = -Infinity
+    for (const point of points) {
+      if (point.x < minX) minX = point.x
+      if (point.x > maxX) maxX = point.x
+      if (point.y < minY) minY = point.y
+      if (point.y > maxY) maxY = point.y
+    }
+    const diagonal = Math.hypot(maxX - minX, maxY - minY)
+    const epsilon = Math.max(diagonal * 0.004, 0.75)
+
+    const simplified = simplifyPolyline(points, epsilon)
+    if (simplified.length < minPoints || simplified.length >= points.length) {
+      toast.info("Nothing to simplify on this shape.")
+      return
+    }
+
+    await canvasSession.updateAnnotation(annotation.id, {
+      coordinates: simplified,
+    })
+    toast.success(
+      `Simplified ${points.length} → ${simplified.length} points.`
+    )
+  }, [selectedAnnotation, canvasSession])
+
   const toggleCrosshair = useCallback(async () => {
     const nextValue = !showCrosshair
     setShowCrosshair(nextValue)
@@ -375,6 +427,8 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
     createAnnotationFromDraft: canvasSession.createAnnotationFromDraft,
     updateAnnotation: canvasSession.updateAnnotation,
     deleteAnnotation: canvasSession.deleteAnnotation,
+    canSimplifySelected,
+    simplifySelectedAnnotation,
     undo: canvasSession.undo,
     redo: canvasSession.redo,
     generatePredictions: imageLabeler.generatePredictions,

@@ -1,18 +1,17 @@
 import type { Annotation } from "@/types/core"
-import { useCanvasSelection, useCanvasZoom } from "@/contexts/canvas-context"
+import { useCanvasZoom } from "@/contexts/canvas-context"
 import { AnnotationLabel, dashFor, strokeWidthFor } from "./annotation-styles"
 import { memo } from "react"
 
 interface PointAnnotationProps {
   annotation: Annotation
   readOnly?: boolean
+  isSelected?: boolean
 }
 
 export const PointAnnotation = memo(
-  ({ annotation, readOnly = false }: PointAnnotationProps) => {
-    const { selectedAnnotation } = useCanvasSelection()
+  ({ annotation, readOnly = false, isSelected = false }: PointAnnotationProps) => {
     const { zoom } = useCanvasZoom()
-    const isSelected = selectedAnnotation?.id === annotation.id
     const point = annotation.coordinates[0]
     if (!point) return null
 

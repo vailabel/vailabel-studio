@@ -12,6 +12,7 @@ import {
   useCanvasPan,
   useCanvasZoom,
   useCanvasTool,
+  useCanvasToolState,
   useCanvasSelection,
   useCanvasContainer,
   useCanvasDisplay,
@@ -99,7 +100,8 @@ export const Canvas = memo(
     // Use Context hooks instead of Zustand
     const { zoom, setZoom } = useCanvasZoom()
     const { panOffset, setPanOffset } = useCanvasPan()
-    const { selectedTool, setToolState } = useCanvasTool()
+    const { selectedTool } = useCanvasTool()
+    const { setToolState } = useCanvasToolState()
     const { setSelectedAnnotation } = useCanvasSelection()
     const { container, setContainer } = useCanvasContainer()
     const { showCrosshair, showCoordinates, showRuler } = useCanvasDisplay()

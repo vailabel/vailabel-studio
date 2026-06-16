@@ -244,7 +244,10 @@ pub struct ExportRequest {
     pub model_path: String,
     pub format: String,
     pub output_path: String,
-    #[serde(default)]
+    // Omit when null so the runtime's `opts: Dict = {}` default applies — an
+    // explicit JSON `null` fails Pydantic's dict validation (422), whereas an
+    // absent field falls back to the default.
+    #[serde(default, skip_serializing_if = "serde_json::Value::is_null")]
     pub opts: serde_json::Value,
 }
 

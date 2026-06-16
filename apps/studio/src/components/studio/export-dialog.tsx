@@ -1,4 +1,4 @@
-import { memo, useState } from "react"
+import { memo, useEffect, useMemo, useState } from "react"
 import { FolderOpen, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import {
@@ -11,7 +11,8 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { EXPORT_FORMATS, type ExportFormat } from "@/lib/export"
+import { exportFormatsFor, type ExportFormat } from "@/lib/export"
+import type { Modality } from "@/types/modality"
 
 interface ExportDialogProps {
   isOpen: boolean
@@ -20,11 +21,24 @@ interface ExportDialogProps {
     format: ExportFormat
   ) => Promise<{ count: number; outputDir: string } | null>
   isExporting: boolean
+  /** Project modality — picks the applicable export formats. */
+  modality?: Modality
 }
 
 export const ExportDialog = memo(
-  ({ isOpen, onClose, onExport, isExporting }: ExportDialogProps) => {
-    const [format, setFormat] = useState<ExportFormat>("labelme")
+  ({ isOpen, onClose, onExport, isExporting, modality }: ExportDialogProps) => {
+    const formats = useMemo(() => exportFormatsFor(modality), [modality])
+    const [format, setFormat] = useState<ExportFormat>(
+      () => exportFormatsFor(modality)[0]?.id ?? "labelme"
+    )
+
+    // Keep the selection valid when the modality (and thus the format list)
+    // resolves after the dialog has mounted.
+    useEffect(() => {
+      if (!formats.some((meta) => meta.id === format)) {
+        setFormat(formats[0]?.id ?? "labelme")
+      }
+    }, [formats, format])
 
     const handleExport = async () => {
       try {
@@ -54,7 +68,7 @@ export const ExportDialog = memo(
           </DialogHeader>
 
           <div className="space-y-2">
-            {EXPORT_FORMATS.map((meta) => (
+            {formats.map((meta) => (
               <button
                 key={meta.id}
                 type="button"

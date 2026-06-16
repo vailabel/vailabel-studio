@@ -1,9 +1,5 @@
 import { memo, useMemo } from "react"
-import {
-  useCanvasZoom,
-  useCanvasTool,
-  useCanvasSelection,
-} from "@/contexts/canvas-context"
+import { useCanvasZoom, useCanvasTool } from "@/contexts/canvas-context"
 import {
   AnnotationLabel,
   dashFor,
@@ -14,15 +10,14 @@ import { Annotation, Point } from "@/types/core"
 interface FreeDrawAnnotationProps {
   annotation: Annotation
   readOnly?: boolean
+  isSelected?: boolean
 }
 
 export const FreeDrawAnnotation = memo(
-  ({ annotation, readOnly = false }: FreeDrawAnnotationProps) => {
+  ({ annotation, readOnly = false, isSelected = false }: FreeDrawAnnotationProps) => {
     const { zoom } = useCanvasZoom()
     const { selectedTool } = useCanvasTool()
-    const { selectedAnnotation } = useCanvasSelection()
 
-    const isSelected = selectedAnnotation?.id === annotation.id
     const isMoveTool = selectedTool === "move"
 
     // Calculate bounding box for easier interaction

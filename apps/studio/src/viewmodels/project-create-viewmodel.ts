@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from "uuid"
 import { useNavigate } from "react-router-dom"
 import { services } from "@/services"
 import type { Annotation } from "@/types/core"
+import type { Modality, Task } from "@/types/modality"
 import {
   allowImageDirectory,
   openPathDialog,
@@ -33,6 +34,13 @@ interface ImageFile {
   size?: number
 }
 
+/** A non-image item (a text document) referenced in place, like images. */
+interface DocumentFile {
+  id: string
+  name: string
+  path: string
+}
+
 function folderBaseName(folder: string): string {
   return (
     folder
@@ -42,12 +50,26 @@ function folderBaseName(folder: string): string {
   )
 }
 
+function fileBaseName(filePath: string): string {
+  return (
+    filePath
+      .split(/[\\/]/)
+      .filter(Boolean)
+      .pop() || filePath
+  )
+}
+
 export const useProjectCreateViewModel = () => {
   const navigate = useNavigate()
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [type, setType] = useState<string>(PROJECT_TYPES.IMAGE_ANNOTATION)
+  // Two-axis taxonomy stored on the project so the studio shell mounts the right
+  // editor (image canvas vs. text labeler). Defaults match a legacy image project.
+  const [modality, setModality] = useState<Modality>("image")
+  const [task, setTask] = useState<Task>("detection")
   const [images, setImages] = useState<ImageFile[]>([])
+  const [documents, setDocuments] = useState<DocumentFile[]>([])
   const [classes, setClasses] = useState<
     { id: string; name: string; color: string }[]
   >([])
@@ -55,6 +77,8 @@ export const useProjectCreateViewModel = () => {
   const [isScanning, setIsScanning] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<unknown>(null)
+
+  const isTextProject = modality === "text"
 
   // LabelMe-style: pick a folder, reference its images in place (no base64).
   const openImageFolder = async () => {
@@ -87,6 +111,31 @@ export const useProjectCreateViewModel = () => {
   const removeImage = (index: number) =>
     setImages((current) => current.filter((_, itemIndex) => itemIndex !== index))
 
+  // Text projects reference plain-text documents in place (one file = one item),
+  // mirroring the image "reference, never copy" model. A directory scan would
+  // need a backend command, so we pick files directly via the native dialog.
+  const openTextFiles = async () => {
+    const paths = await openPathDialog({
+      multiple: true,
+      filters: [{ name: "Text", extensions: ["txt", "md", "text"] }],
+    })
+    if (!paths || paths.length === 0) return
+
+    setError(null)
+    const nextDocuments: DocumentFile[] = paths.map((path) => ({
+      id: uuidv4(),
+      name: fileBaseName(path),
+      path,
+    }))
+    setDocuments(nextDocuments)
+    setName((current) => current.trim() || "Text dataset")
+  }
+
+  const removeDocument = (index: number) =>
+    setDocuments((current) =>
+      current.filter((_, itemIndex) => itemIndex !== index)
+    )
+
   // Labeling setup: pre-define label classes (Label Studio style). Optional —
   // classes can still be created on the fly while annotating.
   const addClass = (name: string, color: string) => {
@@ -103,7 +152,8 @@ export const useProjectCreateViewModel = () => {
     setClasses((current) => current.filter((cls) => cls.id !== id))
 
   const createProject = async () => {
-    if (!name.trim() || images.length === 0) return
+    const itemCount = isTextProject ? documents.length : images.length
+    if (!name.trim() || itemCount === 0) return
 
     setIsCreating(true)
     setError(null)
@@ -113,13 +163,15 @@ export const useProjectCreateViewModel = () => {
         name: name.trim(),
         description: description.trim(),
         type,
+        modality,
+        task,
         status: "active",
         settings: {
           annotationTypes: getAnnotationTypesForProjectType(type),
           autoSave: true,
         },
         metadata: {
-          imageCount: images.length,
+          imageCount: itemCount,
           sourceFolder: folderPath,
         },
       })
@@ -137,35 +189,51 @@ export const useProjectCreateViewModel = () => {
         )
       )
 
+      // Text documents ride on the same item entity (ImageData) as images —
+      // `path` points at the .txt file; width/height are unused for text.
+      const itemDrafts = isTextProject
+        ? documents.map((doc) => ({
+            id: doc.id,
+            name: doc.name,
+            path: doc.path,
+            imagePath: doc.name,
+            width: 0,
+            height: 0,
+          }))
+        : images
+
       const createdImages = await Promise.all(
-        images.map((image) =>
+        itemDrafts.map((item) =>
           services.getImageService().createImage({
-            ...image,
+            ...item,
             projectId: project.id,
             project_id: project.id,
           })
         )
       )
 
-      // Hydrate annotations from any LabelMe sidecars already in the folder.
-      await Promise.all(
-        createdImages.map(async (image) => {
-          try {
-            const drafts = await importLabelMeSidecar(image, project.id)
-            await Promise.all(
-              drafts.map((draft) =>
-                services
-                  .getAnnotationService()
-                  .createAnnotation({ id: uuidv4(), ...draft } as Annotation)
+      // Hydrate annotations from any LabelMe sidecars already in the folder
+      // (image projects only — text documents have no sidecars).
+      if (!isTextProject) {
+        await Promise.all(
+          createdImages.map(async (image) => {
+            try {
+              const drafts = await importLabelMeSidecar(image, project.id)
+              await Promise.all(
+                drafts.map((draft) =>
+                  services
+                    .getAnnotationService()
+                    .createAnnotation({ id: uuidv4(), ...draft } as Annotation)
+                )
               )
-            )
-          } catch (sidecarError) {
-            console.error("Failed to import sidecar for", image.name, sidecarError)
-          }
-        })
-      )
+            } catch (sidecarError) {
+              console.error("Failed to import sidecar for", image.name, sidecarError)
+            }
+          })
+        )
+      }
 
-      // Drop straight into annotating the first image (LabelMe behaviour).
+      // Drop straight into annotating the first item (LabelMe behaviour).
       const firstImage = createdImages[0]
       if (firstImage) {
         navigate(`/projects/${project.id}/studio/${firstImage.id}`)
@@ -187,7 +255,13 @@ export const useProjectCreateViewModel = () => {
     setDescription,
     type,
     setType,
+    modality,
+    setModality,
+    task,
+    setTask,
+    isTextProject,
     images,
+    documents,
     classes,
     addClass,
     removeClass,
@@ -195,9 +269,13 @@ export const useProjectCreateViewModel = () => {
     isScanning,
     isCreating,
     error,
-    canCreate: name.trim().length > 0 && images.length > 0,
+    canCreate:
+      name.trim().length > 0 &&
+      (isTextProject ? documents.length > 0 : images.length > 0),
     openImageFolder,
     removeImage,
+    openTextFiles,
+    removeDocument,
     createProject,
     cancel: () => navigate("/projects"),
   }
@@ -211,6 +289,8 @@ function getAnnotationTypesForProjectType(type: string): string[] {
       return ["polygon", "mask"]
     case PROJECT_TYPES.CLASSIFICATION:
       return ["classification"]
+    case PROJECT_TYPES.TEXT_ANNOTATION:
+      return ["span", "classification"]
     default:
       return ["bbox", "polygon", "point"]
   }

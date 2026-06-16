@@ -13,8 +13,9 @@ interface AutoLabelControlsProps {
   /** All installed models; filtered here to auto-label-capable detectors. */
   models: AIModel[]
   isRunning: boolean
-  /** Run the chosen detection model on the current image. */
-  onAutoLabel: (modelId: string) => Promise<unknown>
+  /** Run the chosen detection model on the current image at the given
+   * confidence threshold (0–1). */
+  onAutoLabel: (modelId: string, threshold: number) => Promise<unknown>
 }
 
 /**
@@ -46,6 +47,11 @@ export function AutoLabelControls({
   )
   const [selectedId, setSelectedId] = useState<string>("")
   const effectiveId = selectedId || activeId || detectors[0]?.id || ""
+
+  // Confidence threshold (percent) for detections. Default 25% matches the
+  // runtime default; lower it to surface boxes from a weaker model, raise it to
+  // keep only confident ones.
+  const [confPct, setConfPct] = useState(25)
 
   if (detectors.length === 0) {
     return (
@@ -87,11 +93,28 @@ export function AutoLabelControls({
           </option>
         ))}
       </select>
+      <label
+        className="flex items-center gap-1.5 px-1 text-xs text-muted-foreground"
+        title="Confidence threshold — only keep detections at or above this score. Lower it if auto-label finds nothing."
+      >
+        Conf
+        <input
+          type="range"
+          min={5}
+          max={95}
+          step={5}
+          value={confPct}
+          onChange={(event) => setConfPct(Number(event.target.value))}
+          disabled={isRunning}
+          className="h-1 w-16 cursor-pointer accent-primary"
+        />
+        <span className="w-8 tabular-nums text-foreground">{confPct}%</span>
+      </label>
       <Button
         size="sm"
         className="h-8 gap-1.5"
         disabled={isRunning || !effectiveId}
-        onClick={() => void onAutoLabel(effectiveId)}
+        onClick={() => void onAutoLabel(effectiveId, confPct / 100)}
         title="Detect objects on this image with the selected model"
       >
         {isRunning ? (

@@ -9,6 +9,7 @@ import {
   Plus,
   Trash2,
   Upload,
+  Import,
   FolderOpen,
   Play,
   Layers,
@@ -16,6 +17,7 @@ import {
   CheckCircle2,
   CloudUpload,
   CloudDownload,
+  Brain,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -30,12 +32,14 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
 import { Spinner } from "@/components/ui/spinner"
 import { ImageTable } from "@/components/tables/image-table"
+import { TrainingMonitor } from "@/components/ai/training-monitor"
 import { EditProjectModal } from "@/components/modals/edit-project-modal"
 import { AddLabelModal } from "@/components/modals/add-label-modal"
 import { ImageGrid } from "@/components/ui/image-upload"
 import { useProjectDetailViewModel } from "@/viewmodels/project-detail-viewmodel"
 import { useProjectCloudSync } from "@/hooks/use-project-cloud-sync"
 import { useParams } from "react-router-dom"
+import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
 const formatDate = (date: Date | string | undefined) => {
@@ -97,6 +101,29 @@ const ProjectDetails = memo(() => {
       : s.annotatedImages > 0
         ? "Continue labeling"
         : "Start labeling"
+
+  // Import a YOLO/Roboflow export folder and report what landed.
+  const handleImportDataset = async () => {
+    try {
+      const res = await viewModel.importDataset()
+      if (!res) return
+      toast.success(
+        `Imported ${res.imageCount} images · ${res.annotationCount} boxes · ${res.createdClassCount} new classes`,
+        {
+          description: res.warnings.length
+            ? `${res.warnings.length} item(s) were skipped — open the console for details.`
+            : "Switch to the Images tab to keep labeling, or Training to train on them.",
+        }
+      )
+      if (res.warnings.length) {
+        console.warn("Dataset import warnings:", res.warnings)
+      }
+    } catch (e) {
+      toast.error("Import failed", {
+        description: e instanceof Error ? e.message : String(e),
+      })
+    }
+  }
 
   const stats = [
     { label: "Images", value: s.totalImages, icon: ImageIcon },
@@ -282,7 +309,9 @@ const ProjectDetails = memo(() => {
           <Tabs
             value={viewModel.activeTab}
             onValueChange={(value) =>
-              viewModel.setActiveTab(value as "images" | "upload" | "labels")
+              viewModel.setActiveTab(
+                value as "images" | "upload" | "labels" | "training"
+              )
             }
             className="gap-4"
           >
@@ -298,6 +327,10 @@ const ProjectDetails = memo(() => {
               <TabsTrigger value="upload" className="gap-1.5">
                 <Upload className="size-4" />
                 Upload
+              </TabsTrigger>
+              <TabsTrigger value="training" className="gap-1.5">
+                <Brain className="size-4" />
+                Training
               </TabsTrigger>
             </TabsList>
 
@@ -420,6 +453,29 @@ const ProjectDetails = memo(() => {
                 {viewModel.isUploading ? "Scanning folder…" : "Open image folder"}
               </Button>
 
+              <div className="flex flex-col gap-1.5 rounded-lg border border-dashed p-3">
+                <Button
+                  variant="outline"
+                  className="w-full gap-2"
+                  onClick={handleImportDataset}
+                  disabled={viewModel.isImporting}
+                >
+                  {viewModel.isImporting ? (
+                    <Spinner />
+                  ) : (
+                    <Import className="size-5" />
+                  )}
+                  {viewModel.isImporting
+                    ? "Importing dataset…"
+                    : "Import labeled dataset (YOLO / Roboflow)"}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Point to a folder with <code>data.yaml</code> + images +{" "}
+                  <code>labels/*.txt</code>. Classes, images, and boxes are
+                  imported so you can keep labeling and training on them.
+                </p>
+              </div>
+
               <ImageGrid
                 images={viewModel.newImages}
                 onRemove={viewModel.handleRemoveImage}
@@ -441,6 +497,24 @@ const ProjectDetails = memo(() => {
                   </Button>
                 </div>
               )}
+            </TabsContent>
+
+            <TabsContent value="training" className="flex flex-col gap-4">
+              <div>
+                <h2 className="text-lg font-semibold">Train a model</h2>
+                <p className="max-w-2xl text-sm text-muted-foreground">
+                  Train on this project&apos;s labeled images, then export the
+                  result to ONNX — it becomes a detection model you can pick in
+                  the labeler&apos;s Auto-label control to pre-label the rest.
+                  Label a few → train → auto-label → correct → repeat.
+                </p>
+              </div>
+              <TrainingMonitor
+                projectId={projectId}
+                onUseForLabeling={() =>
+                  nextImageId && viewModel.navigateToImage(nextImageId)
+                }
+              />
             </TabsContent>
           </Tabs>
         </>

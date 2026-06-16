@@ -122,7 +122,6 @@ export const useSettingsViewModel = () => {
     categories: [
       { id: "general", name: "General" },
       { id: "appearance", name: "Appearance" },
-      { id: "model", name: "Model" },
       { id: "copilot", name: "AI Copilot" },
       { id: "runtime", name: "AI Runtime" },
       { id: "shortcuts", name: "Shortcuts" },

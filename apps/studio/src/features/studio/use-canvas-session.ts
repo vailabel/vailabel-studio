@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { Annotation } from "@/types/core"
 import type { AnnotationMeta } from "@/types/modality"
 import type { CanvasHistoryEntry, CanvasSessionState } from "./types"
@@ -66,6 +66,18 @@ export function useCanvasSession({
   const [future, setFuture] = useState<CanvasHistoryEntry[]>([])
   const applyingHistoryRef = useRef(false)
 
+  // Latest-value refs so the commit callbacks below can look up the current
+  // annotation / selection WITHOUT listing them as deps. That keeps
+  // updateAnnotation/deleteAnnotation referentially stable across data changes —
+  // they're handed to every shape as a prop, so a stable identity is what lets the
+  // per-shape memo skip unchanged shapes when a single annotation is edited.
+  const annotationsRef = useRef(annotations)
+  const selectedAnnotationRef = useRef(selectedAnnotation)
+  useEffect(() => {
+    annotationsRef.current = annotations
+    selectedAnnotationRef.current = selectedAnnotation
+  })
+
   const appendHistory = useCallback((entry: CanvasHistoryEntry) => {
     if (applyingHistoryRef.current) return
     setPast((current) => [...current, entry])
@@ -115,7 +127,9 @@ export function useCanvasSession({
   const commitUpdateAnnotation = useCallback(
     async (annotationId: string, updates: Partial<Annotation>) => {
       const currentAnnotation =
-        annotations.find((annotation) => annotation.id === annotationId) || null
+        annotationsRef.current.find(
+          (annotation) => annotation.id === annotationId
+        ) || null
       if (!currentAnnotation) {
         throw new Error(`Annotation ${annotationId} was not found.`)
       }
@@ -135,13 +149,15 @@ export function useCanvasSession({
       setSelectedAnnotation(updatedAnnotation)
       return updatedAnnotation
     },
-    [annotations, appendHistory, setSelectedAnnotation, updateAnnotation]
+    [appendHistory, setSelectedAnnotation, updateAnnotation]
   )
 
   const commitDeleteAnnotation = useCallback(
     async (annotationId: string) => {
       const currentAnnotation =
-        annotations.find((annotation) => annotation.id === annotationId) || null
+        annotationsRef.current.find(
+          (annotation) => annotation.id === annotationId
+        ) || null
       if (!currentAnnotation) {
         return
       }
@@ -149,17 +165,11 @@ export function useCanvasSession({
       await deleteAnnotation(annotationId)
       recordDelete(currentAnnotation)
 
-      if (selectedAnnotation?.id === annotationId) {
+      if (selectedAnnotationRef.current?.id === annotationId) {
         setSelectedAnnotation(null)
       }
     },
-    [
-      annotations,
-      deleteAnnotation,
-      recordDelete,
-      selectedAnnotation?.id,
-      setSelectedAnnotation,
-    ]
+    [deleteAnnotation, recordDelete, setSelectedAnnotation]
   )
 
   const applyHistoryEntry = useCallback(

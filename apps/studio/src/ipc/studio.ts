@@ -38,12 +38,17 @@ import type {
   VideoMeta,
 } from "@/types/video"
 import type {
+  DatasetExportRequest,
+  DatasetExportResult,
+  DatasetImportRequest,
+  DatasetImportResult,
   ExportRequest,
   ExportResult,
   RuntimeModel,
   RuntimeStatus,
   TrainingJob,
   TrainingLogChunk,
+  TrainingReport,
   TrainingStartRequest,
 } from "@/types/ai-runtime"
 
@@ -255,13 +260,23 @@ export const studioCommands = {
   runtimeModelsDelete: (id: string) =>
     call<SuccessResponse>("runtime_models_delete", { payload: { id } }),
 
+  datasetExportYolo: (payload: DatasetExportRequest) =>
+    call<DatasetExportResult>("dataset_export_yolo", { payload }),
+  datasetImportYolo: (payload: DatasetImportRequest) =>
+    call<DatasetImportResult>("dataset_import_yolo", { payload }),
+
   trainingStart: (payload: TrainingStartRequest) =>
     call<TrainingJob>("training_start", { payload }),
   trainingStop: (id: string) =>
     call<TrainingJob>("training_stop", { payload: { id } }),
   trainingList: () => call<TrainingJob[]>("training_list"),
+  trainingSync: () => call<TrainingJob[]>("training_sync"),
+  trainingExportOnnx: (jobId: string) =>
+    call<ExportResult>("training_export_onnx", { payload: { id: jobId } }),
   trainingLogs: (jobId: string, offset = 0) =>
     call<TrainingLogChunk>("training_logs", { payload: { jobId, offset } }),
+  trainingReport: (jobId: string) =>
+    call<TrainingReport>("training_report", { payload: { id: jobId } }),
 
   exportOnnx: (payload: ExportRequest) =>
     call<ExportResult>("export_onnx", { payload }),

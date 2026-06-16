@@ -5,23 +5,26 @@ import type { Annotation, Label } from "@/types/core"
 
 interface ClassificationPanelProps {
   labels: Label[]
-  /** The current image's classification annotation, if any. */
+  /** The current item's classification annotation, if any. */
   active?: Annotation
   onAssign: (label: Label) => void
   onClear: () => void
+  /** Heading shown above the choices (e.g. "Image class", "Document class"). */
+  title?: string
 }
 
-// Whole-image class assignment for Classification projects — shown as a choices
-// bar over the canvas (Label Studio "Choices" control).
+// Whole-item class assignment for Classification projects — shown as a choices
+// bar over the editor (Label Studio "Choices" control). Used for both image and
+// text classification.
 export const ClassificationPanel = memo(
-  ({ labels, active, onAssign, onClear }: ClassificationPanelProps) => {
+  ({ labels, active, onAssign, onClear, title = "Image class" }: ClassificationPanelProps) => {
     return (
       <div className="absolute inset-x-0 bottom-0 z-20 border-t border-border bg-card/95 p-3 backdrop-blur">
         <div className="mx-auto flex max-w-3xl flex-col gap-2">
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-1.5 text-sm font-medium">
               <Tags className="size-4 text-muted-foreground" />
-              Image class
+              {title}
             </span>
             {active && (
               <button

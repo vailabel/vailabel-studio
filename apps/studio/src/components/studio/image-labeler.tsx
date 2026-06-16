@@ -11,6 +11,7 @@ import {
 import { Canvas } from "@/components/canvas/canvas"
 import { Toolbar } from "@/components/studio/toolbar"
 import { ClassificationPanel } from "@/components/studio/classification-panel"
+import { TextLabeler } from "@/components/studio/text-labeler"
 import { LabelListPanel } from "@/components/studio/label-list-panel"
 import { FileListPanel } from "@/components/studio/file-list-panel"
 import { ResizablePanel } from "@/components/common/resizable-panel"
@@ -23,7 +24,7 @@ import { AutoLabelControls } from "@/components/ai/auto-label-controls"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { useStudioScreenViewModel } from "@/features/studio/use-studio-screen-viewmodel"
 import { useLabelHotkeys } from "@/hooks/use-label-hotkeys"
-import { getLabelingConfig } from "@/lib/labeling-config"
+import { resolveCapabilities } from "@/lib/labeling-config"
 import type { Annotation, ImageData, Label, Prediction } from "@/types/core"
 import type { PipelinePrompt } from "@/ipc/studio"
 import { toast } from "sonner"
@@ -131,16 +132,16 @@ export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => 
   // the result so the toolbar button has clear feedback; suggestions land in the
   // review panel where each label can be edited before accepting.
   const handleAutoLabel = useCallback(
-    async (modelId: string) => {
+    async (modelId: string, threshold: number) => {
       try {
-        const created = await viewModel.generatePredictions(modelId)
+        const created = await viewModel.generatePredictions(modelId, threshold)
         if (created.length > 0) {
           toast.success(
             `Auto-label found ${created.length} object${created.length === 1 ? "" : "s"} — review them on the right.`
           )
         } else {
           toast.info(
-            "No objects found above the confidence threshold. Try another image or model."
+            `No objects found at ${Math.round(threshold * 100)}% confidence. Lower the Conf slider, or try another image or model.`
           )
         }
       } catch (error) {
@@ -152,12 +153,23 @@ export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => 
     [viewModel.generatePredictions]
   )
 
-  // The project's template decides which tools show and whether we're in
-  // region-drawing or whole-image classification mode.
+  // The project's (modality, task) decides which editor body mounts, which tools
+  // show, and whether we're region-drawing or whole-item classifying.
   const config = useMemo(
-    () => getLabelingConfig(viewModel.project?.type),
-    [viewModel.project?.type]
+    () =>
+      resolveCapabilities({
+        modality: viewModel.project?.modality,
+        task: viewModel.project?.task,
+        projectType: viewModel.project?.type,
+      }),
+    [
+      viewModel.project?.modality,
+      viewModel.project?.task,
+      viewModel.project?.type,
+    ]
   )
+  const isTextEditor = config.editor === "text"
+  const isImageEditor = config.editor === "canvas" || config.editor === "classification"
 
   const classificationAnnotation = useMemo(
     () =>
@@ -210,24 +222,59 @@ export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => 
     [viewModel]
   )
 
-  // Clicking a class arms it as the active class (so new shapes inherit it) and,
-  // if a shape is currently selected, re-labels that shape — covering both the
-  // "set up for fast labeling" and "fix this one" flows from a single click.
+  // Two distinct gestures instead of one overloaded click:
+  //  • single click (and 1–9) ARMS the class — what new shapes inherit.
+  //  • double click RELABELS the currently selected shape (handleLabelAssign).
+  // Previously a single click did both, so arming the next class silently
+  // rewrote the selected shape — the confusing behavior this splits apart.
   const handleLabelSelect = useCallback(
     (label: Label) => {
       viewModel.setActiveLabelId(label.id)
+    },
+    [viewModel.setActiveLabelId]
+  )
 
-      if (viewModel.selectedAnnotation) {
-        void viewModel.updateAnnotation(viewModel.selectedAnnotation.id, {
+  const handleLabelAssign = useCallback(
+    (label: Label) => {
+      viewModel.setActiveLabelId(label.id)
+      const selected = viewModel.selectedAnnotation
+      if (!selected) {
+        toast.info(
+          "Select a shape first, then double-click a class to relabel it."
+        )
+        return
+      }
+      // No-op if it already has this class.
+      if ((selected.labelId || selected.label_id) === label.id) return
+      void viewModel
+        .updateAnnotation(selected.id, {
           name: label.name,
           color: label.color,
           labelId: label.id,
           label_id: label.id,
         })
-      }
+        .then(() => toast.success(`Relabeled to “${label.name}”.`))
+        .catch(() => toast.error("Couldn't relabel the shape."))
     },
-    [viewModel]
+    [
+      viewModel.setActiveLabelId,
+      viewModel.updateAnnotation,
+      viewModel.selectedAnnotation,
+    ]
   )
+
+  // The class the selected shape currently belongs to (by id, falling back to
+  // name) — highlighted in the palette so it's obvious what a relabel changes.
+  const selectedShapeLabelId = useMemo(() => {
+    const selected = viewModel.selectedAnnotation
+    if (!selected) return null
+    const direct = selected.labelId || selected.label_id
+    if (direct) return direct
+    return (
+      viewModel.data.labels.find((entry) => entry.name === selected.name)?.id ??
+      null
+    )
+  }, [viewModel.selectedAnnotation, viewModel.data.labels])
 
   // Single keyboard listener for the labeler: ←/→ navigate images, 1–9 arm the
   // Nth class, Esc/0 clears it.
@@ -276,38 +323,54 @@ export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => 
           role="button"
           ref={canvasContainerRef}
           className="relative flex flex-1 flex-col overflow-hidden"
-          onContextMenu={handleContextMenu}
+          onContextMenu={isImageEditor ? handleContextMenu : undefined}
           onClick={viewModel.closeContextMenu}
         >
-          <Toolbar
-            allowedTools={config.tools}
-            aiSlot={
-              <AutoLabelControls
-                models={viewModel.data.aiModels}
-                isRunning={viewModel.isGeneratingPredictions}
-                onAutoLabel={handleAutoLabel}
-              />
-            }
-            selectedTool={viewModel.selectedTool}
-            onSelectTool={viewModel.setSelectedTool}
-            zoom={viewModel.zoom}
-            onZoomIn={viewModel.zoomIn}
-            onZoomOut={viewModel.zoomOut}
-            onResetView={viewModel.resetView}
-            showCrosshair={viewModel.showCrosshair}
-            showCoordinates={viewModel.showCoordinates}
-            showRuler={viewModel.showRuler}
-            onToggleCrosshair={viewModel.toggleCrosshair}
-            onToggleCoordinates={viewModel.toggleCoordinates}
-            onToggleRuler={viewModel.toggleRuler}
-            canUndo={viewModel.canUndo}
-            canRedo={viewModel.canRedo}
-            onUndo={viewModel.undo}
-            onRedo={viewModel.redo}
-          />
+          {isImageEditor && (
+            <Toolbar
+              allowedTools={config.tools}
+              aiSlot={
+                <AutoLabelControls
+                  models={viewModel.data.aiModels}
+                  isRunning={viewModel.isGeneratingPredictions}
+                  onAutoLabel={handleAutoLabel}
+                />
+              }
+              selectedTool={viewModel.selectedTool}
+              onSelectTool={viewModel.setSelectedTool}
+              zoom={viewModel.zoom}
+              onZoomIn={viewModel.zoomIn}
+              onZoomOut={viewModel.zoomOut}
+              onResetView={viewModel.resetView}
+              showCrosshair={viewModel.showCrosshair}
+              showCoordinates={viewModel.showCoordinates}
+              showRuler={viewModel.showRuler}
+              onToggleCrosshair={viewModel.toggleCrosshair}
+              onToggleCoordinates={viewModel.toggleCoordinates}
+              onToggleRuler={viewModel.toggleRuler}
+              canUndo={viewModel.canUndo}
+              canRedo={viewModel.canRedo}
+              onUndo={viewModel.undo}
+              onRedo={viewModel.redo}
+            />
+          )}
 
           <div className="relative flex-1 overflow-hidden">
-            {viewModel.data.image ? (
+            {!viewModel.data.image ? (
+              <EmptyImageState />
+            ) : isTextEditor ? (
+              <TextLabeler
+                key={viewModel.data.image.id}
+                document={viewModel.data.image}
+                annotations={viewModel.data.annotations}
+                labels={viewModel.data.labels}
+                activeLabel={viewModel.activeLabel}
+                enableSpans={config.allowsRegions}
+                onCreateDraft={viewModel.createAnnotationFromDraft}
+                onDeleteAnnotation={viewModel.deleteAnnotation}
+                onArmLabel={handleLabelSelect}
+              />
+            ) : (
               <MemoizedCanvas
                 image={viewModel.data.image}
                 annotations={viewModel.data.annotations}
@@ -321,24 +384,24 @@ export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => 
                 onRedo={viewModel.redo}
                 onSmartSegment={handleSmartSegment}
               />
-            ) : (
-              <EmptyImageState />
             )}
 
-            {viewModel.isSegmenting && (
+            {isImageEditor && viewModel.isSegmenting && (
               <div className="pointer-events-none absolute left-1/2 top-4 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-card/95 px-3 py-1.5 text-sm font-medium shadow-lg backdrop-blur">
                 <Loader2 className="h-4 w-4 animate-spin text-primary" />
                 <span>Segmenting…</span>
               </div>
             )}
 
-            <PredictionReviewPanel
-              predictions={viewModel.data.predictions}
-              labels={viewModel.data.labels}
-              onAccept={viewModel.acceptPrediction}
-              onReject={viewModel.rejectPrediction}
-              offset={showCopilot}
-            />
+            {isImageEditor && (
+              <PredictionReviewPanel
+                predictions={viewModel.data.predictions}
+                labels={viewModel.data.labels}
+                onAccept={viewModel.acceptPrediction}
+                onReject={viewModel.rejectPrediction}
+                offset={showCopilot}
+              />
+            )}
 
             {config.allowsClassification && viewModel.data.image ? (
               <ClassificationPanel
@@ -346,15 +409,18 @@ export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => 
                 active={classificationAnnotation}
                 onAssign={(label) => void assignImageClass(label)}
                 onClear={() => void clearImageClass()}
+                title={isTextEditor ? "Document class" : "Image class"}
               />
             ) : null}
 
-            {viewModel.contextMenu.visible ? (
+            {isImageEditor && viewModel.contextMenu.visible ? (
               <ContextMenu
                 x={viewModel.contextMenu.x}
                 y={viewModel.contextMenu.y}
                 onSelectTool={viewModel.setSelectedTool}
                 onResetView={viewModel.resetView}
+                canSimplify={viewModel.canSimplifySelected}
+                onSimplify={() => void viewModel.simplifySelectedAnnotation()}
                 containerRect={
                   canvasContainerRef.current?.getBoundingClientRect() || null
                 }
@@ -362,7 +428,7 @@ export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => 
               />
             ) : null}
 
-            {!showCopilot && (
+            {isImageEditor && !showCopilot && (
               <Button
                 size="sm"
                 className="absolute bottom-4 right-4 z-20 gap-1.5 shadow-lg"
@@ -372,7 +438,7 @@ export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => 
                 AI Copilot
               </Button>
             )}
-            {showCopilot && (
+            {isImageEditor && showCopilot && (
               <AiCopilotPanel
                 key={viewModel.data.image?.id}
                 projectId={viewModel.effectiveProjectId}
@@ -403,6 +469,9 @@ export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => 
         >
           <LabelListPanel
             onLabelSelect={handleLabelSelect}
+            onLabelAssign={handleLabelAssign}
+            selectedLabelId={selectedShapeLabelId}
+            hasSelectedShape={!!viewModel.selectedAnnotation}
             labels={viewModel.data.labels}
             activeLabelId={viewModel.activeLabelId}
             isLoading={viewModel.data.isLoading}
@@ -418,6 +487,7 @@ export const ImageLabeler = memo(({ projectId, imageId }: ImageLabelerProps) => 
         onClose={() => setShowExportDialog(false)}
         onExport={viewModel.exportProject}
         isExporting={viewModel.isExporting}
+        modality={config.modality}
       />
     </div>
   )

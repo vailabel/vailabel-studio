@@ -8,6 +8,7 @@ import {
   Trash2,
   ZoomIn,
   Pencil,
+  Spline,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { CanvasTool } from "@/features/studio/types"
@@ -19,6 +20,9 @@ interface ContextMenuProps {
   onSelectTool: (tool: CanvasTool) => void
   onResetView: () => void
   onClose: () => void
+  /** Shown only when a polygon / free-draw shape is selected. */
+  canSimplify?: boolean
+  onSimplify?: () => void
 }
 
 export const ContextMenu = memo(
@@ -29,6 +33,8 @@ export const ContextMenu = memo(
     onSelectTool,
     onResetView,
     onClose,
+    canSimplify = false,
+    onSimplify,
   }: ContextMenuProps) => {
     const menuRef = useRef<HTMLDivElement>(null)
 
@@ -72,6 +78,21 @@ export const ContextMenu = memo(
         style={{ left: menuPosition.x, top: menuPosition.y }}
       >
         <div className="py-1">
+          {canSimplify && onSimplify ? (
+            <>
+              <button
+                className="flex w-full items-center px-4 py-2 text-sm text-foreground hover:bg-muted"
+                onClick={() => {
+                  onSimplify()
+                  onClose()
+                }}
+              >
+                <Spline className="mr-2 h-4 w-4" />
+                Simplify shape
+              </button>
+              <div className="my-1 border-t border-border"></div>
+            </>
+          ) : null}
           <button
             className="flex w-full items-center px-4 py-2 text-sm text-foreground hover:bg-muted"
             onClick={() => handleToolSelect("move")}

@@ -90,8 +90,19 @@ def train(
     }
     if config.get("batch") is not None:
         train_kwargs["batch"] = config["batch"]
-    if config.get("device") is not None:
-        train_kwargs["device"] = config["device"]
+    # Use the GPU automatically whenever torch can see one (the user asked for
+    # CUDA-if-available); callers can still pin via config.device ("cpu", "0",
+    # "0,1"). Falls back to CPU when torch/CUDA isn't usable.
+    device = config.get("device")
+    if device is None:
+        try:
+            import torch
+
+            device = 0 if torch.cuda.is_available() else "cpu"
+        except Exception:
+            device = "cpu"
+    train_kwargs["device"] = device
+    append_log(f"[runtime] training device: {device}")
     # Forward any other ultralytics-native keys verbatim.
     for key, val in config.items():
         if key not in train_kwargs and key not in ("model", "weights", "epochs", "imgsz"):

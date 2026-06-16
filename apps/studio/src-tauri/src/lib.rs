@@ -809,6 +809,8 @@ fn prepend_to_path(dir: &Path) {
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
+            let startup_t0 = std::time::Instant::now();
+            eprintln!("[startup] backend setup begin");
             #[cfg(feature = "yolo-inference")]
             {
                 // Prefer an ONNX Runtime bundled with the app over whatever
@@ -840,6 +842,10 @@ pub fn run() {
             let db = vailabel_db::Db::open(app_dir.join("vailabel-desktop.sqlite"))?;
             let store = DesktopStore::open(db.clone())?;
             let store_arc = Arc::new(Mutex::new(store));
+            eprintln!(
+                "[startup] db + store ready ({} ms)",
+                startup_t0.elapsed().as_millis()
+            );
             let entity_store: Arc<dyn store::EntityStore> =
                 Arc::new(store::StoreHandle::new(store_arc.clone()));
 
@@ -1005,6 +1011,10 @@ pub fn run() {
                     })
                     .await;
             });
+            eprintln!(
+                "[startup] backend ready, window painting ({} ms)",
+                startup_t0.elapsed().as_millis()
+            );
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -1081,10 +1091,15 @@ pub fn run() {
             commands::runtime::training_start,
             commands::runtime::training_stop,
             commands::runtime::training_list,
+            commands::runtime::training_sync,
             commands::runtime::training_logs,
+            commands::runtime::training_report,
+            commands::dataset::dataset_export_yolo,
+            commands::dataset::dataset_import_yolo,
             commands::runtime::export_onnx,
             commands::runtime::export_tensorrt,
             commands::runtime::export_openvino,
+            commands::runtime::training_export_onnx,
             commands::runtime::runtime_models_list,
             commands::runtime::runtime_models_install,
             commands::runtime::runtime_models_delete,

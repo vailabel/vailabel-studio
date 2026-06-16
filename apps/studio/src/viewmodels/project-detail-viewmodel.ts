@@ -4,7 +4,9 @@ import { z } from "zod"
 import { v4 as uuidv4 } from "uuid"
 import { useNavigate } from "react-router-dom"
 import { listenToStudioEvents } from "@/ipc/events"
+import { studioCommands } from "@/ipc/studio"
 import { services } from "@/services"
+import type { DatasetImportResult } from "@/types/ai-runtime"
 import {
   allowImageDirectory,
   openPathDialog,
@@ -40,11 +42,12 @@ export const useProjectDetailViewModel = (projectId: string) => {
   const [images, setImages] = useState<ImageData[]>([])
   const [annotations, setAnnotations] = useState<Annotation[]>([])
   const [labels, setLabels] = useState<Label[]>([])
-  const [activeTab, setActiveTab] = useState<"images" | "upload" | "labels">(
-    "images"
-  )
+  const [activeTab, setActiveTab] = useState<
+    "images" | "upload" | "labels" | "training"
+  >("images")
   const [newImages, setNewImages] = useState<UploadImage[]>([])
   const [isUploading, setIsUploading] = useState(false)
+  const [isImporting, setIsImporting] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [isSaving, setIsSaving] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -146,6 +149,26 @@ export const useProjectDetailViewModel = (projectId: string) => {
     }
   }
 
+  // Import a YOLO / Roboflow export folder (data.yaml + images + labels) — the
+  // classes, images, and boxes are created in the backend, then we reload.
+  const importDataset = async (): Promise<DatasetImportResult | undefined> => {
+    const [folder] = await openPathDialog({ directory: true })
+    if (!folder) return undefined
+
+    setIsImporting(true)
+    try {
+      await allowImageDirectory(folder)
+      const result = await studioCommands.datasetImportYolo({
+        projectId,
+        folder,
+      })
+      await refreshData()
+      return result
+    } finally {
+      setIsImporting(false)
+    }
+  }
+
   return {
     project,
     images,
@@ -154,6 +177,7 @@ export const useProjectDetailViewModel = (projectId: string) => {
     activeTab,
     newImages,
     isUploading,
+    isImporting,
     uploadProgress,
     isSaving,
     isEditProjectModalOpen,
@@ -208,6 +232,7 @@ export const useProjectDetailViewModel = (projectId: string) => {
     getAnnotationLabel: (annotation: Annotation) =>
       labels.find((label) => label.id === annotation.label_id),
     addImagesFromFolder,
+    importDataset,
     handleRemoveImage: (index: number) =>
       setNewImages((current) => current.filter((_, itemIndex) => itemIndex !== index)),
     saveImages: async () => {

@@ -1,20 +1,18 @@
 import type { Annotation, Point } from "@/types/core"
-import {
-  useCanvasZoom,
-  useCanvasTool,
-  useCanvasSelection,
-} from "@/contexts/canvas-context"
+import { useCanvasZoom, useCanvasTool } from "@/contexts/canvas-context"
 import {
   AnnotationLabel,
   dashFor,
   fillFor,
   strokeWidthFor,
 } from "./annotation-styles"
+import { useVertexDrag } from "@/hooks/use-vertex-drag"
 import { memo, useMemo, useCallback } from "react"
 
 interface PolygonAnnotationProps {
   annotation: Annotation
   readOnly?: boolean
+  isSelected?: boolean
   onUpdateAnnotation?: (
     annotationId: string,
     updates: Partial<Annotation>
@@ -25,49 +23,39 @@ export const PolygonAnnotation = memo(
   ({
     annotation,
     readOnly = false,
+    isSelected = false,
     onUpdateAnnotation,
   }: Readonly<PolygonAnnotationProps>) => {
     const { zoom } = useCanvasZoom()
     const { selectedTool } = useCanvasTool()
-    const { selectedAnnotation } = useCanvasSelection()
 
-    const isSelected = selectedAnnotation?.id === annotation.id
     const isMoveTool = selectedTool === "move"
+
+    // While a vertex is being dragged, render from the live preview; it commits
+    // once on mouse-up (see useVertexDrag) instead of saving on every frame.
+    const { previewCoordinates, startDrag } = useVertexDrag({
+      annotationId: annotation.id,
+      zoom,
+      readOnly,
+      onUpdateAnnotation,
+    })
+    const coordinates = previewCoordinates ?? annotation.coordinates
+    const isDragging = previewCoordinates !== null
 
     // Memoize polygon points string to avoid recalculation
     const pointsString = useMemo(
-      () => annotation.coordinates.map((p) => `${p.x},${p.y}`).join(" "),
-      [annotation.coordinates]
+      () => coordinates.map((p) => `${p.x},${p.y}`).join(" "),
+      [coordinates]
     )
 
-    // Helper to handle point drag
+    // Drag a single vertex (live preview, single commit on release).
     const handlePointMouseDown = useCallback(
       (e: React.MouseEvent<SVGCircleElement>, index: number) => {
-        e.stopPropagation()
-        const svg = (e.target as SVGCircleElement).ownerSVGElement
-        if (!svg) return
-        const rect = svg.getBoundingClientRect()
-
-        function onMouseMove(moveEvent: MouseEvent) {
-          if (readOnly || !onUpdateAnnotation) return
-          const newX = (moveEvent.clientX - rect.left) / zoom
-          const newY = (moveEvent.clientY - rect.top) / zoom
-          const newCoordinates = annotation.coordinates.map((p, i) =>
-            i === index ? { x: newX, y: newY } : p
-          )
-          void onUpdateAnnotation(annotation.id, {
-            coordinates: newCoordinates,
-            updatedAt: new Date(),
-          })
-        }
-        function onMouseUp() {
-          window.removeEventListener("mousemove", onMouseMove)
-          window.removeEventListener("mouseup", onMouseUp)
-        }
-        window.addEventListener("mousemove", onMouseMove)
-        window.addEventListener("mouseup", onMouseUp)
+        startDrag(e, (next) =>
+          annotation.coordinates.map((p, i) => (i === index ? next : p))
+        )
       },
-      [annotation.coordinates, annotation.id, onUpdateAnnotation, readOnly, zoom]
+      [annotation.coordinates, startDrag]
     )
 
     // Delete a vertex (right-click / alt-click). Keeps a valid polygon (>= 3).
@@ -116,7 +104,7 @@ export const PolygonAnnotation = memo(
       const pointRadius = isSelected ? 4 / zoom : 3 / zoom
       const pointOpacity = isSelected ? 1 : 0.6
 
-      return annotation.coordinates.map((point: Point, index: number) => (
+      return coordinates.map((point: Point, index: number) => (
         <circle
           key={index}
           cx={point.x}
@@ -136,19 +124,20 @@ export const PolygonAnnotation = memo(
       isMoveTool,
       isSelected,
       readOnly,
-      annotation.coordinates,
+      coordinates,
       zoom,
       handlePointMouseDown,
       handleDeleteVertex,
     ])
 
     // Midpoint "add vertex" handles, one per edge (including the closing edge).
+    // Hidden while dragging a vertex so dense (SAM) polygons don't reconcile two
+    // handles per vertex every frame.
     const addVertexHandles = useMemo(() => {
-      if (!isMoveTool || readOnly || !isSelected) return null
+      if (!isMoveTool || readOnly || !isSelected || isDragging) return null
 
-      return annotation.coordinates.map((point: Point, index: number) => {
-        const next =
-          annotation.coordinates[(index + 1) % annotation.coordinates.length]
+      return coordinates.map((point: Point, index: number) => {
+        const next = coordinates[(index + 1) % coordinates.length]
         const mid = { x: (point.x + next.x) / 2, y: (point.y + next.y) / 2 }
         return (
           <circle
@@ -165,7 +154,8 @@ export const PolygonAnnotation = memo(
       isMoveTool,
       isSelected,
       readOnly,
-      annotation.coordinates,
+      isDragging,
+      coordinates,
       zoom,
       handleAddVertex,
     ])
@@ -187,8 +177,8 @@ export const PolygonAnnotation = memo(
           }
         />
         <AnnotationLabel
-          x={annotation.coordinates[0].x}
-          y={annotation.coordinates[0].y}
+          x={coordinates[0].x}
+          y={coordinates[0].y}
           color={annotation.color ?? "#3b82f6"}
           name={annotation.name}
           zoom={zoom}

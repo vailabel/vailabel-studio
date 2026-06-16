@@ -1,18 +1,18 @@
 import { memo, useMemo } from "react"
 import { cn, getContentBoxColor } from "@/lib/utils"
 import type { Annotation } from "@/types/core"
-import { useCanvasTool, useCanvasSelection } from "@/contexts/canvas-context"
+import { useCanvasTool } from "@/contexts/canvas-context"
 
 interface BoxAnnotationProps {
   annotation: Annotation
   readOnly?: boolean
+  isSelected?: boolean
 }
 
-export const BoxAnnotation = memo(({ annotation, readOnly = false }: BoxAnnotationProps) => {
+export const BoxAnnotation = memo(
+  ({ annotation, readOnly = false, isSelected = false }: BoxAnnotationProps) => {
   const { selectedTool } = useCanvasTool()
-  const { selectedAnnotation } = useCanvasSelection()
 
-  const isSelected = selectedAnnotation?.id === annotation.id
   const isMoveTool = selectedTool === "move"
   const annotationStyles = useMemo(
     () => ({

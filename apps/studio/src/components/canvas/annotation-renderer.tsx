@@ -1,4 +1,5 @@
 import { memo, useMemo } from "react"
+import { useCanvasSelection } from "@/contexts/canvas-context"
 import { BoxAnnotation } from "@/components/canvas/box-annotation"
 import { PolygonAnnotation } from "@/components/canvas/polygon-annotation"
 import { FreeDrawAnnotation } from "@/components/canvas/free-draw-annotation"
@@ -20,23 +21,29 @@ type AnnotationType =
 
 type RenderableAnnotation = Annotation | Partial<Annotation>
 
-// Memoized annotation component to prevent unnecessary re-renders
-const MemoizedAnnotation = memo(({ 
-  annotation, 
+// Memoized annotation component to prevent unnecessary re-renders.
+// `isSelected` is passed in (computed once in AnnotationRenderer) rather than
+// read from context inside each shape, so a selection change re-renders only the
+// shapes whose `isSelected` actually flipped — not every annotation on screen.
+const MemoizedAnnotation = memo(({
+  annotation,
   AnnotationComponent,
   readOnly = false,
+  isSelected = false,
   onUpdateAnnotation,
-}: { 
+}: {
   annotation: Annotation
   AnnotationComponent: React.ComponentType<{
     annotation: Annotation
     readOnly?: boolean
+    isSelected?: boolean
     onUpdateAnnotation?: (
       annotationId: string,
       updates: Partial<Annotation>
     ) => Promise<void>
   }>
   readOnly?: boolean
+  isSelected?: boolean
   onUpdateAnnotation?: (
     annotationId: string,
     updates: Partial<Annotation>
@@ -45,6 +52,7 @@ const MemoizedAnnotation = memo(({
   <AnnotationComponent
     annotation={annotation}
     readOnly={readOnly}
+    isSelected={isSelected}
     onUpdateAnnotation={onUpdateAnnotation}
   />
 ))
@@ -66,6 +74,9 @@ export const AnnotationRenderer = memo(
       updates: Partial<Annotation>
     ) => Promise<void>
   }) => {
+    const { selectedAnnotation } = useCanvasSelection()
+    const selectedId = isTemporary ? undefined : selectedAnnotation?.id
+
     const annotationComponents = useMemo(
       () => ({
         box: BoxAnnotation,
@@ -110,6 +121,7 @@ export const AnnotationRenderer = memo(
               annotation={annotation as Annotation}
               AnnotationComponent={AnnotationComponent}
               readOnly={readOnly}
+              isSelected={(annotation as Annotation).id === selectedId}
               onUpdateAnnotation={onUpdateAnnotation}
             />
           )

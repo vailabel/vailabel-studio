@@ -7,6 +7,7 @@
 pub mod ai;
 pub mod analysis;
 pub mod cloud;
+pub mod dataset;
 pub mod images;
 pub mod labels;
 pub mod projects;
