@@ -68,9 +68,10 @@ function ch(value: string, background?: string): ConfigChoice {
   return background ? { value, background } : { value }
 }
 
-// Per-template configs for combined-control tasks that the config-driven editor
-// renders (an object + standalone controls), keyed by template id. Used for
-// templates whose modality is "custom".
+// Per-template configs for tasks that need a specific starter config the generic
+// (modality, task) builders don't cover — combined controls rendered by the
+// config-driven editor (an object + standalone controls), or a mask/brush variant
+// of an otherwise-canvas task — keyed by template id.
 const CONFIG_BY_ID: Record<string, () => LabelConfig> = {
   "image-captioning": () => ({
     objects: [obj("image")],
@@ -101,6 +102,39 @@ const CONFIG_BY_ID: Record<string, () => LabelConfig> = {
       ctrl("labels", "slot", "text", [
         ch("Date", "#10b981"),
         ch("Location", "#6366f1"),
+      ]),
+    ],
+  }),
+  ocr: () => ({
+    objects: [obj("image")],
+    controls: [
+      ctrl("rectanglelabels", "region", "image", [ch("Text", "#f97316")]),
+      ctrl("textarea", "transcription", "image"),
+    ],
+  }),
+  "medical-image-classification": () => ({
+    objects: [obj("image")],
+    controls: [
+      ctrl("rectanglelabels", "finding", "image", [
+        ch("Lesion", "#ef4444"),
+        ch("Nodule", "#f59e0b"),
+        ch("Mass", "#6366f1"),
+      ]),
+      ctrl(
+        "choices",
+        "diagnosis",
+        "image",
+        [ch("Benign", "#10b981"), ch("Malignant", "#ef4444")],
+        { choice: "single" }
+      ),
+    ],
+  }),
+  "brush-segmentation": () => ({
+    objects: [obj("image")],
+    controls: [
+      ctrl("brushlabels", "mask", "image", [
+        ch("Object", "#f97316"),
+        ch("Background", "#64748b"),
       ]),
     ],
   }),

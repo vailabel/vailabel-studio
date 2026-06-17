@@ -16,4 +16,4 @@ pub mod contracts;
 pub mod domain;
 pub mod infrastructure;
 
-pub use domain::Project;
+pub use domain::{Project, ProjectAiConfig, ProjectConfig, ProjectExportConfig, ProjectGeneralConfig, ProjectStorageConfig};

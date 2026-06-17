@@ -79,6 +79,45 @@ pub fn runtime_status(state: State<AppState>) -> Result<RuntimeStatus, AppError>
     Ok(state.runtime_service.status())
 }
 
+/// Whether the embedded interpreter has been provisioned yet (it is downloaded on
+/// first run, not bundled), plus a coarse download-size estimate for the prompt.
+#[tauri::command]
+pub fn runtime_install_status(app: tauri::AppHandle) -> Result<Value, AppError> {
+    Ok(super::glue::install_status(&app))
+}
+
+/// Provision the embedded Python runtime (download CPython + pip-install deps),
+/// then start it. Long-running (large download) → blocking thread; streams
+/// `runtime-install://progress`. No-op if already installed.
+#[tauri::command]
+pub async fn runtime_install(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+) -> Result<RuntimeStatus, AppError> {
+    let svc = state.runtime_service.clone();
+    let app2 = app.clone();
+    tauri::async_runtime::spawn_blocking(move || super::glue::install_runtime(&app2))
+        .await
+        .map_err(|e| AppError::Message(format!("AI runtime install task failed: {e}")))??;
+    // The interpreter now exists — bring the runtime up and report live status.
+    svc.start().await?;
+    Ok(svc.status())
+}
+
+/// Guard for inference commands: surface a friendly "install it first" message
+/// instead of the raw `ExecutableNotFound` when the runtime hasn't been
+/// provisioned yet.
+fn ensure_installed(app: &tauri::AppHandle) -> Result<(), AppError> {
+    if super::glue::is_runtime_installed(app) {
+        Ok(())
+    } else {
+        Err(AppError::Message(
+            "The AI runtime isn't installed yet. Open the AI page to install it (a one-time download)."
+                .into(),
+        ))
+    }
+}
+
 /// Tail of the rolling runtime log (last ~64 KB).
 #[tauri::command]
 pub fn runtime_logs(state: State<AppState>) -> Result<String, AppError> {
@@ -110,9 +149,11 @@ pub async fn runtime_system_info(state: State<'_, AppState>) -> Result<Value, Ap
 
 #[tauri::command]
 pub async fn runtime_detect(
+    app: tauri::AppHandle,
     state: State<'_, AppState>,
     payload: DetectPayload,
 ) -> Result<Value, AppError> {
+    ensure_installed(&app)?;
     let client = state.runtime_service.clone().ensure_started().await?;
     let resp = client
         .detect(&DetectRequest {
@@ -127,9 +168,11 @@ pub async fn runtime_detect(
 
 #[tauri::command]
 pub async fn runtime_segment(
+    app: tauri::AppHandle,
     state: State<'_, AppState>,
     payload: SegmentPayload,
 ) -> Result<Value, AppError> {
+    ensure_installed(&app)?;
     let client = state.runtime_service.clone().ensure_started().await?;
     let resp = client
         .segment(&SegmentRequest {
@@ -144,9 +187,11 @@ pub async fn runtime_segment(
 
 #[tauri::command]
 pub async fn runtime_caption(
+    app: tauri::AppHandle,
     state: State<'_, AppState>,
     payload: CaptionPayload,
 ) -> Result<Value, AppError> {
+    ensure_installed(&app)?;
     let client = state.runtime_service.clone().ensure_started().await?;
     let resp = client
         .caption(&CaptionRequest {
@@ -160,9 +205,11 @@ pub async fn runtime_caption(
 
 #[tauri::command]
 pub async fn runtime_ocr(
+    app: tauri::AppHandle,
     state: State<'_, AppState>,
     payload: OcrPayload,
 ) -> Result<Value, AppError> {
+    ensure_installed(&app)?;
     let client = state.runtime_service.clone().ensure_started().await?;
     let resp = client
         .ocr(&OcrRequest {

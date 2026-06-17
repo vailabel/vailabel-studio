@@ -11,8 +11,8 @@
     {
       "name": "studio",
       "runtimeExecutable": "yarn",
-      "runtimeArgs": ["workspace", "@vailabel/studio", "dev"],
-      "port": 5173,
+      "runtimeArgs": ["workspace", "@vailabel/studio", "dev", "--port", "5174"],
+      "port": 5174,
       "autoPort": true
     }
   ]

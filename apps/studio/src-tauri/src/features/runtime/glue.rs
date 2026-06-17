@@ -44,7 +44,7 @@ pub fn build_config(app: &tauri::AppHandle) -> Result<RuntimeConfiguration, AppE
     let resource_dir = app.path().resource_dir()?;
     let app_dir = app.path().app_data_dir()?;
 
-    let py_base = python_base(&resource_dir);
+    let py_base = python_base(&resource_dir, &app_dir);
     let python_exe = python_exe_path(&py_base);
     let app_entry = resolve_app_entry(&resource_dir);
 
@@ -68,12 +68,38 @@ fn first_existing(candidates: &[PathBuf]) -> Option<PathBuf> {
     candidates.iter().find(|p| p.exists()).cloned()
 }
 
-fn python_base(resource_dir: &Path) -> PathBuf {
-    let bases = [
+/// The directory that holds (or will hold) the embedded interpreter, resolved in
+/// priority order:
+///   1. `VAILABEL_PYTHON_HOME` — an explicit override (dev / testing).
+///   2. `<app_data>/runtime/python` — the runtime-provisioned location, downloaded
+///      on first run by [`install_runtime`]. This is the production path now that
+///      the interpreter is no longer bundled in the installer.
+///   3. A bundled `resources/python` under the resource dir — back-compat for
+///      builds that still ship the interpreter; harmless when absent.
+///
+/// When none exist yet, defaults to the app-data path so the (immutable)
+/// `RuntimeConfiguration` already points where provisioning will install — no
+/// rebuild is needed once the download completes.
+fn python_base(resource_dir: &Path, app_dir: &Path) -> PathBuf {
+    if let Some(env_home) = std::env::var_os("VAILABEL_PYTHON_HOME") {
+        let p = PathBuf::from(env_home);
+        if python_exe_path(&p).exists() {
+            return p;
+        }
+    }
+    let provisioned = runtime_python_dir_from(app_dir);
+    if python_exe_path(&provisioned).exists() {
+        return provisioned;
+    }
+    let bundled = [
         resource_dir.join("resources").join("python"),
         resource_dir.join("python"),
     ];
-    first_existing(&bases).unwrap_or_else(|| bases[0].clone())
+    if let Some(b) = bundled.iter().find(|p| python_exe_path(p).exists()) {
+        return b.clone();
+    }
+    // Nothing on disk yet — point at where provisioning will install.
+    provisioned
 }
 
 fn python_exe_path(base: &Path) -> PathBuf {
@@ -94,6 +120,302 @@ fn resolve_app_entry(resource_dir: &Path) -> PathBuf {
         resource_dir.join("runtime").join("app.py"),
     ];
     first_existing(&cands).unwrap_or_else(|| cands[0].clone())
+}
+
+fn resolve_requirements(resource_dir: &Path) -> PathBuf {
+    let cands = [
+        resource_dir.join("resources").join("runtime").join("requirements.txt"),
+        resource_dir.join("runtime").join("requirements.txt"),
+    ];
+    first_existing(&cands).unwrap_or_else(|| cands[0].clone())
+}
+
+// ---------------------------------------------------------------------------
+// First-run provisioning
+//
+// The embedded interpreter is ~1.5 GB (torch et al.) and is NOT bundled in the
+// installer. On first AI use we download a standalone CPython into app-data and
+// pip-install the runtime requirements into it — the same two steps as
+// `scripts/build-runtime.{sh,ps1}`, run at runtime with progress events. This
+// mirrors the on-demand model-weight / CUDA-overlay downloads and sidesteps the
+// macOS cross-arch build problem (provisioning runs on the user's real arch).
+// ---------------------------------------------------------------------------
+
+const RUNTIME_INSTALL_EVENT: &str = "runtime-install://progress";
+/// CPython version + python-build-standalone release tag. Keep in sync with
+/// `scripts/build-runtime.{sh,ps1}`.
+const PY_VERSION: &str = "3.11.9";
+const PBS_RELEASE: &str = "20240814";
+
+/// Coarse all-platforms download+install estimate, shown in the install prompt.
+const RUNTIME_SIZE_ESTIMATE_MB: i64 = 1500;
+
+/// Serializes installs so a second trigger (e.g. eager start racing a manual
+/// click) can't run two downloads into the same tree.
+static INSTALL_IN_FLIGHT: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(false);
+
+fn runtime_python_dir_from(app_dir: &Path) -> PathBuf {
+    app_dir.join("runtime").join("python")
+}
+
+/// `<app_data>/runtime/python` — where the provisioned interpreter lives.
+pub fn runtime_python_dir(app: &tauri::AppHandle) -> Result<PathBuf, AppError> {
+    Ok(runtime_python_dir_from(&app.path().app_data_dir()?))
+}
+
+/// Sentinel written only after pip succeeds, so a half-finished install (e.g.
+/// interpreter extracted but pip interrupted) is not mistaken for "installed".
+fn ready_marker(python_dir: &Path) -> PathBuf {
+    python_dir.join(".vailabel-ready")
+}
+
+/// True once the runtime can actually start: a bundled / `VAILABEL_PYTHON_HOME`
+/// interpreter is trusted as-is, while the provisioned app-data location also
+/// requires the post-pip ready marker.
+pub fn is_runtime_installed(app: &tauri::AppHandle) -> bool {
+    let (Ok(resource_dir), Ok(app_dir)) =
+        (app.path().resource_dir(), app.path().app_data_dir())
+    else {
+        return false;
+    };
+    let base = python_base(&resource_dir, &app_dir);
+    if base == runtime_python_dir_from(&app_dir) {
+        ready_marker(&base).exists()
+    } else {
+        python_exe_path(&base).exists()
+    }
+}
+
+/// Status payload for the `runtime_install_status` command.
+pub fn install_status(app: &tauri::AppHandle) -> Value {
+    json!({
+        "installed": is_runtime_installed(app),
+        "sizeEstimateMb": RUNTIME_SIZE_ESTIMATE_MB,
+        "pythonDir": runtime_python_dir(app)
+            .map(|p| p.to_string_lossy().into_owned())
+            .unwrap_or_default(),
+    })
+}
+
+/// The python-build-standalone asset triple for the host platform.
+fn pbs_asset_triple() -> Result<&'static str, AppError> {
+    Ok(match (std::env::consts::OS, std::env::consts::ARCH) {
+        ("windows", "x86_64") => "x86_64-pc-windows-msvc",
+        ("macos", "aarch64") => "aarch64-apple-darwin",
+        ("macos", "x86_64") => "x86_64-apple-darwin",
+        ("linux", "x86_64") => "x86_64-unknown-linux-gnu",
+        ("linux", "aarch64") => "aarch64-unknown-linux-gnu",
+        (os, arch) => {
+            return Err(AppError::Message(format!(
+                "No prebuilt Python runtime is available for this platform ({os}/{arch})."
+            )))
+        }
+    })
+}
+
+/// Download a standalone CPython into `<app_data>/runtime/python` and pip-install
+/// the bundled `requirements.txt` into it. Idempotent (no-op once installed) and
+/// re-entrancy guarded. Long-running → call on a blocking thread. Streams
+/// `runtime-install://progress`; emits a final `error` phase on failure.
+pub fn install_runtime(app: &tauri::AppHandle) -> Result<Value, AppError> {
+    if is_runtime_installed(app) {
+        return Ok(json!({ "installed": true }));
+    }
+    if INSTALL_IN_FLIGHT.swap(true, std::sync::atomic::Ordering::SeqCst) {
+        return Err(AppError::Message(
+            "An AI runtime install is already in progress.".into(),
+        ));
+    }
+    let result = install_runtime_inner(app);
+    INSTALL_IN_FLIGHT.store(false, std::sync::atomic::Ordering::SeqCst);
+    if let Err(e) = &result {
+        emit_install(app, "error", &e.to_string(), 0, 0);
+    }
+    result
+}
+
+fn install_runtime_inner(app: &tauri::AppHandle) -> Result<Value, AppError> {
+    let resource_dir = app.path().resource_dir()?;
+    let app_dir = app.path().app_data_dir()?;
+    let python_dir = runtime_python_dir_from(&app_dir);
+    std::fs::create_dir_all(&python_dir)?;
+
+    emit_install(app, "start", "Preparing the AI runtime…", 0, 0);
+
+    // 1. Standalone CPython (skip if a prior run already extracted it).
+    if !python_exe_path(&python_dir).exists() {
+        let triple = pbs_asset_triple()?;
+        let asset = format!("cpython-{PY_VERSION}+{PBS_RELEASE}-{triple}-install_only.tar.gz");
+        let url = format!(
+            "https://github.com/indygreg/python-build-standalone/releases/download/{PBS_RELEASE}/{asset}"
+        );
+        let archive = app_dir.join("runtime").join("cpython-download.tar.gz");
+        emit_install(app, "downloading", "Downloading Python runtime…", 0, 0);
+        download_to(app, &url, &archive)?;
+        emit_install(app, "extracting", "Unpacking Python runtime…", 0, 0);
+        extract_tar_gz(&archive, &python_dir)?;
+        let _ = std::fs::remove_file(&archive);
+    }
+
+    let py = python_exe_path(&python_dir);
+    if !py.exists() {
+        return Err(AppError::Message(
+            "Python runtime extraction did not produce an interpreter.".into(),
+        ));
+    }
+
+    // 2. Install the runtime's Python dependencies into the interpreter.
+    let requirements = resolve_requirements(&resource_dir);
+    let req_str = requirements.to_string_lossy().into_owned();
+    emit_install(
+        app,
+        "installing",
+        "Installing AI dependencies — this can take a few minutes…",
+        0,
+        0,
+    );
+    run_pip(app, &py, &["--upgrade", "pip"])?;
+    run_pip(app, &py, &["-r", req_str.as_str()])?;
+
+    // 3. Mark ready only after pip succeeds.
+    std::fs::write(ready_marker(&python_dir), now_iso())?;
+    emit_install(app, "done", "AI runtime installed.", 0, 0);
+    Ok(json!({ "installed": true }))
+}
+
+/// Stream a URL to `dest`, emitting `runtime-install://progress`. No checksum —
+/// assets are fetched over TLS from the python-build-standalone GitHub release.
+fn download_to(app: &tauri::AppHandle, url: &str, dest: &Path) -> Result<(), AppError> {
+    let client = reqwest::blocking::Client::builder()
+        .connect_timeout(Duration::from_secs(20))
+        .build()?;
+    let mut resp = client.get(url).send()?;
+    if !resp.status().is_success() {
+        return Err(AppError::Message(format!(
+            "Download failed: HTTP {}",
+            resp.status()
+        )));
+    }
+    let total = resp.content_length().unwrap_or(0);
+    let mut file = std::fs::File::create(dest)?;
+    let mut buf = [0u8; 131_072];
+    let mut received: u64 = 0;
+    let mut last_emit = Instant::now();
+    loop {
+        let n = resp.read(&mut buf)?;
+        if n == 0 {
+            break;
+        }
+        file.write_all(&buf[..n])?;
+        received += n as u64;
+        if last_emit.elapsed() >= Duration::from_millis(250) {
+            emit_install(app, "downloading", "Downloading Python runtime…", received, total);
+            last_emit = Instant::now();
+        }
+    }
+    file.flush()?;
+    Ok(())
+}
+
+/// Extract a `.tar.gz` into `dest`, flattening the archive's top-level folder.
+/// Shells out to `tar` (bsdtar on Win10+/macOS, GNU tar on Linux), matching the
+/// build-runtime scripts and avoiding extra crate deps.
+fn extract_tar_gz(archive: &Path, dest: &Path) -> Result<(), AppError> {
+    std::fs::create_dir_all(dest)?;
+    let status = Command::new("tar")
+        .arg("-xzf")
+        .arg(archive)
+        .arg("-C")
+        .arg(dest)
+        .arg("--strip-components=1")
+        .status()
+        .map_err(|e| AppError::Message(format!("Failed to run tar: {e}")))?;
+    if !status.success() {
+        return Err(AppError::Message(
+            "Failed to extract the Python runtime archive.".into(),
+        ));
+    }
+    Ok(())
+}
+
+/// Run `<py> -m pip install <args>`, draining stdout+stderr concurrently (so a
+/// full pipe can't deadlock the long install) and streaming each line as
+/// `runtime-install://progress`.
+fn run_pip(app: &tauri::AppHandle, py: &Path, install_args: &[&str]) -> Result<(), AppError> {
+    let mut command = Command::new(py);
+    command
+        .arg("-m")
+        .arg("pip")
+        .arg("install")
+        .arg("--progress-bar")
+        .arg("raw")
+        .arg("--no-input")
+        .arg("--disable-pip-version-check");
+    for a in install_args {
+        command.arg(a);
+    }
+    let mut child = command
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .map_err(|e| AppError::Message(format!("Failed to launch pip: {e}")))?;
+
+    let stderr = child.stderr.take();
+    let app_err = app.clone();
+    let stderr_thread = std::thread::spawn(move || {
+        let mut last = Instant::now();
+        if let Some(s) = stderr {
+            for line in std::io::BufReader::new(s).lines().map_while(Result::ok) {
+                handle_install_pip_line(&app_err, &line, &mut last);
+            }
+        }
+    });
+    if let Some(s) = child.stdout.take() {
+        let mut last = Instant::now();
+        for line in std::io::BufReader::new(s).lines().map_while(Result::ok) {
+            handle_install_pip_line(app, &line, &mut last);
+        }
+    }
+    let _ = stderr_thread.join();
+
+    let status = child
+        .wait()
+        .map_err(|e| AppError::Message(format!("pip did not complete: {e}")))?;
+    if !status.success() {
+        return Err(AppError::Message(format!(
+            "pip install failed (exit {:?}). Check your internet connection and try again.",
+            status.code()
+        )));
+    }
+    Ok(())
+}
+
+fn handle_install_pip_line(app: &tauri::AppHandle, line: &str, last_emit: &mut Instant) {
+    let trimmed = line.trim();
+    if trimmed.is_empty() {
+        return;
+    }
+    if let Some((received, total)) = parse_pip_progress(trimmed) {
+        if last_emit.elapsed() >= Duration::from_millis(200) {
+            emit_install(app, "installing", "Installing AI dependencies…", received, total);
+            *last_emit = Instant::now();
+        }
+    } else {
+        emit_install(app, "installing", trimmed, 0, 0);
+    }
+}
+
+fn emit_install(app: &tauri::AppHandle, phase: &str, message: &str, received: u64, total: u64) {
+    let _ = app.emit(
+        RUNTIME_INSTALL_EVENT,
+        json!({
+            "phase": phase,
+            "message": message,
+            "receivedBytes": received,
+            "totalBytes": total,
+        }),
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -478,14 +800,15 @@ pub fn enable_gpu_overlay(app: &tauri::AppHandle, tag: &str) -> Result<Value, Ap
         ));
     }
     let resource_dir = app.path().resource_dir()?;
-    let python_exe = python_exe_path(&python_base(&resource_dir));
+    let app_dir = app.path().app_data_dir()?;
+    let python_exe = python_exe_path(&python_base(&resource_dir, &app_dir));
     if !python_exe.exists() {
         return Err(AppError::Message(
-            "Bundled Python runtime was not found, so GPU acceleration can't be installed.".into(),
+            "The AI runtime isn't installed yet, so GPU acceleration can't be added. Install it from the AI page first.".into(),
         ));
     }
 
-    let overlay = app.path().app_data_dir()?.join("runtime").join("cuda");
+    let overlay = app_dir.join("runtime").join("cuda");
     std::fs::create_dir_all(&overlay)?;
     let index_url = format!("https://download.pytorch.org/whl/{tag}");
 

@@ -340,10 +340,17 @@ pub fn run() {
             // window should appear instantly. Inference still lazily starts it on
             // demand if the user reaches for AI before this fires. Non-fatal.
             let runtime_startup = runtime_service.clone();
+            let runtime_startup_app = app.handle().clone();
             std::thread::spawn(move || {
                 // Wait off the async runtime (no worker tied up), then kick off the
                 // start once the UI has had time to render.
                 std::thread::sleep(std::time::Duration::from_secs(3));
+                // The interpreter is provisioned on first run, not bundled — only
+                // auto-start when it's already installed; otherwise the AI page
+                // prompts the user to install it (a one-time download).
+                if !crate::features::runtime::glue::is_runtime_installed(&runtime_startup_app) {
+                    return;
+                }
                 tauri::async_runtime::spawn(async move {
                     let _ = runtime_startup.start().await;
                 });
@@ -442,6 +449,8 @@ pub fn run() {
             features::runtime::commands::runtime_status,
             features::runtime::commands::runtime_logs,
             features::runtime::commands::runtime_system_info,
+            features::runtime::commands::runtime_install_status,
+            features::runtime::commands::runtime_install,
             features::runtime::commands::runtime_detect,
             features::runtime::commands::runtime_segment,
             features::runtime::commands::runtime_caption,

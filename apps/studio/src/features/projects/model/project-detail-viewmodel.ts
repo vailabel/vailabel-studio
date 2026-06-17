@@ -43,7 +43,7 @@ export const useProjectDetailViewModel = (projectId: string) => {
   const [annotations, setAnnotations] = useState<Annotation[]>([])
   const [labels, setLabels] = useState<Label[]>([])
   const [activeTab, setActiveTab] = useState<
-    "images" | "upload" | "labels" | "training"
+    "images" | "upload" | "labels" | "training" | "settings"
   >("images")
   const [newImages, setNewImages] = useState<UploadImage[]>([])
   const [isUploading, setIsUploading] = useState(false)

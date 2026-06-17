@@ -1,7 +1,5 @@
 <div align="center">
 
-<img src="docs/logo.png" alt="Vailabel Studio" width="112" />
-
 # Vailabel Studio
 
 **Local-first, AI-assisted data labeling — a cross-platform desktop studio for images, video, text & audio.**
@@ -9,12 +7,10 @@
 [![Release](https://img.shields.io/github/v/release/vailabel/vailabel-studio?sort=semver)](https://github.com/vailabel/vailabel-studio/releases/latest)
 [![Release build](https://img.shields.io/github/actions/workflow/status/vailabel/vailabel-studio/release.yml?label=release%20build)](https://github.com/vailabel/vailabel-studio/actions/workflows/release.yml)
 [![Downloads](https://img.shields.io/github/downloads/vailabel/vailabel-studio/total)](https://github.com/vailabel/vailabel-studio/releases)
-[![License: GPL-3.0](https://img.shields.io/badge/license-GPLv3-blue.svg)](LICENSE)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 ![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
 
 [**Download**](#-download) · [Features](#-features) · [Quick start](#-development) · [Architecture](#-architecture) · [Contributing](CONTRIBUTE.md)
-
-<img src="docs/screens/studio.gif" alt="Vailabel Studio in action" width="820" />
 
 </div>
 
@@ -135,7 +131,7 @@ issue? See **[SECURITY.md](SECURITY.md)** — please don't file it as a public i
 
 ## 📄 License
 
-Vailabel Studio is licensed under the **[GNU GPL v3.0](LICENSE)**.
+Vailabel Studio is licensed under the **[Apache License 2.0](LICENSE)**.
 
 <div align="center">
 <sub>Built with Tauri, React & Rust — by <a href="https://github.com/vailabel">Vailabel</a> and contributors.</sub>

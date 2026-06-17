@@ -6,5 +6,5 @@ pub mod project;
 pub mod repository;
 
 pub use events::ProjectEvent;
-pub use project::Project;
+pub use project::{Project, ProjectAiConfig, ProjectConfig, ProjectExportConfig, ProjectGeneralConfig, ProjectStorageConfig};
 pub use repository::ProjectRepository;

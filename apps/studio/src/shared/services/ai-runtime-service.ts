@@ -16,6 +16,10 @@ export const aiRuntimeService = {
   logs: () => studioCommands.runtimeLogs(),
   systemInfo: () => studioCommands.runtimeSystemInfo(),
 
+  // First-run provisioning (download CPython + deps into app-data).
+  installStatus: () => studioCommands.runtimeInstallStatus(),
+  install: () => studioCommands.runtimeInstall(),
+
   listModels: () => studioCommands.runtimeModelsList(),
   installModel: (id: string) => studioCommands.runtimeModelsInstall(id),
   deleteModel: (id: string) => studioCommands.runtimeModelsDelete(id),

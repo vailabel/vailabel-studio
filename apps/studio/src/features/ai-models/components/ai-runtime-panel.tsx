@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react"
 import type { ReactNode } from "react"
 import { listen } from "@tauri-apps/api/event"
-import { Cpu, Loader2, RotateCw, Zap } from "lucide-react"
+import { Cpu, Download, Loader2, RotateCw, Zap } from "lucide-react"
 import { Badge } from "@/shared/ui/badge"
 import { Button } from "@/shared/ui/button"
 import {
@@ -11,8 +11,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/shared/ui/card"
+import { Progress } from "@/shared/ui/progress"
 import { aiRuntimeService } from "@/shared/services/ai-runtime-service"
 import { useGpuInstall } from "@/features/ai-models/components/gpu-install-context"
+import { useRuntimeInstall } from "@/features/ai-models/components/runtime-install-context"
 import type {
   GpuProbe,
   RuntimeState,
@@ -70,6 +72,7 @@ export function AiRuntimePanel() {
   const [restarting, setRestarting] = useState(false)
   const [gpuProbe, setGpuProbe] = useState<GpuProbe | null>(null)
   const gpuInstall = useGpuInstall()
+  const install = useRuntimeInstall()
 
   const refresh = useCallback(async () => {
     const [statusResult, systemResult] = await Promise.allSettled([
@@ -150,6 +153,10 @@ export function AiRuntimePanel() {
   const gpu = system?.gpu
   const gpuActive = Boolean(gpu?.available)
   const busy = restarting || isBusy(state)
+  // The interpreter is provisioned on first run, not bundled — until it's
+  // installed, the panel shows an install prompt instead of runtime stats.
+  const notInstalled = install.installed === false
+  const installSizeGb = "~1.5 GB"
 
   return (
     <Card>
@@ -163,33 +170,77 @@ export function AiRuntimePanel() {
                 <Cpu className="h-5 w-5 text-muted-foreground" />
               )}
               AI Runtime
-              {!isLoading && (
-                <Badge variant={STATE_VARIANT[state]}>{STATE_LABEL[state]}</Badge>
-              )}
+              {!isLoading &&
+                (notInstalled ? (
+                  <Badge variant="outline">Not installed</Badge>
+                ) : (
+                  <Badge variant={STATE_VARIANT[state]}>
+                    {STATE_LABEL[state]}
+                  </Badge>
+                ))}
             </CardTitle>
             <CardDescription>
               Embedded Python runtime — runs all detection, segmentation, and
               copilot vision locally and offline.
             </CardDescription>
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => void handleRestart()}
-            disabled={busy}
-          >
-            {busy ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <RotateCw className="h-4 w-4" />
-            )}
-            Restart
-          </Button>
+          {!notInstalled && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => void handleRestart()}
+              disabled={busy}
+            >
+              {busy ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RotateCw className="h-4 w-4" />
+              )}
+              Restart
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         {isLoading ? (
           <p className="text-sm text-muted-foreground">Checking runtime…</p>
+        ) : notInstalled ? (
+          <div className="flex flex-col gap-3 rounded-md border border-border/60 bg-muted/40 p-3">
+            <p className="text-sm">
+              The AI runtime isn't installed yet. Install it to enable
+              detection, segmentation, OCR, and the copilot — a one-time{" "}
+              {installSizeGb} download that runs in the background. No setup
+              needed; everything runs locally and offline afterward.
+            </p>
+            <div>
+              <Button
+                size="sm"
+                onClick={() => install.start()}
+                disabled={install.active}
+              >
+                {install.active ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4" />
+                )}
+                {install.active
+                  ? "Installing…"
+                  : `Install AI runtime (${installSizeGb})`}
+              </Button>
+            </div>
+            {install.active && (
+              <div className="flex flex-col gap-1.5">
+                <Progress value={install.percent ?? 0} />
+                <p className="truncate text-xs text-muted-foreground">
+                  {install.percent != null ? `${install.percent}% · ` : ""}
+                  {install.message || "Working…"}
+                </p>
+              </div>
+            )}
+            {install.error && (
+              <p className="text-xs text-destructive">{install.error}</p>
+            )}
+          </div>
         ) : (
           <>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

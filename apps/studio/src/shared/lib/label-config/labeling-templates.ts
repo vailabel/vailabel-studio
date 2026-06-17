@@ -161,7 +161,10 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     category: "Computer Vision",
     dataKind: "image",
     icon: Brush,
-    status: "pending",
+    projectType: "segmentation",
+    modality: "image",
+    task: "segmentation",
+    status: "available",
   },
   {
     id: "ocr",
@@ -170,7 +173,8 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     category: "Computer Vision",
     dataKind: "image",
     icon: ScanText,
-    status: "pending",
+    modality: "custom",
+    status: "available",
   },
   {
     id: "image-captioning",
@@ -208,7 +212,8 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     category: "Computer Vision",
     dataKind: "image",
     icon: Shapes,
-    status: "pending",
+    modality: "custom",
+    status: "available",
   },
   {
     id: "ocr-pdf",
@@ -465,7 +470,10 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     category: "Conversational AI",
     dataKind: "text",
     icon: Link2,
-    status: "pending",
+    projectType: "text_annotation",
+    modality: "text",
+    task: "relation_extraction",
+    status: "available",
   },
 
   // ── Ranking & Scoring ────────────────────────────────────────────────────

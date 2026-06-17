@@ -19,6 +19,7 @@ import {
   CloudDownload,
   Brain,
   Clapperboard,
+  Settings,
 } from "lucide-react"
 import { Button } from "@/shared/ui/button"
 import { Badge } from "@/shared/ui/badge"
@@ -39,6 +40,7 @@ import { AddLabelModal } from "@/features/projects/components/add-label-modal"
 import { ImageGrid } from "@/features/projects/components/image-upload"
 import { useProjectDetailViewModel } from "@/features/projects/model/project-detail-viewmodel"
 import { useProjectCloudSync } from "@/features/projects/hooks/use-project-cloud-sync"
+import { ProjectSettingsTab } from "@/features/projects/components/project-settings-tab"
 import { useParams } from "react-router-dom"
 import { toast } from "sonner"
 import { cn } from "@/shared/lib/utils"
@@ -60,7 +62,8 @@ const ProjectDetails = memo(() => {
   const cloudSync = useProjectCloudSync(
     projectId || "",
     viewModel.images,
-    viewModel.refreshData
+    viewModel.refreshData,
+    viewModel.project?.config?.storage
   )
   const s = viewModel.projectStats
 
@@ -321,7 +324,7 @@ const ProjectDetails = memo(() => {
             value={viewModel.activeTab}
             onValueChange={(value) =>
               viewModel.setActiveTab(
-                value as "images" | "upload" | "labels" | "training"
+                value as "images" | "upload" | "labels" | "training" | "settings"
               )
             }
             className="gap-4"
@@ -342,6 +345,10 @@ const ProjectDetails = memo(() => {
               <TabsTrigger value="training" className="gap-1.5">
                 <Brain className="size-4" />
                 Training
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="gap-1.5 ml-auto">
+                <Settings className="size-4" />
+                Settings
               </TabsTrigger>
             </TabsList>
 
@@ -525,6 +532,20 @@ const ProjectDetails = memo(() => {
                 onUseForLabeling={() =>
                   nextImageId && viewModel.navigateToImage(nextImageId)
                 }
+              />
+            </TabsContent>
+
+            <TabsContent value="settings" className="flex flex-col gap-4">
+              <div>
+                <h2 className="text-lg font-semibold">Project settings</h2>
+                <p className="max-w-2xl text-sm text-muted-foreground">
+                  Per-project configuration — labeling behavior, export
+                  defaults, and AI preferences that apply only to this dataset.
+                </p>
+              </div>
+              <ProjectSettingsTab
+                project={viewModel.project}
+                onSaved={viewModel.refreshData}
               />
             </TabsContent>
           </Tabs>

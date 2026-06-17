@@ -217,3 +217,21 @@ export interface GpuInstallProgress {
   receivedBytes?: number
   totalBytes?: number
 }
+
+/** Result of `runtime_install_status`. The embedded Python interpreter is
+ *  provisioned on first run (downloaded into app-data), not bundled in the
+ *  installer — so it may not be present yet. */
+export interface RuntimeInstallStatus {
+  installed: boolean
+  /** Coarse download+install size estimate (MB), shown in the install prompt. */
+  sizeEstimateMb: number
+  pythonDir: string
+}
+
+/** Payload of the `runtime-install://progress` event (first-run provisioning). */
+export interface RuntimeInstallProgress {
+  phase: "start" | "downloading" | "extracting" | "installing" | "done" | "error"
+  message: string
+  receivedBytes?: number
+  totalBytes?: number
+}

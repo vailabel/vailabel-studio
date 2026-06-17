@@ -1,4 +1,5 @@
 import type { Modality, Task, AnnotationMeta } from "./modality"
+import type { ProjectConfig } from "./project-config"
 
 export class Point {
   x!: number
@@ -18,6 +19,8 @@ export class Project {
   status!: string
   settings?: Record<string, any>
   metadata?: Record<string, any>
+  /** Typed per-project settings (config_json column). Separate from the legacy settings blob. */
+  config?: ProjectConfig
   labels?: Label[]
   images?: ImageData[]
   /** Derived count of images in the project (from list/get queries). */

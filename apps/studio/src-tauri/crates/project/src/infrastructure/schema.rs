@@ -19,6 +19,7 @@ diesel::table! {
         metadata_json -> Nullable<Text>,
         created_at -> Text,
         updated_at -> Text,
+        config_json -> Nullable<Text>,
     }
 }
 

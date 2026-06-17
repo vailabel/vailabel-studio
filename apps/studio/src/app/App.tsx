@@ -8,6 +8,8 @@ import ErrorFallback from "./layout/error-fallback"
 import { Toaster } from "@/shared/ui/sonner"
 import { GpuInstallProvider } from "@/features/ai-models/components/gpu-install-context"
 import { GpuInstallIndicator } from "@/features/ai-models/components/gpu-install-indicator"
+import { RuntimeInstallProvider } from "@/features/ai-models/components/runtime-install-context"
+import { RuntimeInstallIndicator } from "@/features/ai-models/components/runtime-install-indicator"
 
 const App = () => {
   // The shell has mounted — fade out the index.html boot splash and close the
@@ -22,11 +24,14 @@ const App = () => {
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
         <ConfirmDialogProvider>
           <GpuInstallProvider>
-            <ErrorBoundary fallback={<ErrorFallback />}>
-              <AppRoutes />
-            </ErrorBoundary>
-            <GpuInstallIndicator />
-            <Toaster />
+            <RuntimeInstallProvider>
+              <ErrorBoundary fallback={<ErrorFallback />}>
+                <AppRoutes />
+              </ErrorBoundary>
+              <GpuInstallIndicator />
+              <RuntimeInstallIndicator />
+              <Toaster />
+            </RuntimeInstallProvider>
           </GpuInstallProvider>
         </ConfirmDialogProvider>
     </ThemeProvider>

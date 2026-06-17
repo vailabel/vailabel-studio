@@ -4,10 +4,11 @@ use diesel::prelude::*;
 use serde_json::Value;
 
 use super::schema::projects;
-use crate::domain::Project;
+use crate::domain::{Project, ProjectConfig};
 
 /// The `projects` table row. Mirrors the columns the residual store created; the
 /// `*_json` columns hold the serialized `settings`/`metadata` blobs.
+/// `config_json` holds the typed `ProjectConfig` struct (added in migration 002).
 #[derive(Queryable, Selectable, Insertable, Debug, Clone)]
 #[diesel(table_name = projects)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -23,6 +24,7 @@ pub struct ProjectRow {
     pub metadata_json: Option<String>,
     pub created_at: String,
     pub updated_at: String,
+    pub config_json: Option<String>,
 }
 
 impl ProjectRow {
@@ -51,6 +53,10 @@ impl ProjectRow {
                 p.created_at.clone()
             },
             updated_at: now.to_string(),
+            config_json: p
+                .config
+                .as_ref()
+                .and_then(|c| serde_json::to_string(c).ok()),
         }
     }
 
@@ -63,6 +69,10 @@ impl ProjectRow {
         let task = self
             .task
             .unwrap_or_else(|| derive_task_from_legacy(&self.project_type));
+        let config: Option<ProjectConfig> = self
+            .config_json
+            .as_deref()
+            .and_then(|s| serde_json::from_str(s).ok());
         Project {
             id: self.id,
             name: self.name,
@@ -73,6 +83,7 @@ impl ProjectRow {
             status: self.status,
             settings: parse_json_field(self.settings_json.as_deref()),
             metadata: parse_json_field(self.metadata_json.as_deref()),
+            config,
             created_at: self.created_at,
             updated_at: self.updated_at,
             image_count,

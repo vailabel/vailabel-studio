@@ -42,6 +42,7 @@ import type {
   ExportRequest,
   ExportResult,
   GpuProbe,
+  RuntimeInstallStatus,
   RuntimeModel,
   RuntimeStatus,
   RuntimeSystemInfo,
@@ -246,6 +247,11 @@ export const studioCommands = {
   runtimeStatus: () => call<RuntimeStatus>("runtime_status"),
   runtimeLogs: () => call<string>("runtime_logs"),
   runtimeSystemInfo: () => call<RuntimeSystemInfo>("runtime_system_info"),
+
+  // First-run provisioning: the interpreter is downloaded on demand, not bundled.
+  runtimeInstallStatus: () =>
+    call<RuntimeInstallStatus>("runtime_install_status"),
+  runtimeInstall: () => call<RuntimeStatus>("runtime_install"),
 
   runtimeModelsList: () => call<RuntimeModel[]>("runtime_models_list"),
   runtimeModelsInstall: (id: string) =>

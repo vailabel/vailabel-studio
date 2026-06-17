@@ -11,9 +11,14 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"   # src-tauri
 PY_DIR="$ROOT/resources/python"
 REQ_FILE="$ROOT/resources/runtime/requirements.txt"
 
+# python-build-standalone names ARM as `aarch64`, but `uname -m` reports `arm64`
+# on Apple Silicon — normalize so the asset URL resolves.
+ARCH="$(uname -m)"
+[ "$ARCH" = "arm64" ] && ARCH="aarch64"
+
 case "$(uname -s)" in
-  Darwin) TRIPLE="$(uname -m)-apple-darwin" ;;
-  Linux)  TRIPLE="$(uname -m)-unknown-linux-gnu" ;;
+  Darwin) TRIPLE="${ARCH}-apple-darwin" ;;
+  Linux)  TRIPLE="${ARCH}-unknown-linux-gnu" ;;
   *) echo "unsupported platform: $(uname -s)"; exit 1 ;;
 esac
 
