@@ -1,12 +1,25 @@
-import { FolderOpen, Save, RotateCcw } from "lucide-react"
+import { FolderOpen, Save, RotateCcw, RefreshCw, Download } from "lucide-react"
 import { Switch } from "@/shared/ui/switch"
 import { Button } from "@/shared/ui/button"
 import { DesktopFileInput } from "@/shared/components/desktop-file"
 import { useSettings } from "@/features/settings/context/settings-context"
+import { useUpdate } from "@/shared/ipc/update-context"
+import { isDesktopApp } from "@/shared/lib/desktop"
 import { SettingsSection, SettingRow } from "@/features/settings/components/settings-ui"
 
 export default function GeneralSettings() {
   const { settings, updateSetting } = useSettings()
+  const {
+    updateAvailable,
+    progress,
+    updateDownloaded,
+    checking,
+    error: updateError,
+    upToDate,
+    checkForUpdates,
+    installUpdate,
+    relaunchApp,
+  } = useUpdate()
 
   const dataDirectory = (settings.dataDirectory as string) || ""
   const autoSave = (settings.autoSave as boolean) ?? true
@@ -98,6 +111,55 @@ export default function GeneralSettings() {
           />
         </div>
       </SettingsSection>
+
+      {isDesktopApp() && (
+        <SettingsSection
+          icon={RefreshCw}
+          title="Software Updates"
+          description="Check for and install new versions of Vailabel Studio"
+        >
+          <div className="space-y-3">
+            {updateDownloaded ? (
+              <Button onClick={relaunchApp} className="gap-2">
+                <RotateCcw className="h-4 w-4" />
+                Restart & Update
+              </Button>
+            ) : progress ? (
+              <Button disabled className="gap-2">
+                <Download className="h-4 w-4 animate-pulse" />
+                Downloading… {progress.percent.toFixed(0)}%
+              </Button>
+            ) : updateAvailable ? (
+              <Button onClick={installUpdate} className="gap-2">
+                <Download className="h-4 w-4" />
+                Install update (v{updateAvailable.version})
+              </Button>
+            ) : (
+              <Button
+                onClick={checkForUpdates}
+                variant="outline"
+                disabled={checking}
+                className="gap-2"
+              >
+                <RefreshCw
+                  className={`h-4 w-4 ${checking ? "animate-spin" : ""}`}
+                />
+                {checking ? "Checking…" : "Check for updates"}
+              </Button>
+            )}
+
+            {updateError ? (
+              <p className="text-sm text-destructive">
+                Update check failed: {updateError}
+              </p>
+            ) : upToDate && !updateAvailable ? (
+              <p className="text-sm text-muted-foreground">
+                You’re on the latest version.
+              </p>
+            ) : null}
+          </div>
+        </SettingsSection>
+      )}
 
       <SettingsSection
         icon={RotateCcw}

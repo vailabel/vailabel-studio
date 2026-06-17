@@ -114,6 +114,10 @@ serde_yaml = "0.9"
 # SHA-256 verification of downloaded runtime model weights.
 sha2 = "0.10"
 tauri = { version = "2", features = ["protocol-asset"] }
+# Self-update from GitHub Releases (signed updater artifacts + latest.json),
+# and process restart so the app can relaunch into the new version.
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
 thiserror = "2"
 uuid = { version = "1", features = ["v4", "serde"] }
 # AI inference (detection / segmentation / copilot vision) runs in the embedded

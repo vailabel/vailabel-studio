@@ -82,6 +82,9 @@ impl Serialize for AppError {
 
 pub fn run() {
     tauri::Builder::default()
+        // Self-update from GitHub Releases + relaunch into the new version.
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .setup(|app| {
             let startup_t0 = std::time::Instant::now();
             eprintln!("[startup] backend setup begin");

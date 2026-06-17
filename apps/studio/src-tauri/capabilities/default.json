@@ -3,5 +3,9 @@
   "identifier": "default",
   "description": "Default desktop capability for the main studio window.",
   "windows": ["main"],
-  "permissions": ["core:event:default"]
+  "permissions": [
+    "core:event:default",
+    "updater:default",
+    "process:allow-restart"
+  ]
 }

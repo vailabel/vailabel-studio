@@ -35,6 +35,8 @@
     "@tailwindcss/vite": "^4.3.1",
     "@tanstack/react-table": "^8.21.3",
     "@tauri-apps/api": "^2.11.0",
+    "@tauri-apps/plugin-process": "^2.3.0",
+    "@tauri-apps/plugin-updater": "^2.9.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@uiw/react-codemirror": "4.25.10",
     "autoprefixer": "^10.5.0",

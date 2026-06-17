@@ -2,6 +2,7 @@ import { lazy, Suspense, type ReactNode } from "react"
 import { HashRouter, Routes, Route, Navigate } from "react-router-dom"
 import MainLayout from "@/app/layout/main-layout"
 import { AutoUpdateBanner } from "@/app/layout/auto-update-banner"
+import { UpdateProvider } from "@/shared/ipc/update-context"
 import { RouteFallback } from "./route-fallback"
 
 // Lazy page chunks keep the heavy studio/editor/canvas bundle off the cold-start
@@ -30,6 +31,7 @@ const withSuspense = (node: ReactNode) => (
 const AppRoutes = () => {
   return (
     <HashRouter>
+      <UpdateProvider>
       <Routes>
         <Route element={<MainLayout />}>
           <Route path="/" element={withSuspense(<Overview />)} />
@@ -73,6 +75,7 @@ const AppRoutes = () => {
         <Route path="*" element={withSuspense(<NotFound />)} />
       </Routes>
       <AutoUpdateBanner />
+      </UpdateProvider>
     </HashRouter>
   )
 }
