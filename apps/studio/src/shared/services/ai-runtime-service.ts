@@ -20,6 +20,11 @@ export const aiRuntimeService = {
   installModel: (id: string) => studioCommands.runtimeModelsInstall(id),
   deleteModel: (id: string) => studioCommands.runtimeModelsDelete(id),
 
+  // GPU acceleration.
+  gpuProbe: () => studioCommands.runtimeGpuProbe(),
+  enableGpu: (tag?: string) => studioCommands.runtimeEnableGpu(tag),
+  restartApp: () => studioCommands.appRestart(),
+
   exportDataset: (payload: DatasetExportRequest) =>
     studioCommands.datasetExportYolo(payload),
 

@@ -1,17 +1,12 @@
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { Loader2, Sparkles } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { Button } from "@/shared/ui/button"
-import type { AIModel } from "@/shared/types/core"
-import {
-  canAttemptModelPrediction,
-  isDetectionModel,
-} from "@/shared/lib/ai-model-metadata"
-import { services } from "@/shared/services"
+import type { DetectorOption } from "@/features/studio/model/image-labeler-viewmodel"
 
 interface AutoLabelControlsProps {
-  /** All installed models; filtered here to auto-label-capable detectors. */
-  models: AIModel[]
+  /** Detection models offered by the Python runtime catalog. */
+  models: DetectorOption[]
   isRunning: boolean
   /** Run the chosen detection model on the current image at the given
    * confidence threshold (0–1). */
@@ -19,10 +14,10 @@ interface AutoLabelControlsProps {
 }
 
 /**
- * Compact, tool-style auto-labeling control: a dropdown of the *detection*
- * models that can actually run (no segmentation/classification clutter) plus an
- * "Auto-label" button that runs the picked model on the current image. Picking a
- * model also makes it the active detector, so the choice sticks everywhere.
+ * Compact, tool-style auto-labeling control: a dropdown of the runtime's
+ * detection models plus an "Auto-label" button that runs the picked model on the
+ * current image. The runtime fetches a model's weights on first use, so there's
+ * nothing to install up front.
  */
 export function AutoLabelControls({
   models,
@@ -31,63 +26,39 @@ export function AutoLabelControls({
 }: AutoLabelControlsProps) {
   const navigate = useNavigate()
 
-  // Only models usable for auto-labeling: detection role + prediction-ready
-  // (or convertible). Keeps the picker short and unambiguous.
-  const detectors = useMemo(
-    () =>
-      models.filter(
-        (model) => isDetectionModel(model) && canAttemptModelPrediction(model)
-      ),
-    [models]
-  )
-
-  const activeId = useMemo(
-    () => detectors.find((model) => model.isActive)?.id,
-    [detectors]
-  )
   const [selectedId, setSelectedId] = useState<string>("")
-  const effectiveId = selectedId || activeId || detectors[0]?.id || ""
+  const effectiveId = selectedId || models[0]?.id || ""
 
   // Confidence threshold (percent) for detections. Default 25% matches the
   // runtime default; lower it to surface boxes from a weaker model, raise it to
   // keep only confident ones.
   const [confPct, setConfPct] = useState(25)
 
-  if (detectors.length === 0) {
+  if (models.length === 0) {
     return (
       <Button
         size="sm"
         variant="outline"
         className="h-8 gap-1.5"
         onClick={() => navigate("/ai-models")}
-        title="No detection model installed — install one to auto-label"
+        title="No detection model available — open the AI Assistant"
       >
         <Sparkles className="h-4 w-4" />
-        Install a model
+        AI models
       </Button>
     )
-  }
-
-  const handleSelect = async (id: string) => {
-    setSelectedId(id)
-    // Make the picked model the active detector so the choice persists.
-    try {
-      await services.getAIModelService().setActive(id)
-    } catch {
-      // Non-fatal — the run still uses the selected id below.
-    }
   }
 
   return (
     <div className="flex items-center gap-1">
       <select
         value={effectiveId}
-        onChange={(event) => void handleSelect(event.target.value)}
+        onChange={(event) => setSelectedId(event.target.value)}
         disabled={isRunning}
         className="h-8 max-w-[10rem] truncate rounded-md border border-border bg-background px-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
         title="Detection model used for auto-labeling"
       >
-        {detectors.map((model) => (
+        {models.map((model) => (
           <option key={model.id} value={model.id}>
             {model.name}
           </option>

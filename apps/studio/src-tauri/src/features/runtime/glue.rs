@@ -4,8 +4,9 @@
 //! style as `domain/ai/runtime_setup.rs`).
 
 use std::collections::HashMap;
-use std::io::{Read, Write};
+use std::io::{BufRead, Read, Write};
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -109,6 +110,12 @@ pub struct CatalogEntry {
     /// Lowercase hex SHA-256; empty string skips verification.
     pub sha256: &'static str,
     pub capabilities: &'static [&'static str],
+    /// What the Python runtime loads for this model — an ultralytics weight name
+    /// (e.g. `rtdetr-l.pt`) or a HuggingFace repo id (e.g.
+    /// `microsoft/Florence-2-base`). ultralytics / transformers / paddleocr fetch
+    /// and cache it on first use, so nothing is downloaded ahead of time. Empty
+    /// when the family loads its own bundled default (PaddleOCR).
+    pub weight: &'static str,
 }
 
 /// Downloadable runtime models. Weights are fetched on demand into app-data;
@@ -124,6 +131,7 @@ pub static RUNTIME_MODEL_CATALOG: &[CatalogEntry] = &[
         url: "",
         sha256: "",
         capabilities: &["detection"],
+        weight: "rtdetr-l.pt",
     },
     CatalogEntry {
         id: "sam2-base",
@@ -134,6 +142,7 @@ pub static RUNTIME_MODEL_CATALOG: &[CatalogEntry] = &[
         url: "",
         sha256: "",
         capabilities: &["segmentation"],
+        weight: "sam2_b.pt",
     },
     CatalogEntry {
         id: "florence2-base",
@@ -144,6 +153,7 @@ pub static RUNTIME_MODEL_CATALOG: &[CatalogEntry] = &[
         url: "",
         sha256: "",
         capabilities: &["caption", "ocr", "detection"],
+        weight: "microsoft/Florence-2-base",
     },
     CatalogEntry {
         id: "paddleocr",
@@ -154,6 +164,7 @@ pub static RUNTIME_MODEL_CATALOG: &[CatalogEntry] = &[
         url: "",
         sha256: "",
         capabilities: &["ocr"],
+        weight: "",
     },
     CatalogEntry {
         id: "qwen-vl",
@@ -164,8 +175,21 @@ pub static RUNTIME_MODEL_CATALOG: &[CatalogEntry] = &[
         url: "",
         sha256: "",
         capabilities: &["caption"],
+        weight: "Qwen/Qwen2-VL-2B-Instruct",
     },
 ];
+
+/// The Python-runtime weight ref for a catalog model id — an ultralytics weight
+/// name or a HuggingFace repo id, fetched on first use. `None` when the id isn't
+/// a runtime-catalog model (or the family loads its own bundled default), so the
+/// caller falls back to an on-disk `ai_models` path.
+pub fn runtime_model_weight(id: &str) -> Option<&'static str> {
+    RUNTIME_MODEL_CATALOG
+        .iter()
+        .find(|entry| entry.id == id)
+        .map(|entry| entry.weight)
+        .filter(|weight| !weight.is_empty())
+}
 
 fn catalog_entry_json(e: &CatalogEntry, status: &str) -> Value {
     json!({
@@ -347,6 +371,248 @@ fn download_with_progress(
         }
     }
     Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// GPU (CUDA) acceleration: detect the NVIDIA GPU and provision a CUDA build of
+// PyTorch into the overlay so it "just works" once the user has an NVIDIA driver.
+// ---------------------------------------------------------------------------
+
+const GPU_PROGRESS_EVENT: &str = "runtime-gpu-install://progress";
+
+/// Probe for an NVIDIA GPU + driver via `nvidia-smi`, independent of whether the
+/// runtime's torch is a CUDA build (CPU-only torch reports no GPU even when one
+/// is present). Lets the UI tell the user a GPU is available and pick the right
+/// CUDA wheel. Never errors — returns `{ detected: false }` when nvidia-smi is
+/// absent or fails.
+pub fn gpu_probe(app: &tauri::AppHandle) -> Value {
+    let overlay_installed = app
+        .path()
+        .app_data_dir()
+        .ok()
+        .map(|d| d.join("runtime").join("cuda").join("torch").exists())
+        .unwrap_or(false);
+
+    let probe = Command::new("nvidia-smi")
+        .args([
+            "--query-gpu=name,driver_version",
+            "--format=csv,noheader,nounits",
+        ])
+        .output();
+
+    let Ok(out) = probe else {
+        return json!({ "detected": false, "overlayInstalled": overlay_installed, "platform": std::env::consts::OS });
+    };
+    if !out.status.success() {
+        return json!({ "detected": false, "overlayInstalled": overlay_installed, "platform": std::env::consts::OS });
+    }
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let first = stdout.lines().next().unwrap_or("").trim();
+    if first.is_empty() {
+        return json!({ "detected": false, "overlayInstalled": overlay_installed, "platform": std::env::consts::OS });
+    }
+    let mut parts = first.split(',').map(str::trim);
+    let name = parts.next().unwrap_or("").to_string();
+    let driver = parts.next().unwrap_or("").to_string();
+
+    let cuda_version = Command::new("nvidia-smi")
+        .output()
+        .ok()
+        .filter(|o| o.status.success())
+        .and_then(|o| parse_cuda_version(&String::from_utf8_lossy(&o.stdout)));
+    let tag = cuda_wheel_tag(cuda_version.as_deref());
+
+    json!({
+        "detected": true,
+        "name": name,
+        "driverVersion": driver,
+        "cudaVersion": cuda_version,
+        "recommendedTag": tag,
+        "overlayInstalled": overlay_installed,
+        "platform": std::env::consts::OS,
+    })
+}
+
+/// The driver's max CUDA version, parsed from the header of plain `nvidia-smi`
+/// (e.g. "… CUDA Version: 12.8 …").
+fn parse_cuda_version(text: &str) -> Option<String> {
+    let idx = text.find("CUDA Version:")?;
+    let rest = text[idx + "CUDA Version:".len()..].trim_start();
+    let token: String = rest
+        .chars()
+        .take_while(|c| c.is_ascii_digit() || *c == '.')
+        .collect();
+    (!token.is_empty()).then_some(token)
+}
+
+fn parse_major_minor(v: &str) -> Option<(u32, u32)> {
+    let mut it = v.split('.');
+    let maj = it.next()?.parse().ok()?;
+    let min = it.next().unwrap_or("0").parse().ok()?;
+    Some((maj, min))
+}
+
+/// Map the driver's max CUDA version to a PyTorch wheel channel. Defaults to the
+/// newest (cu128) — required by the latest GPUs (RTX 50-series / sm_120).
+fn cuda_wheel_tag(cuda_version: Option<&str>) -> &'static str {
+    match cuda_version.and_then(parse_major_minor) {
+        Some((maj, min)) if maj > 12 || (maj == 12 && min >= 8) => "cu128",
+        Some((12, min)) if min >= 6 => "cu126",
+        Some((12, min)) if min >= 4 => "cu124",
+        Some((12, _)) => "cu121",
+        Some((11, _)) => "cu118",
+        _ => "cu128",
+    }
+}
+
+/// Install a CUDA build of PyTorch into the GPU overlay dir
+/// (`<app_data>/runtime/cuda`) using the bundled Python's pip, so the next
+/// runtime start uses the GPU. On Windows the torch wheel bundles its own CUDA
+/// DLLs, so a torch-only `--no-deps` overlay is enough (its pure-python deps stay
+/// satisfied by the bundled site-packages). Streams pip output as
+/// `runtime-gpu-install://progress`. Runs on a blocking thread.
+pub fn enable_gpu_overlay(app: &tauri::AppHandle, tag: &str) -> Result<Value, AppError> {
+    if cfg!(target_os = "macos") {
+        return Err(AppError::Message(
+            "On macOS, PyTorch uses the Apple GPU (Metal/MPS) automatically — there's no CUDA build to install.".into(),
+        ));
+    }
+    let resource_dir = app.path().resource_dir()?;
+    let python_exe = python_exe_path(&python_base(&resource_dir));
+    if !python_exe.exists() {
+        return Err(AppError::Message(
+            "Bundled Python runtime was not found, so GPU acceleration can't be installed.".into(),
+        ));
+    }
+
+    let overlay = app.path().app_data_dir()?.join("runtime").join("cuda");
+    std::fs::create_dir_all(&overlay)?;
+    let index_url = format!("https://download.pytorch.org/whl/{tag}");
+
+    emit_gpu_progress(
+        app,
+        "start",
+        &format!("Installing CUDA PyTorch ({tag}) — this is a large (~2 GB) download…"),
+        0,
+        0,
+    );
+
+    let mut command = Command::new(&python_exe);
+    command
+        .arg("-m")
+        .arg("pip")
+        .arg("install")
+        .arg("--progress-bar")
+        .arg("raw")
+        .arg("--upgrade")
+        .arg("--no-cache-dir");
+    if cfg!(target_os = "windows") {
+        // Windows torch wheels bundle their own CUDA DLLs, so torch alone is enough
+        // and its pure-python deps stay satisfied by the bundled site-packages.
+        command.arg("--no-deps");
+    } else {
+        // Linux: the CUDA libraries ship as separate `nvidia-*` packages (deps of
+        // torch), so install with deps — torch + CUDA libs from the torch index,
+        // any remaining pure-python deps from PyPI.
+        command.arg("--extra-index-url").arg("https://pypi.org/simple");
+    }
+    // Install torch AND torchvision as a matched pair from the same CUDA index.
+    // ultralytics (YOLO / RT-DETR) calls `torchvision.ops.nms`, whose compiled op
+    // only registers when torchvision's version matches the loaded torch — a
+    // torch-only overlay shadows torch but leaves the bundled CPU torchvision,
+    // which then fails with "operator torchvision::nms does not exist".
+    let mut child = command
+        .arg("--target")
+        .arg(&overlay)
+        .arg("--index-url")
+        .arg(&index_url)
+        .arg("torch")
+        .arg("torchvision")
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .map_err(|e| AppError::Message(format!("Failed to launch pip: {e}")))?;
+
+    // Drain stdout + stderr concurrently so a full pipe buffer can't deadlock the
+    // long download, emitting each non-empty line as progress.
+    let stderr = child.stderr.take();
+    let app_err = app.clone();
+    let stderr_thread = std::thread::spawn(move || {
+        let mut last = Instant::now();
+        if let Some(s) = stderr {
+            for line in std::io::BufReader::new(s).lines().map_while(Result::ok) {
+                handle_pip_line(&app_err, &line, &mut last);
+            }
+        }
+    });
+    if let Some(s) = child.stdout.take() {
+        let mut last = Instant::now();
+        for line in std::io::BufReader::new(s).lines().map_while(Result::ok) {
+            handle_pip_line(app, &line, &mut last);
+        }
+    }
+    let _ = stderr_thread.join();
+
+    let status = child
+        .wait()
+        .map_err(|e| AppError::Message(format!("pip did not complete: {e}")))?;
+    if !status.success() {
+        emit_gpu_progress(app, "error", "GPU install failed — see the runtime log.", 0, 0);
+        return Err(AppError::Message(format!(
+            "pip install of CUDA PyTorch failed (exit {:?}). Check your connection and that this GPU supports {tag}.",
+            status.code()
+        )));
+    }
+
+    emit_gpu_progress(
+        app,
+        "done",
+        "CUDA PyTorch installed. Restart the app to use your GPU.",
+        0,
+        0,
+    );
+    Ok(json!({ "ok": true, "tag": tag }))
+}
+
+fn emit_gpu_progress(
+    app: &tauri::AppHandle,
+    phase: &str,
+    message: &str,
+    received: u64,
+    total: u64,
+) {
+    let _ = app.emit(
+        GPU_PROGRESS_EVENT,
+        json!({
+            "phase": phase,
+            "message": message,
+            "receivedBytes": received,
+            "totalBytes": total,
+        }),
+    );
+}
+
+/// Parse a pip `--progress-bar raw` line: "Progress <received> of <total>".
+fn parse_pip_progress(line: &str) -> Option<(u64, u64)> {
+    let (recv, total) = line.trim().strip_prefix("Progress ")?.split_once(" of ")?;
+    Some((recv.trim().parse().ok()?, total.trim().parse().ok()?))
+}
+
+/// Handle one streamed pip line: throttle byte-progress events to ~5/s, pass real
+/// log lines through immediately.
+fn handle_pip_line(app: &tauri::AppHandle, line: &str, last_emit: &mut Instant) {
+    let trimmed = line.trim();
+    if trimmed.is_empty() {
+        return;
+    }
+    if let Some((received, total)) = parse_pip_progress(trimmed) {
+        if last_emit.elapsed() >= Duration::from_millis(200) {
+            emit_gpu_progress(app, "installing", "Downloading CUDA PyTorch…", received, total);
+            *last_emit = Instant::now();
+        }
+    } else {
+        emit_gpu_progress(app, "installing", trimmed, 0, 0);
+    }
 }
 
 fn emit_progress(app: &tauri::AppHandle, phase: &str, message: &str, received: u64, total: u64) {

@@ -2,8 +2,6 @@ use crate::features::ai::model::{
     CopilotActionPayload, GitHubReleaseLookupPayload, InferenceAnnotationDraft, ModelImportPayload,
     ModelInstallPayload, PipelineRunPayload, PredictionGeneratePayload,
 };
-use crate::features::ai::plugin;
-use crate::features::ai::inference::{self, InferenceEngine};
 use vailabel_annotation::domain::{
     Annotation, AnnotationRepository, LabelClass, LabelRepository, Prediction, PredictionRepository,
 };
@@ -15,12 +13,11 @@ use crate::{
 };
 use reqwest::blocking::Client;
 use serde_json::{json, Value};
-use std::collections::HashMap;
 use std::fs;
 use std::io::copy;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::Instant;
 use tauri::Manager;
 use uuid::Uuid;
@@ -32,30 +29,6 @@ use vailabel_models::domain::{
 
 const APP_NAME: &str = "Vailabel Studio";
 const DEFAULT_AI_LABEL_COLOR: &str = "#22c55e";
-
-/// One loaded inference engine, keyed by model id in [`AiService::engine_cache`].
-/// Holding distinct engines side by side lets a detect→segment turn keep both the
-/// detector and the SAM plugin (with its per-image embedding) resident at once.
-#[allow(dead_code)] // `Detector` is only built under the inference feature.
-enum CachedEngine {
-    Detector(Box<dyn InferenceEngine>),
-    Plugin(Box<dyn plugin::ModelPlugin>),
-}
-
-/// Max engines kept resident (detector + one prompt plugin). Bounds RAM/VRAM.
-const MAX_CACHED_ENGINES: usize = 2;
-
-/// Insert an engine under `key`, first evicting an unrelated entry if the cache is
-/// at capacity. Not strict LRU — with a cap of 2 and at most a detector + a plugin
-/// in flight, this only evicts when a genuinely different model is loaded.
-fn cache_insert_bounded(cache: &mut HashMap<String, CachedEngine>, key: String, engine: CachedEngine) {
-    if !cache.contains_key(&key) && cache.len() >= MAX_CACHED_ENGINES {
-        if let Some(evict) = cache.keys().find(|existing| *existing != &key).cloned() {
-            cache.remove(&evict);
-        }
-    }
-    cache.insert(key, engine);
-}
 
 /// Serialize a typed entity to plain camelCase JSON — used for the kinds whose
 /// dedicated services round-trip through plain serde (labels / images).
@@ -188,14 +161,15 @@ impl RepoStore {
 #[derive(Clone)]
 pub struct AiService {
     store: RepoStore,
-    /// Loaded ONNX engines keyed by model id (detector + prompt plugins), kept
-    /// resident so repeated runs — and detect→segment chaining — reuse sessions
-    /// and SAM's per-image embedding instead of rebuilding them.
-    engine_cache: Arc<Mutex<HashMap<String, CachedEngine>>>,
+    /// The embedded Python AI runtime. Detection and promptable segmentation run
+    /// here (ultralytics/torch), started on demand; the Rust side only orchestrates
+    /// (entity reads, label resolution, persistence, events).
+    runtime: Arc<runtime_manager::RuntimeService>,
 }
 
 impl AiService {
     pub fn new(
+        runtime: Arc<runtime_manager::RuntimeService>,
         ai_models: Arc<dyn AiModelRepository>,
         predictions: Arc<dyn PredictionRepository>,
         annotations: Arc<dyn AnnotationRepository>,
@@ -210,8 +184,67 @@ impl AiService {
                 labels,
                 images,
             },
-            engine_cache: Arc::new(Mutex::new(HashMap::new())),
+            runtime,
         }
+    }
+
+    /// Object detection on the embedded Python runtime (ultralytics; loads `.onnx`
+    /// or `.pt`). Starts the runtime on demand. Returns the raw detection drafts as
+    /// JSON, to be deserialized via [`drafts_from_runtime`].
+    fn runtime_detect(
+        &self,
+        model_path: &str,
+        image_path: &str,
+        conf: f32,
+    ) -> Result<Vec<Value>, AppError> {
+        let runtime = self.runtime.clone();
+        let req = runtime_manager::DetectRequest {
+            model_path: model_path.to_string(),
+            image_path: image_path.to_string(),
+            conf: Some(conf),
+            iou: None,
+        };
+        let resp = tauri::async_runtime::block_on(async move {
+            let client = runtime.ensure_started().await?;
+            client.detect(&req).await
+        })?;
+        Ok(resp.detections)
+    }
+
+    /// Promptable segmentation (SAM) on the embedded Python runtime. Starts the
+    /// runtime on demand. Returns the raw mask drafts as JSON.
+    fn runtime_segment(
+        &self,
+        model_path: &str,
+        image_path: &str,
+        points: Vec<[f32; 2]>,
+        box_xyxy: Option<[f32; 4]>,
+    ) -> Result<Vec<Value>, AppError> {
+        let runtime = self.runtime.clone();
+        let req = runtime_manager::SegmentRequest {
+            model_path: model_path.to_string(),
+            image_path: image_path.to_string(),
+            points,
+            box_xyxy,
+        };
+        let resp = tauri::async_runtime::block_on(async move {
+            let client = runtime.ensure_started().await?;
+            client.segment(&req).await
+        })?;
+        Ok(resp.masks)
+    }
+
+    /// Deserialize raw runtime drafts (JSON) into typed `InferenceAnnotationDraft`s.
+    fn drafts_from_runtime(
+        items: Vec<Value>,
+    ) -> Result<Vec<InferenceAnnotationDraft>, AppError> {
+        items
+            .into_iter()
+            .map(|item| {
+                serde_json::from_value::<InferenceAnnotationDraft>(item)
+                    .map_err(|e| AppError::Message(format!("Malformed draft from AI runtime: {e}")))
+            })
+            .collect()
     }
 
     pub fn list_ai_models(&self) -> Result<Vec<Value>, AppError> {
@@ -566,6 +599,22 @@ impl AiService {
         let model_id = payload.model_id.clone();
         let image =
             get_entity_or_error(&self.store, "images", &image_id, "Image not found")?;
+
+        // Runtime-catalog detector (e.g. "rtdetr-l"): the Python runtime fetches
+        // its weights on first use, so there's no local file to resolve or
+        // validate — run it by name. Imported/trained `ai_models` fall through.
+        if let Some(weight) = crate::features::runtime::glue::runtime_model_weight(&model_id) {
+            return self.generate_predictions_runtime(
+                app,
+                &image,
+                &image_id,
+                &model_id,
+                weight,
+                payload.threshold.unwrap_or(0.25),
+                class_filter,
+            );
+        }
+
         let hydrated_model = hydrate_ai_model_entity(
             &self.store,
             get_entity_or_error(
@@ -619,38 +668,17 @@ impl AiService {
             return Err(AppError::Message(reason));
         }
 
-        let class_names = model
-            .get("modelMetadata")
-            .and_then(extract_class_names_from_value)
-            .unwrap_or_default();
-
-        #[cfg(feature = "yolo-inference")]
-        let (drafts, metrics) = {
-            let mut cache = self
-                .engine_cache
-                .lock()
-                .map_err(|_| AppError::Message("Engine cache is unavailable".into()))?;
-
-            let needs_build = !matches!(cache.get(&model_id), Some(CachedEngine::Detector(_)));
-            if needs_build {
-                let engine = Box::new(inference::YoloEngine::new(&model_path, class_names)?);
-                cache_insert_bounded(&mut cache, model_id.clone(), CachedEngine::Detector(engine));
-            }
-
-            match cache.get_mut(&model_id) {
-                Some(CachedEngine::Detector(engine)) => {
-                    // Default conf 0.25 matches ultralytics' predict default; 0.5
-                    // over-filtered freshly trained models (callers can still pin it).
-                    engine.predict(&image, &model, &labels, payload.threshold.unwrap_or(0.25))?
-                }
-                _ => return Err(AppError::Message("Failed to initialize inference engine".into())),
-            }
-        };
-
-        #[cfg(not(feature = "yolo-inference"))]
-        return Err(AppError::Message(
-            "This desktop build does not include local ONNX inference support.".into(),
-        ));
+        // Detection runs on the embedded Python runtime (ultralytics; loads the
+        // model's `.onnx`/`.pt`). Default conf 0.25 matches ultralytics' predict
+        // default; 0.5 over-filtered freshly trained models (callers can pin it).
+        let image_path = value_string(&image, "path", "path").ok_or_else(|| {
+            AppError::Message("Image path is unavailable for AI detection".into())
+        })?;
+        let started_at = Instant::now();
+        let detections =
+            self.runtime_detect(&model_path, &image_path, payload.threshold.unwrap_or(0.25))?;
+        let infer_ms = started_at.elapsed().as_millis();
+        let drafts = Self::drafts_from_runtime(detections)?;
 
         // Prompt-to-detect: keep only the requested class. On an open-vocab model
         // this narrows its broad vocabulary; on a closed-vocab one it filters COCO.
@@ -670,8 +698,60 @@ impl AiService {
             &model_id,
             &labels,
             drafts,
-            &metrics.backend,
-            metrics.infer_ms,
+            "python",
+            infer_ms,
+            true,
+        )
+    }
+
+    /// Detection via a runtime-catalog model: the ultralytics weight name (e.g.
+    /// `rtdetr-l.pt`) is passed straight to the Python runtime, which fetches and
+    /// caches it on first use. No local file, so none of the on-disk / task-suffix
+    /// validation of the `ai_models` path applies.
+    #[allow(clippy::too_many_arguments)]
+    fn generate_predictions_runtime(
+        &self,
+        app: &tauri::AppHandle,
+        image: &Value,
+        image_id: &str,
+        model_id: &str,
+        weight: &str,
+        conf: f32,
+        class_filter: Option<&str>,
+    ) -> Result<Vec<Value>, AppError> {
+        let project_id = value_string(image, "projectId", "project_id").unwrap_or_default();
+        let labels = if project_id.is_empty() {
+            Vec::new()
+        } else {
+            self.store.list_by_field("labels", "project_id", &project_id)?
+        };
+        let image_path = value_string(image, "path", "path").ok_or_else(|| {
+            AppError::Message("Image path is unavailable for AI detection".into())
+        })?;
+
+        let started_at = Instant::now();
+        let detections = self.runtime_detect(weight, &image_path, conf)?;
+        let infer_ms = started_at.elapsed().as_millis();
+        let drafts = Self::drafts_from_runtime(detections)?;
+        let drafts = match class_filter {
+            Some(target) => drafts
+                .into_iter()
+                .filter(|draft| draft_matches_class(draft, target))
+                .collect(),
+            None => drafts,
+        };
+
+        let model = json!({ "id": model_id, "name": model_id, "backend": "python" });
+        self.persist_drafts(
+            app,
+            image_id,
+            &project_id,
+            &model,
+            model_id,
+            &labels,
+            drafts,
+            "python",
+            infer_ms,
             true,
         )
     }
@@ -794,6 +874,20 @@ impl AiService {
         let model_id = payload.model_id.clone();
         let image =
             get_entity_or_error(&self.store, "images", &image_id, "Image not found")?;
+
+        // Runtime-catalog SAM (e.g. "sam2-base"): fetched on first use, no local
+        // file to resolve. Imported/trained models fall through to the disk path.
+        if let Some(weight) = crate::features::runtime::glue::runtime_model_weight(&model_id) {
+            return self.pipeline_run_runtime(
+                app,
+                &image,
+                &image_id,
+                &model_id,
+                weight,
+                &payload.prompt,
+            );
+        }
+
         let model = hydrate_ai_model_entity(
             &self.store,
             get_entity_or_error(
@@ -815,48 +909,31 @@ impl AiService {
             self.store.list_by_field("labels", "project_id", &project_id)?
         };
 
-        let registry_id = payload
-            .registry_id
-            .clone()
-            .filter(|value| !value.trim().is_empty())
-            .unwrap_or_else(|| registry_id_for_model(&model));
-
-        let request = plugin::PipelineRequest {
-            image_path: &image_path,
-            model: &model,
-            labels: &labels,
-            threshold: payload.threshold.unwrap_or(0.5),
-            prompt: payload.prompt,
-        };
+        // Segmentation runs on the embedded Python runtime (ultralytics SAM). Map
+        // the prompt's points/boxes to the runtime's request shape; the runtime
+        // takes a single box, so the first box prompt wins.
+        let model_path = value_string(&model, "modelPath", "model_path").unwrap_or_default();
+        if model_path.is_empty() {
+            return Err(AppError::Message(
+                "Selected segmentation model does not have a local file path".into(),
+            ));
+        }
+        let points: Vec<[f32; 2]> = payload
+            .prompt
+            .points
+            .iter()
+            .map(|point| [point.x, point.y])
+            .collect();
+        let box_xyxy = payload
+            .prompt
+            .boxes
+            .first()
+            .map(|b| [b.x1, b.y1, b.x2, b.y2]);
 
         let started_at = Instant::now();
-        let drafts = {
-            let mut cache = self
-                .engine_cache
-                .lock()
-                .map_err(|_| AppError::Message("Engine cache is unavailable".into()))?;
-
-            // Reuse the cached plugin instance for this model so SAM's per-image
-            // embedding survives between clicks; build it on first use.
-            let needs_build = !matches!(cache.get(&model_id), Some(CachedEngine::Plugin(_)));
-            if needs_build {
-                cache_insert_bounded(
-                    &mut cache,
-                    model_id.clone(),
-                    CachedEngine::Plugin(plugin::plugin_for(&registry_id)),
-                );
-            }
-
-            match cache.get_mut(&model_id) {
-                Some(CachedEngine::Plugin(engine)) => engine.run(&request)?,
-                _ => {
-                    return Err(AppError::Message(
-                        "Failed to initialize the model plugin".into(),
-                    ))
-                }
-            }
-        };
+        let masks = self.runtime_segment(&model_path, &image_path, points, box_xyxy)?;
         let infer_ms = started_at.elapsed().as_millis();
+        let drafts = Self::drafts_from_runtime(masks)?;
 
         // Prompt-driven runs append (a click adds one polygon); they don't wipe the
         // detector's boxes on the image.
@@ -868,8 +945,45 @@ impl AiService {
             &model_id,
             &labels,
             drafts,
-            "ort",
+            "python",
             infer_ms,
+            false,
+        )
+    }
+
+    /// Promptable segmentation via a runtime-catalog model (e.g. SAM2): the weight
+    /// name is passed to the Python runtime, which fetches it on first use. No
+    /// local file, so the disk-path validation of the `ai_models` path is skipped.
+    fn pipeline_run_runtime(
+        &self,
+        app: &tauri::AppHandle,
+        image: &Value,
+        image_id: &str,
+        model_id: &str,
+        weight: &str,
+        prompt: &crate::features::ai::plugin::PromptInput,
+    ) -> Result<Vec<Value>, AppError> {
+        let image_path = value_string(image, "path", "path").ok_or_else(|| {
+            AppError::Message("Image path is unavailable for AI annotation".into())
+        })?;
+        let project_id = value_string(image, "projectId", "project_id").unwrap_or_default();
+        let labels = if project_id.is_empty() {
+            Vec::new()
+        } else {
+            self.store.list_by_field("labels", "project_id", &project_id)?
+        };
+
+        let points: Vec<[f32; 2]> = prompt.points.iter().map(|point| [point.x, point.y]).collect();
+        let box_xyxy = prompt.boxes.first().map(|b| [b.x1, b.y1, b.x2, b.y2]);
+
+        let started_at = Instant::now();
+        let masks = self.runtime_segment(weight, &image_path, points, box_xyxy)?;
+        let infer_ms = started_at.elapsed().as_millis();
+        let drafts = Self::drafts_from_runtime(masks)?;
+
+        let model = json!({ "id": model_id, "name": model_id, "backend": "python" });
+        self.persist_drafts(
+            app, image_id, &project_id, &model, model_id, &labels, drafts, "python", infer_ms,
             false,
         )
     }
@@ -995,16 +1109,26 @@ impl AiService {
         }) {
             return Ok(value_string(model, "id", "id"));
         }
-        Ok(models.first().and_then(|model| value_string(model, "id", "id")))
+        if let Some(id) = models.first().and_then(|model| value_string(model, "id", "id")) {
+            return Ok(Some(id));
+        }
+        // No imported/trained detector — fall back to the default runtime-catalog
+        // detector, which the Python runtime fetches on first use.
+        Ok(Some("rtdetr-l".to_string()))
     }
 
     /// Id of an installed segmentation (SAM) model, if any.
     pub fn resolve_segmentation_model_id(&self) -> Result<Option<String>, AppError> {
         let models = self.store.list_entities("ai_models")?;
-        Ok(models
+        if let Some(id) = models
             .iter()
             .find(|model| matches!(registry_id_for_model(model).as_str(), "mobile-sam" | "sam2"))
-            .and_then(|model| value_string(model, "id", "id")))
+            .and_then(|model| value_string(model, "id", "id"))
+        {
+            return Ok(Some(id));
+        }
+        // Fall back to the runtime-catalog SAM (fetched on first use).
+        Ok(Some("sam2-base".to_string()))
     }
 
     /// Apply a copilot action the user approved (relabel / delete / new label).
@@ -1349,10 +1473,6 @@ fn prediction_unsupported_reason(
         return Some(format!(
             "AI detect currently requires an ONNX model file. This model was imported {details}."
         ));
-    }
-
-    if !cfg!(feature = "yolo-inference") {
-        return Some("This desktop build does not include local ONNX inference support.".into());
     }
 
     if !has_class_names {
@@ -1932,28 +2052,6 @@ mod tests {
 
         assert_eq!(class_names, vec!["person", "bicycle", "car"]);
         let _ = fs::remove_file(config_path);
-    }
-
-    #[test]
-    fn cache_insert_bounded_evicts_at_capacity() {
-        use crate::features::ai::plugin::NotImplementedPlugin;
-        let stub = || {
-            CachedEngine::Plugin(Box::new(NotImplementedPlugin {
-                model_name: "stub".into(),
-                task: "test",
-            }))
-        };
-        let mut cache: HashMap<String, CachedEngine> = HashMap::new();
-        cache_insert_bounded(&mut cache, "a".into(), stub());
-        cache_insert_bounded(&mut cache, "b".into(), stub());
-        assert_eq!(cache.len(), MAX_CACHED_ENGINES);
-        // A third distinct model evicts one to stay at the cap...
-        cache_insert_bounded(&mut cache, "c".into(), stub());
-        assert_eq!(cache.len(), MAX_CACHED_ENGINES);
-        assert!(cache.contains_key("c"));
-        // ...but re-inserting an existing key never grows past the cap.
-        cache_insert_bounded(&mut cache, "c".into(), stub());
-        assert_eq!(cache.len(), MAX_CACHED_ENGINES);
     }
 
     #[test]

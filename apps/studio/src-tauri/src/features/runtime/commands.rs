@@ -208,3 +208,45 @@ pub fn runtime_models_delete(
     let _ = emit_domain_event(&app, "runtime_model", "deleted", &json!({ "id": payload.id }));
     Ok(json!({ "success": true }))
 }
+
+// ───────────────────────────── GPU acceleration ─────────────────────────────
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GpuEnablePayload {
+    /// PyTorch CUDA wheel channel (e.g. "cu128"); defaults to cu128 / the value
+    /// `runtime_gpu_probe` recommends for the detected driver.
+    pub tag: Option<String>,
+}
+
+/// Detect an NVIDIA GPU (via `nvidia-smi`) so the UI can offer one-click GPU
+/// acceleration even while the bundled torch is CPU-only.
+#[tauri::command]
+pub fn runtime_gpu_probe(app: tauri::AppHandle) -> Result<Value, AppError> {
+    Ok(super::glue::gpu_probe(&app))
+}
+
+/// Install a CUDA build of PyTorch into the overlay so the runtime uses the GPU
+/// on its next start. Long-running (large download) → blocking thread; streams
+/// `runtime-gpu-install://progress`.
+#[tauri::command]
+pub async fn runtime_enable_gpu(
+    app: tauri::AppHandle,
+    payload: GpuEnablePayload,
+) -> Result<Value, AppError> {
+    let app2 = app.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let tag = payload.tag.unwrap_or_else(|| "cu128".to_string());
+        super::glue::enable_gpu_overlay(&app2, &tag)
+    })
+    .await
+    .map_err(|e| AppError::Message(format!("GPU install task failed: {e}")))?
+}
+
+/// Restart the whole app so a freshly installed CUDA overlay is activated — the
+/// runtime's PYTHONPATH (which includes the overlay) is resolved at app startup,
+/// so a runtime-only restart wouldn't pick it up.
+#[tauri::command]
+pub fn app_restart(app: tauri::AppHandle) {
+    app.restart();
+}

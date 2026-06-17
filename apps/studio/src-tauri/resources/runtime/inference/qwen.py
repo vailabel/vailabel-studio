@@ -5,19 +5,24 @@
 
 from typing import Any, Dict
 
-from inference.loader import CACHE, lazy_import, load_image
+from inference.loader import CACHE, lazy_import, load_image, pick_device
 
 
 def _load(model_path: str):
     transformers = lazy_import("transformers", "transformers")
     torch = lazy_import("torch")
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = pick_device()
     model_cls = getattr(transformers, "Qwen2VLForConditionalGeneration", None) or getattr(
         transformers, "AutoModelForVision2Seq"
     )
-    model = model_cls.from_pretrained(
-        model_path, torch_dtype="auto", device_map=device
-    ).eval()
+    # device_map dispatches cuda/cpu directly; transformers doesn't reliably map
+    # "mps", so on Apple Silicon load then move the model onto the GPU.
+    if device == "mps":
+        model = model_cls.from_pretrained(model_path, torch_dtype="auto").eval().to("mps")
+    else:
+        model = model_cls.from_pretrained(
+            model_path, torch_dtype="auto", device_map=device
+        ).eval()
     processor = transformers.AutoProcessor.from_pretrained(model_path)
     return model, processor, device
 

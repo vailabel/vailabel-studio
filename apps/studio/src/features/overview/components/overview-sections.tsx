@@ -1,147 +1,98 @@
 import React from "react"
 import {
   Activity,
-  BarChart3,
-  CheckSquare,
+  Cpu,
   Folder,
   FolderPlus,
-  Image,
+  Layers,
   LucideIcon,
+  Sparkles,
   Tag,
-  TrendingUp,
-  Users,
   Zap,
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card"
+import { Badge } from "@/shared/ui/badge"
+import { Button } from "@/shared/ui/button"
 import { Skeleton } from "@/shared/ui/skeleton"
+import { cn } from "@/shared/lib/utils"
 import {
+  QuickActionButton,
+  RecentProjectRow,
+  RecentProjectRowSkeleton,
   StatCard,
-  QuickActionCard,
-  ActivityItem,
-  ActivitySkeleton,
 } from "@/features/overview/components/overview-components"
-import type { useOverviewViewModel } from "@/features/overview/model/overview-viewmodel"
+import type {
+  DistributionEntry,
+  useOverviewViewModel,
+} from "@/features/overview/model/overview-viewmodel"
 
 type OverviewViewModel = ReturnType<typeof useOverviewViewModel>
 
-// ── Statistics grid (all values derived from real project data) ───────────────
+// ── KPI row (prop-driven) ─────────────────────────────────────────────────────
 
-export const StatGrid: React.FC<{
-  stats: OverviewViewModel["stats"]
-  isLoading: boolean
-}> = ({ stats, isLoading }) => {
-  const cards: Array<{
-    title: string
-    value: number | string
-    icon: LucideIcon
-    color: string
-  }> = [
-    {
-      title: "Total Projects",
-      value: stats.totalProjects,
-      icon: Folder,
-      color: "bg-primary",
-    },
-    {
-      title: "Active Projects",
-      value: stats.activeProjects,
-      icon: Activity,
-      color: "bg-chart-1",
-    },
-    {
-      title: "Completed",
-      value: stats.completedProjects,
-      icon: CheckSquare,
-      color: "bg-chart-2",
-    },
-    {
-      title: "Images Labeled",
-      value: stats.totalAnnotations,
-      icon: Image,
-      color: "bg-chart-3",
-    },
-    {
-      title: "Label Classes",
-      value: stats.labelsCreated,
-      icon: Tag,
-      color: "bg-chart-4",
-    },
-    {
-      title: "Updated This Week",
-      value: stats.recentProjects,
-      icon: TrendingUp,
-      color: "bg-chart-5",
-    },
-  ]
-
-  return (
-    <section className="mb-12">
-      <div className="flex items-center gap-4 mb-6">
-        <BarChart3 className="h-6 w-6 text-primary" />
-        <h2 className="text-2xl font-semibold text-foreground">Statistics</h2>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
-        {cards.map((stat) => (
-          <StatCard
-            key={stat.title}
-            title={stat.title}
-            value={stat.value}
-            icon={stat.icon}
-            color={stat.color}
-            isLoading={isLoading}
-          />
-        ))}
-      </div>
-    </section>
-  )
+export interface StatCardSpec {
+  title: string
+  value: number | string
+  icon: LucideIcon
+  color: string
+  subtext?: string
 }
 
-// ── Recent activity (most recently updated projects) ──────────────────────────
-
-export const RecentActivity: React.FC<{
-  projects: OverviewViewModel["recentProjects"]
-  isLoading: boolean
-}> = ({ projects, isLoading }) => (
-  <section className="lg:col-span-2">
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-foreground">
-          <Activity className="h-5 w-5 text-primary" />
-          Recent Activity
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <ActivitySkeleton count={5} />
-        ) : projects.length > 0 ? (
-          <div className="space-y-2">
-            {projects.map((project) => (
-              <ActivityItem
-                key={project.id}
-                activity={`Updated project "${project.name}"`}
-                user="System"
-                date={
-                  new Date(
-                    project.updatedAt || project.createdAt || new Date()
-                  )
-                }
-                type="project"
-                projectName={project.name}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-8 text-muted-foreground">
-            <Image className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>No recent activity</p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+export const KpiRow: React.FC<{ cards: StatCardSpec[]; isLoading: boolean }> = ({
+  cards,
+  isLoading,
+}) => (
+  <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+    {cards.map((card) => (
+      <StatCard key={card.title} {...card} isLoading={isLoading} />
+    ))}
   </section>
 )
 
-// ── Projects by status (real distribution) ────────────────────────────────────
+// ── Recent projects (real, clickable) ─────────────────────────────────────────
+
+export const RecentProjects: React.FC<{
+  projects: OverviewViewModel["recentProjects"]
+  isLoading: boolean
+  now: number
+  onOpen: (project: OverviewViewModel["recentProjects"][number]) => void
+}> = ({ projects, isLoading, now, onOpen }) => (
+  <Card className="lg:col-span-2">
+    <CardHeader>
+      <CardTitle className="flex items-center gap-2 text-foreground">
+        <Activity className="h-5 w-5 text-primary" />
+        Recent projects
+      </CardTitle>
+    </CardHeader>
+    <CardContent>
+      {isLoading ? (
+        <div className="space-y-1">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <RecentProjectRowSkeleton key={index} />
+          ))}
+        </div>
+      ) : projects.length > 0 ? (
+        <div className="space-y-0.5">
+          {projects.map((project) => (
+            <RecentProjectRow
+              key={project.id}
+              project={project}
+              now={now}
+              onOpen={() => onOpen(project)}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="py-8 text-center text-sm text-muted-foreground">
+          <Folder className="mx-auto mb-3 h-10 w-10 opacity-50" />
+          No projects yet.
+        </div>
+      )}
+    </CardContent>
+  </Card>
+)
+
+// ── Distribution bars (status / modality) ─────────────────────────────────────
 
 const STATUS_COLORS: Record<string, string> = {
   active: "bg-info",
@@ -151,22 +102,36 @@ const STATUS_COLORS: Record<string, string> = {
   unknown: "bg-muted-foreground",
 }
 
-const statusColor = (status: string) =>
-  STATUS_COLORS[status.toLowerCase()] ?? "bg-primary"
+const CHART_COLORS = [
+  "bg-chart-1",
+  "bg-chart-2",
+  "bg-chart-3",
+  "bg-chart-4",
+  "bg-chart-5",
+]
 
-const titleCase = (status: string) =>
-  status.charAt(0).toUpperCase() + status.slice(1)
+const titleCase = (value: string) =>
+  value.charAt(0).toUpperCase() + value.slice(1)
 
-export const ProjectStatusBreakdown: React.FC<{
-  breakdown: OverviewViewModel["statusBreakdown"]
+export const DistributionCard: React.FC<{
+  title: string
+  icon: LucideIcon
+  entries: DistributionEntry[]
   isLoading: boolean
-}> = ({ breakdown, isLoading }) => (
-  <section>
+  /** Color by status name; falls back to a rotating chart palette. */
+  byStatus?: boolean
+}> = ({ title, icon: Icon, entries, isLoading, byStatus = false }) => {
+  const colorFor = (label: string, index: number) =>
+    byStatus
+      ? STATUS_COLORS[label.toLowerCase()] ?? "bg-primary"
+      : CHART_COLORS[index % CHART_COLORS.length]
+
+  return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-foreground">
-          <BarChart3 className="h-5 w-5 text-primary" />
-          Projects by Status
+          <Icon className="h-5 w-5 text-primary" />
+          {title}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -176,28 +141,29 @@ export const ProjectStatusBreakdown: React.FC<{
               <Skeleton key={index} className="h-6 w-full" />
             ))}
           </div>
-        ) : breakdown.length > 0 ? (
+        ) : entries.length > 0 ? (
           <div className="space-y-4">
-            {breakdown.map((entry) => (
-              <div key={entry.status} className="space-y-1.5">
+            {entries.map((entry, index) => (
+              <div key={entry.label} className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div
-                      className={`w-3 h-3 rounded-full ${statusColor(
-                        entry.status
-                      )}`}
+                    <span
+                      className={cn(
+                        "h-3 w-3 rounded-full",
+                        colorFor(entry.label, index)
+                      )}
                     />
-                    <span className="text-sm text-foreground">
-                      {titleCase(entry.status)}
+                    <span className="text-sm capitalize text-foreground">
+                      {titleCase(entry.label)}
                     </span>
                   </div>
-                  <span className="text-sm font-medium text-foreground">
+                  <span className="text-sm font-medium tabular-nums text-foreground">
                     {entry.count} ({entry.percentage}%)
                   </span>
                 </div>
-                <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
                   <div
-                    className={`h-full rounded-full ${statusColor(entry.status)}`}
+                    className={cn("h-full rounded-full", colorFor(entry.label, index))}
                     style={{ width: `${entry.percentage}%` }}
                   />
                 </div>
@@ -205,53 +171,94 @@ export const ProjectStatusBreakdown: React.FC<{
             ))}
           </div>
         ) : (
-          <div className="text-center py-8 text-muted-foreground">
-            <Folder className="h-10 w-10 mx-auto mb-3 opacity-50" />
-            <p>No projects yet</p>
+          <div className="py-8 text-center text-sm text-muted-foreground">
+            <Folder className="mx-auto mb-3 h-10 w-10 opacity-50" />
+            No data yet.
           </div>
         )}
       </CardContent>
     </Card>
-  </section>
+  )
+}
+
+// ── AI workspace ──────────────────────────────────────────────────────────────
+
+export const AiWorkspaceCard: React.FC<{
+  models: OverviewViewModel["aiModels"]
+  training: OverviewViewModel["training"]
+  onManage: () => void
+}> = ({ models, training, onManage }) => (
+  <Card>
+    <CardHeader>
+      <CardTitle className="flex items-center gap-2 text-foreground">
+        <Sparkles className="h-5 w-5 text-primary" />
+        AI workspace
+      </CardTitle>
+    </CardHeader>
+    <CardContent className="space-y-3">
+      <div className="flex items-center justify-between text-sm">
+        <span className="flex items-center gap-2 text-muted-foreground">
+          <Cpu className="h-4 w-4" /> Models ready
+        </span>
+        <span className="font-medium tabular-nums text-foreground">
+          {models.ready}
+          <span className="text-muted-foreground"> / {models.installed}</span>
+        </span>
+      </div>
+      <div className="flex items-center justify-between text-sm">
+        <span className="flex items-center gap-2 text-muted-foreground">
+          <Activity className="h-4 w-4" /> Training
+        </span>
+        <span className="font-medium text-foreground">
+          {training.running > 0 ? (
+            <Badge variant="default">
+              {training.running} running
+              {training.activeProgress != null
+                ? ` · ${training.activeProgress}%`
+                : ""}
+            </Badge>
+          ) : (
+            <span className="text-muted-foreground">idle</span>
+          )}
+        </span>
+      </div>
+      <Button variant="outline" size="sm" className="w-full" onClick={onManage}>
+        Manage AI models
+      </Button>
+    </CardContent>
+  </Card>
 )
 
 // ── Quick actions ─────────────────────────────────────────────────────────────
 
-// Keyed on the icon identifiers the view model actually emits.
 const QUICK_ACTION_ICONS: Record<string, LucideIcon> = {
   plus: FolderPlus,
   folder: Folder,
+  cpu: Cpu,
   tag: Tag,
-  users: Users,
-  checkSquare: CheckSquare,
+  layers: Layers,
 }
 
 export const QuickActionsPanel: React.FC<{
   actions: OverviewViewModel["quickActions"]
 }> = ({ actions }) => (
-  <section>
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-foreground">
-          <Zap className="h-5 w-5 text-primary" />
-          Quick Actions
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {actions.map((action) => (
-            <QuickActionCard
-              key={action.id}
-              label={action.label}
-              description={action.description}
-              icon={QUICK_ACTION_ICONS[action.icon] ?? FolderPlus}
-              color={action.color}
-              onClick={action.action}
-              disabled={action.disabled}
-            />
-          ))}
-        </div>
-      </CardContent>
-    </Card>
-  </section>
+  <Card>
+    <CardHeader>
+      <CardTitle className="flex items-center gap-2 text-foreground">
+        <Zap className="h-5 w-5 text-primary" />
+        Quick actions
+      </CardTitle>
+    </CardHeader>
+    <CardContent className="space-y-2">
+      {actions.map((action) => (
+        <QuickActionButton
+          key={action.id}
+          label={action.label}
+          description={action.description}
+          icon={QUICK_ACTION_ICONS[action.icon] ?? FolderPlus}
+          onClick={action.action}
+        />
+      ))}
+    </CardContent>
+  </Card>
 )

@@ -1,73 +1,7 @@
-// Types for the Phase 1 local AI assistant (GPU detection + model registry).
-// Mirrors the Rust shapes from `src-tauri/src/gpu.rs` and
-// `src-tauri/src/domain/ai/registry.rs`.
-
-export interface AiExecutionProvider {
-  name: string
-  kind: "gpu" | "cpu"
-  compiledIn: boolean
-  note: string
-}
-
-export interface AiGpuInfo {
-  onnxRuntime: boolean
-  /** Compiled-in: the CUDA execution provider is built into this binary. */
-  cudaCompiled?: boolean
-  /** Runtime: the ONNX Runtime dynamic library actually loaded. */
-  onnxRuntimeLoaded?: boolean
-  /** Runtime: the CUDA provider is usable on this host right now. */
-  cudaAvailable?: boolean
-  /** Why the runtime failed to load, when it did. */
-  loadError?: string | null
-  /** The actually-loaded ONNX Runtime's build string (version/commit/flags),
-   *  when loaded — distinct from the version this build targets. */
-  loadedRuntimeBuildInfo?: string | null
-  os: string
-  arch: string
-  logicalCores: number
-  executionProviders: AiExecutionProvider[]
-  recommendedProvider: string
-  gpuAccelerationAvailable: boolean
-}
-
-// --- ONNX Runtime auto-installer (downloads onnxruntime.dll + cuDNN on demand) ---
-
-export interface RuntimeInstallStatus {
-  installed: boolean
-  cudnnInstalled?: boolean
-  cudaProviderInstalled?: boolean
-  dllPath?: string | null
-  installDir?: string | null
-  version?: string
-  /** Auto-install is currently Windows-only. */
-  supported?: boolean
-}
-
-export interface RuntimeInstallResult {
-  installed: boolean
-  /** True when nothing had to be downloaded — it was already on disk. */
-  alreadyPresent: boolean
-  gpuRequested: boolean
-  cudnnInstalled: boolean
-  /** Components fetched this run, e.g. ["onnxruntime", "cudnn"]. */
-  installedComponents: string[]
-  /** Components already present and therefore skipped. */
-  skippedComponents: string[]
-  dllPath: string
-  installDir: string
-  version: string
-  /** Non-fatal issues, e.g. cuDNN couldn't be fetched (CPU still works). */
-  warnings: string[]
-  restartRequired: boolean
-}
-
-export interface RuntimeInstallProgress {
-  /** "onnxruntime" | "cudnn" | "extract" | "done" */
-  phase: string
-  message: string
-  receivedBytes: number
-  totalBytes?: number | null
-}
+// Types for the local AI assistant's model/capability registry, mirroring
+// `src-tauri/crates/models/src/domain/registry.rs`. (GPU detection + the ONNX
+// Runtime installer were removed — AI now runs in the embedded Python runtime;
+// see `@/shared/types/ai-runtime`.)
 
 export type AiModelTask =
   | "detection"

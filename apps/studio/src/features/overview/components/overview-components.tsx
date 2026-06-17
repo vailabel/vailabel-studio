@@ -1,18 +1,31 @@
 import React from "react"
-import { LucideIcon } from "lucide-react"
+import { ChevronRight, Images, LucideIcon } from "lucide-react"
 import { Card } from "@/shared/ui/card"
+import { Badge } from "@/shared/ui/badge"
 import { Skeleton } from "@/shared/ui/skeleton"
+import { cn } from "@/shared/lib/utils"
+import type { Project } from "@/shared/types/core"
+
+// Relative "Nm/Nh/Nd ago" used by the recent-projects rows. `now` is passed in
+// (from the dashboard's last-refresh time) so this stays pure during render.
+export const relativeTime = (date: Date, now: number): string => {
+  const minutes = Math.max(0, Math.floor((now - date.getTime()) / 60000))
+  if (minutes < 1) return "just now"
+  if (minutes < 60) return `${minutes}m ago`
+  if (minutes < 1440) return `${Math.floor(minutes / 60)}h ago`
+  return `${Math.floor(minutes / 1440)}d ago`
+}
+
+// ── KPI stat card ─────────────────────────────────────────────────────────────
 
 interface StatCardProps {
   title: string
   value: number | string
   icon: LucideIcon
+  /** A semantic tint class for the icon chip, e.g. "bg-primary". */
   color: string
+  subtext?: string
   isLoading?: boolean
-  trend?: {
-    value: number
-    isPositive: boolean
-  }
 }
 
 export const StatCard: React.FC<StatCardProps> = ({
@@ -20,17 +33,17 @@ export const StatCard: React.FC<StatCardProps> = ({
   value,
   icon: Icon,
   color,
+  subtext,
   isLoading = false,
-  trend,
 }) => {
   if (isLoading) {
     return (
-      <Card className="p-6">
+      <Card className="p-5">
         <div className="flex items-center gap-4">
-          <Skeleton className="w-12 h-12 rounded-lg" />
+          <Skeleton className="h-11 w-11 rounded-lg" />
           <div className="flex-1">
-            <Skeleton className="h-4 w-24 mb-2" />
-            <Skeleton className="h-8 w-16" />
+            <Skeleton className="mb-2 h-3.5 w-24" />
+            <Skeleton className="h-7 w-14" />
           </div>
         </div>
       </Card>
@@ -38,162 +51,117 @@ export const StatCard: React.FC<StatCardProps> = ({
   }
 
   return (
-    <div className="transition-transform duration-200 ease-out hover:scale-[1.02] active:scale-[0.98]">
-      <Card className="p-6 hover:shadow-lg transition-shadow duration-200 bg-card">
-        <div className="flex items-center gap-4">
-          <div className={`p-3 rounded-lg ${color} text-white`}>
-            <Icon className="w-6 h-6" />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-sm font-medium text-muted-foreground mb-1">
-              {title}
-            </h3>
-            <div className="flex items-baseline gap-2">
-              <p className="text-2xl font-bold text-foreground">{value}</p>
-              {trend && (
-                <span
-                  className={`text-sm font-medium ${
-                    trend.isPositive ? "text-success" : "text-destructive"
-                  }`}
-                >
-                  {trend.isPositive ? "+" : ""}
-                  {trend.value}%
-                </span>
-              )}
-            </div>
-          </div>
+    <Card className="p-5">
+      <div className="flex items-center gap-4">
+        <div className={cn("rounded-lg p-2.5 text-white", color)}>
+          <Icon className="h-5 w-5" />
         </div>
-      </Card>
-    </div>
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate text-sm font-medium text-muted-foreground">
+            {title}
+          </h3>
+          <p className="text-2xl font-bold tabular-nums text-foreground">
+            {value}
+          </p>
+          {subtext ? (
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+              {subtext}
+            </p>
+          ) : null}
+        </div>
+      </div>
+    </Card>
   )
 }
 
-interface QuickActionCardProps {
+// ── Quick action ──────────────────────────────────────────────────────────────
+
+interface QuickActionButtonProps {
   label: string
   description: string
   icon: LucideIcon
-  color: string
   onClick: () => void
   disabled?: boolean
 }
 
-export const QuickActionCard: React.FC<QuickActionCardProps> = ({
+export const QuickActionButton: React.FC<QuickActionButtonProps> = ({
   label,
   description,
   icon: Icon,
-  color,
   onClick,
   disabled = false,
-}) => {
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    disabled={disabled}
+    className="flex w-full items-center gap-3 rounded-lg border border-border bg-card p-3 text-left hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+  >
+    <div className="rounded-md bg-primary/10 p-2 text-primary">
+      <Icon className="h-4 w-4" />
+    </div>
+    <div className="min-w-0 flex-1">
+      <p className="truncate text-sm font-medium text-foreground">{label}</p>
+      <p className="truncate text-xs text-muted-foreground">{description}</p>
+    </div>
+    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+  </button>
+)
+
+// ── Recent project row ────────────────────────────────────────────────────────
+
+const STATUS_BADGE: Record<
+  string,
+  "default" | "secondary" | "outline" | "destructive"
+> = {
+  active: "default",
+  completed: "secondary",
+  draft: "outline",
+  archived: "outline",
+}
+
+export const RecentProjectRow: React.FC<{
+  project: Project
+  now: number
+  onOpen: () => void
+}> = ({ project, now, onOpen }) => {
+  const updated = new Date(project.updatedAt ?? project.createdAt ?? now)
+  const kind = project.modality || project.type
   return (
     <button
-      className={`p-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 text-left w-full ${
-        disabled
-          ? "opacity-50 cursor-not-allowed"
-          : "hover:scale-105 active:scale-95"
-      } ${color}`}
-      onClick={onClick}
-      disabled={disabled}
+      type="button"
+      onClick={onOpen}
+      className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-muted"
     >
-      <div className="flex items-center gap-4 text-white">
-        <Icon className="w-8 h-8" />
-        <div>
-          <h3 className="text-lg font-semibold">{label}</h3>
-          <p className="text-sm opacity-90">{description}</p>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-foreground">
+          {project.name}
+        </p>
+        <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+          <Badge variant={STATUS_BADGE[project.status] ?? "outline"}>
+            {project.status || "unknown"}
+          </Badge>
+          {kind ? <span className="truncate capitalize">{kind}</span> : null}
+          <span className="flex items-center gap-1 tabular-nums">
+            <Images className="h-3 w-3" />
+            {Number(project.imageCount ?? 0)}
+          </span>
         </div>
       </div>
+      <span className="shrink-0 whitespace-nowrap text-xs text-muted-foreground">
+        {relativeTime(updated, now)}
+      </span>
+      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
     </button>
   )
 }
 
-interface ActivityItemProps {
-  activity: string
-  user: string
-  date: Date
-  type: "project" | "annotation" | "label" | "user"
-  projectName?: string
-}
-
-export const ActivityItem: React.FC<ActivityItemProps> = ({
-  activity,
-  user,
-  date,
-  type,
-  projectName,
-}) => {
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case "project":
-        return "📁"
-      case "annotation":
-        return "✏️"
-      case "label":
-        return "🏷️"
-      case "user":
-        return "👤"
-      default:
-        return "📝"
-    }
-  }
-
-  const formatDate = (date: Date) => {
-    const now = new Date()
-    const diffInMinutes = Math.floor(
-      (now.getTime() - date.getTime()) / (1000 * 60)
-    )
-
-    if (diffInMinutes < 60) {
-      return `${diffInMinutes}m ago`
-    } else if (diffInMinutes < 1440) {
-      return `${Math.floor(diffInMinutes / 60)}h ago`
-    } else {
-      return `${Math.floor(diffInMinutes / 1440)}d ago`
-    }
-  }
-
-  return (
-    <div className="flex items-center gap-4 p-4 rounded-lg hover:bg-muted/50 transition-colors animate-in fade-in slide-in-from-bottom-2 duration-300">
-      <div className="text-2xl">{getTypeIcon(type)}</div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate text-foreground">
-          {activity}
-        </p>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span>{user}</span>
-          {projectName && (
-            <>
-              <span>•</span>
-              <span className="truncate">{projectName}</span>
-            </>
-          )}
-        </div>
-      </div>
-      <div className="text-xs text-muted-foreground whitespace-nowrap">
-        {formatDate(date)}
-      </div>
+export const RecentProjectRowSkeleton: React.FC = () => (
+  <div className="flex items-center gap-3 px-2 py-2">
+    <div className="flex-1 space-y-2">
+      <Skeleton className="h-4 w-1/2" />
+      <Skeleton className="h-3 w-1/3" />
     </div>
-  )
-}
-
-interface LoadingSkeletonProps {
-  count?: number
-}
-
-export const ActivitySkeleton: React.FC<LoadingSkeletonProps> = ({
-  count = 3,
-}) => {
-  return (
-    <div className="space-y-4">
-      {Array.from({ length: count }).map((_, index) => (
-        <div key={index} className="flex items-center gap-4 p-4">
-          <Skeleton className="w-8 h-8 rounded" />
-          <div className="flex-1 space-y-2">
-            <Skeleton className="h-4 w-3/4" />
-            <Skeleton className="h-3 w-1/2" />
-          </div>
-          <Skeleton className="h-3 w-16" />
-        </div>
-      ))}
-    </div>
-  )
-}
+    <Skeleton className="h-3 w-12" />
+  </div>
+)

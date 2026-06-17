@@ -38,6 +38,28 @@ export interface RuntimeStatusEvent {
   pid?: number | null
 }
 
+/** Return shape of the `runtime_system_info` command. `system`/`gpu` are passed
+ *  straight through from the Python runtime's `/system` + `/gpu` endpoints, so
+ *  their keys are snake_case (unlike `status`, which is the camelCase
+ *  `RuntimeStatus`). */
+export interface RuntimeSystemInfo {
+  running: boolean
+  status: RuntimeStatus
+  system?: {
+    python_version?: string
+    torch_version?: string
+    platform?: string
+    cpu_count?: number
+  } | null
+  gpu?: {
+    available?: boolean
+    name?: string | null
+    vram_used_mb?: number | null
+    vram_total_mb?: number | null
+    cuda_version?: string | null
+  } | null
+}
+
 export type TrainingJobStatus =
   | "pending"
   | "running"
@@ -169,4 +191,29 @@ export interface RuntimeModelInstallProgress {
   message: string
   receivedBytes: number
   totalBytes: number
+}
+
+/** Result of `runtime_gpu_probe` — an `nvidia-smi`-based GPU detection that works
+ *  even while the runtime's torch is CPU-only, so the UI can offer one-click GPU
+ *  acceleration. */
+export interface GpuProbe {
+  detected: boolean
+  name?: string
+  driverVersion?: string
+  cudaVersion?: string | null
+  /** PyTorch CUDA wheel channel matched to the driver, e.g. "cu128". */
+  recommendedTag?: string
+  /** A CUDA torch overlay is already on disk (may need an app restart). */
+  overlayInstalled?: boolean
+  /** Host OS from the Rust runtime: "windows" | "macos" | "linux". CUDA install
+   *  is offered on Windows/Linux only; macOS uses Metal/MPS automatically. */
+  platform?: string
+}
+
+/** Payload of the `runtime-gpu-install://progress` event. */
+export interface GpuInstallProgress {
+  phase: "start" | "installing" | "done" | "error"
+  message: string
+  receivedBytes?: number
+  totalBytes?: number
 }

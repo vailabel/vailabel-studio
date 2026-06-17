@@ -9,12 +9,19 @@ to its own bundled English models.
 
 from typing import Any, Dict, List
 
-from inference.loader import CACHE, lazy_import
+from inference.loader import CACHE, lazy_import, pick_device
 
 
 def _load(model_path: str):
     paddleocr = lazy_import("paddleocr", "paddleocr")
-    kwargs: Dict[str, Any] = {"use_angle_cls": True, "lang": "en", "show_log": False}
+    # Use the GPU when a CUDA-capable runtime is present; PaddleOCR falls back to
+    # CPU on its own if the GPU build isn't installed.
+    kwargs: Dict[str, Any] = {
+        "use_angle_cls": True,
+        "lang": "en",
+        "show_log": False,
+        "use_gpu": pick_device() == "cuda",
+    }
     return paddleocr.PaddleOCR(**kwargs)
 
 

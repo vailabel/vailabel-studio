@@ -16,29 +16,42 @@ def torch_version() -> str:
     return t.__version__ if t else ""
 
 
-def gpu_available() -> bool:
-    t = _torch()
+def _accelerator(t) -> str:
+    """Best available torch device for `t`: "cuda", "mps" (Apple Metal), or "cpu"."""
     try:
-        return bool(t and t.cuda.is_available())
+        if t and t.cuda.is_available():
+            return "cuda"
+        mps = getattr(getattr(t, "backends", None), "mps", None)
+        if mps is not None and mps.is_available():
+            return "mps"
     except Exception:
-        return False
+        pass
+    return "cpu"
+
+
+def gpu_available() -> bool:
+    return _accelerator(_torch()) in ("cuda", "mps")
 
 
 def gpu_info() -> dict:
     t = _torch()
+    accel = _accelerator(t)
     try:
-        if not t or not t.cuda.is_available():
-            return {"available": False}
-        idx = t.cuda.current_device()
-        props = t.cuda.get_device_properties(idx)
-        used_mb = int(t.cuda.memory_allocated(idx) // (1024 * 1024))
-        total_mb = int(props.total_memory // (1024 * 1024))
-        return {
-            "available": True,
-            "name": props.name,
-            "vram_used_mb": used_mb,
-            "vram_total_mb": total_mb,
-            "cuda_version": getattr(getattr(t, "version", None), "cuda", None),
-        }
+        if accel == "cuda":
+            idx = t.cuda.current_device()
+            props = t.cuda.get_device_properties(idx)
+            used_mb = int(t.cuda.memory_allocated(idx) // (1024 * 1024))
+            total_mb = int(props.total_memory // (1024 * 1024))
+            return {
+                "available": True,
+                "name": props.name,
+                "backend": "cuda",
+                "vram_used_mb": used_mb,
+                "vram_total_mb": total_mb,
+                "cuda_version": getattr(getattr(t, "version", None), "cuda", None),
+            }
+        if accel == "mps":
+            return {"available": True, "name": "Apple GPU (Metal/MPS)", "backend": "mps"}
     except Exception:
-        return {"available": False}
+        pass
+    return {"available": False}

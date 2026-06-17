@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { AIModel, Annotation, ImageData, Label, Prediction } from "@/shared/types/core"
+import { Annotation, ImageData, Label, Prediction } from "@/shared/types/core"
 import type { AnnotationMeta } from "@/shared/types/modality"
 import { services } from "@/shared/services"
+import { aiRuntimeService } from "@/shared/services/ai-runtime-service"
 import { listenToStudioEvents } from "@/shared/ipc/events"
 import type { PipelinePrompt } from "@/shared/ipc/studio"
-import { findSamModel } from "@/features/studio/model/lib/ai-model-utils"
 
 interface CreateAnnotationDraftInput {
   name: string
@@ -23,6 +23,16 @@ export type SmartSegmentOutcome =
   | { status: "no-model" }
   | { status: "error"; message: string }
 
+/** A detector the canvas auto-label dropdown can offer. Sourced from the Python
+ *  runtime's model catalog — the runtime fetches its weights on first use. */
+export interface DetectorOption {
+  id: string
+  name: string
+}
+
+// Runtime families usable as a plain (prompt-free) box detector for auto-label.
+const DETECTOR_FAMILIES = new Set(["rtdetr", "yolo"])
+
 function waitForNextPaint(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0))
 }
@@ -35,7 +45,7 @@ export const useImageLabelerViewModel = (
   const [annotations, setAnnotations] = useState<Annotation[]>([])
   const [predictions, setPredictions] = useState<Prediction[]>([])
   const [labels, setLabels] = useState<Label[]>([])
-  const [aiModels, setAiModels] = useState<AIModel[]>([])
+  const [aiModels, setAiModels] = useState<DetectorOption[]>([])
   const [projectImages, setProjectImages] = useState<ImageData[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isGeneratingPredictions, setIsGeneratingPredictions] = useState(false)
@@ -71,7 +81,7 @@ export const useImageLabelerViewModel = (
         effectiveProjectId
           ? services.getLabelService().getLabelsByProjectId(effectiveProjectId)
           : Promise.resolve([]),
-        services.getAIModelService().list(),
+        aiRuntimeService.listModels(),
       ])
 
       setImage(nextImage)
@@ -79,7 +89,11 @@ export const useImageLabelerViewModel = (
       setPredictions(nextPredictions)
       setProjectImages(nextProjectImages)
       setLabels(nextLabels)
-      setAiModels(nextModels)
+      setAiModels(
+        nextModels
+          .filter((model) => DETECTOR_FAMILIES.has(model.family))
+          .map((model) => ({ id: model.id, name: model.name }))
+      )
     } catch (nextError) {
       setError(nextError)
     } finally {
@@ -194,15 +208,12 @@ export const useImageLabelerViewModel = (
     async (prompt: PipelinePrompt): Promise<SmartSegmentOutcome> => {
       if (!image) return { status: "error", message: "No image is loaded." }
 
-      const models = await services.getAIModelService().list()
-      const sam = findSamModel(models)
-      if (!sam) return { status: "no-model" }
-
       setIsSegmenting(true)
       try {
+        // The runtime's SAM2 is fetched on first use — always available.
         const created = await services.getPredictionService().pipelineRun({
           imageId: image.id,
-          modelId: sam.id,
+          modelId: "sam2-base",
           prompt,
         })
 

@@ -15,7 +15,6 @@ use features::video::service::VideoService;
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use serde::Serialize;
 use std::fs;
-use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use tauri::{Emitter, Manager};
 
@@ -69,9 +68,6 @@ pub enum AppError {
     Tauri(#[from] tauri::Error),
     #[error(transparent)]
     Runtime(#[from] runtime_manager::RuntimeError),
-    #[cfg(feature = "yolo-inference")]
-    #[error(transparent)]
-    Ort(#[from] ort::Error),
 }
 
 impl Serialize for AppError {
@@ -84,77 +80,11 @@ impl Serialize for AppError {
 }
 
 
-/// Locate an ONNX Runtime shared library bundled with the app (next to the
-/// executable, or under app data) so `ORT_DYLIB_PATH` can point at it instead of
-/// the system copy. Returns the first existing candidate.
-#[cfg(feature = "yolo-inference")]
-fn resolve_bundled_ort(app: &tauri::AppHandle) -> Option<PathBuf> {
-    let lib = if cfg!(target_os = "windows") {
-        "onnxruntime.dll"
-    } else if cfg!(target_os = "macos") {
-        "libonnxruntime.dylib"
-    } else {
-        "libonnxruntime.so"
-    };
-
-    let mut candidates: Vec<PathBuf> = Vec::new();
-    if let Ok(exe) = std::env::current_exe() {
-        if let Some(dir) = exe.parent() {
-            candidates.push(dir.join(lib));
-            candidates.push(dir.join("onnxruntime").join(lib));
-        }
-    }
-    if let Ok(dir) = app.path().app_data_dir() {
-        candidates.push(dir.join("onnxruntime").join(lib));
-    }
-
-    candidates.into_iter().find(|path| path.exists())
-}
-
-/// Prepend `dir` to the process `PATH` so DLLs alongside `onnxruntime.dll` (the
-/// CUDA execution provider and cuDNN) resolve when the runtime is loaded.
-#[cfg(feature = "yolo-inference")]
-fn prepend_to_path(dir: &Path) {
-    let mut entries: Vec<PathBuf> = std::env::var_os("PATH")
-        .map(|value| std::env::split_paths(&value).collect())
-        .unwrap_or_default();
-    if entries.iter().any(|entry| entry == dir) {
-        return;
-    }
-    entries.insert(0, dir.to_path_buf());
-    if let Ok(joined) = std::env::join_paths(entries) {
-        std::env::set_var("PATH", joined);
-    }
-}
-
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
             let startup_t0 = std::time::Instant::now();
             eprintln!("[startup] backend setup begin");
-            #[cfg(feature = "yolo-inference")]
-            {
-                // Prefer an ONNX Runtime bundled with the app over whatever
-                // Windows ships in System32 (CPU/DirectML-only, often a version
-                // mismatch). Only set the path when we actually find one.
-                if std::env::var_os("ORT_DYLIB_PATH").is_none() {
-                    if let Some(path) = resolve_bundled_ort(app.handle()) {
-                        // Make the runtime's own folder the first place the OS
-                        // looks for the CUDA provider + cuDNN DLLs that sit next
-                        // to onnxruntime.dll (the auto-installer drops them here).
-                        if let Some(dir) = path.parent() {
-                            prepend_to_path(dir);
-                        }
-                        std::env::set_var("ORT_DYLIB_PATH", path);
-                    }
-                }
-                // Configure the global ONNX Runtime environment once on the main
-                // thread. NOTE: `commit()` only sets the env config (returns false
-                // if already set) — it does NOT load the dll, so its result is not
-                // a usable load signal. The real load happens lazily on first use
-                // and is reported by `gpu::gpu_info()` (see gpu.rs).
-                let _ = ort::init().commit();
-            }
 
             let app_dir = app.path().app_data_dir()?;
             fs::create_dir_all(&app_dir)?;
@@ -263,7 +193,15 @@ pub fn run() {
                     event_publisher.clone(),
                 ),
             );
+            // Embedded AI Runtime. Constructed before AiService so the detection /
+            // segmentation path can call into the Python runtime, and eager-started
+            // (after `app.manage`, below) so it's ready on first use. The monitor
+            // loop runs regardless and reports `stopped` until it's up.
+            let runtime_config = crate::features::runtime::glue::build_config(app.handle())?;
+            let runtime_service =
+                Arc::new(runtime_manager::RuntimeService::new(runtime_config));
             let ai_service = Arc::new(crate::features::ai::service::AiService::new(
+                runtime_service.clone(),
                 ai_model_repo.clone(),
                 prediction_repo.clone(),
                 annotation_repo.clone(),
@@ -316,13 +254,7 @@ pub fn run() {
                 video_app_service,
             ));
 
-            // Embedded AI Runtime. Built but NOT started here — the heavyweight
-            // Python process spins up lazily on first training/export/heavy
-            // inference (or an explicit Start). The monitor loop runs regardless
-            // and reports `stopped` until then.
-            let runtime_config = crate::features::runtime::glue::build_config(app.handle())?;
-            let runtime_service =
-                Arc::new(runtime_manager::RuntimeService::new(runtime_config));
+            // (runtime_service is constructed above, before AiService.)
 
             // Training module: typed Diesel repo over the shared `db`, the runtime
             // port backed by the runtime service, events via the shared publisher.
@@ -398,6 +330,22 @@ pub fn run() {
                 label_repo,
             });
 
+            // Eager-start the embedded AI runtime in the background so detection,
+            // segmentation, and the copilot are ready when the user first needs
+            // them. Deferred a few seconds so spawning Python + importing PyTorch
+            // (heavy CPU/disk) doesn't compete with the cold-start UI render — the
+            // window should appear instantly. Inference still lazily starts it on
+            // demand if the user reaches for AI before this fires. Non-fatal.
+            let runtime_startup = runtime_service.clone();
+            std::thread::spawn(move || {
+                // Wait off the async runtime (no worker tied up), then kick off the
+                // start once the UI has had time to render.
+                std::thread::sleep(std::time::Duration::from_secs(3));
+                tauri::async_runtime::spawn(async move {
+                    let _ = runtime_startup.start().await;
+                });
+            });
+
             // 10s health/metrics loop → frontend events. On a terminal crash,
             // reconcile any in-flight training jobs to "failed".
             let monitor_handle = app.handle().clone();
@@ -464,11 +412,7 @@ pub fn run() {
             features::ai::commands::pipeline_run,
             features::ai::commands::predictions_accept,
             features::ai::commands::predictions_reject,
-            features::ai::commands::ai_gpu_info,
             features::ai::commands::ai_model_registry,
-            features::ai::commands::ai_runtime_install,
-            features::ai::commands::ai_runtime_status,
-            features::ai::commands::ai_runtime_restart,
             features::copilot::commands::ai_copilot_turn,
             features::copilot::commands::ai_copilot_apply_action,
             features::copilot::commands::ai_copilot_test_connection,
@@ -502,6 +446,9 @@ pub fn run() {
             features::runtime::commands::runtime_models_list,
             features::runtime::commands::runtime_models_install,
             features::runtime::commands::runtime_models_delete,
+            features::runtime::commands::runtime_gpu_probe,
+            features::runtime::commands::runtime_enable_gpu,
+            features::runtime::commands::app_restart,
             features::training::commands::training_start,
             features::training::commands::training_stop,
             features::training::commands::training_list,

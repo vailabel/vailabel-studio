@@ -56,10 +56,16 @@ def lazy_import(module: str, pip: Optional[str] = None):
 
 
 def pick_device() -> str:
-    """Return "cuda" when a GPU is usable, else "cpu". Never raises."""
+    """Return the best available torch device: "cuda" (NVIDIA), "mps" (Apple
+    Silicon / Metal), else "cpu". Never raises."""
     try:
         torch = importlib.import_module("torch")
-        return "cuda" if torch.cuda.is_available() else "cpu"
+        if torch.cuda.is_available():
+            return "cuda"
+        mps = getattr(torch.backends, "mps", None)
+        if mps is not None and mps.is_available():
+            return "mps"
+        return "cpu"
     except Exception:  # noqa: BLE001
         return "cpu"
 

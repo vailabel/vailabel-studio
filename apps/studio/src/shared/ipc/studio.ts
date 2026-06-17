@@ -1,14 +1,11 @@
 import { invokeWithLogging } from "@/shared/ipc/invoke"
 import type { GitHubRelease } from "@/shared/lib/github-releases"
 import type {
-  AiGpuInfo,
   AiRegistryModel,
   CopilotApplyAction,
   CopilotTestResult,
   CopilotTurnRequest,
   CopilotTurnResult,
-  RuntimeInstallResult,
-  RuntimeInstallStatus,
 } from "@/shared/types/ai-assistant"
 import type {
   AnalysisConfig,
@@ -44,8 +41,10 @@ import type {
   DatasetImportResult,
   ExportRequest,
   ExportResult,
+  GpuProbe,
   RuntimeModel,
   RuntimeStatus,
+  RuntimeSystemInfo,
   TrainingJob,
   TrainingLogChunk,
   TrainingReport,
@@ -186,15 +185,9 @@ export const studioCommands = {
       payload: { predictionId },
     }),
 
-  // Local AI assistant (Phase 1): GPU/runtime detection + model registry.
-  aiGpuInfo: () => call<AiGpuInfo>("ai_gpu_info"),
+  // Local AI assistant: capability/model registry (the embedded Python runtime
+  // runs the actual inference — see the `runtime*` commands below).
   aiModelRegistry: () => call<AiRegistryModel[]>("ai_model_registry"),
-
-  // ONNX Runtime auto-installer: download onnxruntime.dll (+ cuDNN) on demand.
-  aiRuntimeStatus: () => call<RuntimeInstallStatus>("ai_runtime_status"),
-  aiRuntimeInstall: (gpu = true) =>
-    call<RuntimeInstallResult>("ai_runtime_install", { payload: { gpu } }),
-  aiRuntimeRestart: () => call<void>("ai_runtime_restart"),
 
   // Local AI copilot: chat-driven labeling assistant over the local detector.
   aiCopilotTurn: (payload: CopilotTurnRequest) =>
@@ -252,13 +245,22 @@ export const studioCommands = {
   runtimeRestart: () => call<RuntimeStatus>("runtime_restart"),
   runtimeStatus: () => call<RuntimeStatus>("runtime_status"),
   runtimeLogs: () => call<string>("runtime_logs"),
-  runtimeSystemInfo: () => call<unknown>("runtime_system_info"),
+  runtimeSystemInfo: () => call<RuntimeSystemInfo>("runtime_system_info"),
 
   runtimeModelsList: () => call<RuntimeModel[]>("runtime_models_list"),
   runtimeModelsInstall: (id: string) =>
     call<RuntimeModel>("runtime_models_install", { payload: { id } }),
   runtimeModelsDelete: (id: string) =>
     call<SuccessResponse>("runtime_models_delete", { payload: { id } }),
+
+  // GPU acceleration: detect an NVIDIA GPU + one-click install the CUDA torch
+  // overlay (then restart the app to activate it).
+  runtimeGpuProbe: () => call<GpuProbe>("runtime_gpu_probe"),
+  runtimeEnableGpu: (tag?: string) =>
+    call<{ ok: boolean; tag: string }>("runtime_enable_gpu", {
+      payload: { tag },
+    }),
+  appRestart: () => call<void>("app_restart"),
 
   datasetExportYolo: (payload: DatasetExportRequest) =>
     call<DatasetExportResult>("dataset_export_yolo", { payload }),

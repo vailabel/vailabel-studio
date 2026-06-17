@@ -70,14 +70,19 @@ pub struct PipelineRunPayload {
     pub prompt: PromptInput,
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct InferencePoint {
     pub x: f32,
     pub y: f32,
 }
 
-#[derive(Debug, Serialize)]
+/// One inference draft. Produced by the embedded Python AI runtime (deserialized
+/// from its `/inference/*` JSON) and consumed by `AiService::persist_drafts`. The
+/// label fields default because the runtime leaves label resolution to the Rust
+/// side (`resolve_prediction_label`); any extra fields the runtime sends (e.g.
+/// `classId`) are ignored.
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InferenceAnnotationDraft {
     pub name: String,
@@ -85,8 +90,12 @@ pub struct InferenceAnnotationDraft {
     pub annotation_type: String,
     pub coordinates: Vec<InferencePoint>,
     pub confidence: f32,
+    #[serde(default)]
     pub label_id: Option<String>,
+    #[serde(default)]
     pub label_name: Option<String>,
+    #[serde(default)]
     pub label_color: Option<String>,
+    #[serde(default)]
     pub is_ai_generated: bool,
 }

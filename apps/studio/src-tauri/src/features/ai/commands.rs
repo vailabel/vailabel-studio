@@ -1,5 +1,6 @@
 //! AI model + prediction/inference IPC commands — thin handlers over the
-//! binary's `AiService` (held in [`crate::AppState`]) and the ONNX-runtime setup.
+//! binary's `AiService` (held in [`crate::AppState`]). Inference itself runs in
+//! the embedded Python runtime.
 
 use serde_json::Value;
 use tauri::State;
@@ -8,7 +9,6 @@ use vailabel_project::contracts::{EntityIdPayload, ProjectIdPayload};
 use super::model::{
     GitHubReleaseLookupPayload, ImageIdPayload, ModelActivationPayload, ModelImportPayload,
     ModelInstallPayload, PipelineRunPayload, PredictionActionPayload, PredictionGeneratePayload,
-    RuntimeInstallPayload,
 };
 use crate::{AppError, AppState};
 
@@ -148,65 +148,9 @@ pub fn predictions_reject(
         .reject_prediction(&app, &payload.prediction_id)
 }
 
-/// Local AI assistant: report ONNX Runtime execution providers and host info
-/// (GPU detection / runtime capabilities).
-#[tauri::command]
-pub fn ai_gpu_info() -> Result<Value, AppError> {
-    Ok(vailabel_models::infrastructure::gpu_info())
-}
-
 /// Local AI assistant: the model registry (catalog of models, their task,
-/// capabilities, required ONNX components, and whether the engine is wired).
+/// capabilities, required components, and whether the engine is wired).
 #[tauri::command]
 pub fn ai_model_registry() -> Result<Vec<Value>, AppError> {
     Ok(super::registry::registry_json())
-}
-
-/// Auto-provision the ONNX Runtime native library (and cuDNN for CUDA) by
-/// downloading Microsoft's package into the app data dir, so AI detect works
-/// without the manual DLL setup in docs/ONNXRUNTIME_GPU_SETUP.md. Streams
-/// `ai-runtime-install://progress` events; the new runtime activates on restart.
-#[tauri::command]
-pub async fn ai_runtime_install(
-    app: tauri::AppHandle,
-    payload: RuntimeInstallPayload,
-) -> Result<Value, AppError> {
-    #[cfg(feature = "yolo-inference")]
-    {
-        let gpu = payload.gpu.unwrap_or(true);
-        let app = app.clone();
-        return tauri::async_runtime::spawn_blocking(move || {
-            super::runtime_setup::ensure_runtime(&app, gpu)
-        })
-        .await
-        .map_err(|error| AppError::Message(format!("Runtime install task failed: {error}")))?;
-    }
-    #[cfg(not(feature = "yolo-inference"))]
-    {
-        let _ = (app, payload);
-        Err(AppError::Message(
-            "This desktop build does not include local ONNX inference support.".into(),
-        ))
-    }
-}
-
-/// Report whether a bundled ONNX Runtime (and cuDNN) are already on disk.
-#[tauri::command]
-pub fn ai_runtime_status(app: tauri::AppHandle) -> Result<Value, AppError> {
-    #[cfg(feature = "yolo-inference")]
-    {
-        return Ok(super::runtime_setup::status(&app));
-    }
-    #[cfg(not(feature = "yolo-inference"))]
-    {
-        let _ = app;
-        Ok(serde_json::json!({ "installed": false, "supported": false }))
-    }
-}
-
-/// Restart the app so a freshly installed ONNX Runtime is actually loaded
-/// (the previous load result is cached for the lifetime of the process).
-#[tauri::command]
-pub fn ai_runtime_restart(app: tauri::AppHandle) {
-    app.restart();
 }

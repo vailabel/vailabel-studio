@@ -7,7 +7,7 @@ its endpoint expects: caption → `{text}`, ocr → `{lines}`, detect → `{dete
 
 from typing import Any, Dict, List, Optional, Tuple
 
-from inference.loader import CACHE, draft, lazy_import, load_image
+from inference.loader import CACHE, draft, lazy_import, load_image, pick_device
 
 CAPTION_TASK = "<MORE_DETAILED_CAPTION>"
 OCR_TASK = "<OCR_WITH_REGION>"
@@ -18,7 +18,8 @@ GROUNDING_TASK = "<CAPTION_TO_PHRASE_GROUNDING>"
 def _load(model_path: str):
     transformers = lazy_import("transformers", "transformers")
     torch = lazy_import("torch")
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = pick_device()
+    # fp16 on CUDA; fp32 on MPS/CPU (MPS half-precision is still flaky for some ops).
     dtype = torch.float16 if device == "cuda" else torch.float32
     model = (
         transformers.AutoModelForCausalLM.from_pretrained(
