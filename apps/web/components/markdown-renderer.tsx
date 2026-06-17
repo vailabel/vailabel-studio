@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeHighlight from "rehype-highlight"
@@ -8,7 +8,99 @@ import "highlight.js/styles/github.css"
 import "highlight.js/styles/github-dark.css"
 import rehypeRaw from "rehype-raw"
 import rehypeStringify from "rehype-stringify"
-import remarkMermaidPlugin from "remark-mermaid-plugin"
+import mermaid from "mermaid"
+
+let mermaidInitialized = false
+
+function Mermaid({ chart }: { chart: string }) {
+  const [svg, setSvg] = useState<string>("")
+  const [failed, setFailed] = useState(false)
+  const idRef = useRef("mermaid-" + Math.random().toString(36).slice(2))
+
+  useEffect(() => {
+    if (!mermaidInitialized) {
+      // securityLevel "strict" sanitizes diagram HTML via mermaid's bundled (patched) DOMPurify.
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: "default",
+        securityLevel: "strict",
+      })
+      mermaidInitialized = true
+    }
+    let cancelled = false
+    mermaid
+      .render(idRef.current, chart)
+      .then(({ svg }) => {
+        if (!cancelled) {
+          setSvg(svg)
+          setFailed(false)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [chart])
+
+  // Fall back to the raw source if the diagram can't be parsed.
+  if (failed || !svg) {
+    return (
+      <pre className="block p-4 rounded bg-gray-900 overflow-x-auto border border-gray-700">
+        <code className="language-mermaid">{chart}</code>
+      </pre>
+    )
+  }
+
+  return (
+    <div
+      className="mermaid-diagram flex justify-center my-4"
+      dangerouslySetInnerHTML={{ __html: svg }}
+    />
+  )
+}
+
+function CodeBlock({
+  className,
+  children,
+  ...props
+}: {
+  className?: string
+  children?: React.ReactNode
+}) {
+  const [copied, setCopied] = useState(false)
+  const codeString = String(children).replace(/\n$/, "")
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(codeString)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1200)
+    } catch (e) {
+      setCopied(false)
+    }
+  }
+  return (
+    <div className="relative group">
+      <button
+        onClick={handleCopy}
+        className="absolute top-2 right-2 z-10 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-80 hover:opacity-100 transition-opacity"
+        type="button"
+      >
+        {copied ? "Copied!" : "Copy"}
+      </button>
+      <code
+        className={
+          (className || "") +
+          " block p-4 rounded bg-gray-900 overflow-x-auto border border-gray-700 relative"
+        }
+        {...props}
+      >
+        {children}
+      </code>
+    </div>
+  )
+}
 
 export function MarkdownRenderer({ children }: { children: string }) {
   return (
@@ -16,7 +108,7 @@ export function MarkdownRenderer({ children }: { children: string }) {
       <div className={"hljs-dark"}>
         <style>{`pre { padding: 0 !important; }`}</style>
         <ReactMarkdown
-          remarkPlugins={[remarkGfm, remarkMermaidPlugin as never]}
+          remarkPlugins={[remarkGfm]}
           rehypePlugins={[
             [rehypeHighlight, { ignoreMissing: true }],
             rehypeRaw,
@@ -50,16 +142,11 @@ export function MarkdownRenderer({ children }: { children: string }) {
                 className?: string
                 children?: React.ReactNode
               }) {
-                const [copied, setCopied] = useState(false)
-                const codeString = String(children).replace(/\n$/, "")
-                const handleCopy = async () => {
-                  try {
-                    await navigator.clipboard.writeText(codeString)
-                    setCopied(true)
-                    setTimeout(() => setCopied(false), 1200)
-                  } catch (e) {
-                    setCopied(false)
-                  }
+                // Render fenced ```mermaid blocks as diagrams.
+                if (/language-mermaid/.test(className || "")) {
+                  return (
+                    <Mermaid chart={String(children).replace(/\n$/, "")} />
+                  )
                 }
                 if (inline || className === undefined) {
                   // Inline code or code without a language class: no block style, no copy button
@@ -71,24 +158,9 @@ export function MarkdownRenderer({ children }: { children: string }) {
                 }
                 // Block code: show copy button and block style
                 return (
-                  <div className="relative group">
-                    <button
-                      onClick={handleCopy}
-                      className="absolute top-2 right-2 z-10 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-80 hover:opacity-100 transition-opacity"
-                      type="button"
-                    >
-                      {copied ? "Copied!" : "Copy"}
-                    </button>
-                    <code
-                      className={
-                        (className || "") +
-                        " block p-4 rounded bg-gray-900 overflow-x-auto border border-gray-700 relative"
-                      }
-                      {...props}
-                    >
-                      {children}
-                    </code>
-                  </div>
+                  <CodeBlock className={className} {...props}>
+                    {children}
+                  </CodeBlock>
                 )
               },
             } as any

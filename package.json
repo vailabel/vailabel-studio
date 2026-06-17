@@ -60,5 +60,10 @@
     "ts-jest": "^29.4.11"
   },
   "packageManager": "yarn@1.22.22",
-  "dependencies": {}
+  "dependencies": {},
+  "resolutions": {
+    "dompurify": "^3.4.10",
+    "postcss": "^8.5.15",
+    "uuid": "^14.0.0"
+  }
 }
