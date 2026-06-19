@@ -23,6 +23,27 @@ yarn lint
 yarn test
 ```
 
+## Commit messages
+
+This repo follows the [Conventional Commits](https://www.conventionalcommits.org) spec, enforced by
+commitlint through a Husky `commit-msg` hook. The easiest way to write a valid message:
+
+```bash
+yarn commit        # interactive prompt (commitizen) — builds the message for you
+```
+
+Or commit as usual — the hook validates the format and rejects malformed messages:
+
+```
+<type>(<optional scope>): <subject>
+
+feat(studio): add polygon keypoint tool
+fix(ai): handle empty YOLO detection result
+docs: update install instructions
+```
+
+Allowed types: `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`, `style`, `test`.
+
 ## Guidelines
 
 - Use conventional commits

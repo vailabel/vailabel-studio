@@ -103,4 +103,4 @@ We appreciate all contributions, big or small. Thank you for helping make Vision
 
 ## 📄 License
 
-By contributing, you agree that your contributions will be licensed under the [GNU GENERAL PUBLIC LICENSE](LICENSE).
+By contributing, you agree that your contributions will be licensed under the [Apache License 2.0](LICENSE).

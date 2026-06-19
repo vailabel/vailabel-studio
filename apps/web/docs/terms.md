@@ -8,16 +8,16 @@ lastUpdated: May 18, 2025
 
 # Terms of Use
 
-Vision AI Label Studio is provided as open-source software under the GNU General Public License (GPL). By using this software, you agree to the following terms:
+Vision AI Label Studio is provided as open-source software under the Apache License 2.0. By using this software, you agree to the following terms:
 
 ## Usage
 
-- You are free to use, modify, and distribute the software in accordance with the GPL license.
+- You are free to use, modify, and distribute the software in accordance with the Apache 2.0 license.
 - There is no warranty; the software is provided "as is" without any guarantees.
 
 ## Contributions
 
-- Contributions are welcome! By submitting code or documentation, you agree to license your contributions under the same GPL license.
+- Contributions are welcome! By submitting code or documentation, you agree to license your contributions under the same Apache 2.0 license.
 
 ## Liability
 
