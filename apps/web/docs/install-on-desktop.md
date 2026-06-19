@@ -46,7 +46,7 @@ Alternatively, you can right-click the app and select **Open**, then confirm.
 Alternatively, if you are on macOS and the app still won't open, you can try removing the quarantine attribute by running this command in your terminal:
 
 ```bash
-xattr -c /Applications/Vision\ AI\ Label\ Studio.app
+xattr -c /Applications/Vailabel\ Studio.app
 ```
 
 > **Warning:** This command removes all extended attributes (such as the 'quarantine' flag) from the application, which macOS may set when you download an app from the internet. Removing these attributes can help resolve issues where the app won't launch due to security restrictions. However, it will remove all extended attributes, not just the quarantine flag, and may bypass some of macOS's built-in security protections. Only use this if you trust the source of the application.
