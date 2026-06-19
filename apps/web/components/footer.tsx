@@ -35,7 +35,7 @@ const columns: { title: string; links: { label: string; href: string }[] }[] = [
   {
     title: "Legal",
     links: [
-      { label: "License (GPL-3.0)", href: data.licenseUrl },
+      { label: "License (Apache-2.0)", href: data.licenseUrl },
       { label: "Privacy Policy", href: data.privacyUrl },
       { label: "Terms of Use", href: data.termsUrl },
     ],
@@ -112,7 +112,7 @@ export default function Footer() {
         <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-border pt-6 sm:flex-row">
           <p className="text-sm text-muted-foreground">
             © {new Date().getFullYear()} {data.appName}. Open source under
-            GPL-3.0.
+            Apache-2.0.
           </p>
           <p className="text-sm text-muted-foreground">
             Built with Tauri, React &amp; Rust.
