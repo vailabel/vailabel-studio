@@ -1,0 +1,139 @@
+name: 🐞 Bug Report
+description: Report a problem or unexpected behavior in Vailabel Studio.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug report! 🙏
+
+        Please **[search existing issues](https://github.com/vailabel/vailabel-studio/issues?q=is%3Aissue)** first to avoid duplicates.
+
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Prerequisites
+      options:
+        - label: I have searched existing issues and this is not a duplicate.
+          required: true
+        - label: I am running the latest version (or have checked the release notes).
+          required: false
+
+  - type: textarea
+    id: current-behavior
+    attributes:
+      label: Current behavior
+      description: A clear and concise description of what the bug is.
+      placeholder: When I …, the app …
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Steps for us to reproduce the behavior.
+      value: |
+        1. Go to '…'
+        2. Click on '…'
+        3. See error
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of the app is affected?
+      options:
+        - Image labeling (boxes / polygons / keypoints)
+        - Video labeling
+        - Text / NLP labeling
+        - Audio labeling
+        - Custom config-driven editor
+        - AI · Auto-label (YOLO)
+        - AI · Smart Segment (SAM)
+        - AI · Copilot
+        - AI · Training / runtime
+        - Import / Export
+        - Cloud storage (S3 / Azure / GCS)
+        - Projects / dataset management
+        - Canvas / UI / general
+        - Other / not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - macOS (Apple Silicon)
+        - macOS (Intel)
+        - Linux
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: Found under Help / About, or in the installer filename.
+      placeholder: "2.2.0"
+    validations:
+      required: true
+
+  - type: input
+    id: os-version
+    attributes:
+      label: OS version
+      placeholder: "Windows 11 23H2 / macOS 14.5 / Ubuntu 24.04"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: How did you install Vailabel Studio?
+      options:
+        - Installer from the Releases page
+        - Built from source
+        - Other
+    validations:
+      required: false
+
+  - type: input
+    id: gpu
+    attributes:
+      label: GPU / CUDA (for AI issues)
+      description: Helpful for auto-label, segment, copilot, or training problems.
+      placeholder: "NVIDIA RTX 5070, CUDA 12.8 / CPU only / N/A"
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs / console output
+      description: Paste any errors from the console or boot log. This is rendered as code — no backticks needed.
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Screenshots / additional context
+      description: Add screenshots, screen recordings, or any other context that might help.
+    validations:
+      required: false
