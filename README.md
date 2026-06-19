@@ -10,11 +10,21 @@
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 ![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
 
-[**Download**](#-download) · [Features](#-features) · [Quick start](#-development) · [Architecture](#-architecture) · [Contributing](CONTRIBUTE.md)
+[**Download**](#download) · [Features](#features) · [Quick start](#development) · [Architecture](#architecture) · [Contributing](CONTRIBUTE.md)
 
 </div>
 
 ---
+
+## Table of Contents
+
+- [Features](#features)
+- [Download](#download)
+- [Development](#development)
+- [Project structure](#project-structure)
+- [Architecture](#architecture)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Overview
 
@@ -26,6 +36,8 @@ click-to-segment, and an on-device assistant.
 
 It's built as a native desktop app with [Tauri](https://tauri.app) (Rust) + React, so you get
 a small, fast binary with real filesystem access instead of a browser tab.
+
+<a id="features"></a>
 
 ## ✨ Features
 
@@ -54,6 +66,8 @@ a small, fast binary with real filesystem access instead of a browser tab.
 > labeling and YOLO/SAM assistance are usable today; the on-device Copilot and embedded training
 > runtime are evolving — expect rough edges and breaking changes.
 
+<a id="download"></a>
+
 ## ⬇️ Download
 
 Grab the latest installer for your platform from the
@@ -67,6 +81,8 @@ Grab the latest installer for your platform from the
 
 > macOS builds are unsigned for now — if Gatekeeper blocks the app, right-click → **Open** the
 > first time (or `xattr -dr com.apple.quarantine /Applications/Vailabel\ Studio.app`).
+
+<a id="development"></a>
 
 ## 🛠️ Development
 
@@ -97,6 +113,8 @@ yarn build        # web + studio frontend
 yarn release      # native desktop installers (tauri build)
 ```
 
+<a id="project-structure"></a>
+
 ## 🧱 Project structure
 
 This is a Yarn-workspaces monorepo:
@@ -114,6 +132,8 @@ apps/
 └── web/                   # marketing / documentation site
 ```
 
+<a id="architecture"></a>
+
 ## 🏗️ Architecture
 
 - **Frontend** — React 19 + Vite + TypeScript + Tailwind v4, organized **feature-first**
@@ -123,11 +143,15 @@ apps/
   core and a typed [Diesel](https://diesel.rs) repository over a shared SQLite connection.
   Embedded migrations are the single source of truth for the schema.
 
+<a id="contributing"></a>
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please read **[CONTRIBUTE.md](CONTRIBUTE.md)** to get set up, and
 our **[Code of Conduct](CODE_OF_CONDUCT.md)** before opening a pull request. Found a security
 issue? See **[SECURITY.md](SECURITY.md)** — please don't file it as a public issue.
+
+<a id="license"></a>
 
 ## 📄 License
 
