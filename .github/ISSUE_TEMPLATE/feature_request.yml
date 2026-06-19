@@ -1,0 +1,72 @@
+name: 💡 Feature Request
+description: Suggest an idea or enhancement for Vailabel Studio.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a feature! 🚀
+
+        Please **[search existing issues](https://github.com/vailabel/vailabel-studio/issues?q=is%3Aissue)** first to see if it has already been requested.
+
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Prerequisites
+      options:
+        - label: I have searched existing issues and this has not been requested.
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / motivation
+      description: Is your feature request related to a problem? What are you trying to do?
+      placeholder: I'm always frustrated when …
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: Describe what you'd like to happen.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Image labeling
+        - Video labeling
+        - Text / NLP labeling
+        - Audio labeling
+        - Custom config-driven editor
+        - AI · Auto-label / Segment / Copilot
+        - AI · Training / runtime
+        - Import / Export
+        - Cloud storage
+        - Projects / dataset management
+        - Canvas / UI / general
+        - Other
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any alternative solutions or features you've considered.
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Mockups, links to similar tools, or any other context.
+    validations:
+      required: false

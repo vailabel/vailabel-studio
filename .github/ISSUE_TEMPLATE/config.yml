@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Questions & Discussions
+    url: https://github.com/vailabel/vailabel-studio/discussions
+    about: Ask questions, request help, or share ideas with the community.
+  - name: 🔒 Report a security vulnerability
+    url: https://github.com/vailabel/vailabel-studio/security/policy
+    about: Please report security issues privately — do not open a public issue.
