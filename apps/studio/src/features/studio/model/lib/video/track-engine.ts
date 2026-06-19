@@ -21,8 +21,15 @@ import type {
   VideoPoint,
 } from "@/shared/types/video"
 
-const sortedKeyframes = (track: Track): TrackKeyframe[] =>
-  [...track.keyframes].sort((a, b) => a.frame - b.frame)
+const sortedKeyframes = (track: Track): TrackKeyframe[] => {
+  const kfs = track.keyframes
+  for (let i = 1; i < kfs.length; i++) {
+    if (kfs[i].frame < kfs[i - 1].frame) {
+      return [...kfs].sort((a, b) => a.frame - b.frame)
+    }
+  }
+  return kfs
+}
 
 const lerpPoint = (a: VideoPoint, b: VideoPoint, t: number): VideoPoint => ({
   x: a.x + (b.x - a.x) * t,

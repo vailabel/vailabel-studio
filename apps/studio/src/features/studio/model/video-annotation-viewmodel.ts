@@ -48,6 +48,7 @@ export const useVideoAnnotationViewModel = (videoId: string) => {
   const [error, setError] = useState<string | null>(null)
 
   const activeJobRef = useRef<string | null>(null)
+  const currentFrameRef = useRef(currentFrame)
 
   const loadData = useCallback(async () => {
     setIsLoading(true)
@@ -73,6 +74,10 @@ export const useVideoAnnotationViewModel = (videoId: string) => {
   useEffect(() => {
     void loadData()
   }, [loadData])
+
+  useEffect(() => {
+    currentFrameRef.current = currentFrame
+  }, [currentFrame])
 
   // ── Ingest job progress (extract frames + scene detection) ──────────────────
 
@@ -168,14 +173,14 @@ export const useVideoAnnotationViewModel = (videoId: string) => {
         labelName: label.name,
         color: label.color,
         type: kind,
-        keyframes: [{ frame: currentFrame, shape, outside: false, occluded: false }],
+        keyframes: [{ frame: currentFrameRef.current, shape, outside: false, occluded: false }],
       }
       const saved = await video.saveTrack(draft)
       setTracks((prev) => [...prev, saved])
       setSelectedTrackId(saved.id)
       return saved
     },
-    [video, meta, currentFrame]
+    [video, meta]
   )
 
   /** Insert/replace a keyframe at the current frame for a track. */
@@ -183,10 +188,10 @@ export const useVideoAnnotationViewModel = (videoId: string) => {
     (trackId: string, shape: VideoPoint[], extra?: Partial<TrackKeyframe>) => {
       const track = tracks.find((t) => t.id === trackId)
       if (!track) return
-      const keyframes = upsertKeyframe(track, currentFrame, { shape, ...extra })
+      const keyframes = upsertKeyframe(track, currentFrameRef.current, { shape, ...extra })
       void persistTrack({ ...track, keyframes })
     },
-    [tracks, currentFrame, persistTrack]
+    [tracks, persistTrack]
   )
 
   const deleteTrack = useCallback(
@@ -204,34 +209,36 @@ export const useVideoAnnotationViewModel = (videoId: string) => {
 
   /** Remove the keyframe at `frame` (defaults to the current frame). */
   const removeKeyframe = useCallback(
-    (trackId: string, frame = currentFrame) => {
+    (trackId: string, frame?: number) => {
+      const f = frame ?? currentFrameRef.current
       const track = tracks.find((t) => t.id === trackId)
       if (!track) return
-      const keyframes = removeKeyframeAt(track, frame)
+      const keyframes = removeKeyframeAt(track, f)
       if (keyframes.length === 0) {
         void deleteTrack(trackId)
         return
       }
       void persistTrack({ ...track, keyframes })
     },
-    [tracks, currentFrame, persistTrack, deleteTrack]
+    [tracks, persistTrack, deleteTrack]
   )
 
   /** Mark the object as leaving/entering the frame at the current position. */
   const toggleOutside = useCallback(
     (trackId: string) => {
+      const frame = currentFrameRef.current
       const track = tracks.find((t) => t.id === trackId)
       if (!track) return
-      const sampled = sampleTrackAt(track, currentFrame)
+      const sampled = sampleTrackAt(track, frame)
       const shape = sampled?.shape ?? track.keyframes[track.keyframes.length - 1]?.shape ?? []
-      const existing = track.keyframes.find((kf) => kf.frame === currentFrame)
-      const keyframes = upsertKeyframe(track, currentFrame, {
+      const existing = track.keyframes.find((kf) => kf.frame === frame)
+      const keyframes = upsertKeyframe(track, frame, {
         shape,
         outside: !(existing?.outside ?? false),
       })
       void persistTrack({ ...track, keyframes })
     },
-    [tracks, currentFrame, persistTrack]
+    [tracks, persistTrack]
   )
 
   // ── Playhead navigation ─────────────────────────────────────────────────────
@@ -250,10 +257,10 @@ export const useVideoAnnotationViewModel = (videoId: string) => {
       if (!selectedTrackId) return
       const track = tracks.find((t) => t.id === selectedTrackId)
       if (!track) return
-      const target = adjacentKeyframe(track, currentFrame, direction)
+      const target = adjacentKeyframe(track, currentFrameRef.current, direction)
       if (target !== null) seekFrame(target)
     },
-    [selectedTrackId, tracks, currentFrame, seekFrame]
+    [selectedTrackId, tracks, seekFrame]
   )
 
   // ── Derived: shapes visible at the current frame ────────────────────────────

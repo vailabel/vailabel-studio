@@ -1,5 +1,5 @@
 import * as React from "react"
-import { useCallback, useRef } from "react"
+import { useCallback, useMemo, useRef } from "react"
 import { Scissors } from "lucide-react"
 import { toAssetUrl } from "@/shared/lib/desktop"
 import { cn } from "@/shared/lib/utils"
@@ -21,17 +21,29 @@ interface VideoTimelineProps {
  * interpolated span. Frame→position is a simple proportional map so the whole
  * thing is responsive without measuring pixels.
  */
-export const VideoTimeline: React.FC<VideoTimelineProps> = ({
+export const VideoTimeline = React.memo<VideoTimelineProps>(function VideoTimeline({
   meta,
   tracks,
   currentFrame,
   selectedTrackId,
   onSeek,
   onSelectTrack,
-}) => {
+}) {
   const lastFrame = Math.max(1, meta.frameCount - 1)
   const scrubRef = useRef<HTMLDivElement>(null)
   const draggingRef = useRef(false)
+
+  // Cap the filmstrip to 100 thumbnails regardless of how many frames FFmpeg
+  // extracted. At 2fps a 10-min clip has 1200 frames — every one below ~1px wide
+  // is invisible and still costs a DOM node + asset-protocol decode.
+  const filmstripFrames = useMemo(() => {
+    const MAX = 100
+    if (meta.frames.length <= MAX) return meta.frames
+    const step = meta.frames.length / MAX
+    return Array.from({ length: MAX }, (_, i) =>
+      meta.frames[Math.min(Math.round(i * step), meta.frames.length - 1)]
+    )
+  }, [meta.frames])
 
   const pct = (frame: number) => `${(frame / lastFrame) * 100}%`
 
@@ -85,9 +97,9 @@ export const VideoTimeline: React.FC<VideoTimelineProps> = ({
         onPointerMove={onScrubPointerMove}
         onPointerUp={onScrubPointerUp}
       >
-        {meta.frames.length > 0 ? (
+        {filmstripFrames.length > 0 ? (
           <div className="absolute inset-0 flex">
-            {meta.frames.map((frame) => (
+            {filmstripFrames.map((frame) => (
               <img
                 key={frame.frame}
                 src={toAssetUrl(frame.path)}
@@ -146,7 +158,7 @@ export const VideoTimeline: React.FC<VideoTimelineProps> = ({
       </div>
     </div>
   )
-}
+})
 
 const TrackLane: React.FC<{
   track: Track

@@ -89,15 +89,11 @@ export const MODALITY_REGISTRY: Partial<Record<DataKind, ModalityDescriptor>> = 
     kind: "video",
     label: "Video",
     extensions: ["mp4", "mov", "mkv", "webm", "avi", "m4v"],
-    // Clips are imported inside the studio's video editor (its FFmpeg pipeline),
-    // so there's nothing to import on the create screen.
-    importMode: "none",
+    importMode: "files",
     grantScope: true,
     annotationTypes: ["track"],
     target: "studio",
-    // A video project is creatable with no items yet — the clip library lives in
-    // the editor.
-    hasItems: () => true,
+    hasItems: ({ documents }) => documents > 0,
   }),
 }
 

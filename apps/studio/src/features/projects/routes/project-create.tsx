@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useState } from "react"
-import { ChevronRight, Clock, Film, FileText, ImageIcon, X } from "lucide-react"
+import { ChevronRight, Clapperboard, Clock, Film, FileText, ImageIcon, X } from "lucide-react"
 import { Button } from "@/shared/ui/button"
 import { Input } from "@/shared/ui/input"
 import { Label } from "@/shared/ui/label"
@@ -521,11 +521,17 @@ const DataStep = memo(
         {isFiles && viewModel.documents.length > 0 && (
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-2">
-              <FileText className="size-5 text-primary" />
+              {descriptor.kind === "video" ? (
+                <Clapperboard className="size-5 text-primary" />
+              ) : (
+                <FileText className="size-5 text-primary" />
+              )}
               <span className="font-semibold">
                 {descriptor.kind === "audio"
                   ? "Selected clips"
-                  : "Selected documents"}
+                  : descriptor.kind === "video"
+                    ? "Selected videos"
+                    : "Selected documents"}
               </span>
               <Badge variant="secondary">
                 {viewModel.documents.length} file

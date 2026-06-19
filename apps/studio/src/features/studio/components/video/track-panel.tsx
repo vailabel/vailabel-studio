@@ -32,7 +32,7 @@ interface TrackPanelProps {
  * Side panel for keyframe labeling: choose the label to draw with, list/select
  * tracks, and edit the selected track's keyframe at the current frame.
  */
-export const TrackPanel: React.FC<TrackPanelProps> = ({
+export const TrackPanel = React.memo<TrackPanelProps>(function TrackPanel({
   labels,
   tracks,
   selectedTrackId,
@@ -44,7 +44,7 @@ export const TrackPanel: React.FC<TrackPanelProps> = ({
   onRemoveKeyframe,
   onToggleOutside,
   onStepKeyframe,
-}) => {
+}) {
   const selected = tracks.find((t) => t.id === selectedTrackId) ?? null
   const hasKeyframeHere = selected ? isKeyframe(selected, currentFrame) : false
   const outsideHere = selected
@@ -220,6 +220,6 @@ export const TrackPanel: React.FC<TrackPanelProps> = ({
       </div>
     </div>
   )
-}
+})
 
 export default TrackPanel

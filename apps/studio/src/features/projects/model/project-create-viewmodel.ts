@@ -84,6 +84,28 @@ function probeImageSize(
   })
 }
 
+// Probe video metadata via the webview (fallback if ffprobe is unavailable).
+function probeVideoMeta(
+  assetUrl: string
+): Promise<{ duration: number; width: number; height: number }> {
+  return new Promise((resolve) => {
+    const el = document.createElement("video")
+    el.preload = "metadata"
+    el.muted = true
+    el.src = assetUrl
+    el.onloadedmetadata = () => {
+      resolve({
+        duration: Number.isFinite(el.duration) ? el.duration : 0,
+        width: el.videoWidth,
+        height: el.videoHeight,
+      })
+      el.removeAttribute("src")
+      el.load()
+    }
+    el.onerror = () => resolve({ duration: 0, width: 0, height: 0 })
+  })
+}
+
 export const useProjectCreateViewModel = () => {
   const navigate = useNavigate()
   const [name, setName] = useState("")
@@ -303,6 +325,22 @@ export const useProjectCreateViewModel = () => {
       // straight into the studio shell with no item — the video editor mounts the
       // clip library so the user imports/processes clips there.
       if (deferItems) {
+        navigate(`/projects/${project.id}/studio`)
+        return
+      }
+
+      // Video clips use the dedicated video service — probe metadata in the
+      // webview then call video.import for each selected file, then open studio.
+      if (modality === "video" && documents.length > 0) {
+        for (const doc of documents) {
+          const probe = await probeVideoMeta(toAssetUrl(doc.path))
+          await services.getVideoService().import({
+            projectId: project.id,
+            name: doc.name,
+            path: doc.path,
+            ...probe,
+          })
+        }
         navigate(`/projects/${project.id}/studio`)
         return
       }

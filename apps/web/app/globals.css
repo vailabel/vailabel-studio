@@ -118,12 +118,12 @@
 
 /* ── Design system utilities ──────────────────────────────────────────── */
 @layer components {
-  /* Gradient text for emphasised words */
+  /* Gradient text for emphasised words — uses var() directly; hsl() wrapper breaks oklch tokens */
   .text-gradient {
     background-image: linear-gradient(
       to right,
-      hsl(var(--primary)),
-      hsl(243 75% 70%)
+      var(--primary),
+      oklch(0.65 0.2 264)
     );
     -webkit-background-clip: text;
     background-clip: text;

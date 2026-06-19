@@ -2,6 +2,7 @@ import { memo, useMemo } from "react"
 import {
   ArrowLeft,
   ImageIcon,
+  FileText,
   Tag,
   Calendar,
   RefreshCw,
@@ -20,6 +21,7 @@ import {
   Brain,
   Clapperboard,
   Settings,
+  X,
 } from "lucide-react"
 import { Button } from "@/shared/ui/button"
 import { Badge } from "@/shared/ui/badge"
@@ -39,6 +41,8 @@ import { EditProjectModal } from "@/features/projects/components/edit-project-mo
 import { AddLabelModal } from "@/features/projects/components/add-label-modal"
 import { ImageGrid } from "@/features/projects/components/image-upload"
 import { useProjectDetailViewModel } from "@/features/projects/model/project-detail-viewmodel"
+import { descriptorForKind } from "@/features/projects/model/modality-registry"
+import type { DataKind } from "@/shared/lib/label-config/labeling-templates"
 import { useProjectCloudSync } from "@/features/projects/hooks/use-project-cloud-sync"
 import { ProjectSettingsTab } from "@/features/projects/components/project-settings-tab"
 import { useParams } from "react-router-dom"
@@ -444,77 +448,150 @@ const ProjectDetails = memo(() => {
             </TabsContent>
 
             <TabsContent value="upload" className="flex flex-col gap-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-semibold">Upload images</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Reference a folder of images — files stay on disk, nothing is
-                    copied.
-                  </p>
-                </div>
-                <Badge variant="secondary">
-                  {viewModel.newImages.length} selected
-                </Badge>
-              </div>
+              {(() => {
+                const modality = viewModel.project?.modality ?? "image"
+                const descriptor = descriptorForKind(modality as DataKind)
+                const isImageModality = !descriptor || descriptor.importMode === "folder"
 
-              <Button
-                variant="outline"
-                className="w-full gap-2"
-                onClick={viewModel.addImagesFromFolder}
-                disabled={viewModel.isUploading}
-              >
-                {viewModel.isUploading ? (
-                  <Spinner />
-                ) : (
-                  <FolderOpen className="size-5" />
-                )}
-                {viewModel.isUploading ? "Scanning folder…" : "Open image folder"}
-              </Button>
+                if (isImageModality) {
+                  return (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h2 className="text-lg font-semibold">Upload images</h2>
+                          <p className="text-sm text-muted-foreground">
+                            Reference a folder of images — files stay on disk, nothing is
+                            copied.
+                          </p>
+                        </div>
+                        <Badge variant="secondary">
+                          {viewModel.newImages.length} selected
+                        </Badge>
+                      </div>
 
-              <div className="flex flex-col gap-1.5 rounded-lg border border-dashed p-3">
-                <Button
-                  variant="outline"
-                  className="w-full gap-2"
-                  onClick={handleImportDataset}
-                  disabled={viewModel.isImporting}
-                >
-                  {viewModel.isImporting ? (
-                    <Spinner />
-                  ) : (
-                    <Import className="size-5" />
-                  )}
-                  {viewModel.isImporting
-                    ? "Importing dataset…"
-                    : "Import labeled dataset (YOLO / Roboflow)"}
-                </Button>
-                <p className="text-xs text-muted-foreground">
-                  Point to a folder with <code>data.yaml</code> + images +{" "}
-                  <code>labels/*.txt</code>. Classes, images, and boxes are
-                  imported so you can keep labeling and training on them.
-                </p>
-              </div>
+                      <Button
+                        variant="outline"
+                        className="w-full gap-2"
+                        onClick={viewModel.addImagesFromFolder}
+                        disabled={viewModel.isUploading}
+                      >
+                        {viewModel.isUploading ? <Spinner /> : <FolderOpen className="size-5" />}
+                        {viewModel.isUploading ? "Scanning folder…" : "Open image folder"}
+                      </Button>
 
-              <ImageGrid
-                images={viewModel.newImages}
-                onRemove={viewModel.handleRemoveImage}
-              />
+                      <div className="flex flex-col gap-1.5 rounded-lg border border-dashed p-3">
+                        <Button
+                          variant="outline"
+                          className="w-full gap-2"
+                          onClick={handleImportDataset}
+                          disabled={viewModel.isImporting}
+                        >
+                          {viewModel.isImporting ? <Spinner /> : <Import className="size-5" />}
+                          {viewModel.isImporting
+                            ? "Importing dataset…"
+                            : "Import labeled dataset (YOLO / Roboflow)"}
+                        </Button>
+                        <p className="text-xs text-muted-foreground">
+                          Point to a folder with <code>data.yaml</code> + images +{" "}
+                          <code>labels/*.txt</code>. Classes, images, and boxes are
+                          imported so you can keep labeling and training on them.
+                        </p>
+                      </div>
 
-              {viewModel.newImages.length > 0 && (
-                <div className="flex justify-end">
-                  <Button
-                    onClick={viewModel.saveImages}
-                    disabled={viewModel.isUploading || viewModel.isSaving}
-                    className="gap-1.5"
-                  >
-                    {viewModel.isSaving ? <Spinner /> : <Plus className="size-4" />}
-                    {viewModel.isSaving
-                      ? "Saving images…"
-                      : `Save ${viewModel.newImages.length} image${
-                          viewModel.newImages.length !== 1 ? "s" : ""
-                        }`}
-                  </Button>
-                </div>
-              )}
+                      <ImageGrid
+                        images={viewModel.newImages}
+                        onRemove={viewModel.handleRemoveImage}
+                      />
+
+                      {viewModel.newImages.length > 0 && (
+                        <div className="flex justify-end">
+                          <Button
+                            onClick={viewModel.saveImages}
+                            disabled={viewModel.isUploading || viewModel.isSaving}
+                            className="gap-1.5"
+                          >
+                            {viewModel.isSaving ? <Spinner /> : <Plus className="size-4" />}
+                            {viewModel.isSaving
+                              ? "Saving images…"
+                              : `Save ${viewModel.newImages.length} image${
+                                  viewModel.newImages.length !== 1 ? "s" : ""
+                                }`}
+                          </Button>
+                        </div>
+                      )}
+                    </>
+                  )
+                }
+
+                // Text / audio / other file-based modalities
+                const kindLabel = descriptor.label
+                const fileLabel = modality === "audio" ? "clips" : "files"
+                return (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h2 className="text-lg font-semibold">Add {kindLabel.toLowerCase()} files</h2>
+                        <p className="text-sm text-muted-foreground">
+                          Files are referenced in place — nothing is copied.
+                        </p>
+                      </div>
+                      <Badge variant="secondary">
+                        {viewModel.newDocuments.length} selected
+                      </Badge>
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      className="w-full gap-2"
+                      onClick={() => void viewModel.addDocumentFiles(descriptor.extensions)}
+                      disabled={viewModel.isUploading}
+                    >
+                      {viewModel.isUploading ? <Spinner /> : <FileText className="size-5" />}
+                      {viewModel.isUploading
+                        ? "Opening…"
+                        : `Select ${kindLabel.toLowerCase()} ${fileLabel}`}
+                    </Button>
+
+                    {viewModel.newDocuments.length > 0 && (
+                      <>
+                        <ul className="divide-y divide-border rounded-lg border border-border">
+                          {viewModel.newDocuments.map((doc, index) => (
+                            <li
+                              key={doc.id}
+                              className="flex items-center gap-2 px-3 py-2 text-sm"
+                            >
+                              <FileText className="size-4 shrink-0 text-muted-foreground" />
+                              <span className="min-w-0 flex-1 truncate" title={doc.path}>
+                                {doc.name}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => viewModel.handleRemoveDocument(index)}
+                                className="rounded-full p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                                aria-label={`Remove ${doc.name}`}
+                              >
+                                <X className="size-3.5" />
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                        <div className="flex justify-end">
+                          <Button
+                            onClick={() => void viewModel.saveDocuments()}
+                            disabled={viewModel.isUploading || viewModel.isSaving}
+                            className="gap-1.5"
+                          >
+                            {viewModel.isSaving ? <Spinner /> : <Plus className="size-4" />}
+                            {viewModel.isSaving
+                              ? `Saving ${fileLabel}…`
+                              : `Save ${viewModel.newDocuments.length} ${fileLabel}`}
+                          </Button>
+                        </div>
+                      </>
+                    )}
+                  </>
+                )
+              })()}
             </TabsContent>
 
             <TabsContent value="training" className="flex flex-col gap-4">

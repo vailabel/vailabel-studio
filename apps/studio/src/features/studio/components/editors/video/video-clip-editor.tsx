@@ -32,7 +32,7 @@ export const VideoClipEditor = ({
       if (!activeLabel) return
       void vm.createTrack(activeLabel, shape)
     },
-    [activeLabel, vm]
+    [activeLabel, vm.createTrack]
   )
 
   if (vm.isLoading) {

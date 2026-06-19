@@ -6,10 +6,18 @@ import type { CloudBatchResult, CloudConnectionRef } from "@/shared/ipc/cloud"
 import { allowImageDirectory } from "@/shared/lib/desktop"
 import { services } from "@/shared/services"
 import { useCloudStorageViewModel } from "@/shared/model/cloud-storage-viewmodel"
+import type { ProjectStorageConfig } from "@/shared/types/project-config"
 
-/** Object key for a project image in the bucket. Stable, so re-syncs overwrite. */
-const imageKey = (projectId: string, name: string) =>
-  `projects/${projectId}/images/${name}`
+/** Object key for a project image in the bucket. Uses the project's custom
+ *  prefix when set, otherwise falls back to the conventional default. */
+const imageKey = (
+  projectId: string,
+  name: string,
+  prefix?: string
+): string => {
+  const base = prefix ?? `projects/${projectId}/images/`
+  return `${base.replace(/\/?$/, "/")}${name}`
+}
 
 const toForwardSlashes = (path: string) => path.replace(/\\/g, "/")
 
@@ -34,22 +42,34 @@ const summarize = (action: string, result: CloudBatchResult) => {
  * project's referenced image files to the active bucket; pull downloads them to
  * a local cache dir and re-points each image's path so the canvas renders them
  * (the recovery path when local files are missing on another machine).
+ *
+ * Resolution order: project's own `storageConfig.connectionId` → global active
+ * connection → null (local only).
  */
 export const useProjectCloudSync = (
   projectId: string,
   images: ImageData[],
-  onAfterPull?: () => void
+  onAfterPull?: () => void,
+  storageConfig?: ProjectStorageConfig
 ) => {
-  const { activeConfig } = useCloudStorageViewModel()
+  const { configs, activeConfig } = useCloudStorageViewModel()
   const [isSyncing, setIsSyncing] = useState(false)
 
-  const connectionRef: CloudConnectionRef | null = activeConfig
+  // Prefer the per-project connection; fall back to the global active one.
+  const resolvedConfig =
+    (storageConfig?.connectionId
+      ? configs.find((c) => c.id === storageConfig.connectionId)
+      : undefined) ?? activeConfig
+
+  const connectionRef: CloudConnectionRef | null = resolvedConfig
     ? {
-        configId: activeConfig.id,
-        provider: activeConfig.provider,
-        config: activeConfig.config,
+        configId: resolvedConfig.id,
+        provider: resolvedConfig.provider,
+        config: resolvedConfig.config,
       }
     : null
+
+  const prefix = storageConfig?.prefix
 
   const pushToCloud = async () => {
     if (!connectionRef || isSyncing) return
@@ -58,7 +78,7 @@ export const useProjectCloudSync = (
       const items = images
         .filter((image) => image.path)
         .map((image) => ({
-          key: imageKey(projectId, image.name),
+          key: imageKey(projectId, image.name, prefix),
           path: image.path,
         }))
       if (items.length === 0) {
@@ -85,7 +105,7 @@ export const useProjectCloudSync = (
       )
       const destinations = images.map((image) => ({
         image,
-        key: imageKey(projectId, image.name),
+        key: imageKey(projectId, image.name, prefix),
         path: `${cacheDir}/${image.name}`,
       }))
       const result = await services
@@ -115,5 +135,5 @@ export const useProjectCloudSync = (
     }
   }
 
-  return { activeConfig, isSyncing, pushToCloud, pullFromCloud }
+  return { activeConfig: resolvedConfig, isSyncing, pushToCloud, pullFromCloud }
 }

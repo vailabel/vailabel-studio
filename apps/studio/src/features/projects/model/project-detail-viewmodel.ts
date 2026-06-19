@@ -36,6 +36,16 @@ interface UploadImage extends ImageData {
   size?: number
 }
 
+interface DocumentFile {
+  id: string
+  name: string
+  path: string
+}
+
+function fileBaseName(filePath: string): string {
+  return filePath.split(/[\\/]/).filter(Boolean).pop() || filePath
+}
+
 export const useProjectDetailViewModel = (projectId: string) => {
   const navigate = useNavigate()
   const [project, setProject] = useState<Project | null>(null)
@@ -46,6 +56,7 @@ export const useProjectDetailViewModel = (projectId: string) => {
     "images" | "upload" | "labels" | "training" | "settings"
   >("images")
   const [newImages, setNewImages] = useState<UploadImage[]>([])
+  const [newDocuments, setNewDocuments] = useState<DocumentFile[]>([])
   const [isUploading, setIsUploading] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
@@ -149,6 +160,28 @@ export const useProjectDetailViewModel = (projectId: string) => {
     }
   }
 
+  // Pick individual files (text / audio) and reference them in place.
+  const addDocumentFiles = async (extensions: string[]) => {
+    const paths = await openPathDialog({
+      multiple: true,
+      filters: [{ name: "Files", extensions }],
+    })
+    if (!paths || paths.length === 0) return
+
+    setIsUploading(true)
+    try {
+      setNewDocuments((current) => {
+        const seen = new Set(current.map((doc) => doc.path))
+        const added = paths
+          .filter((path) => !seen.has(path))
+          .map((path) => ({ id: uuidv4(), name: fileBaseName(path), path }))
+        return [...current, ...added]
+      })
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
   // Import a YOLO / Roboflow export folder (data.yaml + images + labels) — the
   // classes, images, and boxes are created in the backend, then we reload.
   const importDataset = async (): Promise<DatasetImportResult | undefined> => {
@@ -176,6 +209,7 @@ export const useProjectDetailViewModel = (projectId: string) => {
     labels,
     activeTab,
     newImages,
+    newDocuments,
     isUploading,
     isImporting,
     uploadProgress,
@@ -232,9 +266,35 @@ export const useProjectDetailViewModel = (projectId: string) => {
     getAnnotationLabel: (annotation: Annotation) =>
       labels.find((label) => label.id === annotation.label_id),
     addImagesFromFolder,
+    addDocumentFiles,
     importDataset,
     handleRemoveImage: (index: number) =>
       setNewImages((current) => current.filter((_, itemIndex) => itemIndex !== index)),
+    handleRemoveDocument: (index: number) =>
+      setNewDocuments((current) => current.filter((_, i) => i !== index)),
+    saveDocuments: async () => {
+      setIsSaving(true)
+      try {
+        const created = await Promise.all(
+          newDocuments.map((doc) =>
+            services.getImageService().createImage({
+              id: doc.id,
+              name: doc.name,
+              path: doc.path,
+              imagePath: doc.name,
+              width: 0,
+              height: 0,
+              projectId,
+              project_id: projectId,
+            })
+          )
+        )
+        setImages((current) => [...created, ...current])
+        setNewDocuments([])
+      } finally {
+        setIsSaving(false)
+      }
+    },
     saveImages: async () => {
       setIsSaving(true)
       try {

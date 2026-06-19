@@ -53,7 +53,7 @@ interface VideoStageProps {
   onCommitBox: (trackId: string, shape: VideoPoint[]) => void
 }
 
-export const VideoStage: React.FC<VideoStageProps> = ({
+export const VideoStage = React.memo<VideoStageProps>(function VideoStage({
   meta,
   currentFrame,
   visibleShapes,
@@ -63,7 +63,7 @@ export const VideoStage: React.FC<VideoStageProps> = ({
   onSelectTrack,
   onCreateBox,
   onCommitBox,
-}) => {
+}) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ width: 0, height: 0 })
@@ -127,12 +127,19 @@ export const VideoStage: React.FC<VideoStageProps> = ({
   useEffect(() => {
     if (!isPlaying) return
     let raf = 0
+    let lastEmitted = -1
     const tick = () => {
       const video = videoRef.current
       if (video) {
-        const frame = Math.round(video.currentTime * fps)
-        onFrameChange(Math.min(frame, lastFrame))
-        if (video.ended || video.paused) setIsPlaying(false)
+        if (video.ended || video.paused) {
+          setIsPlaying(false)
+          return
+        }
+        const frame = Math.min(Math.round(video.currentTime * fps), lastFrame)
+        if (frame !== lastEmitted) {
+          lastEmitted = frame
+          onFrameChange(frame)
+        }
       }
       raf = requestAnimationFrame(tick)
     }
@@ -360,7 +367,7 @@ export const VideoStage: React.FC<VideoStageProps> = ({
       </div>
     </div>
   )
-}
+})
 
 const formatTime = (seconds: number): string => {
   if (!Number.isFinite(seconds)) return "0:00.0"
