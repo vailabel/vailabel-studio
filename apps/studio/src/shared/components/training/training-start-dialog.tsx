@@ -155,7 +155,7 @@ export function TrainingStartDialog({
           <div className="space-y-2 text-sm">
             <p className="font-medium text-foreground">Training started.</p>
             <p className="text-muted-foreground">
-              Exported {result.labeledCount}/{result.imageCount} labeled images
+              Exported {result.labeledCount}/{result.itemCount} labeled images
               ({result.trainCount} train · {result.valCount} val),{" "}
               {result.annotationCount} boxes across {result.classCount} classes.
             </p>

@@ -33,7 +33,7 @@ function toDistribution(
 }
 
 // Dashboard view model. Every figure here comes from a cheap, reliable source:
-// projectsService.list() (incl. the live server-computed Project.imageCount),
+// projectsService.list() (incl. the live server-computed Project.itemCount),
 // aiModelsService.list(), and the training-job runtime — no fabricated metrics
 // and no per-project annotation loads on the home screen.
 export const useOverviewViewModel = () => {
@@ -101,7 +101,7 @@ export const useOverviewViewModel = () => {
       completedProjects: projects.filter((p) => p.status === "completed").length,
       draftProjects: projects.filter((p) => p.status === "draft").length,
       // Live server-side COUNT per project — the true cross-project item total.
-      totalImages: projects.reduce((sum, p) => sum + Number(p.imageCount ?? 0), 0),
+      totalItems: projects.reduce((sum, p) => sum + Number(p.itemCount ?? 0), 0),
       updatedThisWeek: projects.filter((p) => {
         const updatedAt = p.updatedAt ? new Date(p.updatedAt) : null
         return (

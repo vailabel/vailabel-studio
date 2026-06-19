@@ -78,6 +78,11 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 base64 = "0.22"
+# Structured-data import: parse spreadsheets server-side (pure Rust, no system
+# deps) instead of pulling the flagged npm `xlsx`/SheetJS into the webview.
+# `calamine` reads Excel/ODS; `csv` reads CSV/TSV.
+calamine = "0.26"
+csv = "1"
 chrono = { version = "0.4", features = ["serde"] }
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "gif", "rayon"] }
 keyring = { version = "3", default-features = false, features = ["apple-native", "linux-native", "windows-native"] }

@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useState } from "react"
-import { ChevronRight, Clapperboard, Clock, Film, FileText, ImageIcon, X } from "lucide-react"
+import { ChevronRight, Clapperboard, Clock, Film, FileText, ImageIcon, Table2, X } from "lucide-react"
 import { Button } from "@/shared/ui/button"
 import { Input } from "@/shared/ui/input"
 import { Label } from "@/shared/ui/label"
@@ -64,11 +64,15 @@ export const ProjectCreate = memo(() => {
   const configInfo = useMemo<ConfigInfo>(() => {
     try {
       const parsed = parseLabelConfig(viewModel.labelConfig)
-      // The primary object tag is itself a data kind (image/text/audio/video).
+      // The primary object tag maps to a data kind. For image/text/audio/video
+      // the tag IS the kind; the `table` object maps to the `tabular` kind.
       const primary = parsed.objects.find((object) =>
-        ["image", "text", "audio", "video"].includes(object.tag)
+        ["image", "text", "audio", "video", "table"].includes(object.tag)
       )
-      const dataKind = (primary?.tag as DataKind) ?? "image"
+      const dataKind: DataKind =
+        primary?.tag === "table"
+          ? "tabular"
+          : ((primary?.tag as DataKind) ?? "image")
       const ok = parsed.objects.length > 0 && parsed.controls.length > 0
       return {
         ok,
@@ -439,18 +443,21 @@ const DataStep = memo(
   }) => {
     const isImage = descriptor?.kind === "image"
     const isFiles = descriptor?.importMode === "files"
+    const isSpreadsheet = descriptor?.importMode === "spreadsheet"
 
     const handleDrop = useCallback(
       (paths: string[]) => {
         if (!descriptor) return
         const picked = paths.filter(descriptor.accepts)
         if (descriptor.kind === "image") void viewModel.addImagePaths(picked)
+        else if (descriptor.importMode === "spreadsheet")
+          void viewModel.addSpreadsheetPaths(picked)
         else if (descriptor.importMode === "files")
           void viewModel.addDocumentPaths(picked, descriptor.grantScope)
       },
       [viewModel, descriptor]
     )
-    const isOver = useFileDrop(handleDrop, isImage || isFiles)
+    const isOver = useFileDrop(handleDrop, isImage || isFiles || isSpreadsheet)
 
     // Deferred-import kinds (video): clips are imported inside the studio editor.
     if (descriptor?.importMode === "none") {
@@ -518,11 +525,13 @@ const DataStep = memo(
           </div>
         )}
 
-        {isFiles && viewModel.documents.length > 0 && (
+        {(isFiles || isSpreadsheet) && viewModel.documents.length > 0 && (
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-2">
               {descriptor.kind === "video" ? (
                 <Clapperboard className="size-5 text-primary" />
+              ) : isSpreadsheet ? (
+                <Table2 className="size-5 text-primary" />
               ) : (
                 <FileText className="size-5 text-primary" />
               )}
@@ -531,21 +540,28 @@ const DataStep = memo(
                   ? "Selected clips"
                   : descriptor.kind === "video"
                     ? "Selected videos"
-                    : "Selected documents"}
+                    : isSpreadsheet
+                      ? "Imported rows"
+                      : "Selected documents"}
               </span>
               <Badge variant="secondary">
-                {viewModel.documents.length} file
+                {viewModel.documents.length}{" "}
+                {isSpreadsheet ? "row" : "file"}
                 {viewModel.documents.length !== 1 ? "s" : ""}
               </Badge>
             </div>
-            <ul className="divide-y divide-border rounded-lg border border-border">
-              {viewModel.documents.map((doc, index) => (
+            <ul className="max-h-72 divide-y divide-border overflow-y-auto rounded-lg border border-border">
+              {viewModel.documents.slice(0, 200).map((doc, index) => (
                 <li
                   key={doc.id}
                   className="flex items-center gap-2 px-3 py-2 text-sm"
                 >
-                  <FileText className="size-4 shrink-0 text-muted-foreground" />
-                  <span className="min-w-0 flex-1 truncate" title={doc.path}>
+                  {isSpreadsheet ? (
+                    <Table2 className="size-4 shrink-0 text-muted-foreground" />
+                  ) : (
+                    <FileText className="size-4 shrink-0 text-muted-foreground" />
+                  )}
+                  <span className="min-w-0 flex-1 truncate" title={doc.path || doc.name}>
                     {doc.name}
                   </span>
                   <button
@@ -559,6 +575,11 @@ const DataStep = memo(
                 </li>
               ))}
             </ul>
+            {isSpreadsheet && viewModel.documents.length > 200 && (
+              <p className="text-xs text-muted-foreground">
+                Showing the first 200 of {viewModel.documents.length} rows.
+              </p>
+            )}
           </div>
         )}
       </div>

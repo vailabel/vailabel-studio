@@ -19,7 +19,7 @@ export function reportToMarkdown(report: AnalysisReport): string {
   lines.push("")
 
   h(2, "Dataset Statistics")
-  row("Images", stats.totalImages)
+  row("Images", stats.totalItems)
   row("Annotated images", `${stats.annotatedImages} (${stats.annotatedPercentage.toFixed(1)}%)`)
   row("Unannotated images", stats.unannotatedImages)
   row("Total annotations", stats.totalAnnotations)

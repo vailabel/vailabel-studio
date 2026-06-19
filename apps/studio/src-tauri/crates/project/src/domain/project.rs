@@ -157,7 +157,7 @@ pub struct Project {
     /// images table — it is not a stored column. Defaults to 0 (e.g. on the
     /// create/update round-trip, where the real count comes from a later list).
     #[serde(default)]
-    pub image_count: i64,
+    pub item_count: i64,
 }
 
 fn default_modality() -> String {

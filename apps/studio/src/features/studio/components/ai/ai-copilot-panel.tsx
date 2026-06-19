@@ -35,7 +35,7 @@ import { COPILOT_TOOLS, type CopilotTool } from "@/features/studio/model/lib/cop
 
 interface AiCopilotPanelProps {
   projectId?: string
-  imageId?: string
+  itemId?: string
   imageName?: string
   /** Optional: when provided, a close button is shown (floating/drawer use). In
    *  the docked right-panel tab it's omitted. */
@@ -56,7 +56,7 @@ const toolIcon = (id: string): LucideIcon => TOOL_ICONS[id] ?? Sparkles
 
 export function AiCopilotPanel({
   projectId,
-  imageId,
+  itemId,
   imageName,
   onClose,
 }: AiCopilotPanelProps) {
@@ -70,7 +70,7 @@ export function AiCopilotPanel({
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
   }, [messages, isSending])
 
-  const disabled = !imageId || isSending
+  const disabled = !itemId || isSending
 
   // Only enabled tools surface as quick actions; the same set is sent with each
   // turn so the backend won't run a tool the user switched off.
@@ -80,8 +80,8 @@ export function AiCopilotPanel({
   )
 
   const submit = (message: string) => {
-    if (!imageId || !message.trim() || isSending) return
-    void send({ projectId, imageId, message, enabledTools })
+    if (!itemId || !message.trim() || isSending) return
+    void send({ projectId, itemId, message, enabledTools })
     setDraft("")
   }
 
@@ -182,7 +182,7 @@ export function AiCopilotPanel({
               }
             }}
             rows={1}
-            placeholder={imageId ? "Ask the copilot…" : "Open an image to start"}
+            placeholder={itemId ? "Ask the copilot…" : "Open an image to start"}
             disabled={disabled}
             className="max-h-32 min-h-[1.75rem] flex-1 resize-none bg-transparent px-1.5 py-1 text-sm outline-none disabled:opacity-50"
           />

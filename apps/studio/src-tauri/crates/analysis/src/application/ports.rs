@@ -10,7 +10,7 @@ use crate::domain::AnalysisConfig;
 pub trait ImageDecoder: Send + Sync {
     fn analyze_pixels(
         &self,
-        image_id: &str,
+        item_id: &str,
         name: &str,
         path: &str,
         cfg: &AnalysisConfig,

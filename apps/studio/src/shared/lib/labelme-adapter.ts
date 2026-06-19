@@ -1,4 +1,4 @@
-import type { Annotation, ImageData } from "@/shared/types/core"
+import type { Annotation, Item } from "@/shared/types/core"
 
 /**
  * LabelMe (wkentaro/labelme) JSON sidecar format. One file per image, written
@@ -61,7 +61,7 @@ function toShape(annotation: Annotation): LabelMeShape {
 
 /** Build a LabelMe sidecar object for an image and its annotations. */
 export function toLabelMe(
-  image: ImageData,
+  image: Item,
   annotations: Annotation[]
 ): LabelMeFile {
   return {
@@ -81,7 +81,7 @@ export function toLabelMe(
  */
 export function fromLabelMe(
   file: LabelMeFile,
-  image: ImageData,
+  image: Item,
   projectId?: string
 ): Array<Partial<Annotation>> {
   if (!file || !Array.isArray(file.shapes)) return []
@@ -93,8 +93,8 @@ export function fromLabelMe(
     groupId: shape.group_id ?? null,
     group_id: shape.group_id ?? null,
     flags: shape.flags || {},
-    imageId: image.id,
-    image_id: image.id,
+    itemId: image.id,
+    item_id: image.id,
     projectId: projectId || image.projectId || image.project_id,
     project_id: projectId || image.projectId || image.project_id,
   }))

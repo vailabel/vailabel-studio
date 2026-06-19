@@ -2,4 +2,4 @@
 
 pub mod requests;
 
-pub use requests::{ImageRangePayload, ProjectIdPayload};
+pub use requests::{ItemRangePayload, ProjectIdPayload};

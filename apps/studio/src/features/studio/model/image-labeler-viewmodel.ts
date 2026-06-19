@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Annotation, ImageData, Label, Prediction } from "@/shared/types/core"
+import { Annotation, Item, Label, Prediction } from "@/shared/types/core"
 import type { AnnotationMeta } from "@/shared/types/modality"
 import { services } from "@/shared/services"
 import { aiRuntimeService } from "@/shared/services/ai-runtime-service"
@@ -37,16 +37,16 @@ function waitForNextPaint(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0))
 }
 
-export const useImageLabelerViewModel = (
+export const useItemLabelerViewModel = (
   projectId?: string,
-  imageId?: string
+  itemId?: string
 ) => {
-  const [image, setImage] = useState<ImageData | null>(null)
+  const [image, setItem] = useState<Item | null>(null)
   const [annotations, setAnnotations] = useState<Annotation[]>([])
   const [predictions, setPredictions] = useState<Prediction[]>([])
   const [labels, setLabels] = useState<Label[]>([])
   const [aiModels, setAiModels] = useState<DetectorOption[]>([])
-  const [projectImages, setProjectImages] = useState<ImageData[]>([])
+  const [projectItems, setProjectImages] = useState<Item[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isGeneratingPredictions, setIsGeneratingPredictions] = useState(false)
   const [isSegmenting, setIsSegmenting] = useState(false)
@@ -56,15 +56,15 @@ export const useImageLabelerViewModel = (
   // data in place instead of flashing the whole labeler through a loading state
   // (e.g. after approving a copilot action). The initial mount load is not silent.
   const loadData = useCallback(async (options?: { silent?: boolean }) => {
-    if (!imageId) return
+    if (!itemId) return
 
     const silent = options?.silent ?? false
     if (!silent) setIsLoading(true)
     setError(null)
     try {
-      const nextImage = await services.getImageService().getImage(imageId)
+      const nextItem = await services.getItemService().getItem(itemId)
       const effectiveProjectId =
-        projectId || nextImage.projectId || nextImage.project_id || ""
+        projectId || nextItem.projectId || nextItem.project_id || ""
 
       const [
         nextAnnotations,
@@ -73,10 +73,10 @@ export const useImageLabelerViewModel = (
         nextLabels,
         nextModels,
       ] = await Promise.all([
-        services.getAnnotationService().getAnnotationsByImageId(imageId),
-        services.getPredictionService().listByImageId(imageId),
+        services.getAnnotationService().getAnnotationsByItemId(itemId),
+        services.getPredictionService().listByItemId(itemId),
         effectiveProjectId
-          ? services.getImageService().getImagesByProjectId(effectiveProjectId)
+          ? services.getItemService().getItemsByProjectId(effectiveProjectId)
           : Promise.resolve([]),
         effectiveProjectId
           ? services.getLabelService().getLabelsByProjectId(effectiveProjectId)
@@ -84,7 +84,7 @@ export const useImageLabelerViewModel = (
         aiRuntimeService.listModels(),
       ])
 
-      setImage(nextImage)
+      setItem(nextItem)
       setAnnotations(nextAnnotations)
       setPredictions(nextPredictions)
       setProjectImages(nextProjectImages)
@@ -99,24 +99,24 @@ export const useImageLabelerViewModel = (
     } finally {
       if (!silent) setIsLoading(false)
     }
-  }, [imageId, projectId])
+  }, [itemId, projectId])
 
   useEffect(() => {
     void loadData()
   }, [loadData])
 
   useEffect(() => {
-    if (!imageId) return
+    if (!itemId) return
 
     let unlisten: (() => void) | undefined
     void listenToStudioEvents(
       (event) => {
-        const eventImageId = event.imageId || event.image_id
+        const eventImageId = event.itemId || event.item_id
         const eventProjectId = event.projectId || event.project_id
         const activeProjectId =
           projectId || image?.projectId || image?.project_id || ""
 
-        const matchesImage = !eventImageId || eventImageId === imageId
+        const matchesImage = !eventImageId || eventImageId === itemId
         const matchesProject =
           !eventProjectId || !activeProjectId || eventProjectId === activeProjectId
 
@@ -126,7 +126,7 @@ export const useImageLabelerViewModel = (
           void loadData({ silent: true })
         }
       },
-      ["annotations", "predictions", "labels", "images", "ai_models"]
+      ["annotations", "predictions", "labels", "items", "ai_models"]
     ).then((cleanup) => {
       unlisten = cleanup
     })
@@ -134,17 +134,17 @@ export const useImageLabelerViewModel = (
     return () => {
       unlisten?.()
     }
-  }, [image?.projectId, image?.project_id, imageId, loadData, projectId])
+  }, [image?.projectId, image?.project_id, itemId, loadData, projectId])
 
-  const currentImageIndex = useMemo(
-    () => projectImages.findIndex((entry) => entry.id === imageId),
-    [projectImages, imageId]
+  const currentItemIndex = useMemo(
+    () => projectItems.findIndex((entry) => entry.id === itemId),
+    [projectItems, itemId]
   )
 
-  const prevImage = currentImageIndex > 0 ? projectImages[currentImageIndex - 1] : null
-  const nextImage =
-    currentImageIndex >= 0 && currentImageIndex < projectImages.length - 1
-      ? projectImages[currentImageIndex + 1]
+  const prevItem = currentItemIndex > 0 ? projectItems[currentItemIndex - 1] : null
+  const nextItem =
+    currentItemIndex >= 0 && currentItemIndex < projectItems.length - 1
+      ? projectItems[currentItemIndex + 1]
       : null
 
   const ensureLabel = useCallback(
@@ -178,14 +178,14 @@ export const useImageLabelerViewModel = (
   const generatePredictions = useCallback(
     async (modelId: string, threshold?: number) => {
       if (!image) {
-        throw new Error("No image selected")
+        throw new Error("No item selected")
       }
 
       setIsGeneratingPredictions(true)
       try {
         await waitForNextPaint()
         const nextPredictions = await services.getPredictionService().generate({
-          imageId: image.id,
+          itemId: image.id,
           modelId,
           threshold,
         })
@@ -206,13 +206,13 @@ export const useImageLabelerViewModel = (
   // `predictions:generated` domain event reconciles the canonical set after.
   const smartSegment = useCallback(
     async (prompt: PipelinePrompt): Promise<SmartSegmentOutcome> => {
-      if (!image) return { status: "error", message: "No image is loaded." }
+      if (!image) return { status: "error", message: "No item is loaded." }
 
       setIsSegmenting(true)
       try {
         // The runtime's SAM2 is fetched on first use — always available.
         const created = await services.getPredictionService().pipelineRun({
-          imageId: image.id,
+          itemId: image.id,
           modelId: "sam2-base",
           prompt,
         })
@@ -288,7 +288,7 @@ export const useImageLabelerViewModel = (
       meta,
     }: CreateAnnotationDraftInput) => {
       if (!image) {
-        throw new Error("No image is loaded.")
+        throw new Error("No item is loaded.")
       }
 
       // Prefer an explicit class (active-class fast path / pre-labeled import)
@@ -304,8 +304,8 @@ export const useImageLabelerViewModel = (
         type,
         coordinates,
         meta,
-        imageId: image.id,
-        image_id: image.id,
+        itemId: image.id,
+        item_id: image.id,
         projectId: effectiveProjectId,
         project_id: effectiveProjectId,
         labelId: label?.id,
@@ -326,10 +326,10 @@ export const useImageLabelerViewModel = (
     predictions,
     labels,
     aiModels,
-    nextId: nextImage?.id ?? null,
-    prevId: prevImage?.id ?? null,
-    hasNext: Boolean(nextImage),
-    hasPrevious: Boolean(prevImage),
+    nextId: nextItem?.id ?? null,
+    prevId: prevItem?.id ?? null,
+    hasNext: Boolean(nextItem),
+    hasPrevious: Boolean(prevItem),
     isLoading,
     isGeneratingPredictions,
     isSegmenting,
@@ -359,8 +359,8 @@ export const useImageLabelerViewModel = (
       )
     },
     refreshAnnotations,
-    goToNextImage: () => nextImage?.id ?? null,
-    goToPreviousImage: () => prevImage?.id ?? null,
+    goToNextItem: () => nextItem?.id ?? null,
+    goToPreviousItem: () => prevItem?.id ?? null,
   }
 }
 

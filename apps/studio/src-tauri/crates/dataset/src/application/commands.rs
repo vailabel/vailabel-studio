@@ -1,24 +1,24 @@
-//! Write-side commands for images.
+//! Write-side commands for items.
 
 use serde_json::Value;
 
 /// Create-or-update an image from a payload (id minted when absent).
-pub struct SaveImageCommand {
+pub struct SaveItemCommand {
     pub payload: Value,
 }
 
-impl SaveImageCommand {
+impl SaveItemCommand {
     pub fn new(payload: Value) -> Self {
         Self { payload }
     }
 }
 
 /// Delete an image by id.
-pub struct DeleteImageCommand {
+pub struct DeleteItemCommand {
     pub id: String,
 }
 
-impl DeleteImageCommand {
+impl DeleteItemCommand {
     pub fn new(id: impl Into<String>) -> Self {
         Self { id: id.into() }
     }

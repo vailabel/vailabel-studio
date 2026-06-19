@@ -9,7 +9,7 @@ use vailabel_core::{DomainResult, Repository};
 /// typed list-by-image / list-by-project queries, and atomic save/delete.
 pub trait AnnotationRepository: Repository<Annotation> {
     /// All annotations on an image.
-    fn list_by_image(&self, image_id: &str) -> DomainResult<Vec<Annotation>>;
+    fn list_by_item(&self, item_id: &str) -> DomainResult<Vec<Annotation>>;
 
     /// All annotations in a project.
     fn list_by_project(&self, project_id: &str) -> DomainResult<Vec<Annotation>>;
@@ -27,7 +27,7 @@ pub trait AnnotationRepository: Repository<Annotation> {
 /// inference pipeline, so it drives these directly.
 pub trait PredictionRepository: Repository<Prediction> {
     /// All predictions on an image.
-    fn list_by_image(&self, image_id: &str) -> DomainResult<Vec<Prediction>>;
+    fn list_by_item(&self, item_id: &str) -> DomainResult<Vec<Prediction>>;
 
     /// Create-or-update in one transaction; returns the stored prediction and
     /// whether it was newly created (`true`) vs updated (`false`).

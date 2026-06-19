@@ -1,4 +1,4 @@
-import type { Annotation, ImageData } from "@/shared/types/core"
+import type { Annotation, Item } from "@/shared/types/core"
 import { annotationBBox, baseName } from "./geometry"
 
 function escapeXml(value: string): string {
@@ -13,7 +13,7 @@ function escapeXml(value: string): string {
  * Pascal VOC XML for a single image. Every annotation with a bounding box
  * becomes an `<object>`; points are skipped (no box).
  */
-export function toVocXml(image: ImageData, annotations: Annotation[]): string {
+export function toVocXml(image: Item, annotations: Annotation[]): string {
   const objects = annotations
     .map((annotation) => {
       const bbox = annotationBBox(annotation)
@@ -53,6 +53,6 @@ ${objects}
 }
 
 /** Output file name for an image's VOC sidecar (`img.jpg` -> `img.xml`). */
-export function vocFileName(image: ImageData): string {
+export function vocFileName(image: Item): string {
   return `${baseName(image.name)}.xml`
 }

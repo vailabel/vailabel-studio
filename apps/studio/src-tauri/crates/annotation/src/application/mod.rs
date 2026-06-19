@@ -9,7 +9,7 @@ pub use commands::{
     DeleteAnnotationCommand, DeleteLabelCommand, SaveAnnotationCommand, SaveLabelCommand,
 };
 pub use queries::{
-    GetLabelQuery, ListAnnotationsByImageQuery, ListAnnotationsByProjectQuery,
+    GetLabelQuery, ListAnnotationsByItemQuery, ListAnnotationsByProjectQuery,
     ListLabelsByProjectQuery,
 };
 pub use service::{AnnotationAppService, LabelClassAppService};

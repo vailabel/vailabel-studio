@@ -17,7 +17,7 @@ use super::wire::with_snake_aliases;
 pub struct Annotation {
     #[serde(default = "vailabel_shared::new_id")]
     pub id: String,
-    pub image_id: String,
+    pub item_id: String,
     #[serde(default)]
     pub label_id: Option<String>,
     #[serde(default = "default_name")]
@@ -46,7 +46,7 @@ pub struct Annotation {
 
 /// camelCase keys mirrored to their snake_case alias on output.
 const SNAKE_ALIASES: &[(&str, &str)] = &[
-    ("imageId", "image_id"),
+    ("itemId", "item_id"),
     ("labelId", "label_id"),
     ("groupId", "group_id"),
     ("projectId", "project_id"),
@@ -102,7 +102,7 @@ mod tests {
         // duplicates (no `duplicate field` error).
         let value = json!({
             "id": "a1",
-            "imageId": "img", "image_id": "img",
+            "itemId": "img", "item_id": "img",
             "labelId": "l1", "label_id": "l1",
             "type": "polygon",
             "coordinates": [{"x": 1.0, "y": 2.0}],
@@ -111,7 +111,7 @@ mod tests {
             "isAIGenerated": true,
         });
         let annotation: Annotation = serde_json::from_value(value).expect("deserialize");
-        assert_eq!(annotation.image_id, "img");
+        assert_eq!(annotation.item_id, "img");
         assert_eq!(annotation.label_id.as_deref(), Some("l1"));
         assert_eq!(annotation.annotation_type, "polygon");
         assert_eq!(annotation.group_id, Some(3));
@@ -122,7 +122,7 @@ mod tests {
     fn to_value_emits_both_casings() {
         let annotation = Annotation {
             id: "a1".into(),
-            image_id: "img".into(),
+            item_id: "img".into(),
             label_id: Some("l1".into()),
             name: "Box".into(),
             color: "#fff".into(),
@@ -137,8 +137,8 @@ mod tests {
             updated_at: "t".into(),
         };
         let out = annotation.to_value();
-        assert_eq!(out["imageId"], json!("img"));
-        assert_eq!(out["image_id"], json!("img"));
+        assert_eq!(out["itemId"], json!("img"));
+        assert_eq!(out["item_id"], json!("img"));
         assert_eq!(out["type"], json!("box"));
         assert_eq!(out["isAIGenerated"], json!(true));
         assert_eq!(out["is_ai_generated"], json!(true));

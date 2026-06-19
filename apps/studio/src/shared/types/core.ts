@@ -22,9 +22,9 @@ export class Project {
   /** Typed per-project settings (config_json column). Separate from the legacy settings blob. */
   config?: ProjectConfig
   labels?: Label[]
-  images?: ImageData[]
+  images?: Item[]
   /** Derived count of images in the project (from list/get queries). */
-  imageCount?: number
+  itemCount?: number
   createdAt?: Date
   updatedAt?: Date
 }
@@ -44,7 +44,7 @@ export class Label {
   updatedAt?: Date
 }
 
-export class ImageData {
+export class Item {
   id!: string
   name!: string
   /** Absolute on-disk path to the referenced image file (never base64). */
@@ -56,6 +56,10 @@ export class ImageData {
   url?: string
   /** LabelMe-style boolean flags for the whole image (e.g. {blurry: true}). */
   flags?: Record<string, boolean>
+  /** Inline task data for non-file items: a spreadsheet row's column values
+   *  keyed by header. Set for tabular projects; undefined for file-backed
+   *  assets (images, audio, text documents). */
+  data?: Record<string, unknown>
   projectId?: string
   project_id?: string
   project?: Project
@@ -82,9 +86,9 @@ export class Annotation {
   projectId?: string
   project_id?: string
   project?: Project
-  imageId?: string
-  image_id?: string
-  image?: ImageData
+  itemId?: string
+  item_id?: string
+  image?: Item
   color?: string
   isAIGenerated?: boolean
   createdAt?: Date
@@ -105,8 +109,8 @@ export class Prediction {
   type!: string
   coordinates!: { x: number; y: number }[]
   confidence!: number
-  imageId?: string
-  image_id?: string
+  itemId?: string
+  item_id?: string
   projectId?: string
   project_id?: string
   color?: string
@@ -224,8 +228,8 @@ export class StudioDomainEvent {
   id!: string
   projectId?: string
   project_id?: string
-  imageId?: string
-  image_id?: string
+  itemId?: string
+  item_id?: string
   occurredAt!: Date | string
 }
 

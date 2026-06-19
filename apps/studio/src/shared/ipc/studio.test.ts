@@ -1,14 +1,14 @@
 import { invoke } from "@tauri-apps/api/core"
 import { studioCommands } from "@/shared/ipc/studio"
 
-jest.mock("@tauri-apps/api/core", () => ({
-  invoke: jest.fn(),
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: vi.fn(),
 }))
 
-const mockInvoke = jest.mocked(invoke)
+const mockInvoke = vi.mocked(invoke)
 
 describe("studioCommands", () => {
-  const logSpy = jest.spyOn(console, "log").mockImplementation(() => {})
+  const logSpy = vi.spyOn(console, "log").mockImplementation(() => {})
 
   beforeEach(() => {
     mockInvoke.mockReset()
@@ -23,14 +23,14 @@ describe("studioCommands", () => {
     mockInvoke.mockResolvedValue([])
 
     await studioCommands.predictionsGenerate({
-      imageId: "image-1",
+      itemId: "image-1",
       modelId: "model-1",
       threshold: 0.65,
     })
 
     expect(mockInvoke).toHaveBeenCalledWith("predictions_generate", {
       payload: {
-        imageId: "image-1",
+        itemId: "image-1",
         modelId: "model-1",
         threshold: 0.65,
       },

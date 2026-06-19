@@ -61,10 +61,10 @@ impl ProjectRow {
     }
 
     /// Convert a stored row back into the domain `Project`, attaching the
-    /// derived `image_count`. Mirrors the residual store's `project_to_json`:
+    /// derived `item_count`. Mirrors the residual store's `project_to_json`:
     /// `modality`/`task` fall back to legacy-derived values when the columns are
     /// null, and the `*_json` blobs are parsed (or `Null`).
-    pub fn into_project(self, image_count: i64) -> Project {
+    pub fn into_project(self, item_count: i64) -> Project {
         let modality = self.modality.unwrap_or_else(|| "image".to_string());
         let task = self
             .task
@@ -86,7 +86,7 @@ impl ProjectRow {
             config,
             created_at: self.created_at,
             updated_at: self.updated_at,
-            image_count,
+            item_count,
         }
     }
 }

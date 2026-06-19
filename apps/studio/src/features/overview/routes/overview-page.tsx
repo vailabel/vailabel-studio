@@ -56,7 +56,7 @@ const Overview: React.FC = () => {
     },
     {
       title: "Total Items",
-      value: stats.totalImages,
+      value: stats.totalItems,
       icon: Images,
       color: "bg-chart-1",
       subtext: `across ${plural(stats.totalProjects, "project")}`,

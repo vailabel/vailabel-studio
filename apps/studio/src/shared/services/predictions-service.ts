@@ -6,17 +6,17 @@ import {
 import type {
   AIModel,
   Annotation,
-  ImageData,
+  Item,
   LabelStudioTask,
   Prediction,
 } from "@/shared/types/core"
 import { studioCommands, type PipelineRunRequest } from "@/shared/ipc/studio"
 
 export const predictionsService = {
-  listByImageId: (imageId: string) =>
-    studioCommands.predictionsListByImage(imageId),
+  listByItemId: (itemId: string) =>
+    studioCommands.predictionsListByItem(itemId),
   generate: (payload: {
-    imageId: string
+    itemId: string
     modelId: string
     threshold?: number
   }) => studioCommands.predictionsGenerate(payload),
@@ -29,18 +29,18 @@ export const predictionsService = {
   reject: (predictionId: string) =>
     studioCommands.predictionsReject(predictionId),
   exportToLabelStudioTask: (args: {
-    image: ImageData
+    image: Item
     predictions: Prediction[]
     model?: AIModel | null
   }): LabelStudioTask => createLabelStudioTask(args),
   exportAnnotationsToLabelStudioTask: (args: {
-    image: ImageData
+    image: Item
     annotations: Annotation[]
     modelVersion?: string
   }): LabelStudioTask => createLabelStudioTaskFromAnnotations(args),
   importFromLabelStudioTask: (args: {
     task: LabelStudioTask
-    image: ImageData
+    image: Item
     modelId?: string
     projectId?: string
   }) => fromLabelStudioTask(args),

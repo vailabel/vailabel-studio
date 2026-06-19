@@ -7,6 +7,7 @@ import type { Modality, Task } from "@/shared/types/modality"
 import {
   allowImageDirectory,
   openPathDialog,
+  parseSpreadsheet,
   scanImageDirectory,
   toAssetUrl,
 } from "@/shared/lib/desktop"
@@ -41,12 +42,21 @@ interface ImageFile {
   size?: number
 }
 
-/** A non-image item (a text document) referenced in place, like images. */
+/** A non-image item (a text document) referenced in place, like images. A
+ *  tabular row reuses this shape but carries inline `data` instead of a `path`
+ *  (the row isn't a file on disk). */
 interface DocumentFile {
   id: string
   name: string
   path: string
+  /** Inline row data for tabular imports — column values keyed by header. */
+  data?: Record<string, string>
 }
+
+// Guardrail so a pathological multi-million-row file can't freeze the create
+// flow (each row becomes one item + one IPC insert). Typical sheets are far
+// smaller; the cap is logged, not silently hidden.
+const MAX_TABULAR_ROWS = 10000
 
 function folderBaseName(folder: string): string {
   return (
@@ -183,14 +193,81 @@ export const useProjectCreateViewModel = () => {
     setName((current) => current.trim() || "Dataset")
   }
 
+  // Tabular import (Label Studio's CSV model): parse each picked spreadsheet in
+  // Rust, then expand every data row into its own task. Rows ride the same
+  // `documents` list as picked files but carry inline `data` (no path), so the
+  // create + persist path below is shared. Re-importing replaces the set.
+  const rowsToDocuments = (
+    fileName: string,
+    headers: string[],
+    rows: string[][]
+  ): DocumentFile[] =>
+    rows.map((row, index) => {
+      const data: Record<string, string> = {}
+      headers.forEach((header, columnIndex) => {
+        const key = header.trim() || `column_${columnIndex + 1}`
+        data[key] = row[columnIndex] ?? ""
+      })
+      return {
+        id: uuidv4(),
+        name: `${fileName} · row ${index + 1}`,
+        path: "",
+        data,
+      }
+    })
+
+  const importSpreadsheets = async (paths: string[]) => {
+    setError(null)
+    setIsScanning(true)
+    try {
+      const collected: DocumentFile[] = []
+      let truncated = false
+      for (const path of paths) {
+        if (collected.length >= MAX_TABULAR_ROWS) {
+          truncated = true
+          break
+        }
+        const sheet = await parseSpreadsheet(path)
+        if (sheet.headers.length === 0) continue
+        const slice = sheet.rows.slice(0, MAX_TABULAR_ROWS - collected.length)
+        if (slice.length < sheet.rows.length) truncated = true
+        collected.push(...rowsToDocuments(fileBaseName(path), sheet.headers, slice))
+      }
+      if (collected.length === 0) {
+        setError(new Error("No data rows found in the selected file(s)."))
+        return
+      }
+      if (truncated)
+        console.warn(`Tabular import capped at ${MAX_TABULAR_ROWS} rows.`)
+      setDocuments(collected)
+      setName((current) => current.trim() || "Tabular dataset")
+    } catch (nextError) {
+      setError(nextError)
+    } finally {
+      setIsScanning(false)
+    }
+  }
+
+  const openSpreadsheetFiles = async (extensions: string[]) => {
+    const paths = await openPathDialog({
+      multiple: true,
+      filters: [{ name: "Spreadsheets", extensions }],
+    })
+    if (!paths || paths.length === 0) return
+    await importSpreadsheets(paths)
+  }
+
   // Single entry point the Data step calls: the modality descriptor decides how
-  // items are imported (folder scan vs. file pick vs. nothing for video, whose
-  // clips are imported inside the editor). No per-modality branching at the call
-  // site — adding a modality = adding a descriptor.
+  // items are imported (folder scan vs. file pick vs. spreadsheet expansion vs.
+  // nothing for video, whose clips are imported inside the editor). No
+  // per-modality branching at the call site — adding a modality = adding a
+  // descriptor.
   const openImport = (descriptor: ModalityDescriptor) => {
     if (descriptor.importMode === "folder") return openImageFolder()
     if (descriptor.importMode === "files")
       return openMediaFiles(descriptor.extensions, descriptor.grantScope)
+    if (descriptor.importMode === "spreadsheet")
+      return openSpreadsheetFiles(descriptor.extensions)
     // "none" → clips are imported later, in the editor; nothing to do here.
   }
 
@@ -295,7 +372,7 @@ export const useProjectCreateViewModel = () => {
           ...(labelConfig.trim() ? { labelConfig } : {}),
         },
         metadata: {
-          imageCount: itemCount,
+          itemCount: itemCount,
           sourceFolder: folderPath,
         },
       })
@@ -345,8 +422,10 @@ export const useProjectCreateViewModel = () => {
         return
       }
 
-      // Non-image items ride on the same entity (ImageData) as images —
+      // Non-image items ride on the same entity (Item) as images —
       // `path` points at the file; width/height are unused for text/audio.
+      // Tabular rows carry inline `data` instead of a path (persisted to the new
+      // `data_json` column); `data` is undefined for file-backed documents.
       const itemDrafts = usingImages
         ? images
         : documents.map((doc) => ({
@@ -356,11 +435,12 @@ export const useProjectCreateViewModel = () => {
             imagePath: doc.name,
             width: 0,
             height: 0,
+            ...(doc.data ? { data: doc.data } : {}),
           }))
 
       const createdImages = await Promise.all(
         itemDrafts.map((item) =>
-          services.getImageService().createImage({
+          services.getItemService().createItem({
             ...item,
             projectId: project.id,
             project_id: project.id,
@@ -430,6 +510,8 @@ export const useProjectCreateViewModel = () => {
     removeImage,
     addImagePaths,
     addDocumentPaths,
+    // Drag-drop entry point for tabular files (parse + expand rows).
+    addSpreadsheetPaths: importSpreadsheets,
     removeDocument,
     clearData,
     createProject,

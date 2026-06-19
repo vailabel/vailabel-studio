@@ -15,7 +15,7 @@ import type { Label } from "@/shared/types/core"
 
 interface LabelingScreenProps {
   projectId?: string
-  imageId?: string
+  itemId?: string
 }
 
 // The modality-agnostic labeling shell: it resolves the project's capabilities,
@@ -23,9 +23,9 @@ interface LabelingScreenProps {
 // mounts the editor body for the resolved editor kind. Each editor owns the
 // center pane; everything around it is reused across templates.
 export const LabelingScreen = memo(
-  ({ projectId, imageId }: LabelingScreenProps) => {
+  ({ projectId, itemId }: LabelingScreenProps) => {
     const [showExportDialog, setShowExportDialog] = useState(false)
-    const viewModel = useStudioScreenViewModel(projectId, imageId)
+    const viewModel = useStudioScreenViewModel(projectId, itemId)
 
     const capabilities = useMemo(
       () =>
@@ -73,8 +73,8 @@ export const LabelingScreen = memo(
     // item when there is one.
     const handleSubmit = useCallback(() => {
       toast.success(viewModel.hasNext ? "Submitted — next item" : "Submitted")
-      if (viewModel.hasNext) viewModel.goToNextImage()
-    }, [viewModel.hasNext, viewModel.goToNextImage])
+      if (viewModel.hasNext) viewModel.goToNextItem()
+    }, [viewModel.hasNext, viewModel.goToNextItem])
 
     // Single click (and 1–9) ARMS the class new annotations inherit.
     const handleLabelSelect = useCallback(
@@ -130,8 +130,8 @@ export const LabelingScreen = memo(
       labels: viewModel.data.labels,
       activeLabelId: viewModel.activeLabelId,
       setActiveLabelId: viewModel.setActiveLabelId,
-      onNextImage: viewModel.goToNextImage,
-      onPreviousImage: viewModel.goToPreviousImage,
+      onNextImage: viewModel.goToNextItem,
+      onPreviousImage: viewModel.goToPreviousItem,
       onToggleCrosshair: viewModel.toggleCrosshair,
       onToggleCoordinates: viewModel.toggleCoordinates,
       onToggleRuler: viewModel.toggleRuler,
@@ -161,10 +161,10 @@ export const LabelingScreen = memo(
               className="h-full"
             >
               <FileListPanel
-                images={viewModel.projectImages}
-                currentImageId={viewModel.currentImageId}
-                annotatedImageIds={viewModel.annotatedImageIds}
-                onSelectImage={viewModel.navigateToImage}
+                images={viewModel.projectItems}
+                currentItemId={viewModel.currentItemId}
+                annotatedItemIds={viewModel.annotatedItemIds}
+                onSelectItem={viewModel.navigateToItem}
                 isLoading={viewModel.isProjectSummaryLoading}
               />
             </ResizablePanel>
@@ -174,13 +174,13 @@ export const LabelingScreen = memo(
             <EditorBody viewModel={viewModel} capabilities={capabilities} />
             {capabilities.chrome.showBottomBar && (
               <StudioBottomBar
-                currentImageIndex={viewModel.currentImageIndex}
+                currentItemIndex={viewModel.currentItemIndex}
                 projectStats={viewModel.projectStats}
                 hasNext={viewModel.hasNext}
                 hasPrevious={viewModel.hasPrevious}
                 isCurrentLabeled={viewModel.data.annotations.length > 0}
-                onPrevious={viewModel.goToPreviousImage}
-                onSkip={viewModel.goToNextImage}
+                onPrevious={viewModel.goToPreviousItem}
+                onSkip={viewModel.goToNextItem}
                 onSubmit={handleSubmit}
               />
             )}
@@ -216,8 +216,8 @@ export const LabelingScreen = memo(
                 onAcceptPrediction={viewModel.acceptPrediction}
                 onRejectPrediction={viewModel.rejectPrediction}
                 projectId={viewModel.effectiveProjectId}
-                imageId={viewModel.data.image?.id}
-                imageName={viewModel.data.image?.name}
+                itemId={viewModel.data.item?.id}
+                imageName={viewModel.data.item?.name}
               />
             </ResizablePanel>
           )}

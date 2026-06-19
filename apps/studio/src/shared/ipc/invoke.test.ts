@@ -1,15 +1,15 @@
 import { invoke } from "@tauri-apps/api/core"
 import { invokeWithLogging, REDACTED_RESPONSE } from "@/shared/ipc/invoke"
 
-jest.mock("@tauri-apps/api/core", () => ({
-  invoke: jest.fn(),
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: vi.fn(),
 }))
 
-const mockInvoke = jest.mocked(invoke)
+const mockInvoke = vi.mocked(invoke)
 
 describe("invokeWithLogging", () => {
-  const logSpy = jest.spyOn(console, "log").mockImplementation(() => {})
-  const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {})
+  const logSpy = vi.spyOn(console, "log").mockImplementation(() => {})
+  const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
 
   beforeEach(() => {
     mockInvoke.mockReset()

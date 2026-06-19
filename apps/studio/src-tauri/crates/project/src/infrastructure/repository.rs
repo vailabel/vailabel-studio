@@ -11,7 +11,7 @@ use vailabel_db::{Db, DbError};
 use vailabel_shared::now_iso;
 
 use super::record::ProjectRow;
-use super::schema::{images, projects};
+use super::schema::{items, projects};
 use crate::domain::{Project, ProjectRepository};
 
 /// Typed-Diesel implementation of [`crate::domain::ProjectRepository`].
@@ -25,22 +25,22 @@ impl DieselProjectRepository {
         Self { db }
     }
 
-    fn image_count(
+    fn item_count(
         conn: &mut SqliteConnection,
         project_id: &str,
     ) -> Result<i64, diesel::result::Error> {
-        images::table
-            .filter(images::project_id.eq(project_id))
+        items::table
+            .filter(items::project_id.eq(project_id))
             .count()
             .get_result(conn)
     }
 
-    fn image_counts(
+    fn item_counts(
         conn: &mut SqliteConnection,
     ) -> Result<HashMap<String, i64>, diesel::result::Error> {
-        let rows: Vec<(String, i64)> = images::table
-            .group_by(images::project_id)
-            .select((images::project_id, count_star()))
+        let rows: Vec<(String, i64)> = items::table
+            .group_by(items::project_id)
+            .select((items::project_id, count_star()))
             .load(conn)?;
         Ok(rows.into_iter().collect())
     }
@@ -53,7 +53,7 @@ impl DieselProjectRepository {
                 diesel::replace_into(projects::table)
                     .values(&row)
                     .execute(conn)?;
-                let count = Self::image_count(conn, &row.id)?;
+                let count = Self::item_count(conn, &row.id)?;
                 Ok(row.into_project(count))
             })
             .map_err(to_domain_err)
@@ -71,7 +71,7 @@ impl Repository<Project> for DieselProjectRepository {
                 let rows = projects::table
                     .select(ProjectRow::as_select())
                     .load::<ProjectRow>(conn)?;
-                let counts = Self::image_counts(conn)?;
+                let counts = Self::item_counts(conn)?;
                 Ok(rows
                     .into_iter()
                     .map(|row| {
@@ -93,7 +93,7 @@ impl Repository<Project> for DieselProjectRepository {
                     .optional()?;
                 Ok(match row {
                     Some(row) => {
-                        let count = Self::image_count(conn, id)?;
+                        let count = Self::item_count(conn, id)?;
                         Some(row.into_project(count))
                     }
                     None => None,
@@ -136,7 +136,7 @@ impl ProjectRepository for DieselProjectRepository {
                 diesel::replace_into(projects::table)
                     .values(&row)
                     .execute(conn)?;
-                let count = Self::image_count(conn, &row.id)?;
+                let count = Self::item_count(conn, &row.id)?;
                 Ok((row.into_project(count), !existed))
             })
             .map_err(to_domain_err)
@@ -153,7 +153,7 @@ impl ProjectRepository for DieselProjectRepository {
                     .optional()?;
                 match row {
                     Some(row) => {
-                        let count = Self::image_count(conn, &id)?;
+                        let count = Self::item_count(conn, &id)?;
                         diesel::delete(projects::table.find(id.as_str())).execute(conn)?;
                         Ok(Some(row.into_project(count)))
                     }

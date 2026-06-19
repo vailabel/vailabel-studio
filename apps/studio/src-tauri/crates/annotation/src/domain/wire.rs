@@ -1,7 +1,7 @@
 //! Wire-format helper.
 //!
 //! The frontend reads some fields by camelCase and some by snake_case (e.g.
-//! `project-detail-viewmodel` reads `annotation.image_id`, the Label Studio
+//! `project-detail-viewmodel` reads `annotation.item_id`, the Label Studio
 //! adapter reads `prediction.model_version`). The residual store emitted BOTH
 //! casings for every aliased field; to keep those readers working, the typed
 //! aggregates serialize camelCase and then mirror the aliased keys to snake_case

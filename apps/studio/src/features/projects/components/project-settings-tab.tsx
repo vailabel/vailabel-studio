@@ -167,7 +167,7 @@ export function ProjectSettingsTab({
           </SettingRow>
           <SettingRow
             htmlFor="proj-include-images"
-            title="Include images in export"
+            title="Include items in export"
             description="Copy the source images alongside the annotation files"
             control={
               <Switch
@@ -338,7 +338,7 @@ export function ProjectSettingsTab({
         <div className="space-y-3">
           <SettingRow
             title="Delete project"
-            description="Permanently deletes the project, all images, and all annotations. Cannot be undone."
+            description="Permanently deletes the project, all items, and all annotations. Cannot be undone."
             control={
               <AlertDialog>
                 <AlertDialogTrigger

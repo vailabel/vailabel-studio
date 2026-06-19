@@ -43,7 +43,7 @@ export class BoxHandler implements ToolHandler {
             y: Math.max(toolState.startPoint.y, point.y),
           },
         ],
-        imageId: this.context.annotationsStore.currentImage?.id || "",
+        itemId: this.context.annotationsStore.currentImage?.id || "",
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -88,7 +88,7 @@ export class BoxHandler implements ToolHandler {
           type: "box",
           color: "#2196f3", // Default color
           coordinates,
-          imageId: this.context.annotationsStore.currentImage?.id || "",
+          itemId: this.context.annotationsStore.currentImage?.id || "",
           createdAt: new Date(),
           updatedAt: new Date(),
         },

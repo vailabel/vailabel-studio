@@ -1,36 +1,25 @@
 import { memo, useCallback, useMemo, useState } from "react"
-import { CheckCircle2, FileText, Flag, ImageIcon, Music, Search } from "lucide-react"
+import { CheckCircle2, Flag, Search } from "lucide-react"
 import { cn } from "@/shared/lib/utils"
 import { Input } from "@/shared/ui/input"
 import { Button } from "@/shared/ui/button"
 import { ScrollArea } from "@/shared/ui/scroll-area"
 import { toAssetUrl } from "@/shared/lib/desktop"
-import type { ImageData } from "@/shared/types/core"
+import { isImageItem, itemKindIcon } from "@/shared/lib/item-kind"
+import type { Item } from "@/shared/types/core"
 
 type StatusFilter = "all" | "annotated" | "unlabeled"
 
 interface FileListPanelProps {
-  images: ImageData[]
-  currentImageId?: string
-  annotatedImageIds: Set<string>
-  onSelectImage: (imageId: string) => void
+  images: Item[]
+  currentItemId?: string
+  annotatedItemIds: Set<string>
+  onSelectItem: (itemId: string) => void
   isLoading?: boolean
 }
 
-function hasFlags(image: ImageData) {
+function hasFlags(image: Item) {
   return Object.values(image.flags || {}).some(Boolean)
-}
-
-const IMAGE_EXTENSIONS = /\.(jpe?g|png|gif|bmp|webp|tiff?|avif)$/i
-const AUDIO_EXTENSIONS = /\.(wav|mp3|ogg|flac|m4a|aac)$/i
-
-/** Items can be images, documents, or audio; only images get a thumbnail. */
-function isImageItem(item: ImageData) {
-  return IMAGE_EXTENSIONS.test(item.path || item.name || "")
-}
-
-function isAudioItem(item: ImageData) {
-  return AUDIO_EXTENSIONS.test(item.path || item.name || "")
 }
 
 const STATUS_FILTERS: Array<{ id: StatusFilter; label: string }> = [
@@ -42,9 +31,9 @@ const STATUS_FILTERS: Array<{ id: StatusFilter; label: string }> = [
 export const FileListPanel = memo(
   ({
     images,
-    currentImageId,
-    annotatedImageIds,
-    onSelectImage,
+    currentItemId,
+    annotatedItemIds,
+    onSelectItem,
     isLoading = false,
   }: FileListPanelProps) => {
     const [query, setQuery] = useState("")
@@ -56,12 +45,12 @@ export const FileListPanel = memo(
         const matchesQuery =
           !normalizedQuery || image.name.toLowerCase().includes(normalizedQuery)
         if (!matchesQuery) return false
-        const isAnnotated = annotatedImageIds.has(image.id)
+        const isAnnotated = annotatedItemIds.has(image.id)
         if (status === "annotated") return isAnnotated
         if (status === "unlabeled") return !isAnnotated
         return true
       })
-    }, [images, query, status, annotatedImageIds])
+    }, [images, query, status, annotatedItemIds])
 
     return (
       <div className="flex h-full flex-col border-r border-border bg-card text-card-foreground">
@@ -71,7 +60,7 @@ export const FileListPanel = memo(
             <span className="text-xs text-muted-foreground">
               {isLoading
                 ? "Loading..."
-                : `${annotatedImageIds.size}/${images.length} done`}
+                : `${annotatedItemIds.size}/${images.length} done`}
             </span>
           </div>
 
@@ -105,9 +94,9 @@ export const FileListPanel = memo(
           {visibleImages.length === 0 ? (
             <p className="p-6 text-center text-sm text-muted-foreground">
               {isLoading
-                ? "Loading images..."
+                ? "Loading items..."
                 : images.length === 0
-                  ? "No images in this project"
+                  ? "No items in this project"
                   : "No files match the filter"}
             </p>
           ) : (
@@ -116,9 +105,9 @@ export const FileListPanel = memo(
                 <FileListItem
                   key={image.id}
                   image={image}
-                  isActive={image.id === currentImageId}
-                  isAnnotated={annotatedImageIds.has(image.id)}
-                  onSelect={onSelectImage}
+                  isActive={image.id === currentItemId}
+                  isAnnotated={annotatedItemIds.has(image.id)}
+                  onSelect={onSelectItem}
                 />
               ))}
             </ul>
@@ -138,12 +127,13 @@ const FileListItem = memo(
     isAnnotated,
     onSelect,
   }: {
-    image: ImageData
+    image: Item
     isActive: boolean
     isAnnotated: boolean
-    onSelect: (imageId: string) => void
+    onSelect: (itemId: string) => void
   }) => {
     const handleClick = useCallback(() => onSelect(image.id), [image.id, onSelect])
+    const KindIcon = itemKindIcon(image)
 
     return (
       <li>
@@ -165,12 +155,8 @@ const FileListItem = memo(
                 loading="lazy"
                 className="h-full w-full object-cover"
               />
-            ) : isImageItem(image) ? (
-              <ImageIcon className="m-2.5 h-5 w-5 text-muted-foreground" />
-            ) : isAudioItem(image) ? (
-              <Music className="m-2.5 h-5 w-5 text-muted-foreground" />
             ) : (
-              <FileText className="m-2.5 h-5 w-5 text-muted-foreground" />
+              <KindIcon className="m-2.5 h-5 w-5 text-muted-foreground" />
             )}
           </div>
 

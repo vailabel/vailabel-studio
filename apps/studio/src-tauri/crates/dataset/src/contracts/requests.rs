@@ -2,7 +2,7 @@
 
 use serde::Deserialize;
 
-/// `{ "projectId": "..." }` — list a project's images.
+/// `{ "projectId": "..." }` — list a project's items.
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProjectIdPayload {
@@ -12,7 +12,7 @@ pub struct ProjectIdPayload {
 /// `{ "projectId", "offset?", "limit?" }` — paginated image listing.
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ImageRangePayload {
+pub struct ItemRangePayload {
     pub project_id: String,
     pub offset: Option<usize>,
     pub limit: Option<usize>,

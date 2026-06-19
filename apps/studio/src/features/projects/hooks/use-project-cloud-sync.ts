@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { appDataDir } from "@tauri-apps/api/path"
 import { toast } from "sonner"
-import type { ImageData } from "@/shared/types/core"
+import type { Item } from "@/shared/types/core"
 import type { CloudBatchResult, CloudConnectionRef } from "@/shared/ipc/cloud"
 import { allowImageDirectory } from "@/shared/lib/desktop"
 import { services } from "@/shared/services"
@@ -48,7 +48,7 @@ const summarize = (action: string, result: CloudBatchResult) => {
  */
 export const useProjectCloudSync = (
   projectId: string,
-  images: ImageData[],
+  images: Item[],
   onAfterPull?: () => void,
   storageConfig?: ProjectStorageConfig
 ) => {
@@ -82,7 +82,7 @@ export const useProjectCloudSync = (
           path: image.path,
         }))
       if (items.length === 0) {
-        toast.info("Nothing to push", { description: "No images in this project." })
+        toast.info("Nothing to push", { description: "No items in this project." })
         return
       }
       const result = await services
@@ -123,7 +123,7 @@ export const useProjectCloudSync = (
         destinations
           .filter(({ key }) => succeeded.has(key))
           .map(({ image, path }) =>
-            services.getImageService().updateImage(image.id, { path })
+            services.getItemService().updateItem(image.id, { path })
           )
       )
       summarize("Pull", result)

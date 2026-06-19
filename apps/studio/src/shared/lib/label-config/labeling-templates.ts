@@ -54,6 +54,7 @@ export type DataKind =
   | "video"
   | "text"
   | "audio"
+  | "tabular"
   | "timeseries"
   | "html"
   | "ranking"
@@ -536,11 +537,13 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
   {
     id: "tabular",
     label: "Tabular Data",
-    description: "Label rows / cells in tables",
+    description: "Import a CSV / TSV / Excel sheet — label one row per task",
     category: "Structured Data",
-    dataKind: "html",
+    dataKind: "tabular",
     icon: Table,
-    status: "pending",
+    modality: "tabular",
+    task: "classification",
+    status: "available",
   },
   {
     id: "html-classification",
@@ -724,6 +727,7 @@ export const DATA_KIND_LABELS: Record<DataKind, string> = {
   video: "Video",
   text: "Text",
   audio: "Audio",
+  tabular: "Tabular data",
   timeseries: "Time series",
   html: "HTML / structured",
   ranking: "Ranking",

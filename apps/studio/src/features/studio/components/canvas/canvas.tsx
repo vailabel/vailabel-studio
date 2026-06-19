@@ -3,7 +3,7 @@ import { cn } from "@/shared/lib/utils"
 import { AnnotationRenderer } from "@/features/studio/components/canvas/annotation-renderer"
 import { PositionCoordinates } from "@/features/studio/components/canvas/position-coordinates"
 import { useCanvasHandlers } from "@/features/studio/canvas-state/use-canvas-handlers-context"
-import { type Annotation, type ImageData, type Label } from "@/shared/types/core"
+import { type Annotation, type Item, type Label } from "@/shared/types/core"
 import { Crosshair } from "@/features/studio/components/canvas/crosshair-context"
 import { CreateAnnotation } from "@/features/studio/components/canvas/create-annotation"
 import { ToolStatus } from "@/features/studio/components/canvas/tool-status"
@@ -25,7 +25,7 @@ import { getCenterOffset } from "@/features/studio/canvas-state/tools/canvas-uti
 import { toAssetUrl } from "@/shared/lib/desktop"
 
 interface CanvasProps {
-  image: ImageData
+  image: Item
   annotations: Annotation[]
   predictions?: Prediction[]
   labels: Label[]
@@ -50,7 +50,7 @@ interface CanvasProps {
 }
 
 // Memoize the image component to prevent unnecessary re-renders
-const CanvasImage = memo(({ image }: { image: ImageData }) => (
+const CanvasImage = memo(({ image }: { image: Item }) => (
   <img
     src={toAssetUrl(image.path)}
     alt="Canvas"
@@ -110,7 +110,7 @@ export const Canvas = memo(
     const canvasRef = useRef<HTMLDivElement | null>(null)
     const resizeFrameRef = useRef<number | null>(null)
     const lastMeasuredSizeRef = useRef({ width: 0, height: 0 })
-    const fitStateRef = useRef<{ imageId: string; appliedZoom: number } | null>(
+    const fitStateRef = useRef<{ itemId: string; appliedZoom: number } | null>(
       null
     )
     const lastFitSignalRef = useRef(fitSignal)
@@ -188,7 +188,7 @@ export const Canvas = memo(
         5
       )
 
-      const isNewImage = fitStateRef.current?.imageId !== image.id
+      const isNewImage = fitStateRef.current?.itemId !== image.id
       const stillFitted =
         !!fitStateRef.current &&
         Math.abs(zoom - fitStateRef.current.appliedZoom) < 0.001
@@ -197,7 +197,7 @@ export const Canvas = memo(
 
       if (!(isNewImage || stillFitted || forced)) return
 
-      fitStateRef.current = { imageId: image.id, appliedZoom: fitZoom }
+      fitStateRef.current = { itemId: image.id, appliedZoom: fitZoom }
       if (Math.abs(zoom - fitZoom) > 0.001) {
         setZoom(fitZoom)
         setPanOffset({ x: 0, y: 0 })

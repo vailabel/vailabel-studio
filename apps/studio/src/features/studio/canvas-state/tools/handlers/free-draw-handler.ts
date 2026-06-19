@@ -25,7 +25,7 @@ export class FreeDrawHandler implements ToolHandler {
       tempAnnotation: {
         type: "freeDraw",
         coordinates: [point],
-        imageId: this.context.annotationsStore.currentImage?.id || "",
+        itemId: this.context.annotationsStore.currentImage?.id || "",
       },
     })
   }

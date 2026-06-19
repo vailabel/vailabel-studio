@@ -126,7 +126,7 @@ export interface DatasetImportRequest {
 
 /** Summary of a YOLO/Roboflow dataset imported into a project. */
 export interface DatasetImportResult {
-  imageCount: number
+  itemCount: number
   annotationCount: number
   classCount: number
   createdClassCount: number
@@ -140,7 +140,7 @@ export interface DatasetExportResult {
   /** The `data.yaml` path — feed this to `TrainingStartRequest.datasetPath`. */
   datasetPath: string
   root: string
-  imageCount: number
+  itemCount: number
   trainCount: number
   valCount: number
   labeledCount: number

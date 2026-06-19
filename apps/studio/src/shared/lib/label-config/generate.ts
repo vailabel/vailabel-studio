@@ -162,8 +162,26 @@ export function configForTemplate(template: LabelingTemplate): LabelConfig {
   if (modality === "text") return textConfig(task)
   if (modality === "audio") return audioConfig(task)
   if (modality === "video") return videoConfig(task)
+  if (modality === "tabular") return tableConfig()
   if (modality === "custom") return customConfig()
   return imageConfig(task)
+}
+
+// Tabular (CSV / TSV / Excel): each row is one task, rendered as a key/value
+// table; the default control classifies the whole row with single-choice labels.
+function tableConfig(): LabelConfig {
+  return {
+    objects: [obj("table")],
+    controls: [
+      ctrl(
+        "choices",
+        "label",
+        "table",
+        [ch("Positive", "#10b981"), ch("Negative", "#ef4444")],
+        { choice: "single" }
+      ),
+    ],
+  }
 }
 
 function videoConfig(task?: string): LabelConfig {

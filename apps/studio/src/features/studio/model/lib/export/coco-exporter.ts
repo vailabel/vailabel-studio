@@ -1,4 +1,4 @@
-import type { Annotation, ImageData } from "@/shared/types/core"
+import type { Annotation, Item } from "@/shared/types/core"
 import type { Label } from "@/shared/types/core"
 import {
   annotationBBox,
@@ -16,7 +16,7 @@ const round = (value: number) => Math.round(value * 100) / 100
  * bbox. Image and annotation ids are 1-based per the COCO spec.
  */
 export function toCoco(
-  images: ImageData[],
+  images: Item[],
   annotationsByImage: Map<string, Annotation[]>,
   labels: Label[]
 ): object {
@@ -36,9 +36,9 @@ export function toCoco(
   let annotationId = 1
 
   images.forEach((image, imageIndex) => {
-    const imageId = imageIndex + 1
+    const itemId = imageIndex + 1
     cocoImages.push({
-      id: imageId,
+      id: itemId,
       file_name: image.imagePath || image.name,
       width: image.width,
       height: image.height,
@@ -54,7 +54,7 @@ export function toCoco(
       const polygonal = isPolygonal(annotation)
       cocoAnnotations.push({
         id: annotationId,
-        image_id: imageId,
+        item_id: itemId,
         category_id: categoryId,
         bbox: [round(bbox.x), round(bbox.y), round(bbox.width), round(bbox.height)],
         area: round(

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Annotation, ImageData, Label, Project } from "@/shared/types/core"
+import { Annotation, Item, Label, Project } from "@/shared/types/core"
 import { z } from "zod"
 import { v4 as uuidv4 } from "uuid"
 import { useNavigate } from "react-router-dom"
@@ -32,7 +32,7 @@ export const LabelCreateSchema = z.object({
 
 export type LabelCreateForm = z.infer<typeof LabelCreateSchema>
 
-interface UploadImage extends ImageData {
+interface UploadImage extends Item {
   size?: number
 }
 
@@ -49,7 +49,7 @@ function fileBaseName(filePath: string): string {
 export const useProjectDetailViewModel = (projectId: string) => {
   const navigate = useNavigate()
   const [project, setProject] = useState<Project | null>(null)
-  const [images, setImages] = useState<ImageData[]>([])
+  const [images, setImages] = useState<Item[]>([])
   const [annotations, setAnnotations] = useState<Annotation[]>([])
   const [labels, setLabels] = useState<Label[]>([])
   const [activeTab, setActiveTab] = useState<
@@ -75,7 +75,7 @@ export const useProjectDetailViewModel = (projectId: string) => {
       const [nextProject, nextImages, nextAnnotations, nextLabels] =
         await Promise.all([
           services.getProjectService().getById(projectId),
-          services.getImageService().getImagesByProjectId(projectId),
+          services.getItemService().getItemsByProjectId(projectId),
           services.getAnnotationService().getAnnotationsByProjectId(projectId),
           services.getLabelService().getLabelsByProjectId(projectId),
         ])
@@ -111,7 +111,7 @@ export const useProjectDetailViewModel = (projectId: string) => {
       }
 
       void refreshData()
-    }, ["projects", "images", "annotations", "labels"]).then(
+    }, ["projects", "items", "annotations", "labels"]).then(
       (cleanup) => {
         unlisten = cleanup
       }
@@ -123,9 +123,9 @@ export const useProjectDetailViewModel = (projectId: string) => {
   }, [projectId, refreshData])
 
   const projectStats = useMemo(() => {
-    const annotatedImages = new Set(annotations.map((item) => item.image_id)).size
+    const annotatedImages = new Set(annotations.map((item) => item.item_id)).size
     return {
-      totalImages: images.length,
+      totalItems: images.length,
       annotatedImages,
       totalAnnotations: annotations.length,
       totalLabels: labels.length,
@@ -261,8 +261,8 @@ export const useProjectDetailViewModel = (projectId: string) => {
     toggleImageSelection: () => {},
     toggleAnnotationSelection: () => {},
     clearSelections: () => {},
-    getImageAnnotations: (imageId: string) =>
-      annotations.filter((annotation) => annotation.image_id === imageId),
+    getImageAnnotations: (itemId: string) =>
+      annotations.filter((annotation) => annotation.item_id === itemId),
     getAnnotationLabel: (annotation: Annotation) =>
       labels.find((label) => label.id === annotation.label_id),
     addImagesFromFolder,
@@ -277,7 +277,7 @@ export const useProjectDetailViewModel = (projectId: string) => {
       try {
         const created = await Promise.all(
           newDocuments.map((doc) =>
-            services.getImageService().createImage({
+            services.getItemService().createItem({
               id: doc.id,
               name: doc.name,
               path: doc.path,
@@ -299,7 +299,7 @@ export const useProjectDetailViewModel = (projectId: string) => {
       setIsSaving(true)
       try {
         const createdImages = await Promise.all(
-          newImages.map((image) => services.getImageService().createImage(image))
+          newImages.map((image) => services.getItemService().createItem(image))
         )
 
         // Hydrate annotations from any LabelMe sidecar files in the folder.
@@ -336,14 +336,14 @@ export const useProjectDetailViewModel = (projectId: string) => {
     closeEditProjectModal: () => setIsEditProjectModalOpen(false),
     refreshData,
     loadProjectData: refreshData,
-    navigateToImage: (imageId: string) =>
-      navigate(`/projects/${projectId}/studio/${imageId}`),
+    navigateToItem: (itemId: string) =>
+      navigate(`/projects/${projectId}/studio/${itemId}`),
     // Video projects now label inside the unified studio shell (its VideoEditor
     // mounts the clip library + FFmpeg pipeline) — no separate video route.
     openVideoEditor: () => navigate(`/projects/${projectId}/studio`),
-    deleteImage: async (imageId: string) => {
-      await services.getImageService().deleteImage(imageId)
-      setImages((current) => current.filter((image) => image.id !== imageId))
+    deleteItem: async (itemId: string) => {
+      await services.getItemService().deleteItem(itemId)
+      setImages((current) => current.filter((image) => image.id !== itemId))
     },
     openAddLabelModal: () => setIsAddLabelModalOpen(true),
     closeAddLabelModal: () => setIsAddLabelModalOpen(false),

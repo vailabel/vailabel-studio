@@ -33,7 +33,7 @@ interface StudioRightPanelProps {
   onRejectPrediction: ComponentProps<typeof PredictionReviewPanel>["onReject"]
   // Copilot
   projectId?: string
-  imageId?: string
+  itemId?: string
   imageName?: string
 }
 
@@ -78,7 +78,7 @@ const ImageRightPanel = memo(
     onAcceptPrediction,
     onRejectPrediction,
     projectId,
-    imageId,
+    itemId,
     imageName,
   }: StudioRightPanelProps & { classes: React.ReactNode }) => {
     const [tab, setTab] = useState("classes")
@@ -133,9 +133,9 @@ const ImageRightPanel = memo(
           className="min-h-0 overflow-hidden"
         >
           <AiCopilotPanel
-            key={imageId}
+            key={itemId}
             projectId={projectId}
-            imageId={imageId}
+            itemId={itemId}
             imageName={imageName}
           />
         </TabsContent>

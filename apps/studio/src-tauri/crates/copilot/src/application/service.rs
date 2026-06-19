@@ -94,7 +94,7 @@ impl CopilotAppService {
     pub fn turn(&self, payload: CopilotTurnPayload) -> DomainResult<CopilotTurnResult> {
         let image = self
             .inference
-            .image(&payload.image_id)?
+            .image(&payload.item_id)?
             .ok_or_else(|| DomainError::not_found("Image"))?;
         let project_id = payload
             .project_id
@@ -140,7 +140,7 @@ impl CopilotAppService {
             // intended tool, and either run it (if it's actually on) or explain.
             let intent = domain::route(&payload.message, &vocab);
             if domain::tool_enabled(intent.capability.as_str(), enabled) {
-                return self.dispatch_intent(&intent, &image, &payload.image_id, &payload.message, llm);
+                return self.dispatch_intent(&intent, &image, &payload.item_id, &payload.message, llm);
             }
             return Ok(CopilotTurnResult::reply_only(
                 &Capability::Help,
@@ -151,10 +151,10 @@ impl CopilotAppService {
         if plan.steps.len() == 1 {
             // Single step → reuse the existing per-capability dispatch unchanged.
             let intent = plan.steps[0].to_routed_intent();
-            return self.dispatch_intent(&intent, &image, &payload.image_id, &payload.message, llm);
+            return self.dispatch_intent(&intent, &image, &payload.item_id, &payload.message, llm);
         }
 
-        self.execute_plan(&plan, &image, &payload.image_id, &payload.message, llm)
+        self.execute_plan(&plan, &image, &payload.item_id, &payload.message, llm)
     }
 
     /// Ask the local LLM to plan the turn as validated steps. Returns `None` when
@@ -186,17 +186,17 @@ impl CopilotAppService {
         &self,
         intent: &domain::RoutedIntent,
         image: &Value,
-        image_id: &str,
+        item_id: &str,
         message: &str,
         llm: Option<&CopilotLlmConfig>,
     ) -> DomainResult<CopilotTurnResult> {
         match intent.capability {
             // Grounding stays deterministic — the detector, never the LLM.
-            Capability::Detect => self.copilot_detect(intent, image_id, llm),
-            Capability::Qa => self.copilot_qa(intent, image_id, llm),
+            Capability::Detect => self.copilot_detect(intent, item_id, llm),
+            Capability::Qa => self.copilot_qa(intent, item_id, llm),
             // Label-name recommendation: gather names from the vision model and/or
             // the detector and offer them as one-click "add label" actions.
-            Capability::SuggestLabels => self.copilot_suggest_labels(intent, image, image_id, llm),
+            Capability::SuggestLabels => self.copilot_suggest_labels(intent, image, item_id, llm),
             Capability::Segment => Ok(CopilotTurnResult::reply_only(
                 &intent.capability,
                 "Click an object (or draw a box) on the canvas and I\u{2019}ll outline it with \
@@ -250,7 +250,7 @@ impl CopilotAppService {
         &self,
         plan: &domain::Plan,
         image: &Value,
-        image_id: &str,
+        item_id: &str,
         message: &str,
         llm: Option<&CopilotLlmConfig>,
     ) -> DomainResult<CopilotTurnResult> {
@@ -262,14 +262,14 @@ impl CopilotAppService {
 
         for step in &plan.steps {
             if matches!(step.capability, domain::PlanCapability::SegmentEachDetection) {
-                let boxes = self.detection_boxes(image_id)?;
+                let boxes = self.detection_boxes(item_id)?;
                 if boxes.is_empty() {
                     reply_parts.push("There were no detections to outline.".into());
                     continue;
                 }
                 match self
                     .inference
-                    .segment_boxes(image_id, boxes, last_detection_target.as_deref())
+                    .segment_boxes(item_id, boxes, last_detection_target.as_deref())
                 {
                     Ok(polygons) => {
                         predictions_added += polygons.len();
@@ -287,7 +287,7 @@ impl CopilotAppService {
             if step.is_detect() {
                 last_detection_target = intent.target.clone();
             }
-            let result = self.dispatch_intent(&intent, image, image_id, message, llm)?;
+            let result = self.dispatch_intent(&intent, image, item_id, message, llm)?;
             predictions_added += result.predictions_added;
             findings.extend(result.findings);
             proposed_actions.extend(result.proposed_actions);
@@ -311,8 +311,8 @@ impl CopilotAppService {
 
     /// The image's current detection boxes (highest-confidence first, capped), for
     /// feeding a segment-each step. Polygons are skipped.
-    fn detection_boxes(&self, image_id: &str) -> DomainResult<Vec<BoxPrompt>> {
-        let predictions = self.inference.predictions(image_id)?;
+    fn detection_boxes(&self, item_id: &str) -> DomainResult<Vec<BoxPrompt>> {
+        let predictions = self.inference.predictions(item_id)?;
         let mut scored: Vec<(f32, BoxPrompt)> = predictions
             .iter()
             .filter(|prediction| {
@@ -380,7 +380,7 @@ impl CopilotAppService {
     fn copilot_detect(
         &self,
         intent: &domain::RoutedIntent,
-        image_id: &str,
+        item_id: &str,
         llm: Option<&CopilotLlmConfig>,
     ) -> DomainResult<CopilotTurnResult> {
         let model_id = match self.inference.detector_model_id()? {
@@ -404,7 +404,7 @@ impl CopilotAppService {
             .map(str::trim)
             .filter(|target| !target.is_empty() && !is_generic_detect_target(target));
 
-        let predictions = match self.inference.detect(image_id, &model_id, effective_target) {
+        let predictions = match self.inference.detect(item_id, &model_id, effective_target) {
             Ok(predictions) => predictions,
             Err(error) => {
                 return Ok(CopilotTurnResult::reply_only(
@@ -463,7 +463,7 @@ impl CopilotAppService {
     fn copilot_qa(
         &self,
         intent: &domain::RoutedIntent,
-        image_id: &str,
+        item_id: &str,
         llm: Option<&CopilotLlmConfig>,
     ) -> DomainResult<CopilotTurnResult> {
         let model_id = match self.inference.detector_model_id()? {
@@ -477,7 +477,7 @@ impl CopilotAppService {
             }
         };
 
-        let detections = match self.inference.detect(image_id, &model_id, None) {
+        let detections = match self.inference.detect(item_id, &model_id, None) {
             Ok(predictions) => predictions,
             Err(error) => {
                 return Ok(CopilotTurnResult::reply_only(
@@ -487,7 +487,7 @@ impl CopilotAppService {
             }
         };
 
-        let annotations = self.inference.annotations(image_id)?;
+        let annotations = self.inference.annotations(item_id)?;
         let (findings, proposed_actions) = domain::qa_findings(&detections, &annotations);
 
         let missed = findings.iter().filter(|f| f.kind == "missed").count();
@@ -539,7 +539,7 @@ impl CopilotAppService {
         &self,
         intent: &domain::RoutedIntent,
         image: &Value,
-        image_id: &str,
+        item_id: &str,
         llm: Option<&CopilotLlmConfig>,
     ) -> DomainResult<CopilotTurnResult> {
         let project_id = value_string(image, "projectId", "project_id").unwrap_or_default();
@@ -586,7 +586,7 @@ impl CopilotAppService {
         let detector_model_id = self.inference.detector_model_id().ok().flatten();
         let detector_available = detector_model_id.is_some();
         if let Some(model_id) = detector_model_id {
-            match self.inference.detect(image_id, &model_id, None) {
+            match self.inference.detect(item_id, &model_id, None) {
                 Ok(predictions) => {
                     predictions_added = predictions.len();
                     let mut names: Vec<String> = predictions
@@ -940,7 +940,7 @@ mod tests {
 
     fn turn_payload(message: &str) -> CopilotTurnPayload {
         serde_json::from_value(json!({
-            "imageId": "img-1",
+            "itemId": "img-1",
             "message": message,
         }))
         .expect("payload")

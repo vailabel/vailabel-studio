@@ -13,18 +13,18 @@ import {
 } from "@/features/studio/canvas-state/canvas-context"
 import { listenToStudioEvents } from "@/shared/ipc/events"
 import { services } from "@/shared/services"
-import type { Annotation, ImageData, Label, Project } from "@/shared/types/core"
+import type { Annotation, Item, Label, Project } from "@/shared/types/core"
 import { openPathDialog } from "@/shared/lib/desktop"
 import { simplifyPolyline } from "@/features/studio/model/lib/canvas-utils"
 import { exportDataset, type ExportFormat } from "@/features/studio/model/lib/export"
-import { useImageLabelerViewModel } from "@/features/studio/model/image-labeler-viewmodel"
+import { useItemLabelerViewModel } from "@/features/studio/model/image-labeler-viewmodel"
 import { useSettingsViewModel } from "@/shared/model/settings-viewmodel"
 import { useCanvasSession } from "./use-canvas-session"
 import type { StudioHeaderStats } from "./types"
 
-export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
+export function useStudioScreenViewModel(projectId?: string, itemId?: string) {
   const navigate = useNavigate()
-  const imageLabeler = useImageLabelerViewModel(projectId, imageId)
+  const imageLabeler = useItemLabelerViewModel(projectId, itemId)
   const settings = useSettingsViewModel()
   const { contextMenu, setContextMenu } = useCanvasContextMenu()
   const { container, setContainer } = useCanvasContainer()
@@ -42,13 +42,13 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
   } = useCanvasDisplay()
 
   const [project, setProject] = useState<Project | null>(null)
-  const [projectImages, setProjectImages] = useState<ImageData[]>([])
-  const [annotatedImageIds, setAnnotatedImageIds] = useState<Set<string>>(
+  const [projectItems, setProjectImages] = useState<Item[]>([])
+  const [annotatedItemIds, setAnnotatedImageIds] = useState<Set<string>>(
     new Set()
   )
   const [projectStats, setProjectStats] = useState<StudioHeaderStats>({
-    totalImages: 0,
-    labeledImages: 0,
+    totalItems: 0,
+    labeledItems: 0,
     totalLabels: 0,
   })
   const [isProjectSummaryLoading, setIsProjectSummaryLoading] = useState(true)
@@ -96,8 +96,8 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
     if (!effectiveProjectId) {
       setProject(null)
       setProjectStats({
-        totalImages: 0,
-        labeledImages: 0,
+        totalItems: 0,
+        labeledItems: 0,
         totalLabels: 0,
       })
       setIsProjectSummaryLoading(false)
@@ -110,23 +110,23 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
     try {
       const [nextProject, images, annotations, labels] = await Promise.all([
         services.getProjectService().getById(effectiveProjectId),
-        services.getImageService().getImagesByProjectId(effectiveProjectId),
+        services.getItemService().getItemsByProjectId(effectiveProjectId),
         services.getAnnotationService().getAnnotationsByProjectId(effectiveProjectId),
         services.getLabelService().getLabelsByProjectId(effectiveProjectId),
       ])
 
-      const labeledImages = new Set(
+      const labeledItems = new Set(
         annotations
-          .map((annotation) => annotation.imageId || annotation.image_id || "")
+          .map((annotation) => annotation.itemId || annotation.item_id || "")
           .filter(Boolean)
       )
 
       setProject(nextProject)
       setProjectImages(images)
-      setAnnotatedImageIds(labeledImages)
+      setAnnotatedImageIds(labeledItems)
       setProjectStats({
-        totalImages: images.length,
-        labeledImages: labeledImages.size,
+        totalItems: images.length,
+        labeledItems: labeledItems.size,
         totalLabels: labels.length,
       })
     } finally {
@@ -153,7 +153,7 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
           void refreshProjectSummary({ silent: true })
         }
       },
-      ["projects", "images", "annotations", "labels"]
+      ["projects", "items", "annotations", "labels"]
     ).then((cleanup) => {
       unlisten = cleanup
     })
@@ -163,7 +163,7 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
     }
   }, [effectiveProjectId, refreshProjectSummary])
 
-  const navigateToImage = useCallback(
+  const navigateToItem = useCallback(
     (nextImageId: string | null | undefined) => {
       if (!effectiveProjectId || !nextImageId) return
       navigate(`/projects/${effectiveProjectId}/studio/${nextImageId}`)
@@ -174,26 +174,26 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
   // Derive prev/next from the project's image list + the current image id —
   // the SAME list the file panel renders — so the header navigation can never
   // drift out of sync with what's actually loaded.
-  const currentImageIndex = useMemo(
-    () => projectImages.findIndex((entry) => entry.id === imageId),
-    [projectImages, imageId]
+  const currentItemIndex = useMemo(
+    () => projectItems.findIndex((entry) => entry.id === itemId),
+    [projectItems, itemId]
   )
   const previousImageId =
-    currentImageIndex > 0
-      ? projectImages[currentImageIndex - 1]?.id ?? null
+    currentItemIndex > 0
+      ? projectItems[currentItemIndex - 1]?.id ?? null
       : null
   const nextImageId =
-    currentImageIndex >= 0 && currentImageIndex < projectImages.length - 1
-      ? projectImages[currentImageIndex + 1]?.id ?? null
+    currentItemIndex >= 0 && currentItemIndex < projectItems.length - 1
+      ? projectItems[currentItemIndex + 1]?.id ?? null
       : null
 
-  const goToNextImage = useCallback(() => {
-    navigateToImage(nextImageId)
-  }, [nextImageId, navigateToImage])
+  const goToNextItem = useCallback(() => {
+    navigateToItem(nextImageId)
+  }, [nextImageId, navigateToItem])
 
-  const goToPreviousImage = useCallback(() => {
-    navigateToImage(previousImageId)
-  }, [previousImageId, navigateToImage])
+  const goToPreviousItem = useCallback(() => {
+    navigateToItem(previousImageId)
+  }, [previousImageId, navigateToItem])
 
   // Image navigation (arrows) + class hotkeys (1–9) are handled by a single
   // `useLabelHotkeys` listener mounted in the labeler, replacing the previously
@@ -346,7 +346,7 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
       setIsExporting(true)
       try {
         const [images, annotations, labels] = await Promise.all([
-          services.getImageService().getImagesByProjectId(effectiveProjectId),
+          services.getItemService().getItemsByProjectId(effectiveProjectId),
           services
             .getAnnotationService()
             .getAnnotationsByProjectId(effectiveProjectId),
@@ -355,7 +355,7 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
 
         const annotationsByImage = new Map<string, Annotation[]>()
         for (const annotation of annotations) {
-          const id = annotation.imageId || annotation.image_id || ""
+          const id = annotation.itemId || annotation.item_id || ""
           const list = annotationsByImage.get(id)
           if (list) list.push(annotation)
           else annotationsByImage.set(id, [annotation])
@@ -376,7 +376,7 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
 
   return {
     data: {
-      image: imageLabeler.image,
+      item: imageLabeler.image,
       annotations: imageLabeler.annotations,
       predictions: imageLabeler.predictions,
       labels: imageLabeler.labels,
@@ -409,7 +409,7 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
     hasPrevious: previousImageId !== null,
     nextId: nextImageId,
     prevId: previousImageId,
-    currentImageIndex,
+    currentItemIndex,
     showSettingsModal,
     setContainer,
     setSelectedTool,
@@ -436,12 +436,12 @@ export function useStudioScreenViewModel(projectId?: string, imageId?: string) {
     smartSegment,
     acceptPrediction,
     rejectPrediction: imageLabeler.rejectPrediction,
-    goToNextImage,
-    goToPreviousImage,
-    projectImages,
-    annotatedImageIds,
-    currentImageId: imageId,
-    navigateToImage,
+    goToNextItem,
+    goToPreviousItem,
+    projectItems,
+    annotatedItemIds,
+    currentItemId: itemId,
+    navigateToItem,
     exportProject,
     isExporting,
     navigateBackToProjects: () => navigate("/projects"),

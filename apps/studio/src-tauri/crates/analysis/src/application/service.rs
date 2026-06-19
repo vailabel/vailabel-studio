@@ -71,7 +71,7 @@ impl AnalysisAppService {
                     }
                     PixelOutcome::Corrupted(reason) => {
                         corrupted_images.push(ImageRef {
-                            image_id: id.to_string(),
+                            item_id: id.to_string(),
                             name: name.to_string(),
                             reason: Some(reason),
                         });

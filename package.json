@@ -52,14 +52,11 @@
     "@changesets/cli": "^2.31.0",
     "@commitlint/cli": "^21.0.2",
     "@commitlint/config-conventional": "^21.0.2",
-    "@types/jest": "^30.0.0",
     "@types/semver": "^7.7.1",
     "changesets": "^1.0.2",
     "commitizen": "^4.3.2",
     "cz-conventional-changelog": "^3.3.0",
-    "husky": "^9.1.7",
-    "jest": "^30.4.2",
-    "ts-jest": "^29.4.11"
+    "husky": "^9.1.7"
   },
   "packageManager": "yarn@1.22.22",
   "dependencies": {},

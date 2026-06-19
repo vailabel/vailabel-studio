@@ -72,12 +72,25 @@ describe("inferModalityTask", () => {
     ).toEqual({ modality: "custom" })
   })
 
-  it("falls back to custom for unknown objects (table/video/…)", () => {
+  it("routes a table object to whole-row tabular classification", () => {
     expect(
       infer(
         JSON.stringify({
           objects: [{ tag: "table", name: "t", value: "$t" }],
           controls: [{ tag: "choices", name: "c", toName: "t", labels: ["A"] }],
+        })
+      )
+    ).toEqual({ modality: "tabular", task: "classification" })
+  })
+
+  it("falls back to custom for unsupported objects (timeseries/…)", () => {
+    expect(
+      infer(
+        JSON.stringify({
+          objects: [{ tag: "timeseries", name: "ts", value: "$ts" }],
+          controls: [
+            { tag: "timeserieslabels", name: "c", toName: "ts", labels: ["A"] },
+          ],
         })
       )
     ).toEqual({ modality: "custom" })

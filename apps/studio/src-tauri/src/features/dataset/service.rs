@@ -18,7 +18,7 @@ use vailabel_annotation::domain::{Annotation, AnnotationRepository, LabelClass, 
 use vailabel_dataset::domain::yolo::{
     annotation_to_yolo_line, class_index_of, field, parse_yolo_line, str_field, DataYaml,
 };
-use vailabel_dataset::domain::{Image, ImageRepository};
+use vailabel_dataset::domain::{Item, ItemRepository};
 
 use crate::{emit_domain_event_for_ids, AppError};
 
@@ -41,7 +41,7 @@ pub struct DatasetExportResult {
     /// The `data.yaml` path — pass this straight to `training_start.datasetPath`.
     pub dataset_path: String,
     pub root: String,
-    pub image_count: usize,
+    pub item_count: usize,
     pub train_count: usize,
     pub val_count: usize,
     /// Images that contributed at least one usable box.
@@ -65,7 +65,7 @@ pub struct DatasetImportPayload {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DatasetImportResult {
-    pub image_count: usize,
+    pub item_count: usize,
     pub annotation_count: usize,
     /// Total classes the dataset declares (from data.yaml, or seen in labels).
     pub class_count: usize,
@@ -92,14 +92,14 @@ const IMPORT_COLORS: [&str; 10] = [
 /// delegate straight to its two methods.
 pub struct DatasetService {
     labels: Arc<dyn LabelRepository>,
-    images: Arc<dyn ImageRepository>,
+    images: Arc<dyn ItemRepository>,
     annotations: Arc<dyn AnnotationRepository>,
 }
 
 impl DatasetService {
     pub fn new(
         labels: Arc<dyn LabelRepository>,
-        images: Arc<dyn ImageRepository>,
+        images: Arc<dyn ItemRepository>,
         annotations: Arc<dyn AnnotationRepository>,
     ) -> Self {
         Self {
@@ -208,7 +208,7 @@ impl DatasetService {
             // Build label lines from this image's annotations.
             let anns: Vec<Value> = self
                 .annotations
-                .list_by_image(img_id)?
+                .list_by_item(img_id)?
                 .iter()
                 .map(|a| a.to_value())
                 .collect();
@@ -276,7 +276,7 @@ impl DatasetService {
         Ok(DatasetExportResult {
             dataset_path: yaml_path.to_string_lossy().to_string(),
             root: root.to_string_lossy().to_string(),
-            image_count: split_index,
+            item_count: split_index,
             train_count,
             val_count,
             labeled_count,
@@ -435,15 +435,15 @@ impl DatasetService {
                     "label_id": label_id,
                     "name": label_name,
                     "color": color,
-                    "imageId": img_id,
-                    "image_id": img_id,
+                    "itemId": img_id,
+                    "item_id": img_id,
                     "projectId": project_id,
                     "project_id": project_id,
                 }));
             }
         }
 
-        let image_count = images_buf.len();
+        let item_count = images_buf.len();
         let annotation_count = anns_buf.len();
         let created_class_count = new_labels.len();
         let class_count = if class_names.is_empty() {
@@ -460,7 +460,7 @@ impl DatasetService {
                 self.labels.save_atomic(&label)?;
             }
             for image in images_buf {
-                let image: Image = serde_json::from_value(image)?;
+                let image: Item = serde_json::from_value(image)?;
                 self.images.save_atomic(&image)?;
             }
             for ann in anns_buf {
@@ -473,7 +473,7 @@ impl DatasetService {
         let _ = app.asset_protocol_scope().allow_directory(&root, true);
 
         // One refresh nudge per entity kind (frontend also reloads after the await).
-        for entity in ["labels", "images", "annotations"] {
+        for entity in ["labels", "items", "annotations"] {
             let _ = emit_domain_event_for_ids(
                 app,
                 entity,
@@ -485,7 +485,7 @@ impl DatasetService {
         }
 
         Ok(DatasetImportResult {
-            image_count,
+            item_count,
             annotation_count,
             class_count,
             created_class_count,

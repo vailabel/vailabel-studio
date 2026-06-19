@@ -22,7 +22,7 @@ use crate::features::ai::model::{PipelineRunPayload, PredictionGeneratePayload};
 use crate::features::ai::plugin::{self, PromptInput};
 use crate::features::ai::service::AiService;
 use vailabel_annotation::domain::{AnnotationRepository, LabelRepository, PredictionRepository};
-use vailabel_dataset::domain::ImageRepository;
+use vailabel_dataset::domain::ItemRepository;
 use vailabel_workspace::domain::SettingRepository;
 
 // ───────────────────────────── LLM port ─────────────────────────────
@@ -177,7 +177,7 @@ impl CopilotLlm for BinaryCopilotLlm {
 /// `predictions:generated` via the held `AppHandle`).
 pub struct BinaryCopilotInference {
     ai: Arc<AiService>,
-    images: Arc<dyn ImageRepository>,
+    images: Arc<dyn ItemRepository>,
     labels: Arc<dyn LabelRepository>,
     annotations: Arc<dyn AnnotationRepository>,
     predictions: Arc<dyn PredictionRepository>,
@@ -187,7 +187,7 @@ pub struct BinaryCopilotInference {
 impl BinaryCopilotInference {
     pub fn new(
         ai: Arc<AiService>,
-        images: Arc<dyn ImageRepository>,
+        images: Arc<dyn ItemRepository>,
         labels: Arc<dyn LabelRepository>,
         annotations: Arc<dyn AnnotationRepository>,
         predictions: Arc<dyn PredictionRepository>,
@@ -216,8 +216,8 @@ fn to_json(value: impl serde::Serialize) -> DomainResult<Value> {
 }
 
 impl CopilotInference for BinaryCopilotInference {
-    fn image(&self, image_id: &str) -> DomainResult<Option<Value>> {
-        self.images.get(image_id)?.map(to_json).transpose()
+    fn image(&self, item_id: &str) -> DomainResult<Option<Value>> {
+        self.images.get(item_id)?.map(to_json).transpose()
     }
 
     fn project_labels(&self, project_id: &str) -> DomainResult<Vec<Value>> {
@@ -228,19 +228,19 @@ impl CopilotInference for BinaryCopilotInference {
             .collect()
     }
 
-    fn annotations(&self, image_id: &str) -> DomainResult<Vec<Value>> {
+    fn annotations(&self, item_id: &str) -> DomainResult<Vec<Value>> {
         Ok(self
             .annotations
-            .list_by_image(image_id)?
+            .list_by_item(item_id)?
             .iter()
             .map(|a| a.to_value())
             .collect())
     }
 
-    fn predictions(&self, image_id: &str) -> DomainResult<Vec<Value>> {
+    fn predictions(&self, item_id: &str) -> DomainResult<Vec<Value>> {
         Ok(self
             .predictions
-            .list_by_image(image_id)?
+            .list_by_item(item_id)?
             .iter()
             .map(|p| p.to_value())
             .collect())
@@ -256,7 +256,7 @@ impl CopilotInference for BinaryCopilotInference {
 
     fn detect(
         &self,
-        image_id: &str,
+        item_id: &str,
         model_id: &str,
         target: Option<&str>,
     ) -> Result<Vec<Value>, String> {
@@ -264,7 +264,7 @@ impl CopilotInference for BinaryCopilotInference {
             .generate_predictions_filtered(
                 &self.app,
                 PredictionGeneratePayload {
-                    image_id: image_id.to_string(),
+                    item_id: item_id.to_string(),
                     model_id: model_id.to_string(),
                     threshold: None,
                 },
@@ -275,7 +275,7 @@ impl CopilotInference for BinaryCopilotInference {
 
     fn segment_boxes(
         &self,
-        image_id: &str,
+        item_id: &str,
         boxes: Vec<BoxPrompt>,
         target: Option<&str>,
     ) -> Result<Vec<Value>, String> {
@@ -305,7 +305,7 @@ impl CopilotInference for BinaryCopilotInference {
             .pipeline_run(
                 &self.app,
                 PipelineRunPayload {
-                    image_id: image_id.to_string(),
+                    item_id: item_id.to_string(),
                     model_id: sam_model_id,
                     registry_id: None,
                     threshold: None,

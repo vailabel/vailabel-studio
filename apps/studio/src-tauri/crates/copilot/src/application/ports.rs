@@ -94,16 +94,16 @@ pub trait CopilotLlm: Send + Sync {
 /// shape).
 pub trait CopilotInference: Send + Sync {
     /// The image entity, or `None` when it doesn't exist.
-    fn image(&self, image_id: &str) -> DomainResult<Option<Value>>;
+    fn image(&self, item_id: &str) -> DomainResult<Option<Value>>;
 
     /// The project's label classes (for routing targets + dedup of suggestions).
     fn project_labels(&self, project_id: &str) -> DomainResult<Vec<Value>>;
 
     /// The image's existing annotations (for the QA diff).
-    fn annotations(&self, image_id: &str) -> DomainResult<Vec<Value>>;
+    fn annotations(&self, item_id: &str) -> DomainResult<Vec<Value>>;
 
     /// The image's current predictions (boxes the segment-each step outlines).
-    fn predictions(&self, image_id: &str) -> DomainResult<Vec<Value>>;
+    fn predictions(&self, item_id: &str) -> DomainResult<Vec<Value>>;
 
     /// Id of the detector to run: the active AI model, else the first installed.
     fn detector_model_id(&self) -> DomainResult<Option<String>>;
@@ -119,7 +119,7 @@ pub trait CopilotInference: Send + Sync {
     /// message (it is surfaced in the reply).
     fn detect(
         &self,
-        image_id: &str,
+        item_id: &str,
         model_id: &str,
         target: Option<&str>,
     ) -> Result<Vec<Value>, String>;
@@ -130,7 +130,7 @@ pub trait CopilotInference: Send + Sync {
     /// reply.
     fn segment_boxes(
         &self,
-        image_id: &str,
+        item_id: &str,
         boxes: Vec<BoxPrompt>,
         target: Option<&str>,
     ) -> Result<Vec<Value>, String>;

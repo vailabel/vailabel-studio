@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "camelCase")]
 pub struct CopilotTurnPayload {
     pub project_id: Option<String>,
-    pub image_id: String,
+    pub item_id: String,
     pub message: String,
     /// Tool ids the user has enabled in the copilot's Tools menu (matching
     /// `Capability::as_str`). `None`/empty = all tools on (back-compat); a

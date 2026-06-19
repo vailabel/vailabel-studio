@@ -5,34 +5,35 @@
 use serde_json::Value;
 use tauri::State;
 use vailabel_dataset::application::{
-    DeleteImageCommand, GetImageQuery, ListImagesByProjectQuery, ListImagesRangeQuery,
-    SaveImageCommand,
+    DeleteItemCommand, GetItemQuery, ListItemsByProjectQuery, ListItemsRangeQuery,
+    SaveItemCommand,
 };
-use vailabel_dataset::contracts::{ImageRangePayload, ProjectIdPayload};
+use vailabel_dataset::contracts::{ItemRangePayload, ProjectIdPayload};
 use vailabel_project::contracts::EntityIdPayload;
 
 use super::service::{
     DatasetExportPayload, DatasetExportResult, DatasetImportPayload, DatasetImportResult,
 };
+use super::spreadsheet::{parse_spreadsheet, SpreadsheetData};
 use crate::{AppError, AppState};
 
 #[tauri::command]
-pub fn images_list_by_project(
+pub fn items_list_by_project(
     state: State<AppState>,
     payload: ProjectIdPayload,
 ) -> Result<Value, AppError> {
-    let images = state.image_service.list_by_project(ListImagesByProjectQuery {
+    let images = state.item_service.list_by_project(ListItemsByProjectQuery {
         project_id: payload.project_id,
     })?;
     Ok(serde_json::to_value(images)?)
 }
 
 #[tauri::command]
-pub fn images_list_range(
+pub fn items_list_range(
     state: State<AppState>,
-    payload: ImageRangePayload,
+    payload: ItemRangePayload,
 ) -> Result<Value, AppError> {
-    let images = state.image_service.list_range(ListImagesRangeQuery {
+    let images = state.item_service.list_range(ListItemsRangeQuery {
         project_id: payload.project_id,
         offset: payload.offset,
         limit: payload.limit,
@@ -41,22 +42,22 @@ pub fn images_list_range(
 }
 
 #[tauri::command]
-pub fn images_get(state: State<AppState>, payload: EntityIdPayload) -> Result<Value, AppError> {
-    let image = state.image_service.get(GetImageQuery::new(payload.id))?;
+pub fn items_get(state: State<AppState>, payload: EntityIdPayload) -> Result<Value, AppError> {
+    let image = state.item_service.get(GetItemQuery::new(payload.id))?;
     Ok(serde_json::to_value(image)?)
 }
 
 #[tauri::command]
-pub fn images_save(state: State<AppState>, payload: Value) -> Result<Value, AppError> {
-    let image = state.image_service.save(SaveImageCommand::new(payload))?;
+pub fn items_save(state: State<AppState>, payload: Value) -> Result<Value, AppError> {
+    let image = state.item_service.save(SaveItemCommand::new(payload))?;
     Ok(serde_json::to_value(image)?)
 }
 
 #[tauri::command]
-pub fn images_delete(state: State<AppState>, payload: EntityIdPayload) -> Result<Value, AppError> {
+pub fn items_delete(state: State<AppState>, payload: EntityIdPayload) -> Result<Value, AppError> {
     Ok(state
-        .image_service
-        .delete(DeleteImageCommand::new(payload.id))?)
+        .item_service
+        .delete(DeleteItemCommand::new(payload.id))?)
 }
 
 #[tauri::command]
@@ -75,4 +76,11 @@ pub async fn dataset_import_yolo(
     payload: DatasetImportPayload,
 ) -> Result<DatasetImportResult, AppError> {
     state.dataset_service.import_yolo(&app, payload)
+}
+
+/// Parse a CSV / TSV / Excel file into `{ headers, rows }` for the structured-data
+/// import flow. Pure file read — no DB access — so it takes no `AppState`.
+#[tauri::command]
+pub fn spreadsheet_parse(path: String) -> Result<SpreadsheetData, AppError> {
+    parse_spreadsheet(&path)
 }

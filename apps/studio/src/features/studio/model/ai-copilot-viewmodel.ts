@@ -40,7 +40,7 @@ export function useAiCopilotViewModel() {
   const send = useCallback(
     async (args: {
       projectId?: string
-      imageId: string
+      itemId: string
       message: string
       enabledTools?: string[]
     }) => {
@@ -56,7 +56,7 @@ export function useAiCopilotViewModel() {
       try {
         const result = await aiCopilotService.turn({
           projectId: args.projectId,
-          imageId: args.imageId,
+          itemId: args.itemId,
           message: text,
           enabledTools: args.enabledTools,
         })

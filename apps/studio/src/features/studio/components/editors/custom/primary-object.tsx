@@ -1,7 +1,7 @@
 import { toAssetUrl } from "@/shared/lib/desktop"
 import { resultsForControl } from "@/shared/lib/label-config/result"
 import type { ControlTag, ObjectTag } from "@/shared/lib/label-config/types"
-import type { Annotation, ImageData, Label } from "@/shared/types/core"
+import type { Annotation, Item, Label } from "@/shared/types/core"
 import { ObjectImage } from "./object-image"
 import { ObjectText } from "./object-text"
 import { Notice } from "./config-notice"
@@ -9,7 +9,7 @@ import { Notice } from "./config-notice"
 interface PrimaryObjectProps {
   /** The interactive viewer object, or undefined when the config has no $data object. */
   primary: ObjectTag | undefined
-  doc: ImageData
+  doc: Item
   /** Spatial controls bound to the primary object. */
   controls: ControlTag[]
   annotations: Annotation[]

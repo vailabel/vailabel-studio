@@ -12,7 +12,7 @@ use diesel::sql_types::Text;
 use serde_json::Value;
 use vailabel_annotation::domain::{AnnotationRepository, LabelRepository};
 use vailabel_core::{DomainError, DomainResult};
-use vailabel_dataset::domain::ImageRepository;
+use vailabel_dataset::domain::ItemRepository;
 use vailabel_db::{Db, DbError};
 
 use crate::domain::{AnalysisReport, AnalysisRepository, ReportSummary};
@@ -29,7 +29,7 @@ fn serde_err(err: impl ToString) -> DomainError {
 /// Diesel over the shared connection.
 pub struct DieselAnalysisRepository {
     db: Db,
-    images: Arc<dyn ImageRepository>,
+    images: Arc<dyn ItemRepository>,
     annotations: Arc<dyn AnnotationRepository>,
     labels: Arc<dyn LabelRepository>,
 }
@@ -37,7 +37,7 @@ pub struct DieselAnalysisRepository {
 impl DieselAnalysisRepository {
     pub fn new(
         db: Db,
-        images: Arc<dyn ImageRepository>,
+        images: Arc<dyn ItemRepository>,
         annotations: Arc<dyn AnnotationRepository>,
         labels: Arc<dyn LabelRepository>,
     ) -> Self {
@@ -81,7 +81,7 @@ impl AnalysisRepository for DieselAnalysisRepository {
             id: report.id.clone(),
             project_id: report.project_id.clone(),
             created_at: report.created_at.clone(),
-            image_count: report.image_count,
+            item_count: report.item_count,
             annotation_count: report.annotation_count,
             health: report.health.clone(),
         };

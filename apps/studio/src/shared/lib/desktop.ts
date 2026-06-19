@@ -8,6 +8,15 @@ export interface ScannedImage {
   height: number
 }
 
+/** A parsed spreadsheet (CSV / TSV / Excel) returned by `spreadsheet_parse`:
+ *  the header row plus every data row as stringified cells aligned to `headers`. */
+export interface SpreadsheetData {
+  headers: string[]
+  rows: string[][]
+  /** Worksheet names (Excel/ODS); empty for CSV/TSV. First sheet is used today. */
+  sheetNames: string[]
+}
+
 export interface DialogFilter {
   name: string
   extensions: string[]
@@ -75,6 +84,12 @@ export const scanImageDirectory = async (directory: string) =>
   invokeWithLogging<ScannedImage[]>("images_scan_directory", {
     payload: { directory },
   })
+
+/** Parse a CSV / TSV / Excel file into `{ headers, rows }` for structured-data
+ *  import. Parsing runs in Rust (calamine/csv), so `.xlsx` works without a
+ *  webview parser. */
+export const parseSpreadsheet = async (path: string) =>
+  invokeWithLogging<SpreadsheetData>("spreadsheet_parse", { path })
 
 /** Grant the asset protocol read access to a folder the user just opened. */
 export const allowImageDirectory = async (path: string) =>
