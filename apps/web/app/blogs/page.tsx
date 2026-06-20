@@ -6,6 +6,20 @@ import { ArrowRight } from "lucide-react"
 import BlogSidebar from "./blog-sidebar"
 import { buttonVariants } from "@/components/ui/button"
 
+export const metadata = {
+  title: "Blog",
+  description:
+    "Product updates, deep dives, and notes from building Vailabel Studio — data labeling, annotation, AI auto-labeling, and computer-vision workflows.",
+  alternates: { canonical: "/blogs" },
+  openGraph: {
+    title: "Vailabel Studio Blog",
+    description:
+      "Product updates, deep dives, and notes on data labeling, annotation, and computer-vision workflows.",
+    url: "/blogs",
+    type: "website",
+  },
+}
+
 interface Blog {
   title: string
   description: string
@@ -22,7 +36,7 @@ export default async function BlogsPage({
 }) {
   const { page } = await searchParams
   const blogsDir = path.join(process.cwd(), "blogs")
-  const files = await fs.readdir(blogsDir)
+  const files = (await fs.readdir(blogsDir)).filter((f) => f.endsWith(".md"))
 
   const blogs: Blog[] = await Promise.all(
     files.map(async (file) => {
@@ -31,6 +45,11 @@ export default async function BlogsPage({
       const { data } = matter(fileContent)
       return { ...data, slug: file.replace(/\.md$/, "") } as Blog
     })
+  )
+
+  // Newest first so fresh content surfaces at the top.
+  blogs.sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   )
 
   const blogsPerPage = 5
