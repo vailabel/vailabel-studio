@@ -9,6 +9,7 @@ import ScrollToTop from "@/components/scroll-to-top"
 import { cn } from "@/lib/utils";
 import { data } from "@/app/data"
 import { Analytics } from '@vercel/analytics/next';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 const figtree = Figtree({subsets:['latin'],variable:'--font-sans'});
 
@@ -96,6 +97,7 @@ export default function RootLayout({
           <ScrollToTop />
         </ThemeProvider>
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   )
