@@ -210,7 +210,9 @@ function parseKeyboardShortcuts(value: string): KeyboardShortcut[] {
     if (Array.isArray(parsed) && parsed.length > 0) {
       return parsed as KeyboardShortcut[]
     }
-  } catch {}
+  } catch (error) {
+    console.warn("Failed to parse keyboard shortcuts, using defaults", error)
+  }
 
   return [...DEFAULT_KEYBOARD_SHORTCUTS]
 }
