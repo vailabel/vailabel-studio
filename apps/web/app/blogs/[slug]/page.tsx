@@ -4,6 +4,20 @@ import matter from "gray-matter"
 import { Metadata } from "next"
 import BlogSidebar from "../blog-sidebar"
 import { MarkdownRenderer } from "@/components/markdown-renderer"
+import { JsonLd } from "@/components/json-ld"
+import { articleSchema, breadcrumbSchema } from "@/app/structured-data"
+
+export async function generateStaticParams() {
+  try {
+    const blogsDir = path.join(process.cwd(), "blogs")
+    const files = await fs.readdir(blogsDir)
+    return files
+      .filter((f) => f.endsWith(".md"))
+      .map((f) => ({ slug: f.replace(/\.md$/, "") }))
+  } catch {
+    return []
+  }
+}
 
 export async function generateMetadata({
   params,
@@ -17,20 +31,28 @@ export async function generateMetadata({
   try {
     const fileContent = await fs.readFile(filePath, "utf8")
     const parsed = matter(fileContent)
-    const { title, description } = parsed.data
+    const title = parsed.data.title || "Blog Post"
+    const description =
+      parsed.data.description || "Read this blog post on our site."
+    const image = parsed.data.image
     return {
-      title: title || "Blog Post",
-      description: description || "Read this blog post on our site.",
+      title,
+      description,
+      alternates: { canonical: `/blogs/${slug}` },
       openGraph: {
-        title: title || "Blog Post",
-        description: description || "Read this blog post on our site.",
+        title,
+        description,
         type: "article",
         url: `/blogs/${slug}`,
+        publishedTime: parsed.data.date || undefined,
+        authors: parsed.data.author ? [parsed.data.author] : undefined,
+        ...(image ? { images: [{ url: image, alt: title }] } : {}),
       },
       twitter: {
         card: "summary_large_image",
-        title: title || "Blog Post",
-        description: description || "Read this blog post on our site.",
+        title,
+        description,
+        ...(image ? { images: [image] } : {}),
       },
     }
   } catch {
@@ -51,7 +73,7 @@ export default async function BlogDetailPage({
   const filePath = path.join(blogsDir, `${slug}.md`)
 
   let markdownContent = ""
-  let metadata = { title: "", description: "", date: "", author: "" }
+  let metadata = { title: "", description: "", date: "", author: "", image: "" }
 
   try {
     const fileContent = await fs.readFile(filePath, "utf8")
@@ -62,6 +84,7 @@ export default async function BlogDetailPage({
       description: parsed.data.description || "",
       date: parsed.data.date || "",
       author: parsed.data.author || "",
+      image: parsed.data.image || "",
     }
   } catch (error) {
     markdownContent =
@@ -70,6 +93,26 @@ export default async function BlogDetailPage({
 
   return (
     <div className="min-h-screen bg-background">
+      {metadata.title && (
+        <JsonLd
+          data={[
+            breadcrumbSchema([
+              { name: "Home", path: "/" },
+              { name: "Blog", path: "/blogs" },
+              { name: metadata.title, path: `/blogs/${slug}` },
+            ]),
+            articleSchema({
+              type: "BlogPosting",
+              title: metadata.title,
+              description: metadata.description,
+              path: `/blogs/${slug}`,
+              image: metadata.image || undefined,
+              datePublished: metadata.date || undefined,
+              author: metadata.author || undefined,
+            }),
+          ]}
+        />
+      )}
       <div className="mx-auto flex max-w-6xl flex-col gap-12 px-4 py-14 sm:px-6 lg:flex-row lg:px-8">
         <main className="min-w-0 flex-1">
           <header className="mb-8 border-b border-border pb-6">

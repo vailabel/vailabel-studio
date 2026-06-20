@@ -5,8 +5,22 @@ import Link from "next/link"
 import { ChevronLeft, ChevronRight, Calendar, Tag } from "lucide-react"
 import { AnimatedLayout } from "@/components/animated-layout"
 import { MarkdownRenderer } from "@/components/markdown-renderer"
+import { JsonLd } from "@/components/json-ld"
+import { articleSchema, breadcrumbSchema } from "@/app/structured-data"
 
 import matter from "gray-matter"
+
+export async function generateStaticParams() {
+  try {
+    const docsDir = path.join(process.cwd(), "docs")
+    const files = await fs.readdir(docsDir)
+    return files
+      .filter((f) => f.endsWith(".md"))
+      .map((f) => ({ slug: f.replace(/\.md$/, "") }))
+  } catch {
+    return []
+  }
+}
 
 export async function generateMetadata({
   params,
@@ -46,10 +60,23 @@ export async function generateMetadata({
   try {
     const raw = await fs.readFile(filePath, "utf8")
     const { data } = matter(raw)
+    const title = data.title || slug
+    const description = data.description || `Documentation for ${title}`
     return {
-      title: `${data.title || slug} - Documentation`,
-      description:
-        data.description || `Documentation for ${data.title || slug}`,
+      title,
+      description,
+      alternates: { canonical: `/docs/${slug}` },
+      openGraph: {
+        type: "article",
+        title,
+        description,
+        url: `/docs/${slug}`,
+      },
+      twitter: {
+        card: "summary_large_image",
+        title,
+        description,
+      },
     }
   } catch (error) {
     return {
@@ -142,6 +169,22 @@ export default async function DocDetailPage({
 
   return (
     <AnimatedLayout>
+      <JsonLd
+        data={[
+          breadcrumbSchema([
+            { name: "Home", path: "/" },
+            { name: "Docs", path: "/docs" },
+            { name: title, path: `/docs/${slug}` },
+          ]),
+          articleSchema({
+            type: "TechArticle",
+            title,
+            description,
+            path: `/docs/${slug}`,
+            dateModified: lastUpdated || undefined,
+          }),
+        ]}
+      />
       <div className="w-full max-w-3xl mx-auto">
         {/* Document header */}
         <div className="mb-8 space-y-4">
