@@ -1,7 +1,7 @@
 export const data = {
   repoUrl: "https://github.com/vailabel/vailabel-studio",
   releasesUrl: "https://github.com/vailabel/vailabel-studio/releases",
-  productionUrl: "https://studio.vailabel.com/",
+  productionUrl: "https://vailabel.com/",
   appName: "Vailabel Studio",
   orgName: "Vailabel",
   authorName: "Vichea Nath",
