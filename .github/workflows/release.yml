@@ -95,7 +95,9 @@ jobs:
           workspaces: apps/studio/src-tauri -> target
 
       - name: Install JS dependencies
-        run: yarn install --frozen-lockfile
+        # --ignore-engines: @commitlint/cli (dev-only commit linting, unused by
+        # the build) requires Node >=22.12 while CI builds on the proven Node 20.
+        run: yarn install --frozen-lockfile --ignore-engines
 
       - name: Sync app version to the tag
         # Keeps the installer's version in lockstep with the tag so `v1.2.3`
