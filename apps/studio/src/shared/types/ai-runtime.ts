@@ -185,14 +185,6 @@ export interface ExportResult {
   error?: string | null
 }
 
-/** Payload of the `runtime-models-install://progress` event. */
-export interface RuntimeModelInstallProgress {
-  phase: "start" | "downloading" | "done" | "error"
-  message: string
-  receivedBytes: number
-  totalBytes: number
-}
-
 /** Result of `runtime_gpu_probe` — an `nvidia-smi`-based GPU detection that works
  *  even while the runtime's torch is CPU-only, so the UI can offer one-click GPU
  *  acceleration. */
@@ -210,14 +202,6 @@ export interface GpuProbe {
   platform?: string
 }
 
-/** Payload of the `runtime-gpu-install://progress` event. */
-export interface GpuInstallProgress {
-  phase: "start" | "installing" | "done" | "error"
-  message: string
-  receivedBytes?: number
-  totalBytes?: number
-}
-
 /** Result of `runtime_install_status`. The embedded Python interpreter is
  *  provisioned on first run (downloaded into app-data), not bundled in the
  *  installer — so it may not be present yet. */
@@ -226,12 +210,4 @@ export interface RuntimeInstallStatus {
   /** Coarse download+install size estimate (MB), shown in the install prompt. */
   sizeEstimateMb: number
   pythonDir: string
-}
-
-/** Payload of the `runtime-install://progress` event (first-run provisioning). */
-export interface RuntimeInstallProgress {
-  phase: "start" | "downloading" | "extracting" | "installing" | "done" | "error"
-  message: string
-  receivedBytes?: number
-  totalBytes?: number
 }

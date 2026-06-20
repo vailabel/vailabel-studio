@@ -8,7 +8,11 @@ import {
 } from "lucide-react"
 import { Button } from "@/shared/ui/button"
 import { Badge } from "@/shared/ui/badge"
-import { DataGrid, type DataGridColumn } from "@/shared/components/data-grid"
+import {
+  DataGrid,
+  ServerDataGrid,
+  type DataGridColumn,
+} from "@/shared/components/data-grid"
 import type { Item } from "@/shared/types/core"
 import { cn } from "@/shared/lib/utils"
 import { toAssetUrl } from "@/shared/lib/desktop"
@@ -29,6 +33,20 @@ export interface ImageTableColumn {
   thumbnail: string
 }
 
+/** Server-driven pagination + search controls. When provided, `images` holds
+ *  only the current page's rows and the parent owns paging/search/total. */
+export interface ImageTableServer {
+  /** 1-based current page. */
+  page: number
+  pageSize: number
+  /** Search-aware total across the whole project. */
+  total: number
+  search: string
+  onPageChange: (page: number) => void
+  onPageSizeChange: (pageSize: number) => void
+  onSearchChange: (value: string) => void
+}
+
 export interface ImageTableProps {
   images: Item[]
   isLoading?: boolean
@@ -40,6 +58,8 @@ export interface ImageTableProps {
   showPagination?: boolean
   pageSize?: number
   className?: string
+  /** Opt into server-side pagination/search (don't load the whole project). */
+  server?: ImageTableServer
 }
 
 export const ImageTable = memo(({
@@ -53,6 +73,7 @@ export const ImageTable = memo(({
   showPagination = true,
   pageSize = 10,
   className,
+  server,
 }: ImageTableProps) => {
   const formatDateValue = useCallback((value: string | Date | undefined) => {
     if (!value) return "Unknown"
@@ -253,6 +274,29 @@ export const ImageTable = memo(({
           </div>
         </div>
       </div>
+    )
+  }
+
+  if (server) {
+    return (
+      <ServerDataGrid
+        className={className}
+        data={tableData}
+        columns={columns}
+        isLoading={isLoading}
+        searchPlaceholder="Search items..."
+        emptyMessage="No items found."
+        searchValue={server.search}
+        onSearchChange={server.onSearchChange}
+        pagination={{
+          currentPage: server.page,
+          totalPages: Math.max(1, Math.ceil(server.total / server.pageSize)),
+          totalCount: server.total,
+          pageSize: server.pageSize,
+          onPageChange: server.onPageChange,
+          onPageSizeChange: server.onPageSizeChange,
+        }}
+      />
     )
   }
 

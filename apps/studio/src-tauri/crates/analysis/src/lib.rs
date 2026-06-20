@@ -8,8 +8,8 @@
 //! `AnalysisRepository` port; `application` holds the `AnalysisAppService` use
 //! cases + the `ImageDecoder` (pixel pass) and `AnalysisReporter` (progress)
 //! ports; `infrastructure` holds the `image`-crate pixel decoder (the only layer
-//! that reads image files). The background job lifecycle (threads + the
-//! `analysis://progress` Tauri event) stays in the binary.
+//! that reads image files). The background job lifecycle (threads + the unified
+//! `studio://activity` Tauri event) stays in the binary.
 
 pub mod application;
 pub mod contracts;

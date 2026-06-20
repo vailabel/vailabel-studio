@@ -22,3 +22,14 @@ pub struct ListItemsRangeQuery {
     pub offset: Option<usize>,
     pub limit: Option<usize>,
 }
+
+/// One page of a project's items plus the (search-aware) total count, for a
+/// server-driven pager / infinite scroll. The page is a real SQL `LIMIT`/`OFFSET`
+/// slice — the full dataset is never loaded into memory.
+pub struct ListItemsPageQuery {
+    pub project_id: String,
+    pub offset: usize,
+    pub limit: usize,
+    /// Optional case-insensitive name filter.
+    pub search: Option<String>,
+}

@@ -42,7 +42,14 @@ export function useStudioScreenViewModel(projectId?: string, itemId?: string) {
   } = useCanvasDisplay()
 
   const [project, setProject] = useState<Project | null>(null)
+  // The file panel loads items incrementally (one page at a time) so a project
+  // with thousands of items never loads them all up front. `projectItems` is the
+  // accumulated, loaded-so-far list.
   const [projectItems, setProjectImages] = useState<Item[]>([])
+  const [itemsTotal, setItemsTotal] = useState(0)
+  const [itemSearchDraft, setItemSearchDraft] = useState("")
+  const [itemSearch, setItemSearch] = useState("")
+  const [isItemsLoading, setIsItemsLoading] = useState(true)
   const [annotatedItemIds, setAnnotatedImageIds] = useState<Set<string>>(
     new Set()
   )
@@ -108,9 +115,12 @@ export function useStudioScreenViewModel(projectId?: string, itemId?: string) {
     if (!silent) setIsProjectSummaryLoading(true)
 
     try {
-      const [nextProject, images, annotations, labels] = await Promise.all([
+      // Items are loaded incrementally (below); here we only need the project +
+      // labels + annotations for the header stats and the file panel's Done/Todo
+      // markers. `totalItems` comes from the project's derived count, not a full
+      // item load.
+      const [nextProject, annotations, labels] = await Promise.all([
         services.getProjectService().getById(effectiveProjectId),
-        services.getItemService().getItemsByProjectId(effectiveProjectId),
         services.getAnnotationService().getAnnotationsByProjectId(effectiveProjectId),
         services.getLabelService().getLabelsByProjectId(effectiveProjectId),
       ])
@@ -122,10 +132,9 @@ export function useStudioScreenViewModel(projectId?: string, itemId?: string) {
       )
 
       setProject(nextProject)
-      setProjectImages(images)
       setAnnotatedImageIds(labeledItems)
       setProjectStats({
-        totalItems: images.length,
+        totalItems: nextProject?.itemCount ?? 0,
         labeledItems: labeledItems.size,
         totalLabels: labels.length,
       })
@@ -133,6 +142,50 @@ export function useStudioScreenViewModel(projectId?: string, itemId?: string) {
       if (!silent) setIsProjectSummaryLoading(false)
     }
   }, [effectiveProjectId])
+
+  // Load one page of items, replacing (reset) or appending (load more). Real SQL
+  // LIMIT/OFFSET + search — the whole project is never loaded at once.
+  const ITEMS_PAGE_SIZE = 50
+  const loadItemsPage = useCallback(
+    async (offset: number, replace: boolean) => {
+      if (!effectiveProjectId) return
+      setIsItemsLoading(true)
+      try {
+        const { items, total } = await services.getItemService().getItemPage({
+          projectId: effectiveProjectId,
+          offset,
+          limit: ITEMS_PAGE_SIZE,
+          search: itemSearch || undefined,
+        })
+        setItemsTotal(total)
+        setProjectImages((current) =>
+          replace ? items : [...current, ...items]
+        )
+      } finally {
+        setIsItemsLoading(false)
+      }
+    },
+    [effectiveProjectId, itemSearch]
+  )
+
+  // Reset to the first page on project / search change.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional load-on-change
+    void loadItemsPage(0, true)
+  }, [loadItemsPage])
+
+  // Debounce the file-panel search box into the server-side query.
+  useEffect(() => {
+    const handle = setTimeout(() => setItemSearch(itemSearchDraft.trim()), 300)
+    return () => clearTimeout(handle)
+  }, [itemSearchDraft])
+
+  const hasMoreItems = projectItems.length < itemsTotal
+  const loadMoreItems = useCallback(() => {
+    if (!isItemsLoading && projectItems.length < itemsTotal) {
+      void loadItemsPage(projectItems.length, false)
+    }
+  }, [isItemsLoading, projectItems.length, itemsTotal, loadItemsPage])
 
   useEffect(() => {
     void refreshProjectSummary()
@@ -151,6 +204,9 @@ export function useStudioScreenViewModel(projectId?: string, itemId?: string) {
 
         if (matchesProject) {
           void refreshProjectSummary({ silent: true })
+          // Only re-pull the item list when items themselves change (add/delete)
+          // — not on every annotation save, which would reset the file panel.
+          if (event.entity === "items") void loadItemsPage(0, true)
         }
       },
       ["projects", "items", "annotations", "labels"]
@@ -161,7 +217,7 @@ export function useStudioScreenViewModel(projectId?: string, itemId?: string) {
     return () => {
       unlisten?.()
     }
-  }, [effectiveProjectId, refreshProjectSummary])
+  }, [effectiveProjectId, refreshProjectSummary, loadItemsPage])
 
   const navigateToItem = useCallback(
     (nextImageId: string | null | undefined) => {
@@ -188,8 +244,14 @@ export function useStudioScreenViewModel(projectId?: string, itemId?: string) {
       : null
 
   const goToNextItem = useCallback(() => {
-    navigateToItem(nextImageId)
-  }, [nextImageId, navigateToItem])
+    if (nextImageId) {
+      navigateToItem(nextImageId)
+    } else if (hasMoreItems) {
+      // At the end of the loaded set but more exist — fetch the next page so the
+      // following click (or the file panel) can advance into it.
+      loadMoreItems()
+    }
+  }, [nextImageId, navigateToItem, hasMoreItems, loadMoreItems])
 
   const goToPreviousItem = useCallback(() => {
     navigateToItem(previousImageId)
@@ -439,6 +501,13 @@ export function useStudioScreenViewModel(projectId?: string, itemId?: string) {
     goToNextItem,
     goToPreviousItem,
     projectItems,
+    // Incremental loading + server search for the file panel.
+    itemsTotal,
+    isItemsLoading,
+    hasMoreItems,
+    loadMoreItems,
+    itemSearch: itemSearchDraft,
+    setItemSearch: setItemSearchDraft,
     annotatedItemIds,
     currentItemId: itemId,
     navigateToItem,

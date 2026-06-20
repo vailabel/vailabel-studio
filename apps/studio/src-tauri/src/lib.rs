@@ -1,7 +1,7 @@
 ﻿#![recursion_limit = "256"]
 
 mod shared;
-pub use shared::{emit_domain_event, now_iso};
+pub use shared::{emit_activity, emit_domain_event, now_iso, ActivityEvent};
 pub(crate) use shared::{
     as_object_mut, emit_domain_event_for_ids, merge_patch, read_secret, value_string,
 };
@@ -404,6 +404,7 @@ pub fn run() {
             features::workspace::commands::secret_list,
             features::dataset::commands::items_list_by_project,
             features::dataset::commands::items_list_range,
+            features::dataset::commands::items_list_page,
             features::dataset::commands::items_get,
             features::dataset::commands::items_save,
             features::dataset::commands::items_delete,

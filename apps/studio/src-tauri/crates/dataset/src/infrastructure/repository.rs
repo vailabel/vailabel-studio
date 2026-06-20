@@ -100,6 +100,58 @@ impl ItemRepository for DieselItemRepository {
             .map_err(to_domain_err)
     }
 
+    fn list_page(
+        &self,
+        project_id: &str,
+        offset: i64,
+        limit: i64,
+        search: Option<&str>,
+    ) -> DomainResult<Vec<Item>> {
+        let project_id = project_id.to_string();
+        let pattern = search
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .map(|s| format!("%{s}%"));
+        self.db
+            .with_conn(move |conn| {
+                let mut query = items::table
+                    .filter(items::project_id.eq(project_id))
+                    .into_boxed();
+                if let Some(pattern) = pattern {
+                    query = query.filter(items::name.like(pattern));
+                }
+                Ok(query
+                    .order((items::created_at.asc(), items::id.asc()))
+                    .offset(offset)
+                    .limit(limit)
+                    .select(ItemRow::as_select())
+                    .load::<ItemRow>(conn)?
+                    .into_iter()
+                    .map(ItemRow::into_item)
+                    .collect())
+            })
+            .map_err(to_domain_err)
+    }
+
+    fn count_by_project(&self, project_id: &str, search: Option<&str>) -> DomainResult<i64> {
+        let project_id = project_id.to_string();
+        let pattern = search
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .map(|s| format!("%{s}%"));
+        self.db
+            .with_conn(move |conn| {
+                let mut query = items::table
+                    .filter(items::project_id.eq(project_id))
+                    .into_boxed();
+                if let Some(pattern) = pattern {
+                    query = query.filter(items::name.like(pattern));
+                }
+                Ok(query.count().get_result::<i64>(conn)?)
+            })
+            .map_err(to_domain_err)
+    }
+
     fn save_atomic(&self, image: &Item) -> DomainResult<(Item, bool)> {
         let now = now_iso();
         let row = ItemRow::from_item(image, &now);

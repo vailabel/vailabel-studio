@@ -2,13 +2,13 @@
 //! application service and the local [`super::service::DatasetService`] (YOLO
 //! import/export). No business logic here.
 
-use serde_json::Value;
+use serde_json::{json, Value};
 use tauri::State;
 use vailabel_dataset::application::{
-    DeleteItemCommand, GetItemQuery, ListItemsByProjectQuery, ListItemsRangeQuery,
-    SaveItemCommand,
+    DeleteItemCommand, GetItemQuery, ListItemsByProjectQuery, ListItemsPageQuery,
+    ListItemsRangeQuery, SaveItemCommand,
 };
-use vailabel_dataset::contracts::{ItemRangePayload, ProjectIdPayload};
+use vailabel_dataset::contracts::{ItemPagePayload, ItemRangePayload, ProjectIdPayload};
 use vailabel_project::contracts::EntityIdPayload;
 
 use super::service::{
@@ -39,6 +39,22 @@ pub fn items_list_range(
         limit: payload.limit,
     })?;
     Ok(serde_json::to_value(images)?)
+}
+
+/// One page of a project's items plus the search-aware total count, for a
+/// server-driven pager / infinite scroll. Returns `{ items, total }`.
+#[tauri::command]
+pub fn items_list_page(
+    state: State<AppState>,
+    payload: ItemPagePayload,
+) -> Result<Value, AppError> {
+    let page = state.item_service.list_page(ListItemsPageQuery {
+        project_id: payload.project_id,
+        offset: payload.offset.unwrap_or(0),
+        limit: payload.limit.unwrap_or(50),
+        search: payload.search,
+    })?;
+    Ok(json!({ "items": page.items, "total": page.total }))
 }
 
 #[tauri::command]

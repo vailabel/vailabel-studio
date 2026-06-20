@@ -1,7 +1,6 @@
 import { useState } from "react"
 import { appDataDir } from "@tauri-apps/api/path"
 import { toast } from "sonner"
-import type { Item } from "@/shared/types/core"
 import type { CloudBatchResult, CloudConnectionRef } from "@/shared/ipc/cloud"
 import { allowImageDirectory } from "@/shared/lib/desktop"
 import { services } from "@/shared/services"
@@ -48,7 +47,6 @@ const summarize = (action: string, result: CloudBatchResult) => {
  */
 export const useProjectCloudSync = (
   projectId: string,
-  images: Item[],
   onAfterPull?: () => void,
   storageConfig?: ProjectStorageConfig
 ) => {
@@ -75,6 +73,9 @@ export const useProjectCloudSync = (
     if (!connectionRef || isSyncing) return
     setIsSyncing(true)
     try {
+      // Sync operates on the WHOLE project, so fetch every item here rather than
+      // relying on the (paginated) table list.
+      const images = await services.getItemService().getItemsByProjectId(projectId)
       const items = images
         .filter((image) => image.path)
         .map((image) => ({
@@ -100,6 +101,7 @@ export const useProjectCloudSync = (
     if (!connectionRef || isSyncing) return
     setIsSyncing(true)
     try {
+      const images = await services.getItemService().getItemsByProjectId(projectId)
       const cacheDir = toForwardSlashes(
         `${await appDataDir()}/cloud-cache/${projectId}`
       )

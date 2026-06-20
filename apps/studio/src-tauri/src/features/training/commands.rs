@@ -77,8 +77,11 @@ pub fn training_list(state: State<AppState>) -> Result<Vec<Value>, AppError> {
 }
 
 #[tauri::command]
-pub async fn training_sync(state: State<'_, AppState>) -> Result<Vec<Value>, AppError> {
-    super::ops::training_sync(state.inner()).await
+pub async fn training_sync(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+) -> Result<Vec<Value>, AppError> {
+    super::ops::training_sync(&app, state.inner()).await
 }
 
 #[tauri::command]

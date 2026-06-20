@@ -65,7 +65,6 @@ const ProjectDetails = memo(() => {
   const viewModel = useProjectDetailViewModel(projectId || "")
   const cloudSync = useProjectCloudSync(
     projectId || "",
-    viewModel.images,
     viewModel.refreshData,
     viewModel.project?.config?.storage
   )
@@ -358,17 +357,24 @@ const ProjectDetails = memo(() => {
 
             <TabsContent value="images" className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Images</h2>
+                <h2 className="text-lg font-semibold">Items</h2>
                 <Badge variant="secondary">{s.totalItems} total</Badge>
               </div>
               <ImageTable
                 images={viewModel.images}
-                isLoading={viewModel.isLoading}
+                isLoading={viewModel.isItemsLoading}
                 onImageClick={viewModel.navigateToItem}
                 onImageDelete={viewModel.deleteItem}
                 showActions
-                showPagination
-                pageSize={viewModel.pageSize}
+                server={{
+                  page: viewModel.itemsPage,
+                  pageSize: viewModel.itemsPageSize,
+                  total: viewModel.itemsTotal,
+                  search: viewModel.itemsSearch,
+                  onPageChange: viewModel.setItemsPage,
+                  onPageSizeChange: viewModel.setItemsPageSize,
+                  onSearchChange: viewModel.setItemsSearch,
+                }}
               />
             </TabsContent>
 

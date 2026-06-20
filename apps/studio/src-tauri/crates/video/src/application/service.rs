@@ -16,7 +16,7 @@ use crate::domain::{interpolation, MaterializedShape, Track, Video, VideoReposit
 /// Orchestrates the persistence ([`VideoRepository`]) and codec
 /// ([`VideoPipeline`]) ports injected by the composition root. Carries no
 /// FFmpeg / filesystem / Tauri knowledge; the ingest job lifecycle (threads +
-/// the `video://progress` event) lives in the binary, which drives
+/// the `studio://activity` event) lives in the binary, which drives
 /// [`VideoAppService::ingest`] through an [`IngestReporter`].
 pub struct VideoAppService {
     repo: Arc<dyn VideoRepository>,

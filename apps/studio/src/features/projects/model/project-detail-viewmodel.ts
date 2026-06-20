@@ -49,7 +49,16 @@ function fileBaseName(filePath: string): string {
 export const useProjectDetailViewModel = (projectId: string) => {
   const navigate = useNavigate()
   const [project, setProject] = useState<Project | null>(null)
+  // `images` holds only the CURRENT PAGE of items (server-side pagination), so a
+  // project with thousands of items never loads them all at once.
   const [images, setImages] = useState<Item[]>([])
+  const [itemsTotal, setItemsTotal] = useState(0)
+  const [itemsPage, setItemsPage] = useState(1)
+  const [itemsPageSize, setItemsPageSize] = useState(20)
+  // `searchDraft` is what the input shows; it's debounced into `itemsSearch`.
+  const [searchDraft, setSearchDraft] = useState("")
+  const [itemsSearch, setItemsSearch] = useState("")
+  const [isItemsLoading, setIsItemsLoading] = useState(true)
   const [annotations, setAnnotations] = useState<Annotation[]>([])
   const [labels, setLabels] = useState<Label[]>([])
   const [activeTab, setActiveTab] = useState<
@@ -68,20 +77,18 @@ export const useProjectDetailViewModel = (projectId: string) => {
   const [isEditingProject, setIsEditingProject] = useState(false)
   const [isCreatingLabel, setIsCreatingLabel] = useState(false)
 
+  // Project + labels + annotations (not items — those are paged separately).
   const refreshData = useCallback(async () => {
     setIsLoading(true)
     setError(null)
     try {
-      const [nextProject, nextImages, nextAnnotations, nextLabels] =
-        await Promise.all([
-          services.getProjectService().getById(projectId),
-          services.getItemService().getItemsByProjectId(projectId),
-          services.getAnnotationService().getAnnotationsByProjectId(projectId),
-          services.getLabelService().getLabelsByProjectId(projectId),
-        ])
+      const [nextProject, nextAnnotations, nextLabels] = await Promise.all([
+        services.getProjectService().getById(projectId),
+        services.getAnnotationService().getAnnotationsByProjectId(projectId),
+        services.getLabelService().getLabelsByProjectId(projectId),
+      ])
       setProject(nextProject)
       if (nextProject) recordRecentProject(projectId)
-      setImages(nextImages)
       setAnnotations(nextAnnotations)
       setLabels(nextLabels)
     } catch (nextError) {
@@ -91,9 +98,45 @@ export const useProjectDetailViewModel = (projectId: string) => {
     }
   }, [projectId])
 
+  // Load just the current page of items (server-side LIMIT/OFFSET + search).
+  const reloadItems = useCallback(async () => {
+    setIsItemsLoading(true)
+    try {
+      const { items, total } = await services.getItemService().getItemPage({
+        projectId,
+        offset: (itemsPage - 1) * itemsPageSize,
+        limit: itemsPageSize,
+        search: itemsSearch || undefined,
+      })
+      setImages(items)
+      setItemsTotal(total)
+      // If a deletion emptied the last page, step back to a valid one.
+      const maxPage = Math.max(1, Math.ceil(total / itemsPageSize))
+      if (itemsPage > maxPage) setItemsPage(maxPage)
+    } catch (nextError) {
+      setError(nextError)
+    } finally {
+      setIsItemsLoading(false)
+    }
+  }, [projectId, itemsPage, itemsPageSize, itemsSearch])
+
+  // Debounce the search box and reset to the first page when it changes.
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      setItemsSearch(searchDraft.trim())
+      setItemsPage(1)
+    }, 300)
+    return () => clearTimeout(handle)
+  }, [searchDraft])
+
   useEffect(() => {
     void refreshData()
   }, [refreshData])
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional load-on-change
+    void reloadItems()
+  }, [reloadItems])
 
   useEffect(() => {
     let unlisten: (() => void) | undefined
@@ -111,6 +154,7 @@ export const useProjectDetailViewModel = (projectId: string) => {
       }
 
       void refreshData()
+      void reloadItems()
     }, ["projects", "items", "annotations", "labels"]).then(
       (cleanup) => {
         unlisten = cleanup
@@ -120,18 +164,18 @@ export const useProjectDetailViewModel = (projectId: string) => {
     return () => {
       unlisten?.()
     }
-  }, [projectId, refreshData])
+  }, [projectId, refreshData, reloadItems])
 
   const projectStats = useMemo(() => {
     const annotatedImages = new Set(annotations.map((item) => item.item_id)).size
     return {
-      totalItems: images.length,
+      totalItems: itemsTotal,
       annotatedImages,
       totalAnnotations: annotations.length,
       totalLabels: labels.length,
-      progress: images.length ? Math.round((annotatedImages / images.length) * 100) : 0,
+      progress: itemsTotal ? Math.round((annotatedImages / itemsTotal) * 100) : 0,
     }
-  }, [annotations, images.length, labels.length])
+  }, [annotations, itemsTotal, labels.length])
 
   // Reference images in place from a folder (LabelMe-style) — no base64, no copy.
   const addImagesFromFolder = async () => {
@@ -196,6 +240,7 @@ export const useProjectDetailViewModel = (projectId: string) => {
         folder,
       })
       await refreshData()
+      await reloadItems()
       return result
     } finally {
       setIsImporting(false)
@@ -224,9 +269,21 @@ export const useProjectDetailViewModel = (projectId: string) => {
     annotationStats: [],
     recentActivity: [],
     projectName: project?.name || "Loading...",
-    totalCount: images.length,
+    totalCount: itemsTotal,
     labelCount: labels.length,
-    pageSize: 20,
+    pageSize: itemsPageSize,
+    // Server-side item pagination + search controls (current page is `images`).
+    isItemsLoading,
+    itemsTotal,
+    itemsPage,
+    itemsPageSize,
+    itemsSearch: searchDraft,
+    setItemsPage,
+    setItemsPageSize: (size: number) => {
+      setItemsPageSize(size)
+      setItemsPage(1)
+    },
+    setItemsSearch: setSearchDraft,
     setActiveTab,
     updateProject: async (updates: Partial<Project>) => {
       if (!project) return
@@ -275,7 +332,7 @@ export const useProjectDetailViewModel = (projectId: string) => {
     saveDocuments: async () => {
       setIsSaving(true)
       try {
-        const created = await Promise.all(
+        await Promise.all(
           newDocuments.map((doc) =>
             services.getItemService().createItem({
               id: doc.id,
@@ -289,8 +346,8 @@ export const useProjectDetailViewModel = (projectId: string) => {
             })
           )
         )
-        setImages((current) => [...created, ...current])
         setNewDocuments([])
+        await reloadItems()
       } finally {
         setIsSaving(false)
       }
@@ -325,8 +382,8 @@ export const useProjectDetailViewModel = (projectId: string) => {
           })
         )
 
-        setImages((current) => [...createdImages, ...current])
         setNewImages([])
+        await reloadItems()
       } finally {
         setIsSaving(false)
       }
@@ -343,7 +400,7 @@ export const useProjectDetailViewModel = (projectId: string) => {
     openVideoEditor: () => navigate(`/projects/${projectId}/studio`),
     deleteItem: async (itemId: string) => {
       await services.getItemService().deleteItem(itemId)
-      setImages((current) => current.filter((image) => image.id !== itemId))
+      await reloadItems()
     },
     openAddLabelModal: () => setIsAddLabelModalOpen(true),
     closeAddLabelModal: () => setIsAddLabelModalOpen(false),

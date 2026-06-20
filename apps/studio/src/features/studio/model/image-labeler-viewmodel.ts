@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Annotation, Item, Label, Prediction } from "@/shared/types/core"
 import type { AnnotationMeta } from "@/shared/types/modality"
 import { services } from "@/shared/services"
@@ -46,7 +46,6 @@ export const useItemLabelerViewModel = (
   const [predictions, setPredictions] = useState<Prediction[]>([])
   const [labels, setLabels] = useState<Label[]>([])
   const [aiModels, setAiModels] = useState<DetectorOption[]>([])
-  const [projectItems, setProjectImages] = useState<Item[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isGeneratingPredictions, setIsGeneratingPredictions] = useState(false)
   const [isSegmenting, setIsSegmenting] = useState(false)
@@ -66,28 +65,19 @@ export const useItemLabelerViewModel = (
       const effectiveProjectId =
         projectId || nextItem.projectId || nextItem.project_id || ""
 
-      const [
-        nextAnnotations,
-        nextPredictions,
-        nextProjectImages,
-        nextLabels,
-        nextModels,
-      ] = await Promise.all([
-        services.getAnnotationService().getAnnotationsByItemId(itemId),
-        services.getPredictionService().listByItemId(itemId),
-        effectiveProjectId
-          ? services.getItemService().getItemsByProjectId(effectiveProjectId)
-          : Promise.resolve([]),
-        effectiveProjectId
-          ? services.getLabelService().getLabelsByProjectId(effectiveProjectId)
-          : Promise.resolve([]),
-        aiRuntimeService.listModels(),
-      ])
+      const [nextAnnotations, nextPredictions, nextLabels, nextModels] =
+        await Promise.all([
+          services.getAnnotationService().getAnnotationsByItemId(itemId),
+          services.getPredictionService().listByItemId(itemId),
+          effectiveProjectId
+            ? services.getLabelService().getLabelsByProjectId(effectiveProjectId)
+            : Promise.resolve([]),
+          aiRuntimeService.listModels(),
+        ])
 
       setItem(nextItem)
       setAnnotations(nextAnnotations)
       setPredictions(nextPredictions)
-      setProjectImages(nextProjectImages)
       setLabels(nextLabels)
       setAiModels(
         nextModels
@@ -135,17 +125,6 @@ export const useItemLabelerViewModel = (
       unlisten?.()
     }
   }, [image?.projectId, image?.project_id, itemId, loadData, projectId])
-
-  const currentItemIndex = useMemo(
-    () => projectItems.findIndex((entry) => entry.id === itemId),
-    [projectItems, itemId]
-  )
-
-  const prevItem = currentItemIndex > 0 ? projectItems[currentItemIndex - 1] : null
-  const nextItem =
-    currentItemIndex >= 0 && currentItemIndex < projectItems.length - 1
-      ? projectItems[currentItemIndex + 1]
-      : null
 
   const ensureLabel = useCallback(
     async (name: string, color: string) => {
@@ -326,10 +305,6 @@ export const useItemLabelerViewModel = (
     predictions,
     labels,
     aiModels,
-    nextId: nextItem?.id ?? null,
-    prevId: prevItem?.id ?? null,
-    hasNext: Boolean(nextItem),
-    hasPrevious: Boolean(prevItem),
     isLoading,
     isGeneratingPredictions,
     isSegmenting,
@@ -359,8 +334,6 @@ export const useItemLabelerViewModel = (
       )
     },
     refreshAnnotations,
-    goToNextItem: () => nextItem?.id ?? null,
-    goToPreviousItem: () => prevItem?.id ?? null,
   }
 }
 

@@ -14,7 +14,7 @@ use vailabel_training::application::{StartTrainingCommand, SyncTrainingUpdate};
 use vailabel_training::domain::parse_results_csv;
 
 use super::commands::{ExportPayload, JobLogsPayload, TrainingStartPayload};
-use crate::{emit_domain_event, AppError, AppState};
+use crate::{emit_activity, emit_domain_event, ActivityEvent, AppError, AppState};
 
 /// `training_start`: the binary owns the filesystem — mint the job id and its
 /// log path, then hand off to the training app-service.
@@ -49,8 +49,14 @@ pub async fn training_start(
 
 /// `training_sync`: pull live job snapshots from the runtime and reconcile them
 /// into the stored runs (progress/metrics/terminal status). A no-op when the
-/// runtime isn't running.
-pub async fn training_sync(state: &AppState) -> Result<Vec<Value>, AppError> {
+/// runtime isn't running. Every *changed* run is mirrored to the unified
+/// `studio://activity` channel so the global indicator shows live training
+/// progress alongside downloads — `sync` returns only changed runs, so a
+/// terminal run is emitted exactly once (no re-add after it auto-dismisses).
+pub async fn training_sync(
+    app: &tauri::AppHandle,
+    state: &AppState,
+) -> Result<Vec<Value>, AppError> {
     let svc = state.runtime_service.clone();
     let Some(client) = svc.try_client() else {
         return Ok(Vec::new());
@@ -69,12 +75,43 @@ pub async fn training_sync(state: &AppState) -> Result<Vec<Value>, AppError> {
             error: j.error,
         })
         .collect();
-    state
-        .training_service
-        .sync(updates)?
-        .into_iter()
-        .map(|run| serde_json::to_value(run).map_err(AppError::from))
-        .collect()
+    let changed = state.training_service.sync(updates)?;
+    let mut out = Vec::with_capacity(changed.len());
+    for run in &changed {
+        let value = serde_json::to_value(run).map_err(AppError::from)?;
+        emit_training_activity(app, &value);
+        out.push(value);
+    }
+    Ok(out)
+}
+
+/// Mirror one training run to the unified activity channel, carrying the run
+/// JSON as `data` for any viewmodel that wants the rich record.
+fn emit_training_activity(app: &tauri::AppHandle, run: &Value) {
+    let status = run.get("status").and_then(Value::as_str).unwrap_or("");
+    let id = run.get("id").and_then(Value::as_str).unwrap_or_default();
+    let name = run.get("name").and_then(Value::as_str).unwrap_or("Training");
+    let progress = run.get("progress").and_then(Value::as_f64).unwrap_or(0.0);
+    let message = match status {
+        "pending" => "Queued",
+        "running" => "Training…",
+        "completed" | "succeeded" => "Training complete",
+        "failed" => "Training failed",
+        "canceled" | "cancelled" => "Training canceled",
+        _ => "Training",
+    };
+    emit_activity(
+        app,
+        ActivityEvent::from_status(
+            format!("training:{id}"),
+            "training",
+            format!("Training · {name}"),
+            status,
+        )
+        .message(message)
+        .percent(Some(progress * 100.0))
+        .data(run.clone()),
+    );
 }
 
 /// `training_logs`: stream per-job logs from the runtime, falling back to the

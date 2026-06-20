@@ -13,13 +13,26 @@ pub fn cloud_test_connection(
 }
 
 #[tauri::command]
-pub fn cloud_upload_files(payload: CloudBatchPayload) -> Result<BatchResult, AppError> {
-    service::upload_files(payload)
+pub async fn cloud_upload_files(
+    app: tauri::AppHandle,
+    payload: CloudBatchPayload,
+) -> Result<BatchResult, AppError> {
+    // The transfer is blocking (sync OpenDAL via `block_on`); run it off the
+    // async runtime so the main thread stays responsive and the per-file
+    // `studio://activity` events stream while it runs.
+    tauri::async_runtime::spawn_blocking(move || service::upload_files(&app, payload))
+        .await
+        .map_err(|e| AppError::Message(format!("Cloud upload task failed: {e}")))?
 }
 
 #[tauri::command]
-pub fn cloud_download_files(payload: CloudBatchPayload) -> Result<BatchResult, AppError> {
-    service::download_files(payload)
+pub async fn cloud_download_files(
+    app: tauri::AppHandle,
+    payload: CloudBatchPayload,
+) -> Result<BatchResult, AppError> {
+    tauri::async_runtime::spawn_blocking(move || service::download_files(&app, payload))
+        .await
+        .map_err(|e| AppError::Message(format!("Cloud download task failed: {e}")))?
 }
 
 #[tauri::command]

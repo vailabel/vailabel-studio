@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { listen } from "@tauri-apps/api/event"
 import { isDesktopApp } from "@/shared/lib/desktop"
 import { services } from "@/shared/services"
+import type { Activity } from "@/shared/types/activity"
 import type { Label } from "@/shared/types/core"
 import type {
   IngestOptions,
@@ -18,7 +19,7 @@ import {
   upsertKeyframe,
 } from "@/features/studio/model/lib/video/track-engine"
 
-const PROGRESS_EVENT = "video://progress"
+const ACTIVITY_EVENT = "studio://activity"
 
 /** A track resolved at the current frame, ready to render on the stage. */
 export interface VisibleTrackShape {
@@ -29,7 +30,8 @@ export interface VisibleTrackShape {
 
 /**
  * Drives the Video Annotation editor: loads the video/tracks/labels, runs the
- * FFmpeg ingest job (with `video://progress`), and keeps the on-canvas
+ * FFmpeg ingest job (progress over the unified `studio://activity` channel,
+ * kind `"video-ingest"`), and keeps the on-canvas
  * annotations synchronized with the timeline playhead by interpolating every
  * track at the current frame. Edits are written back as keyframes and persisted.
  */
@@ -101,8 +103,10 @@ export const useVideoAnnotationViewModel = (videoId: string) => {
   useEffect(() => {
     if (!isDesktopApp()) return
     let unlisten: (() => void) | undefined
-    void listen<VideoJob>(PROGRESS_EVENT, ({ payload }) => {
-      if (payload.videoId === videoId) handleProgress(payload)
+    void listen<Activity<VideoJob>>(ACTIVITY_EVENT, ({ payload }) => {
+      if (payload.kind !== "video-ingest") return
+      const ingestJob = payload.data
+      if (ingestJob && ingestJob.videoId === videoId) handleProgress(ingestJob)
     }).then((cleanup) => {
       unlisten = cleanup
     })

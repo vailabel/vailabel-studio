@@ -6,5 +6,7 @@ pub mod queries;
 pub mod service;
 
 pub use commands::{DeleteItemCommand, SaveItemCommand};
-pub use queries::{GetItemQuery, ListItemsByProjectQuery, ListItemsRangeQuery};
-pub use service::ItemAppService;
+pub use queries::{
+    GetItemQuery, ListItemsByProjectQuery, ListItemsPageQuery, ListItemsRangeQuery,
+};
+pub use service::{ItemAppService, ItemPage};

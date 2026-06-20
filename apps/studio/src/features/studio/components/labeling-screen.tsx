@@ -165,7 +165,12 @@ export const LabelingScreen = memo(
                 currentItemId={viewModel.currentItemId}
                 annotatedItemIds={viewModel.annotatedItemIds}
                 onSelectItem={viewModel.navigateToItem}
-                isLoading={viewModel.isProjectSummaryLoading}
+                isLoading={viewModel.isItemsLoading}
+                total={viewModel.itemsTotal}
+                searchValue={viewModel.itemSearch}
+                onSearchChange={viewModel.setItemSearch}
+                hasMore={viewModel.hasMoreItems}
+                onLoadMore={viewModel.loadMoreItems}
               />
             </ResizablePanel>
           )}

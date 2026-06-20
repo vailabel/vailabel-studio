@@ -62,6 +62,19 @@ interface ImageRangeRequest {
   limit?: number
 }
 
+export interface ItemPageRequest {
+  projectId: string
+  offset: number
+  limit: number
+  /** Optional case-insensitive name filter applied server-side. */
+  search?: string
+}
+
+export interface ItemPageResult {
+  items: Item[]
+  total: number
+}
+
 interface PredictionGenerateRequest {
   itemId: string
   modelId: string
@@ -129,6 +142,10 @@ export const studioCommands = {
     call<Item[]>("items_list_range", {
       payload: { projectId, offset, limit },
     }),
+  // One page of items + the search-aware total, for server-driven pagination /
+  // infinite scroll (the full project is never loaded at once).
+  itemsListPage: (payload: ItemPageRequest) =>
+    call<ItemPageResult>("items_list_page", { payload }),
   itemsGet: (id: string) => call<Item>("items_get", { payload: { id } }),
   itemsSave: (payload: Partial<Item>) =>
     call<Item>("items_save", { payload }),

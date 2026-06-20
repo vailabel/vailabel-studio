@@ -88,7 +88,8 @@ pub fn runtime_install_status(app: tauri::AppHandle) -> Result<Value, AppError> 
 
 /// Provision the embedded Python runtime (download CPython + pip-install deps),
 /// then start it. Long-running (large download) → blocking thread; streams
-/// `runtime-install://progress`. No-op if already installed.
+/// progress over `studio://activity` (id `runtime-install`). No-op if already
+/// installed.
 #[tauri::command]
 pub async fn runtime_install(
     app: tauri::AppHandle,
@@ -275,7 +276,7 @@ pub fn runtime_gpu_probe(app: tauri::AppHandle) -> Result<Value, AppError> {
 
 /// Install a CUDA build of PyTorch into the overlay so the runtime uses the GPU
 /// on its next start. Long-running (large download) → blocking thread; streams
-/// `runtime-gpu-install://progress`.
+/// progress over `studio://activity` (id `gpu-install`).
 #[tauri::command]
 pub async fn runtime_enable_gpu(
     app: tauri::AppHandle,

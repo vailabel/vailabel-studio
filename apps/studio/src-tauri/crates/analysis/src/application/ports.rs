@@ -18,7 +18,7 @@ pub trait ImageDecoder: Send + Sync {
 }
 
 /// Receives analysis progress so the binary can stream it over
-/// `analysis://progress`. The methods mark the run's phases (the binary applies
+/// `studio://activity`. The methods mark the run's phases (the binary applies
 /// the exact job-state mutations + emits). Implemented at the composition root.
 pub trait AnalysisReporter {
     /// Dataset load has begun.
