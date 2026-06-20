@@ -108,6 +108,45 @@ jobs:
         run: |
           node -e "const fs=require('fs');const p='apps/studio/src-tauri/tauri.conf.json';const c=JSON.parse(fs.readFileSync(p,'utf8'));c.version=process.env.TAG.replace(/^v/,'');fs.writeFileSync(p,JSON.stringify(c,null,2)+'\n');console.log('app version =>',c.version)"
 
+      - name: Configure macOS Developer-ID signing
+        # DORMANT until the Apple secrets are set (requires a paid Apple Developer
+        # ID). We only export the APPLE_* vars into $GITHUB_ENV when a certificate
+        # is actually present — passing them as empty strings would make
+        # tauri-bundler attempt `security import` on an empty cert and fail
+        # ("SecKeychainItemImport: ... parameters ... not valid"), which is what
+        # broke the macOS builds. When absent, the mac build proceeds UNSIGNED and
+        # still succeeds (users must `xattr -dr com.apple.quarantine` it, and the
+        # macOS auto-updater stays inactive). Just add the secrets to activate
+        # signing — no further workflow change needed. tauri.conf.json
+        # bundle.macOS already points at entitlements.plist
+        # (disable-library-validation for the downloaded CPython/torch dylibs
+        # under the hardened runtime).
+        # NB: the `secrets` context is not allowed in a step `if:`, so we gate on
+        # the OS here and test for the certificate in bash below.
+        if: matrix.platform == 'macos-latest'
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [ -z "$APPLE_CERTIFICATE" ]; then
+            echo "No APPLE_CERTIFICATE secret set — building the macOS app UNSIGNED."
+            exit 0
+          fi
+          {
+            echo "APPLE_CERTIFICATE=$APPLE_CERTIFICATE"
+            echo "APPLE_CERTIFICATE_PASSWORD=$APPLE_CERTIFICATE_PASSWORD"
+            echo "APPLE_SIGNING_IDENTITY=$APPLE_SIGNING_IDENTITY"
+            echo "APPLE_ID=$APPLE_ID"
+            echo "APPLE_PASSWORD=$APPLE_PASSWORD"
+            echo "APPLE_TEAM_ID=$APPLE_TEAM_ID"
+          } >> "$GITHUB_ENV"
+          echo "Apple Developer-ID signing configured."
+
       - name: Build and upload Tauri bundles
         uses: tauri-apps/tauri-action@v0
         env:
@@ -117,20 +156,8 @@ jobs:
           # tauri.conf.json (plugins.updater.pubkey).
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          # macOS Developer-ID signing + notarization. DORMANT until these repo
-          # secrets are set (requires a paid Apple Developer ID): when absent,
-          # tauri-action skips Apple signing and the mac build still succeeds
-          # (unsigned → users must `xattr -dr com.apple.quarantine` it, and the
-          # macOS auto-updater is inactive). Add the secrets to activate signing —
-          # no workflow change needed. tauri.conf.json bundle.macOS already points
-          # at entitlements.plist (disable-library-validation for the downloaded
-          # CPython/torch dylibs under the hardened runtime).
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Apple signing vars are injected via $GITHUB_ENV by the step above,
+          # ONLY when an Apple certificate secret exists. See that step for why.
         with:
           projectPath: ./apps/studio
           releaseId: ${{ needs.create-release.outputs.release_id }}
