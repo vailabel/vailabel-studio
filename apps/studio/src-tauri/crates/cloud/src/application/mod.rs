@@ -6,4 +6,4 @@ pub mod ports;
 pub mod service;
 
 pub use ports::{ObjectStore, ObjectStoreFactory, SecretStore};
-pub use service::CloudStorageService;
+pub use service::{BatchProgress, CloudStorageService};

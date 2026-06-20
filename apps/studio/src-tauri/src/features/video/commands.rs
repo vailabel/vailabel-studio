@@ -1,6 +1,6 @@
 //! Tauri commands exposing Video Annotation to the frontend. Thin wrappers over
 //! [`VideoService`]; the FFmpeg pipeline runs on a worker thread and streams
-//! progress over `video://progress`.
+//! progress over the unified `studio://activity` channel (kind `video-ingest`).
 
 use serde_json::{json, Value};
 use tauri::State;

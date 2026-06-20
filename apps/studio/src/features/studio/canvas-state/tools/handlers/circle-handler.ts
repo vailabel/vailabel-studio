@@ -33,7 +33,7 @@ export class CircleHandler implements ToolHandler {
         type: "circle",
         color: "#2196f3",
         coordinates: [toolState.startPoint, point],
-        imageId: this.context.annotationsStore.currentImage?.id || "",
+        itemId: this.context.annotationsStore.currentImage?.id || "",
       },
     })
   }
@@ -57,7 +57,7 @@ export class CircleHandler implements ToolHandler {
           type: "circle",
           color: "#2196f3",
           coordinates: [center, edge],
-          imageId: this.context.annotationsStore.currentImage?.id || "",
+          itemId: this.context.annotationsStore.currentImage?.id || "",
           createdAt: new Date(),
           updatedAt: new Date(),
         },

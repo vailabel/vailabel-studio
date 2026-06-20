@@ -26,7 +26,7 @@ const PREVIEW_COLOR = "#a855f7" // violet — distinct from the blue draw tools
 export class SmartSegmentHandler implements ToolHandler {
   constructor(private context: ToolHandlerContext) {}
 
-  private get imageId() {
+  private get itemId() {
     return this.context.annotationsStore.currentImage?.id || ""
   }
 
@@ -37,7 +37,7 @@ export class SmartSegmentHandler implements ToolHandler {
       type: "point",
       color: PREVIEW_COLOR,
       coordinates: [point],
-      imageId: this.imageId,
+      itemId: this.itemId,
       createdAt: new Date(),
       updatedAt: new Date(),
     }
@@ -53,7 +53,7 @@ export class SmartSegmentHandler implements ToolHandler {
         { x: Math.min(start.x, end.x), y: Math.min(start.y, end.y) },
         { x: Math.max(start.x, end.x), y: Math.max(start.y, end.y) },
       ],
-      imageId: this.imageId,
+      itemId: this.itemId,
       createdAt: new Date(),
       updatedAt: new Date(),
     }

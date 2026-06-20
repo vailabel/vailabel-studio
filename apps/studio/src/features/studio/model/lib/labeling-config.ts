@@ -24,6 +24,7 @@ export type EditorKind =
   | "text"
   | "audio"
   | "video"
+  | "table"
   | "custom"
 
 /**
@@ -129,6 +130,7 @@ function normalizeModality(modality?: string): Modality {
     case "video":
     case "text":
     case "audio":
+    case "tabular":
     case "custom":
       return modality
     default:
@@ -223,6 +225,22 @@ export function resolveCapabilities(input: {
       modality,
       task,
       editor: "text",
+      chrome: DEFAULT_CHROME,
+    }
+  }
+
+  // Tabular (CSV / TSV / Excel): one task per row. The table editor renders the
+  // row as a key/value table; labeling is whole-row classification (Choices).
+  if (modality === "tabular") {
+    return {
+      mode: "classification",
+      tools: [],
+      defaultTool: "move",
+      allowsRegions: false,
+      allowsClassification: true,
+      modality,
+      task,
+      editor: "table",
       chrome: DEFAULT_CHROME,
     }
   }

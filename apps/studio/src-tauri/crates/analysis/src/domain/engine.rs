@@ -35,7 +35,7 @@ struct Coord {
 
 struct AnnMeta {
     id: String,
-    image_id: String,
+    item_id: String,
     label_id: Option<String>,
     name: String,
     kind: String,
@@ -103,7 +103,7 @@ fn parse_annotation(value: &Value) -> Option<AnnMeta> {
 
     Some(AnnMeta {
         id: first_str(value, &["id"])?,
-        image_id: first_str(value, &["imageId", "image_id"]).unwrap_or_default(),
+        item_id: first_str(value, &["itemId", "item_id", "imageId", "image_id"]).unwrap_or_default(),
         label_id: first_str(value, &["labelId", "label_id"]),
         name: first_str(value, &["name"]).unwrap_or_default(),
         kind: first_str(value, &["type", "annotationType", "annotation_type"])
@@ -249,14 +249,14 @@ pub fn analyze_metadata(
         if entry.1.is_none() {
             entry.1 = class_color;
         }
-        *annotations_per_image.entry(ann.image_id.as_str()).or_insert(0) += 1;
+        *annotations_per_image.entry(ann.item_id.as_str()).or_insert(0) += 1;
         *type_counts.entry(ann.kind.clone()).or_insert(0) += 1;
         if let Some(id) = &ann.label_id {
             *label_ann_counts.entry(id.clone()).or_insert(0) += 1;
             label_images
                 .entry(id.clone())
                 .or_default()
-                .insert(ann.image_id.clone());
+                .insert(ann.item_id.clone());
         }
     }
 
@@ -288,7 +288,7 @@ pub fn analyze_metadata(
                 color: first_str(label, &["color"]).unwrap_or_else(|| "#94a3b8".into()),
                 id,
                 annotation_count: ann_count,
-                image_count: img_count,
+                item_count: img_count,
                 used: ann_count > 0,
             })
         })
@@ -314,7 +314,7 @@ pub fn analyze_metadata(
     type_count_vec.sort_by(|a, b| b.count.cmp(&a.count));
 
     let dataset_stats = DatasetStats {
-        total_images: images.len(),
+        total_items: images.len(),
         annotated_images,
         unannotated_images: images.len().saturating_sub(annotated_images),
         total_annotations,
@@ -334,7 +334,7 @@ pub fn analyze_metadata(
         .iter()
         .filter(|i| annotations_per_image.get(i.id.as_str()).copied().unwrap_or(0) == 0)
         .map(|i| ImageRef {
-            image_id: i.id.clone(),
+            item_id: i.id.clone(),
             name: i.name.clone(),
             reason: Some("No annotations".into()),
         })
@@ -348,13 +348,13 @@ pub fn analyze_metadata(
     for ann in &annotations {
         let (class_name, _) = resolve_class(ann);
         let image_name = image_names
-            .get(ann.image_id.as_str())
+            .get(ann.item_id.as_str())
             .copied()
             .unwrap_or("(unknown image)")
             .to_string();
         let make_ref = |reason: String| AnnotationRef {
             annotation_id: ann.id.clone(),
-            image_id: ann.image_id.clone(),
+            item_id: ann.item_id.clone(),
             image_name: image_name.clone(),
             label: class_name.clone(),
             kind: ann.kind.clone(),
@@ -396,7 +396,7 @@ pub fn analyze_metadata(
         }
 
         // Suspicious labels: tiny or out-of-bounds boxes.
-        if let Some((img_w, img_h)) = image_dims.get(ann.image_id.as_str()).copied() {
+        if let Some((img_w, img_h)) = image_dims.get(ann.item_id.as_str()).copied() {
             if img_w > 0 && img_h > 0 {
                 let (min_x, min_y, max_x, max_y) = bounding_box(&ann.coords);
                 let img_area = img_w as f64 * img_h as f64;
@@ -519,7 +519,7 @@ fn aspect_bucket(width: u32, height: u32) -> &'static str {
 // ── Pixel metrics (produced by the ImageDecoder port) ───────────────────────
 
 pub struct PixelMetrics {
-    pub image_id: String,
+    pub item_id: String,
     pub name: String,
     pub width: u32,
     pub height: u32,
@@ -579,7 +579,7 @@ pub fn embedding_outliers(metrics: &[PixelMetrics], z_threshold: f64) -> Vec<Out
             let score = (sum_sq / dims as f64).sqrt();
             if score >= z_threshold {
                 Some(OutlierRef {
-                    image_id: m.image_id.clone(),
+                    item_id: m.item_id.clone(),
                     name: m.name.clone(),
                     score,
                     reason: format!("{score:.2}σ from dataset centroid"),
@@ -603,7 +603,7 @@ pub fn classify_image_quality(
     report: &mut ImageQualityReport,
 ) {
     let make_ref = |reason: String| ImageQualityRef {
-        image_id: metric.image_id.clone(),
+        item_id: metric.item_id.clone(),
         name: metric.name.clone(),
         width: metric.width,
         height: metric.height,
@@ -679,7 +679,7 @@ pub fn build_report(
     let findings = collect_findings(&quality, &image_quality, &outliers);
     let health = health_summary(
         &findings,
-        analytics.dataset_stats.total_images,
+        analytics.dataset_stats.total_items,
         analytics.dataset_stats.total_annotations,
     );
 
@@ -688,7 +688,7 @@ pub fn build_report(
         project_id: project_id.to_string(),
         created_at: now_iso(),
         image_quality_analyzed: image_quality.analyzed > 0 || image_quality.skipped > 0,
-        image_count: analytics.dataset_stats.total_images,
+        item_count: analytics.dataset_stats.total_items,
         annotation_count: analytics.dataset_stats.total_annotations,
         label_count: analytics.label_distribution.len(),
         health,
@@ -707,57 +707,57 @@ fn collect_findings(
     outliers: &OutlierReport,
 ) -> Vec<Finding> {
     let mut findings = Vec::new();
-    let mut push = |category: &str, kind: &str, severity: &str, message: String, image_id: Option<String>, annotation_id: Option<String>, metric: Option<f64>| {
+    let mut push = |category: &str, kind: &str, severity: &str, message: String, item_id: Option<String>, annotation_id: Option<String>, metric: Option<f64>| {
         findings.push(Finding {
             id: new_id(),
             category: category.into(),
             kind: kind.into(),
             severity: severity.into(),
             message,
-            image_id,
+            item_id,
             annotation_id,
             metric,
         });
     };
 
     for item in &quality.missing_labels {
-        push("quality", "missingLabels", "warning", format!("{}: no annotations", item.name), Some(item.image_id.clone()), None, None);
+        push("quality", "missingLabels", "warning", format!("{}: no annotations", item.name), Some(item.item_id.clone()), None, None);
     }
     for item in &quality.empty_annotations {
-        push("quality", "emptyAnnotation", "error", format!("{} on {}: {}", item.label, item.image_name, item.reason), Some(item.image_id.clone()), Some(item.annotation_id.clone()), None);
+        push("quality", "emptyAnnotation", "error", format!("{} on {}: {}", item.label, item.image_name, item.reason), Some(item.item_id.clone()), Some(item.annotation_id.clone()), None);
     }
     for item in &quality.invalid_polygons {
-        push("quality", "invalidPolygon", "error", format!("{} on {}: {}", item.label, item.image_name, item.reason), Some(item.image_id.clone()), Some(item.annotation_id.clone()), None);
+        push("quality", "invalidPolygon", "error", format!("{} on {}: {}", item.label, item.image_name, item.reason), Some(item.item_id.clone()), Some(item.annotation_id.clone()), None);
     }
     for item in &quality.corrupted_images {
-        push("quality", "corruptedImage", "error", format!("{}: {}", item.name, item.reason.clone().unwrap_or_default()), Some(item.image_id.clone()), None, None);
+        push("quality", "corruptedImage", "error", format!("{}: {}", item.name, item.reason.clone().unwrap_or_default()), Some(item.item_id.clone()), None, None);
     }
     for item in &image_quality.blurry {
-        push("imageQuality", "blur", "warning", format!("{}: {}", item.name, item.reason), Some(item.image_id.clone()), None, Some(item.blur_score));
+        push("imageQuality", "blur", "warning", format!("{}: {}", item.name, item.reason), Some(item.item_id.clone()), None, Some(item.blur_score));
     }
     for item in &image_quality.overexposed {
-        push("imageQuality", "overexposed", "warning", format!("{}: {}", item.name, item.reason), Some(item.image_id.clone()), None, Some(item.brightness));
+        push("imageQuality", "overexposed", "warning", format!("{}: {}", item.name, item.reason), Some(item.item_id.clone()), None, Some(item.brightness));
     }
     for item in &image_quality.underexposed {
-        push("imageQuality", "underexposed", "warning", format!("{}: {}", item.name, item.reason), Some(item.image_id.clone()), None, Some(item.brightness));
+        push("imageQuality", "underexposed", "warning", format!("{}: {}", item.name, item.reason), Some(item.item_id.clone()), None, Some(item.brightness));
     }
     for item in &image_quality.low_resolution {
-        push("imageQuality", "lowResolution", "warning", format!("{}: {}", item.name, item.reason), Some(item.image_id.clone()), None, None);
+        push("imageQuality", "lowResolution", "warning", format!("{}: {}", item.name, item.reason), Some(item.item_id.clone()), None, None);
     }
     for item in &outliers.embedding_outliers {
-        push("outlier", "embeddingOutlier", "info", format!("{}: {}", item.name, item.reason), Some(item.image_id.clone()), None, Some(item.score));
+        push("outlier", "embeddingOutlier", "info", format!("{}: {}", item.name, item.reason), Some(item.item_id.clone()), None, Some(item.score));
     }
     for item in &outliers.rare_classes {
         push("outlier", "rareClass", "info", format!("Rare class '{}' ({} annotations)", item.label, item.count), None, None, Some(item.count as f64));
     }
     for item in &outliers.suspicious_labels {
-        push("outlier", "suspiciousLabel", "warning", format!("{} on {}: {}", item.label, item.image_name, item.reason), Some(item.image_id.clone()), Some(item.annotation_id.clone()), None);
+        push("outlier", "suspiciousLabel", "warning", format!("{} on {}: {}", item.label, item.image_name, item.reason), Some(item.item_id.clone()), Some(item.annotation_id.clone()), None);
     }
 
     findings
 }
 
-fn health_summary(findings: &[Finding], image_count: usize, annotation_count: usize) -> HealthSummary {
+fn health_summary(findings: &[Finding], item_count: usize, annotation_count: usize) -> HealthSummary {
     let mut errors = 0;
     let mut warnings = 0;
     let mut infos = 0;
@@ -768,7 +768,7 @@ fn health_summary(findings: &[Finding], image_count: usize, annotation_count: us
             _ => infos += 1,
         }
     }
-    let total_checks = (image_count + annotation_count).max(1) as f64;
+    let total_checks = (item_count + annotation_count).max(1) as f64;
     let weighted = errors as f64 + warnings as f64 * 0.5 + infos as f64 * 0.1;
     let score = (100.0 * (1.0 - weighted / total_checks)).clamp(0.0, 100.0);
     HealthSummary {

@@ -108,7 +108,8 @@ pub struct AnalysisReport {
     pub created_at: String,
     /// Whether image pixels were decoded for this run.
     pub image_quality_analyzed: bool,
-    pub image_count: usize,
+    #[serde(alias = "imageCount")]
+    pub item_count: usize,
     pub annotation_count: usize,
     pub label_count: usize,
     /// Roll-up severity counts across every finding.
@@ -134,7 +135,8 @@ pub struct ReportSummary {
     pub id: String,
     pub project_id: String,
     pub created_at: String,
-    pub image_count: usize,
+    #[serde(alias = "imageCount")]
+    pub item_count: usize,
     pub annotation_count: usize,
     pub health: HealthSummary,
 }
@@ -177,7 +179,8 @@ pub struct LabelUsage {
     pub name: String,
     pub color: String,
     pub annotation_count: usize,
-    pub image_count: usize,
+    #[serde(alias = "imageCount")]
+    pub item_count: usize,
     pub used: bool,
 }
 
@@ -216,7 +219,8 @@ pub struct AspectBucket {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DatasetStats {
-    pub total_images: usize,
+    #[serde(alias = "totalImages")]
+    pub total_items: usize,
     pub annotated_images: usize,
     pub unannotated_images: usize,
     pub total_annotations: usize,
@@ -249,7 +253,7 @@ pub struct QualityValidation {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ImageRef {
-    pub image_id: String,
+    pub item_id: String,
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reason: Option<String>,
@@ -259,7 +263,7 @@ pub struct ImageRef {
 #[serde(rename_all = "camelCase")]
 pub struct AnnotationRef {
     pub annotation_id: String,
-    pub image_id: String,
+    pub item_id: String,
     pub image_name: String,
     pub label: String,
     #[serde(rename = "type")]
@@ -283,7 +287,7 @@ pub struct ImageQualityReport {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ImageQualityRef {
-    pub image_id: String,
+    pub item_id: String,
     pub name: String,
     pub width: u32,
     pub height: u32,
@@ -307,7 +311,7 @@ pub struct OutlierReport {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OutlierRef {
-    pub image_id: String,
+    pub item_id: String,
     pub name: String,
     /// Standardized distance from the dataset feature centroid (z-score units).
     pub score: f64,
@@ -328,7 +332,7 @@ pub struct Finding {
     pub severity: String,
     pub message: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub image_id: Option<String>,
+    pub item_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub annotation_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]

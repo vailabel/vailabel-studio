@@ -18,7 +18,7 @@ pub(crate) struct StudioDomainEvent {
     action: String,
     id: String,
     project_id: Option<String>,
-    image_id: Option<String>,
+    item_id: Option<String>,
     occurred_at: String,
 }
 
@@ -28,7 +28,7 @@ fn domain_event_from_value(entity: &str, action: &str, value: &Value) -> StudioD
         action: action.to_string(),
         id: value_string(value, "id", "id").unwrap_or_default(),
         project_id: value_string(value, "projectId", "project_id"),
-        image_id: value_string(value, "imageId", "image_id"),
+        item_id: value_string(value, "itemId", "item_id"),
         occurred_at: now_iso(),
     }
 }
@@ -52,7 +52,7 @@ pub(crate) fn emit_domain_event_for_ids(
     action: &str,
     id: String,
     project_id: Option<String>,
-    image_id: Option<String>,
+    item_id: Option<String>,
 ) -> Result<(), AppError> {
     app.emit(
         DOMAIN_EVENT_NAME,
@@ -61,7 +61,7 @@ pub(crate) fn emit_domain_event_for_ids(
             action: action.to_string(),
             id,
             project_id,
-            image_id,
+            item_id,
             occurred_at: now_iso(),
         },
     )?;

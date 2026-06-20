@@ -29,16 +29,16 @@ impl ImageQualityDecoder {
 impl ImageDecoder for ImageQualityDecoder {
     fn analyze_pixels(
         &self,
-        image_id: &str,
+        item_id: &str,
         name: &str,
         path: &str,
         cfg: &AnalysisConfig,
     ) -> PixelOutcome {
-        analyze_pixels(image_id, name, path, cfg)
+        analyze_pixels(item_id, name, path, cfg)
     }
 }
 
-fn analyze_pixels(image_id: &str, name: &str, path: &str, _cfg: &AnalysisConfig) -> PixelOutcome {
+fn analyze_pixels(item_id: &str, name: &str, path: &str, _cfg: &AnalysisConfig) -> PixelOutcome {
     let file = Path::new(path);
     let ext = file
         .extension()
@@ -84,7 +84,7 @@ fn analyze_pixels(image_id: &str, name: &str, path: &str, _cfg: &AnalysisConfig)
     ];
 
     PixelOutcome::Metrics(Box::new(PixelMetrics {
-        image_id: image_id.to_string(),
+        item_id: item_id.to_string(),
         name: name.to_string(),
         width,
         height,

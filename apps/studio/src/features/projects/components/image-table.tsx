@@ -1,6 +1,5 @@
 import { memo, useMemo, useCallback } from "react"
 import {
-  ImageIcon,
   Play,
   Trash2,
   Eye,
@@ -9,10 +8,15 @@ import {
 } from "lucide-react"
 import { Button } from "@/shared/ui/button"
 import { Badge } from "@/shared/ui/badge"
-import { DataGrid, type DataGridColumn } from "@/shared/components/data-grid"
-import type { ImageData } from "@/shared/types/core"
+import {
+  DataGrid,
+  ServerDataGrid,
+  type DataGridColumn,
+} from "@/shared/components/data-grid"
+import type { Item } from "@/shared/types/core"
 import { cn } from "@/shared/lib/utils"
 import { toAssetUrl } from "@/shared/lib/desktop"
+import { iconForKind, itemKind, type ItemKind } from "@/shared/lib/item-kind"
 
 // Types
 export interface ImageTableColumn {
@@ -20,23 +24,42 @@ export interface ImageTableColumn {
   name: string
   width: number
   height: number
+  /** Modality of the item, so the preview shows the right thumbnail/icon. */
+  kind: ItemKind
   createdAt: string | Date | undefined
   updatedAt: string | Date | undefined
   annotationCount: number
+  /** Image thumbnail URL; empty for non-image items (they show a kind icon). */
   thumbnail: string
 }
 
+/** Server-driven pagination + search controls. When provided, `images` holds
+ *  only the current page's rows and the parent owns paging/search/total. */
+export interface ImageTableServer {
+  /** 1-based current page. */
+  page: number
+  pageSize: number
+  /** Search-aware total across the whole project. */
+  total: number
+  search: string
+  onPageChange: (page: number) => void
+  onPageSizeChange: (pageSize: number) => void
+  onSearchChange: (value: string) => void
+}
+
 export interface ImageTableProps {
-  images: ImageData[]
+  images: Item[]
   isLoading?: boolean
-  onImageClick?: (imageId: string) => void
-  onImageDelete?: (imageId: string) => void
-  onImageDownload?: (imageId: string) => void
-  onImagePreview?: (imageId: string) => void
+  onImageClick?: (itemId: string) => void
+  onImageDelete?: (itemId: string) => void
+  onImageDownload?: (itemId: string) => void
+  onImagePreview?: (itemId: string) => void
   showActions?: boolean
   showPagination?: boolean
   pageSize?: number
   className?: string
+  /** Opt into server-side pagination/search (don't load the whole project). */
+  server?: ImageTableServer
 }
 
 export const ImageTable = memo(({
@@ -50,6 +73,7 @@ export const ImageTable = memo(({
   showPagination = true,
   pageSize = 10,
   className,
+  server,
 }: ImageTableProps) => {
   const formatDateValue = useCallback((value: string | Date | undefined) => {
     if (!value) return "Unknown"
@@ -66,40 +90,57 @@ export const ImageTable = memo(({
     }).format(date)
   }, [])
 
-  // Transform images data for the grid
+  // Transform item data for the grid
   const tableData = useMemo<ImageTableColumn[]>(() => {
-    return images.map((image) => ({
-      id: image.id,
-      name: image.name,
-      width: image.width,
-      height: image.height,
-      createdAt: image.createdAt,
-      updatedAt: image.updatedAt,
-      annotationCount: image.annotations?.length || 0,
-      thumbnail: image.path
-        ? toAssetUrl(image.path)
-        : image.url || "/placeholder.svg",
-    }))
+    return images.map((image) => {
+      const kind = itemKind(image)
+      return {
+        id: image.id,
+        name: image.name,
+        width: image.width,
+        height: image.height,
+        kind,
+        createdAt: image.createdAt,
+        updatedAt: image.updatedAt,
+        annotationCount: image.annotations?.length || 0,
+        // Only image items resolve to an on-disk thumbnail; others render an icon.
+        thumbnail:
+          kind === "image" && image.path
+            ? toAssetUrl(image.path)
+            : image.url || "",
+      }
+    })
   }, [images])
 
   // Define columns
   const columns = useMemo<DataGridColumn<ImageTableColumn>[]>(() => {
     const cols: DataGridColumn<ImageTableColumn>[] = [
-      // Thumbnail column
+      // Preview column — image thumbnail for image items, a modality icon
+      // (audio / video / table / document) for everything else.
       {
         id: "thumbnail",
         header: "Preview",
         enableSorting: false,
-        cell: ({ row }) => (
-          <div className="flex items-center justify-center w-16 h-16">
-            <img
-              src={row.original.thumbnail}
-              alt={row.original.name}
-              className="w-12 h-12 object-cover rounded-lg border border-border"
-              loading="lazy"
-            />
-          </div>
-        ),
+        cell: ({ row }) => {
+          const { kind, thumbnail, name } = row.original
+          const KindIcon = iconForKind(kind)
+          return (
+            <div className="flex items-center justify-center w-16 h-16">
+              {kind === "image" && thumbnail ? (
+                <img
+                  src={thumbnail}
+                  alt={name}
+                  className="w-12 h-12 object-cover rounded-lg border border-border"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="flex w-12 h-12 items-center justify-center rounded-lg border border-border bg-muted text-muted-foreground">
+                  <KindIcon className="h-5 w-5" />
+                </div>
+              )}
+            </div>
+          )
+        },
       },
 
       // Name column
@@ -107,26 +148,32 @@ export const ImageTable = memo(({
         id: "name",
         accessorKey: "name",
         header: "Name",
-        cell: ({ row }) => (
-          <div className="flex items-center gap-2">
-            <ImageIcon className="h-4 w-4 text-muted-foreground" />
-            <span className="font-medium text-foreground truncate max-w-[200px]">
-              {row.original.name}
-            </span>
-          </div>
-        ),
+        cell: ({ row }) => {
+          const KindIcon = iconForKind(row.original.kind)
+          return (
+            <div className="flex items-center gap-2">
+              <KindIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <span className="font-medium text-foreground truncate max-w-[200px]">
+                {row.original.name}
+              </span>
+            </div>
+          )
+        },
       },
 
-      // Dimensions column
+      // Dimensions column — only image/video items have pixel dimensions.
       {
         id: "dimensions",
         accessorKey: "width",
         header: "Dimensions",
-        cell: ({ row }) => (
-          <Badge variant="secondary" className="font-mono text-xs">
-            {row.original.width} × {row.original.height}
-          </Badge>
-        ),
+        cell: ({ row }) =>
+          row.original.width > 0 && row.original.height > 0 ? (
+            <Badge variant="secondary" className="font-mono text-xs">
+              {row.original.width} × {row.original.height}
+            </Badge>
+          ) : (
+            <span className="text-xs text-muted-foreground">—</span>
+          ),
       },
 
       // Annotations count
@@ -223,10 +270,33 @@ export const ImageTable = memo(({
         <div className="flex items-center justify-center h-64">
           <div className="flex flex-col items-center gap-4">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-muted-foreground">Loading images...</p>
+            <p className="text-muted-foreground">Loading items...</p>
           </div>
         </div>
       </div>
+    )
+  }
+
+  if (server) {
+    return (
+      <ServerDataGrid
+        className={className}
+        data={tableData}
+        columns={columns}
+        isLoading={isLoading}
+        searchPlaceholder="Search items..."
+        emptyMessage="No items found."
+        searchValue={server.search}
+        onSearchChange={server.onSearchChange}
+        pagination={{
+          currentPage: server.page,
+          totalPages: Math.max(1, Math.ceil(server.total / server.pageSize)),
+          totalCount: server.total,
+          pageSize: server.pageSize,
+          onPageChange: server.onPageChange,
+          onPageSizeChange: server.onPageSizeChange,
+        }}
+      />
     )
   }
 
@@ -237,8 +307,8 @@ export const ImageTable = memo(({
       columns={columns}
       enablePagination={showPagination}
       pageSize={pageSize}
-      searchPlaceholder="Search images..."
-      emptyMessage="No images found."
+      searchPlaceholder="Search items..."
+      emptyMessage="No items found."
     />
   )
 })

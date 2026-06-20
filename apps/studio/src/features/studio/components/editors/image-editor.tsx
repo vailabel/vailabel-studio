@@ -51,9 +51,9 @@ export const ImageEditor = memo(({ viewModel, capabilities }: EditorProps) => {
           onSelectTool={viewModel.setSelectedTool}
         />
         <div className="relative flex-1 overflow-hidden">
-        {viewModel.data.image ? (
+        {viewModel.data.item ? (
           <MemoizedCanvas
-            image={viewModel.data.image}
+            image={viewModel.data.item}
             annotations={viewModel.data.annotations}
             predictions={viewModel.data.predictions}
             labels={viewModel.data.labels}
@@ -76,7 +76,7 @@ export const ImageEditor = memo(({ viewModel, capabilities }: EditorProps) => {
           </div>
         )}
 
-        {capabilities.allowsClassification && viewModel.data.image ? (
+        {capabilities.allowsClassification && viewModel.data.item ? (
           <ClassificationPanel
             labels={viewModel.data.labels}
             active={classification.annotation}

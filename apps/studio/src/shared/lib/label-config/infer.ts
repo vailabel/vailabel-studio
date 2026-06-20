@@ -12,6 +12,7 @@ const OBJECT_MODALITY: Record<string, Modality> = {
   text: "text",
   audio: "audio",
   video: "video",
+  table: "tabular",
 }
 
 export function inferModalityTask(config: LabelConfig): {
@@ -49,6 +50,13 @@ export function inferModalityTask(config: LabelConfig): {
   if (base === "video") {
     // Video projects run in the studio's video editor (FFmpeg pipeline).
     return { modality: "video", task: "tracking" }
+  }
+
+  if (base === "tabular") {
+    // Each row is one task; whole-row labeling via choices/labels/taxonomy.
+    if (only("choices") || only("taxonomy") || only("labels"))
+      return { modality: "tabular", task: "classification" }
+    return { modality: "custom" }
   }
 
   // audio

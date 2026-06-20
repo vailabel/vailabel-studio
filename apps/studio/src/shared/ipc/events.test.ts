@@ -2,19 +2,19 @@ import { listen } from "@tauri-apps/api/event"
 import { listenToStudioEvents } from "@/shared/ipc/events"
 import { isDesktopApp } from "@/shared/lib/desktop"
 
-jest.mock("@tauri-apps/api/event", () => ({
-  listen: jest.fn(),
+vi.mock("@tauri-apps/api/event", () => ({
+  listen: vi.fn(),
 }))
 
-jest.mock("@/shared/lib/desktop", () => ({
-  isDesktopApp: jest.fn(),
+vi.mock("@/shared/lib/desktop", () => ({
+  isDesktopApp: vi.fn(),
 }))
 
-const mockListen = jest.mocked(listen)
-const mockIsDesktopApp = jest.mocked(isDesktopApp)
+const mockListen = vi.mocked(listen)
+const mockIsDesktopApp = vi.mocked(isDesktopApp)
 
 describe("listenToStudioEvents", () => {
-  const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {})
+  const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
 
   beforeEach(() => {
     mockListen.mockReset()
@@ -29,7 +29,7 @@ describe("listenToStudioEvents", () => {
   it("returns a noop listener outside desktop mode", async () => {
     mockIsDesktopApp.mockReturnValue(false)
 
-    const unlisten = await listenToStudioEvents(jest.fn(), ["annotations"])
+    const unlisten = await listenToStudioEvents(vi.fn(), ["annotations"])
 
     expect(mockListen).not.toHaveBeenCalled()
     await expect(unlisten()).resolves.toBeUndefined()
@@ -54,7 +54,7 @@ describe("listenToStudioEvents", () => {
       return async () => {}
     })
 
-    const handler = jest.fn()
+    const handler = vi.fn()
     await listenToStudioEvents(handler, ["annotations"])
 
     listener?.({
@@ -89,7 +89,7 @@ describe("listenToStudioEvents", () => {
     const error = new Error("event.listen not allowed")
     mockListen.mockRejectedValue(error)
 
-    const unlisten = await listenToStudioEvents(jest.fn(), ["annotations"])
+    const unlisten = await listenToStudioEvents(vi.fn(), ["annotations"])
 
     expect(warnSpy).toHaveBeenCalledWith(
       "Failed to register studio event listener:",

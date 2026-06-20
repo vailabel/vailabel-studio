@@ -65,27 +65,26 @@ const ProjectDetails = memo(() => {
   const viewModel = useProjectDetailViewModel(projectId || "")
   const cloudSync = useProjectCloudSync(
     projectId || "",
-    viewModel.images,
     viewModel.refreshData,
     viewModel.project?.config?.storage
   )
   const s = viewModel.projectStats
 
   // First image still needing annotation (so "Continue Labeling" resumes work).
-  const annotatedImageIds = useMemo(
+  const annotatedItemIds = useMemo(
     () =>
       new Set(
         viewModel.annotations
-          .map((a) => a.image_id ?? a.imageId)
+          .map((a) => a.item_id ?? a.itemId)
           .filter(Boolean) as string[]
       ),
     [viewModel.annotations]
   )
 
   const nextImageId = useMemo(() => {
-    const next = viewModel.images.find((img) => !annotatedImageIds.has(img.id))
+    const next = viewModel.images.find((img) => !annotatedItemIds.has(img.id))
     return (next ?? viewModel.images[0])?.id
-  }, [viewModel.images, annotatedImageIds])
+  }, [viewModel.images, annotatedItemIds])
 
   // Annotation count per class, for the distribution view.
   const labelCounts = useMemo(() => {
@@ -116,7 +115,7 @@ const ProjectDetails = memo(() => {
       const res = await viewModel.importDataset()
       if (!res) return
       toast.success(
-        `Imported ${res.imageCount} images · ${res.annotationCount} boxes · ${res.createdClassCount} new classes`,
+        `Imported ${res.itemCount} images · ${res.annotationCount} boxes · ${res.createdClassCount} new classes`,
         {
           description: res.warnings.length
             ? `${res.warnings.length} item(s) were skipped — open the console for details.`
@@ -134,10 +133,10 @@ const ProjectDetails = memo(() => {
   }
 
   const stats = [
-    { label: "Images", value: s.totalImages, icon: ImageIcon },
+    { label: "Images", value: s.totalItems, icon: ImageIcon },
     {
       label: "Annotated",
-      value: `${s.annotatedImages} / ${s.totalImages}`,
+      value: `${s.annotatedImages} / ${s.totalItems}`,
       icon: CheckCircle2,
     },
     { label: "Annotations", value: s.totalAnnotations, icon: BarChart3 },
@@ -216,7 +215,7 @@ const ProjectDetails = memo(() => {
                   onClick={cloudSync.pushToCloud}
                   disabled={cloudSync.isSyncing}
                   className="gap-1.5"
-                  title={`Upload images to ${cloudSync.activeConfig.name}`}
+                  title={`Upload items to ${cloudSync.activeConfig.name}`}
                 >
                   <CloudUpload
                     className={cn(
@@ -232,7 +231,7 @@ const ProjectDetails = memo(() => {
                   onClick={cloudSync.pullFromCloud}
                   disabled={cloudSync.isSyncing}
                   className="gap-1.5"
-                  title={`Download images from ${cloudSync.activeConfig.name}`}
+                  title={`Download items from ${cloudSync.activeConfig.name}`}
                 >
                   <CloudDownload
                     className={cn(
@@ -255,7 +254,7 @@ const ProjectDetails = memo(() => {
             </Button>
             <Button
               size="sm"
-              onClick={() => nextImageId && viewModel.navigateToImage(nextImageId)}
+              onClick={() => nextImageId && viewModel.navigateToItem(nextImageId)}
               disabled={!nextImageId}
               className="gap-1.5"
             >
@@ -314,7 +313,7 @@ const ProjectDetails = memo(() => {
               <CardTitle className="text-base">Labeling progress</CardTitle>
               <CardAction>
                 <span className="text-sm tabular-nums text-muted-foreground">
-                  {s.annotatedImages} / {s.totalImages} images · {s.progress}%
+                  {s.annotatedImages} / {s.totalItems} images · {s.progress}%
                 </span>
               </CardAction>
             </CardHeader>
@@ -358,17 +357,24 @@ const ProjectDetails = memo(() => {
 
             <TabsContent value="images" className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Images</h2>
-                <Badge variant="secondary">{s.totalImages} total</Badge>
+                <h2 className="text-lg font-semibold">Items</h2>
+                <Badge variant="secondary">{s.totalItems} total</Badge>
               </div>
               <ImageTable
                 images={viewModel.images}
-                isLoading={viewModel.isLoading}
-                onImageClick={viewModel.navigateToImage}
-                onImageDelete={viewModel.deleteImage}
+                isLoading={viewModel.isItemsLoading}
+                onImageClick={viewModel.navigateToItem}
+                onImageDelete={viewModel.deleteItem}
                 showActions
-                showPagination
-                pageSize={viewModel.pageSize}
+                server={{
+                  page: viewModel.itemsPage,
+                  pageSize: viewModel.itemsPageSize,
+                  total: viewModel.itemsTotal,
+                  search: viewModel.itemsSearch,
+                  onPageChange: viewModel.setItemsPage,
+                  onPageSizeChange: viewModel.setItemsPageSize,
+                  onSearchChange: viewModel.setItemsSearch,
+                }}
               />
             </TabsContent>
 
@@ -607,7 +613,7 @@ const ProjectDetails = memo(() => {
               <TrainingMonitor
                 projectId={projectId}
                 onUseForLabeling={() =>
-                  nextImageId && viewModel.navigateToImage(nextImageId)
+                  nextImageId && viewModel.navigateToItem(nextImageId)
                 }
               />
             </TabsContent>

@@ -1,8 +1,8 @@
 //! The Project module's own Diesel schema.
 //!
 //! Each module owns the `table!` for the table(s) it persists. `projects` is the
-//! aggregate's table; `images` is declared minimally (read-only) so the
-//! repository can compute the derived `imageCount` with a typed grouped query
+//! aggregate's table; `items` is declared minimally (read-only) so the
+//! repository can compute the derived `itemCount` with a typed grouped query
 //! without depending on the dataset module. Both map to the same physical
 //! tables the residual store creates in `DesktopStore::open`.
 
@@ -24,7 +24,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    images (id) {
+    items (id) {
         id -> Text,
         project_id -> Text,
     }

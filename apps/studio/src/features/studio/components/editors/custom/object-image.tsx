@@ -1,7 +1,7 @@
 import { memo, useMemo } from "react"
 import { toAssetUrl } from "@/shared/lib/desktop"
 import { cn } from "@/shared/lib/utils"
-import type { ImageData } from "@/shared/types/core"
+import type { Item } from "@/shared/types/core"
 import type { ControlTag } from "@/shared/lib/label-config/types"
 import type { StoredResult } from "@/shared/lib/label-config/result"
 import { FloatingLabelMenu } from "../text/floating-label-menu"
@@ -11,7 +11,7 @@ import { regionsFromResults } from "./regions-from-results"
 import { useImageRegionDraw } from "./use-image-region-draw"
 
 interface ObjectImageProps {
-  doc: ImageData
+  doc: Item
   /** Spatial controls bound to this image (rectangle/polygon/keypoint). */
   controls: ControlTag[]
   resultsByControl: Record<string, StoredResult[]>

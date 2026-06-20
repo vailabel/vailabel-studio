@@ -33,7 +33,7 @@ export class LineHandler implements ToolHandler {
         type: "line",
         color: "#2196f3",
         coordinates: [toolState.startPoint, point],
-        imageId: this.context.annotationsStore.currentImage?.id || "",
+        itemId: this.context.annotationsStore.currentImage?.id || "",
       },
     })
   }
@@ -57,7 +57,7 @@ export class LineHandler implements ToolHandler {
           type: "line",
           color: "#2196f3",
           coordinates: [start, end],
-          imageId: this.context.annotationsStore.currentImage?.id || "",
+          itemId: this.context.annotationsStore.currentImage?.id || "",
           createdAt: new Date(),
           updatedAt: new Date(),
         },

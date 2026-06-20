@@ -1,12 +1,12 @@
-//! Image lifecycle domain events.
+//! Item lifecycle domain events.
 
 use vailabel_core::DomainEvent;
 
-/// A fact about an `Image` asset's lifecycle. The [`ImageEvent::action`] verb is
+/// A fact about an `Item` asset's lifecycle. The [`ItemEvent::action`] verb is
 /// the `action` the `studio://domain-event` channel carries, so the application
 /// layer publishes it through the event port without changing the wire contract.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ImageEvent {
+pub enum ItemEvent {
     /// A new image was created.
     Created { id: String },
     /// An existing image was updated.
@@ -15,29 +15,29 @@ pub enum ImageEvent {
     Deleted { id: String },
 }
 
-impl ImageEvent {
+impl ItemEvent {
     /// The UI-channel action verb for this event.
     pub fn action(&self) -> &'static str {
         match self {
-            ImageEvent::Created { .. } => "created",
-            ImageEvent::Updated { .. } => "updated",
-            ImageEvent::Deleted { .. } => "deleted",
+            ItemEvent::Created { .. } => "created",
+            ItemEvent::Updated { .. } => "updated",
+            ItemEvent::Deleted { .. } => "deleted",
         }
     }
 }
 
-impl DomainEvent for ImageEvent {
+impl DomainEvent for ItemEvent {
     fn event_type(&self) -> &str {
         match self {
-            ImageEvent::Created { .. } => "image.created",
-            ImageEvent::Updated { .. } => "image.updated",
-            ImageEvent::Deleted { .. } => "image.deleted",
+            ItemEvent::Created { .. } => "item.created",
+            ItemEvent::Updated { .. } => "item.updated",
+            ItemEvent::Deleted { .. } => "item.deleted",
         }
     }
 
     fn aggregate_id(&self) -> Option<&str> {
         match self {
-            ImageEvent::Created { id } | ImageEvent::Updated { id } | ImageEvent::Deleted { id } => {
+            ItemEvent::Created { id } | ItemEvent::Updated { id } | ItemEvent::Deleted { id } => {
                 Some(id)
             }
         }

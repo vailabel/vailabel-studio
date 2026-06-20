@@ -2,8 +2,9 @@
 //!
 //! Thin facade over the `vailabel-video` [`VideoAppService`]: CRUD/export/track
 //! calls forward straight through. The binary-only concerns of ingest stay
-//! here — the in-memory job map, the worker thread, the `video://progress`
-//! Tauri event, and the asset-protocol scope for extracted frames — delivered to
+//! here — the in-memory job map, the worker thread, the unified
+//! `studio://activity` Tauri event (kind `video-ingest`), and the asset-protocol
+//! scope for extracted frames — delivered to
 //! the crate through the [`IngestReporter`] port. Domain errors convert to
 //! `AppError` via the `From` impl in `crate::composition`.
 
@@ -13,16 +14,14 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 use serde_json::Value;
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Manager};
 use uuid::Uuid;
 
 use vailabel_video::application::{IngestReporter, VideoAppService};
 use vailabel_video::contracts::{ExportTracksRequest, ImportVideoRequest, IngestRequest};
 use vailabel_video::domain::{FfmpegInfo, MaterializedShape, Track, Video, VideoJob};
 
-use crate::{now_iso, AppError};
-
-pub const PROGRESS_EVENT: &str = "video://progress";
+use crate::{emit_activity, now_iso, ActivityEvent, AppError};
 
 type JobMap = Arc<Mutex<HashMap<String, VideoJob>>>;
 
@@ -139,6 +138,10 @@ impl VideoService {
         }
     }
 
+    /// Mutate the stored job in place and broadcast it over the unified
+    /// `studio://activity` channel. The full `VideoJob` rides along as the
+    /// activity `data`, so the Video Annotation viewmodel reads its rich job
+    /// (stage, error, …) off the same event.
     fn update_job<F: FnOnce(&mut VideoJob)>(&self, app: &AppHandle, job_id: &str, mutate: F) {
         let snapshot = {
             let mut map = match self.jobs.lock() {
@@ -152,7 +155,16 @@ impl VideoService {
             job.updated_at = now_iso();
             job.clone()
         };
-        let _ = app.emit(PROGRESS_EVENT, snapshot);
+        let event = ActivityEvent::from_status(
+            format!("video-ingest:{}", snapshot.job_id),
+            "video-ingest",
+            "Video processing",
+            &snapshot.status,
+        )
+        .message(snapshot.stage.clone())
+        .percent(Some(snapshot.progress * 100.0))
+        .data(serde_json::to_value(&snapshot).unwrap_or(Value::Null));
+        emit_activity(app, event);
     }
 
     // ── Tracks ────────────────────────────────────────────────────────────────
@@ -180,7 +192,7 @@ impl VideoService {
 }
 
 /// Bridges the crate's ingest progress to the webview: job-map updates streamed
-/// over `video://progress`, plus granting the asset-protocol scope so the
+/// over `studio://activity` (kind `video-ingest`), plus granting the asset-protocol scope so the
 /// extracted frames load.
 struct TauriIngestReporter {
     service: VideoService,

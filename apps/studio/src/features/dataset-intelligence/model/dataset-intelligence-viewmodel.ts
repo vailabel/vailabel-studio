@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { listen } from "@tauri-apps/api/event"
 import { isDesktopApp } from "@/shared/lib/desktop"
 import { services } from "@/shared/services"
+import type { Activity } from "@/shared/types/activity"
 import type {
   AnalysisConfig,
   AnalysisJob,
@@ -10,12 +11,13 @@ import type {
 } from "@/shared/types/dataset-intelligence"
 import { reportToMarkdown } from "@/features/dataset-intelligence/model/dataset-report"
 
-const PROGRESS_EVENT = "analysis://progress"
+const ACTIVITY_EVENT = "studio://activity"
 
 /**
  * Drives the Dataset Intelligence dashboard: kicks off background analysis
- * jobs, tracks their progress (via the `analysis://progress` event with an
- * interval poll as a fallback), and loads / exports persisted reports.
+ * jobs, tracks their progress (via the unified `studio://activity` channel,
+ * kind `"analysis"`, with an interval poll as a fallback), and loads / exports
+ * persisted reports.
  */
 export const useDatasetIntelligenceViewModel = (projectId: string) => {
   const [report, setReport] = useState<AnalysisReport | null>(null)
@@ -81,12 +83,14 @@ export const useDatasetIntelligenceViewModel = (projectId: string) => {
     [refreshReports, selectReport]
   )
 
-  // Live progress over the Tauri event channel (desktop only).
+  // Live progress over the unified activity channel (desktop only).
   useEffect(() => {
     if (!isDesktopApp()) return
     let unlisten: (() => void) | undefined
-    void listen<AnalysisJob>(PROGRESS_EVENT, ({ payload }) => {
-      if (payload.projectId === projectId) handleProgress(payload)
+    void listen<Activity<AnalysisJob>>(ACTIVITY_EVENT, ({ payload }) => {
+      if (payload.kind !== "analysis") return
+      const analysisJob = payload.data
+      if (analysisJob && analysisJob.projectId === projectId) handleProgress(analysisJob)
     }).then((cleanup) => {
       unlisten = cleanup
     })

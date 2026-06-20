@@ -11,6 +11,8 @@ export type ImportMode =
   | "folder"
   // Pick individual files via the native dialog (text / audio).
   | "files"
+  // Pick CSV/TSV/Excel files, then expand each row into its own task.
+  | "spreadsheet"
   // Items are imported later, inside the editor (video clips in the studio).
   | "none"
 
@@ -92,6 +94,18 @@ export const MODALITY_REGISTRY: Partial<Record<DataKind, ModalityDescriptor>> = 
     importMode: "files",
     grantScope: true,
     annotationTypes: ["track"],
+    target: "studio",
+    hasItems: ({ documents }) => documents > 0,
+  }),
+  tabular: descriptor({
+    kind: "tabular",
+    label: "Structured data",
+    extensions: ["csv", "tsv", "xlsx", "xls", "xlsm", "ods"],
+    // Spreadsheets are parsed and exploded into one row-per-task; the resulting
+    // rows ride the same `documents` list as picked files (carrying inline data).
+    importMode: "spreadsheet",
+    grantScope: false,
+    annotationTypes: ["classification"],
     target: "studio",
     hasItems: ({ documents }) => documents > 0,
   }),

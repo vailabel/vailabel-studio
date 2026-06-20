@@ -14,7 +14,7 @@ import { SegmentList } from "./audio/segment-list"
 //   audio_classification / diarization → drag a region, pick a class/speaker
 //   transcription → drag a region, then type its transcript in the list
 export const AudioEditor = memo(({ viewModel, capabilities }: EditorProps) => {
-  const doc = viewModel.data.image
+  const doc = viewModel.data.item
   const { labels } = viewModel.data
   const { data, error } = useAudioBuffer(doc?.path, doc?.id)
   const withTranscript = capabilities.task === "transcription"

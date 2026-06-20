@@ -10,6 +10,19 @@ use crate::contracts::{
     CloudObjectPayload, TestConnectionResult, TransferFailure,
 };
 
+/// One item's progress through a batch transfer, reported as each file finishes.
+/// `completed` counts every item attempted so far (successes + failures), so
+/// `completed/total` is a monotone progress fraction.
+#[derive(Debug, Clone)]
+pub struct BatchProgress {
+    pub completed: usize,
+    pub total: usize,
+    /// The object key just attempted.
+    pub key: String,
+    /// Whether that item succeeded.
+    pub ok: bool,
+}
+
 /// Application service for cloud object-store sync.
 ///
 /// Orchestrates the [`ObjectStoreFactory`] port injected by the composition
@@ -50,37 +63,83 @@ impl CloudStorageService {
     /// Upload a batch. Never fail-fast: every item is attempted and
     /// successes/failures are reported separately.
     pub async fn upload_files(&self, payload: CloudBatchPayload) -> DomainResult<BatchResult> {
+        self.upload_files_reported(payload, &mut |_| {}).await
+    }
+
+    /// Upload a batch, invoking `on_progress` as each file finishes so the caller
+    /// can stream progress to the UI. Same never-fail-fast policy as
+    /// [`Self::upload_files`].
+    pub async fn upload_files_reported(
+        &self,
+        payload: CloudBatchPayload,
+        on_progress: &mut dyn FnMut(BatchProgress),
+    ) -> DomainResult<BatchResult> {
         let store = self
             .factory
             .connect(&payload.config_id, &payload.provider, &payload.config)?;
         let mut result = BatchResult::default();
-        for item in &payload.items {
+        let total = payload.items.len();
+        for (index, item) in payload.items.iter().enumerate() {
             // One image at a time: peak memory is a single file, not the batch.
-            match store.upload(&item.key, &item.path).await {
-                Ok(()) => result.succeeded.push(item.key.clone()),
-                Err(error) => result.failed.push(TransferFailure {
-                    key: item.key.clone(),
-                    error: error.to_string(),
-                }),
-            }
+            let ok = match store.upload(&item.key, &item.path).await {
+                Ok(()) => {
+                    result.succeeded.push(item.key.clone());
+                    true
+                }
+                Err(error) => {
+                    result.failed.push(TransferFailure {
+                        key: item.key.clone(),
+                        error: error.to_string(),
+                    });
+                    false
+                }
+            };
+            on_progress(BatchProgress {
+                completed: index + 1,
+                total,
+                key: item.key.clone(),
+                ok,
+            });
         }
         Ok(result)
     }
 
     /// Download a batch, with the same never-fail-fast policy as upload.
     pub async fn download_files(&self, payload: CloudBatchPayload) -> DomainResult<BatchResult> {
+        self.download_files_reported(payload, &mut |_| {}).await
+    }
+
+    /// Download a batch, invoking `on_progress` as each file finishes.
+    pub async fn download_files_reported(
+        &self,
+        payload: CloudBatchPayload,
+        on_progress: &mut dyn FnMut(BatchProgress),
+    ) -> DomainResult<BatchResult> {
         let store = self
             .factory
             .connect(&payload.config_id, &payload.provider, &payload.config)?;
         let mut result = BatchResult::default();
-        for item in &payload.items {
-            match store.download(&item.key, &item.path).await {
-                Ok(()) => result.succeeded.push(item.key.clone()),
-                Err(error) => result.failed.push(TransferFailure {
-                    key: item.key.clone(),
-                    error: error.to_string(),
-                }),
-            }
+        let total = payload.items.len();
+        for (index, item) in payload.items.iter().enumerate() {
+            let ok = match store.download(&item.key, &item.path).await {
+                Ok(()) => {
+                    result.succeeded.push(item.key.clone());
+                    true
+                }
+                Err(error) => {
+                    result.failed.push(TransferFailure {
+                        key: item.key.clone(),
+                        error: error.to_string(),
+                    });
+                    false
+                }
+            };
+            on_progress(BatchProgress {
+                completed: index + 1,
+                total,
+                key: item.key.clone(),
+                ok,
+            });
         }
         Ok(result)
     }

@@ -17,7 +17,7 @@ use super::wire::with_snake_aliases;
 pub struct Prediction {
     #[serde(default = "vailabel_shared::new_id")]
     pub id: String,
-    pub image_id: String,
+    pub item_id: String,
     #[serde(default)]
     pub label_id: Option<String>,
     #[serde(default)]
@@ -64,7 +64,7 @@ pub struct Prediction {
 
 /// camelCase keys mirrored to their snake_case alias on output.
 const SNAKE_ALIASES: &[(&str, &str)] = &[
-    ("imageId", "image_id"),
+    ("itemId", "item_id"),
     ("labelId", "label_id"),
     ("labelName", "label_name"),
     ("labelColor", "label_color"),

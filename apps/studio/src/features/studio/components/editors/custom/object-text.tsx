@@ -1,6 +1,6 @@
 import { memo, useMemo } from "react"
 import { Loader2 } from "lucide-react"
-import type { ImageData, Label } from "@/shared/types/core"
+import type { Item, Label } from "@/shared/types/core"
 import type { ControlTag } from "@/shared/lib/label-config/types"
 import type { StoredResult } from "@/shared/lib/label-config/result"
 import type { EntitySpan } from "@/features/studio/model/lib/text-spans"
@@ -9,7 +9,7 @@ import { useDocumentText } from "../text/use-document-text"
 import { choicesToLabels, colorForChoice } from "@/shared/lib/label-config/config-helpers"
 
 interface ObjectTextProps {
-  doc: ImageData
+  doc: Item
   /** The span control (Labels) bound to this text object, if any. */
   control?: ControlTag
   spanResults: StoredResult[]

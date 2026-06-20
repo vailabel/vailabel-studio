@@ -18,7 +18,7 @@ diesel::table! {
 diesel::table! {
     annotations (id) {
         id -> Text,
-        image_id -> Text,
+        item_id -> Text,
         label_id -> Nullable<Text>,
         name -> Text,
         color -> Text,
@@ -37,7 +37,7 @@ diesel::table! {
 diesel::table! {
     predictions (id) {
         id -> Text,
-        image_id -> Text,
+        item_id -> Text,
         label_id -> Nullable<Text>,
         label_name -> Nullable<Text>,
         label_color -> Nullable<Text>,

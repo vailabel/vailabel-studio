@@ -1,4 +1,4 @@
-import type { Annotation, ImageData } from "@/shared/types/core"
+import type { Annotation, Item } from "@/shared/types/core"
 import { readTextFile } from "@/shared/lib/desktop"
 import {
   fromLabelMe,
@@ -12,7 +12,7 @@ import {
  * (Writing sidecars goes through the unified exporter in `@/lib/export`.)
  */
 export async function importLabelMeSidecar(
-  image: ImageData,
+  image: Item,
   projectId?: string
 ): Promise<Array<Partial<Annotation>>> {
   if (!image.path) return []

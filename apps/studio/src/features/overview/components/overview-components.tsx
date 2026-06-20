@@ -144,7 +144,7 @@ export const RecentProjectRow: React.FC<{
           {kind ? <span className="truncate capitalize">{kind}</span> : null}
           <span className="flex items-center gap-1 tabular-nums">
             <Images className="h-3 w-3" />
-            {Number(project.imageCount ?? 0)}
+            {Number(project.itemCount ?? 0)}
           </span>
         </div>
       </div>

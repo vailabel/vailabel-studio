@@ -2,8 +2,9 @@
 //!
 //! Thin facade over the `vailabel-analysis` [`AnalysisAppService`]: report CRUD
 //! forwards straight through. The binary owns the job map, the worker thread,
-//! and the `analysis://progress` Tauri event, delivered to the crate's use case
-//! through the [`AnalysisReporter`] port. Domain errors convert to `AppError`
+//! and the unified `studio://activity` Tauri event (kind `analysis`), delivered
+//! to the crate's use case through the [`AnalysisReporter`] port. Domain errors
+//! convert to `AppError`
 //! via the `From` impl in `crate::composition`.
 
 use std::collections::HashMap;
@@ -11,16 +12,14 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 use serde_json::Value;
-use tauri::{AppHandle, Emitter};
+use tauri::AppHandle;
 use uuid::Uuid;
 
 use vailabel_analysis::application::{AnalysisAppService, AnalysisReporter};
 use vailabel_analysis::contracts::AnalysisRequest;
 use vailabel_analysis::domain::AnalysisJob;
 
-use crate::{now_iso, AppError};
-
-pub const PROGRESS_EVENT: &str = "analysis://progress";
+use crate::{emit_activity, now_iso, ActivityEvent, AppError};
 
 type JobMap = Arc<Mutex<HashMap<String, AnalysisJob>>>;
 
@@ -114,7 +113,7 @@ impl AnalysisService {
 }
 
 /// Maps the crate's analysis progress hooks to job-map updates streamed over
-/// `analysis://progress`.
+/// the unified `studio://activity` channel.
 struct TauriAnalysisReporter {
     jobs: JobMap,
     app: AppHandle,
@@ -161,7 +160,10 @@ impl AnalysisReporter for TauriAnalysisReporter {
     }
 }
 
-/// Mutate the stored job in place and broadcast the new state to the frontend.
+/// Mutate the stored job in place and broadcast the new state to the frontend
+/// over the unified activity channel. The full `AnalysisJob` rides along as the
+/// activity `data` so the Dataset Intelligence viewmodel reads its rich job
+/// (report id, error, …) off the same event.
 fn update_job<F: FnOnce(&mut AnalysisJob)>(jobs: &JobMap, app: &AppHandle, job_id: &str, mutate: F) {
     let snapshot = {
         let mut map = match jobs.lock() {
@@ -175,5 +177,14 @@ fn update_job<F: FnOnce(&mut AnalysisJob)>(jobs: &JobMap, app: &AppHandle, job_i
         job.updated_at = now_iso();
         job.clone()
     };
-    let _ = app.emit(PROGRESS_EVENT, snapshot);
+    let event = ActivityEvent::from_status(
+        format!("analysis:{}", snapshot.job_id),
+        "analysis",
+        "Dataset analysis",
+        &snapshot.status,
+    )
+    .message(snapshot.stage.clone())
+    .percent(Some(snapshot.progress * 100.0))
+    .data(serde_json::to_value(&snapshot).unwrap_or(Value::Null));
+    emit_activity(app, event);
 }

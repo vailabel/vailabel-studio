@@ -95,7 +95,7 @@ const ProjectPicker = ({ onPick }: { onPick: (id: string) => void }) => {
           <EmptyState
             icon={Database}
             title="No projects yet"
-            description="Create a project and add images before running analysis."
+            description="Create a project and add items before running analysis."
           />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -366,7 +366,7 @@ const ReportView = ({
               icon={Tag}
               tone="warning"
               title="Missing labels"
-              subtitle="Images with no annotations"
+              subtitle="Items with no annotations"
               items={quality.missingLabels.map(imageRefToItem)}
             />
             <IssueSection
@@ -484,12 +484,12 @@ const AnalyticsTab = ({ analytics }: { analytics: DatasetAnalytics }) => {
     <>
       {/* Dataset stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={Database} label="Images" value={stats.totalImages} />
+        <StatCard icon={Database} label="Items" value={stats.totalItems} />
         <StatCard
           icon={ShieldCheck}
           label="Annotated"
           value={`${stats.annotatedPercentage.toFixed(0)}%`}
-          hint={`${stats.annotatedImages}/${stats.totalImages}`}
+          hint={`${stats.annotatedImages}/${stats.totalItems}`}
         />
         <StatCard
           icon={Layers}
@@ -549,7 +549,7 @@ const AnalyticsTab = ({ analytics }: { analytics: DatasetAnalytics }) => {
                     {label.name}
                   </span>
                   <span className="text-xs text-muted-foreground tabular-nums">
-                    {label.annotationCount} ann · {label.imageCount} img
+                    {label.annotationCount} ann · {label.itemCount} img
                   </span>
                   {!label.used && (
                     <Badge variant="secondary" className="text-[10px]">
@@ -677,7 +677,7 @@ const ReportsTab = ({
                 {new Date(summary.createdAt).toLocaleString()}
               </p>
               <p className="text-xs text-muted-foreground">
-                {summary.imageCount} images · {summary.annotationCount} annotations ·
+                {summary.itemCount} images · {summary.annotationCount} annotations ·
                 health {summary.health.score.toFixed(0)}/100
               </p>
             </div>

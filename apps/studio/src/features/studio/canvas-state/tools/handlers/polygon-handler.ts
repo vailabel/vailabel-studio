@@ -26,7 +26,7 @@ export class PolygonHandler implements ToolHandler {
           tempAnnotation: newPoints.length > 0 ? {
             type: "polygon",
             coordinates: newPoints,
-            imageId: this.context.annotationsStore.currentImage?.id || "",
+            itemId: this.context.annotationsStore.currentImage?.id || "",
           } : null,
         })
       }
@@ -64,7 +64,7 @@ export class PolygonHandler implements ToolHandler {
       tempAnnotation: {
         type: "polygon",
         coordinates: newPoints,
-        imageId: this.context.annotationsStore.currentImage?.id || "",
+        itemId: this.context.annotationsStore.currentImage?.id || "",
       },
     })
   }
@@ -80,7 +80,7 @@ export class PolygonHandler implements ToolHandler {
         tempAnnotation: {
           type: "polygon",
           coordinates: previewPoints,
-          imageId: this.context.annotationsStore.currentImage?.id || "",
+          itemId: this.context.annotationsStore.currentImage?.id || "",
         },
       })
     }
@@ -110,7 +110,7 @@ export class PolygonHandler implements ToolHandler {
         tempAnnotation: {
           type: "polygon",
           coordinates: points,
-          imageId: this.context.annotationsStore.currentImage?.id || "",
+          itemId: this.context.annotationsStore.currentImage?.id || "",
         },
       })
     }
@@ -147,7 +147,7 @@ export class PolygonHandler implements ToolHandler {
           tempAnnotation: newPoints.length > 0 ? {
             type: "polygon",
             coordinates: newPoints,
-            imageId: this.context.annotationsStore.currentImage?.id || "",
+            itemId: this.context.annotationsStore.currentImage?.id || "",
           } : null,
         })
       }

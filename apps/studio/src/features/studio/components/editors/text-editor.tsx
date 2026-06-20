@@ -18,7 +18,7 @@ import { FloatingLabelMenu } from "./text/floating-label-menu"
 //   text_classification (single) / taxonomy (multi) → whole-document classes
 //   translation → source pane + target textarea
 export const TextEditor = memo(({ viewModel, capabilities }: EditorProps) => {
-  const doc = viewModel.data.image
+  const doc = viewModel.data.item
   const { labels } = viewModel.data
   const { text, error } = useDocumentText(doc?.path, doc?.id)
   const classification = useClassification(viewModel)

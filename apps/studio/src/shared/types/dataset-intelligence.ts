@@ -47,7 +47,7 @@ export interface LabelUsage {
   name: string
   color: string
   annotationCount: number
-  imageCount: number
+  itemCount: number
   used: boolean
 }
 
@@ -82,7 +82,7 @@ export interface TypeCount {
 }
 
 export interface DatasetStats {
-  totalImages: number
+  totalItems: number
   annotatedImages: number
   unannotatedImages: number
   totalAnnotations: number
@@ -101,14 +101,14 @@ export interface DatasetAnalytics {
 }
 
 export interface ImageRef {
-  imageId: string
+  itemId: string
   name: string
   reason?: string | null
 }
 
 export interface AnnotationRef {
   annotationId: string
-  imageId: string
+  itemId: string
   imageName: string
   label: string
   type: string
@@ -123,7 +123,7 @@ export interface QualityValidation {
 }
 
 export interface ImageQualityRef {
-  imageId: string
+  itemId: string
   name: string
   width: number
   height: number
@@ -142,7 +142,7 @@ export interface ImageQualityReport {
 }
 
 export interface OutlierRef {
-  imageId: string
+  itemId: string
   name: string
   score: number
   reason: string
@@ -162,7 +162,7 @@ export interface Finding {
   kind: string
   severity: FindingSeverity
   message: string
-  imageId?: string | null
+  itemId?: string | null
   annotationId?: string | null
   metric?: number | null
 }
@@ -172,7 +172,7 @@ export interface AnalysisReport {
   projectId: string
   createdAt: string
   imageQualityAnalyzed: boolean
-  imageCount: number
+  itemCount: number
   annotationCount: number
   labelCount: number
   health: HealthSummary
@@ -187,7 +187,7 @@ export interface ReportSummary {
   id: string
   projectId: string
   createdAt: string
-  imageCount: number
+  itemCount: number
   annotationCount: number
   health: HealthSummary
 }

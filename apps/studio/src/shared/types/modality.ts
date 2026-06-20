@@ -7,7 +7,13 @@
 // nullable `annotations.meta_json` column. This keeps the storage layer additive
 // (no per-modality tables) while giving the UI compile-time shape safety.
 
-export type Modality = "image" | "video" | "text" | "audio" | "custom"
+export type Modality =
+  | "image"
+  | "video"
+  | "text"
+  | "audio"
+  | "tabular"
+  | "custom"
 
 export type Task =
   // image / video
@@ -90,5 +96,6 @@ export const MODALITY_LABELS: Record<Modality, string> = {
   video: "Video",
   text: "Text",
   audio: "Audio",
+  tabular: "Tabular",
   custom: "Custom",
 }

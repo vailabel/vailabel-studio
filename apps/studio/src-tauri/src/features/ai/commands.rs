@@ -7,7 +7,7 @@ use tauri::State;
 use vailabel_project::contracts::{EntityIdPayload, ProjectIdPayload};
 
 use super::model::{
-    GitHubReleaseLookupPayload, ImageIdPayload, ModelActivationPayload, ModelImportPayload,
+    GitHubReleaseLookupPayload, ItemIdPayload, ModelActivationPayload, ModelImportPayload,
     ModelInstallPayload, PipelineRunPayload, PredictionActionPayload, PredictionGeneratePayload,
 };
 use crate::{AppError, AppState};
@@ -81,13 +81,13 @@ pub fn ai_models_catalog_releases(
 }
 
 #[tauri::command]
-pub fn predictions_list_by_image(
+pub fn predictions_list_by_item(
     state: State<AppState>,
-    payload: ImageIdPayload,
+    payload: ItemIdPayload,
 ) -> Result<Vec<Value>, AppError> {
     state
         .ai_service
-        .list_predictions_by_image(&payload.image_id)
+        .list_predictions_by_image(&payload.item_id)
 }
 
 #[tauri::command]

@@ -8,25 +8,25 @@ import { useParams } from "react-router-dom"
 const MemoizedLabelingScreen = memo(LabelingScreen)
 
 export default function ImageStudio() {
-  const { projectId, imageId } = useParams<{
+  const { projectId, itemId } = useParams<{
     projectId: string
-    imageId: string
+    itemId: string
   }>()
 
   // Memoize the props to prevent unnecessary re-renders of the labeling screen
   const labelerProps = useMemo(
     () => ({
       projectId,
-      imageId,
+      itemId,
     }),
-    [projectId, imageId]
+    [projectId, itemId]
   )
 
   return (
     <CanvasProvider>
       {/* Per-image region visibility lives in its own scoped provider; keying it
           by image resets the hidden set when the user navigates to another item. */}
-      <RegionVisibilityProvider key={imageId}>
+      <RegionVisibilityProvider key={itemId}>
         <MemoizedLabelingScreen {...labelerProps} />
       </RegionVisibilityProvider>
     </CanvasProvider>

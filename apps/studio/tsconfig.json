@@ -6,7 +6,7 @@
   ],
 
   "compilerOptions": {
-    "types": ["node", "jest"],
+    "types": ["node", "vitest/globals"],
     "paths": {
       "@/*": ["./src/*"]
     },

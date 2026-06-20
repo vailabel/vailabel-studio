@@ -62,13 +62,13 @@ const AppRoutes = () => {
         </Route>
 
         {/* Param-less variant for projects whose items are imported inside the
-            editor (video clips); `imageId` is undefined, which the shell tolerates. */}
+            editor (video clips); `itemId` is undefined, which the shell tolerates. */}
         <Route
           path="/projects/:projectId/studio"
           element={withSuspense(<ImageStudio />)}
         />
         <Route
-          path="/projects/:projectId/studio/:imageId"
+          path="/projects/:projectId/studio/:itemId"
           element={withSuspense(<ImageStudio />)}
         />
 

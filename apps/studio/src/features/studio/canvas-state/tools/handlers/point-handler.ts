@@ -22,7 +22,7 @@ export class PointHandler implements ToolHandler {
         type: "point",
         color: "#2196f3",
         coordinates: [point],
-        imageId: this.context.annotationsStore.currentImage?.id || "",
+        itemId: this.context.annotationsStore.currentImage?.id || "",
         createdAt: new Date(),
         updatedAt: new Date(),
       },

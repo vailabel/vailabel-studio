@@ -5,7 +5,7 @@ use crate::features::ai::model::{
 use vailabel_annotation::domain::{
     Annotation, AnnotationRepository, LabelClass, LabelRepository, Prediction, PredictionRepository,
 };
-use vailabel_dataset::domain::{Image, ImageRepository};
+use vailabel_dataset::domain::{Item, ItemRepository};
 use vailabel_models::domain::{AiModel, AiModelRepository};
 use crate::{
     as_object_mut, emit_domain_event, emit_domain_event_for_ids, merge_patch, now_iso,
@@ -47,7 +47,7 @@ struct RepoStore {
     predictions: Arc<dyn PredictionRepository>,
     annotations: Arc<dyn AnnotationRepository>,
     labels: Arc<dyn LabelRepository>,
-    images: Arc<dyn ImageRepository>,
+    images: Arc<dyn ItemRepository>,
 }
 
 impl RepoStore {
@@ -74,7 +74,7 @@ impl RepoStore {
                 to_json(stored)
             }
             "images" | "image" => {
-                let image: Image = serde_json::from_value(value)?;
+                let image: Item = serde_json::from_value(value)?;
                 let (stored, _) = self.images.save_atomic(&image)?;
                 to_json(stored)
             }
@@ -118,15 +118,15 @@ impl RepoStore {
                 .iter()
                 .map(|m| m.to_value())
                 .collect()),
-            ("predictions" | "prediction", "image_id") => Ok(self
+            ("predictions" | "prediction", "item_id") => Ok(self
                 .predictions
-                .list_by_image(value)?
+                .list_by_item(value)?
                 .iter()
                 .map(|p| p.to_value())
                 .collect()),
-            ("annotations" | "annotation", "image_id") => Ok(self
+            ("annotations" | "annotation", "item_id") => Ok(self
                 .annotations
-                .list_by_image(value)?
+                .list_by_item(value)?
                 .iter()
                 .map(|a| a.to_value())
                 .collect()),
@@ -174,7 +174,7 @@ impl AiService {
         predictions: Arc<dyn PredictionRepository>,
         annotations: Arc<dyn AnnotationRepository>,
         labels: Arc<dyn LabelRepository>,
-        images: Arc<dyn ImageRepository>,
+        images: Arc<dyn ItemRepository>,
     ) -> Self {
         Self {
             store: RepoStore {
@@ -570,10 +570,10 @@ impl AiService {
             .collect())
     }
 
-    pub fn list_predictions_by_image(&self, image_id: &str) -> Result<Vec<Value>, AppError> {
+    pub fn list_predictions_by_image(&self, item_id: &str) -> Result<Vec<Value>, AppError> {
         Ok(self
             .store
-            .list_by_field("predictions", "image_id", image_id)?)
+            .list_by_field("predictions", "item_id", item_id)?)
     }
 
     pub fn generate_predictions(
@@ -595,10 +595,10 @@ impl AiService {
         payload: PredictionGeneratePayload,
         class_filter: Option<&str>,
     ) -> Result<Vec<Value>, AppError> {
-        let image_id = payload.image_id.clone();
+        let item_id = payload.item_id.clone();
         let model_id = payload.model_id.clone();
         let image =
-            get_entity_or_error(&self.store, "images", &image_id, "Image not found")?;
+            get_entity_or_error(&self.store, "images", &item_id, "Image not found")?;
 
         // Runtime-catalog detector (e.g. "rtdetr-l"): the Python runtime fetches
         // its weights on first use, so there's no local file to resolve or
@@ -607,7 +607,7 @@ impl AiService {
             return self.generate_predictions_runtime(
                 app,
                 &image,
-                &image_id,
+                &item_id,
                 &model_id,
                 weight,
                 payload.threshold.unwrap_or(0.25),
@@ -692,7 +692,7 @@ impl AiService {
 
         self.persist_drafts(
             app,
-            &image_id,
+            &item_id,
             &project_id,
             &model,
             &model_id,
@@ -713,7 +713,7 @@ impl AiService {
         &self,
         app: &tauri::AppHandle,
         image: &Value,
-        image_id: &str,
+        item_id: &str,
         model_id: &str,
         weight: &str,
         conf: f32,
@@ -744,7 +744,7 @@ impl AiService {
         let model = json!({ "id": model_id, "name": model_id, "backend": "python" });
         self.persist_drafts(
             app,
-            image_id,
+            item_id,
             &project_id,
             &model,
             model_id,
@@ -769,7 +769,7 @@ impl AiService {
     fn persist_drafts(
         &self,
         app: &tauri::AppHandle,
-        image_id: &str,
+        item_id: &str,
         project_id: &str,
         model: &Value,
         model_id: &str,
@@ -781,7 +781,7 @@ impl AiService {
     ) -> Result<Vec<Value>, AppError> {
         if replace_for_model {
             let existing_predictions =
-                self.store.list_by_field("predictions", "image_id", image_id)?;
+                self.store.list_by_field("predictions", "item_id", item_id)?;
             for prediction_id in prediction_ids_for_replacement(&existing_predictions, model_id) {
                 self.store.delete_entity("predictions", &prediction_id)?;
             }
@@ -822,8 +822,8 @@ impl AiService {
                   "color": prediction_color,
                   "modelId": model_id.to_string(),
                   "model_id": model_id.to_string(),
-                  "imageId": image_id.to_string(),
-                  "image_id": image_id.to_string(),
+                  "itemId": item_id.to_string(),
+                  "item_id": item_id.to_string(),
                   "projectId": if project_id.is_empty() { Value::Null } else { Value::String(project_id.to_string()) },
                   "project_id": if project_id.is_empty() { Value::Null } else { Value::String(project_id.to_string()) },
                   "isAIGenerated": true,
@@ -848,13 +848,13 @@ impl AiService {
             app,
             "predictions",
             "generated",
-            image_id.to_string(),
+            item_id.to_string(),
             if project_id.is_empty() {
                 None
             } else {
                 Some(project_id.to_string())
             },
-            Some(image_id.to_string()),
+            Some(item_id.to_string()),
         )?;
 
         Ok(predictions)
@@ -870,10 +870,10 @@ impl AiService {
         app: &tauri::AppHandle,
         payload: PipelineRunPayload,
     ) -> Result<Vec<Value>, AppError> {
-        let image_id = payload.image_id.clone();
+        let item_id = payload.item_id.clone();
         let model_id = payload.model_id.clone();
         let image =
-            get_entity_or_error(&self.store, "images", &image_id, "Image not found")?;
+            get_entity_or_error(&self.store, "images", &item_id, "Image not found")?;
 
         // Runtime-catalog SAM (e.g. "sam2-base"): fetched on first use, no local
         // file to resolve. Imported/trained models fall through to the disk path.
@@ -881,7 +881,7 @@ impl AiService {
             return self.pipeline_run_runtime(
                 app,
                 &image,
-                &image_id,
+                &item_id,
                 &model_id,
                 weight,
                 &payload.prompt,
@@ -939,7 +939,7 @@ impl AiService {
         // detector's boxes on the image.
         self.persist_drafts(
             app,
-            &image_id,
+            &item_id,
             &project_id,
             &model,
             &model_id,
@@ -958,7 +958,7 @@ impl AiService {
         &self,
         app: &tauri::AppHandle,
         image: &Value,
-        image_id: &str,
+        item_id: &str,
         model_id: &str,
         weight: &str,
         prompt: &crate::features::ai::plugin::PromptInput,
@@ -983,7 +983,7 @@ impl AiService {
 
         let model = json!({ "id": model_id, "name": model_id, "backend": "python" });
         self.persist_drafts(
-            app, image_id, &project_id, &model, model_id, &labels, drafts, "python", infer_ms,
+            app, item_id, &project_id, &model, model_id, &labels, drafts, "python", infer_ms,
             false,
         )
     }
@@ -1040,8 +1040,8 @@ impl AiService {
           "name": annotation_name,
           "type": value_string(&prediction, "type", "type").unwrap_or_else(|| "box".into()),
           "coordinates": prediction.get("coordinates").cloned().unwrap_or_else(|| json!([])),
-          "imageId": value_string(&prediction, "imageId", "image_id"),
-          "image_id": value_string(&prediction, "imageId", "image_id"),
+          "itemId": value_string(&prediction, "itemId", "item_id"),
+          "item_id": value_string(&prediction, "itemId", "item_id"),
           "projectId": value_string(&prediction, "projectId", "project_id"),
           "project_id": value_string(&prediction, "projectId", "project_id"),
           "labelId": label_id.clone(),
@@ -2200,17 +2200,17 @@ mod tests {
             json!({
               "id": "prediction-1",
               "modelId": "model-a",
-              "imageId": "image-1",
+              "itemId": "image-1",
             }),
             json!({
               "id": "prediction-2",
               "modelId": "model-b",
-              "imageId": "image-1",
+              "itemId": "image-1",
             }),
             json!({
               "id": "prediction-3",
               "modelId": "model-a",
-              "imageId": "image-2",
+              "itemId": "image-2",
             }),
         ];
 

@@ -10,7 +10,7 @@ use crate::application::commands::{
     DeleteAnnotationCommand, DeleteLabelCommand, SaveAnnotationCommand, SaveLabelCommand,
 };
 use crate::application::queries::{
-    GetLabelQuery, ListAnnotationsByImageQuery, ListAnnotationsByProjectQuery,
+    GetLabelQuery, ListAnnotationsByItemQuery, ListAnnotationsByProjectQuery,
     ListLabelsByProjectQuery,
 };
 use crate::domain::{
@@ -102,11 +102,11 @@ impl AnnotationAppService {
     }
 
     /// All annotations on an image.
-    pub fn list_by_image(
+    pub fn list_by_item(
         &self,
-        query: ListAnnotationsByImageQuery,
+        query: ListAnnotationsByItemQuery,
     ) -> DomainResult<Vec<Annotation>> {
-        self.repo.list_by_image(&query.image_id)
+        self.repo.list_by_item(&query.item_id)
     }
 
     /// All annotations in a project.

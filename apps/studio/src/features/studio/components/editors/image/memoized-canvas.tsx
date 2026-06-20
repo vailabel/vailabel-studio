@@ -1,10 +1,10 @@
 import { memo } from "react"
 import { Canvas } from "@/features/studio/components/canvas/canvas"
-import type { Annotation, ImageData, Label, Prediction } from "@/shared/types/core"
+import type { Annotation, Item, Label, Prediction } from "@/shared/types/core"
 import type { PipelinePrompt } from "@/shared/ipc/studio"
 
 interface MemoizedCanvasProps {
-  image: ImageData
+  image: Item
   annotations: Annotation[]
   predictions: Prediction[]
   labels: Label[]

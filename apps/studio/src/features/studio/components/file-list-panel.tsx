@@ -1,36 +1,34 @@
 import { memo, useCallback, useMemo, useState } from "react"
-import { CheckCircle2, FileText, Flag, ImageIcon, Music, Search } from "lucide-react"
+import { CheckCircle2, Flag, Loader2, Search } from "lucide-react"
 import { cn } from "@/shared/lib/utils"
 import { Input } from "@/shared/ui/input"
 import { Button } from "@/shared/ui/button"
 import { ScrollArea } from "@/shared/ui/scroll-area"
 import { toAssetUrl } from "@/shared/lib/desktop"
-import type { ImageData } from "@/shared/types/core"
+import { isImageItem, itemKindIcon } from "@/shared/lib/item-kind"
+import type { Item } from "@/shared/types/core"
 
 type StatusFilter = "all" | "annotated" | "unlabeled"
 
 interface FileListPanelProps {
-  images: ImageData[]
-  currentImageId?: string
-  annotatedImageIds: Set<string>
-  onSelectImage: (imageId: string) => void
+  /** Items loaded SO FAR (the panel pages in more on demand, never all at once). */
+  images: Item[]
+  currentItemId?: string
+  annotatedItemIds: Set<string>
+  onSelectItem: (itemId: string) => void
   isLoading?: boolean
+  /** Total items in the project (across all pages), for the count + "load more". */
+  total?: number
+  /** Server-side search box (filters the whole project, not just loaded items). */
+  searchValue?: string
+  onSearchChange?: (value: string) => void
+  /** Whether more pages remain, and how to fetch the next one. */
+  hasMore?: boolean
+  onLoadMore?: () => void
 }
 
-function hasFlags(image: ImageData) {
+function hasFlags(image: Item) {
   return Object.values(image.flags || {}).some(Boolean)
-}
-
-const IMAGE_EXTENSIONS = /\.(jpe?g|png|gif|bmp|webp|tiff?|avif)$/i
-const AUDIO_EXTENSIONS = /\.(wav|mp3|ogg|flac|m4a|aac)$/i
-
-/** Items can be images, documents, or audio; only images get a thumbnail. */
-function isImageItem(item: ImageData) {
-  return IMAGE_EXTENSIONS.test(item.path || item.name || "")
-}
-
-function isAudioItem(item: ImageData) {
-  return AUDIO_EXTENSIONS.test(item.path || item.name || "")
 }
 
 const STATUS_FILTERS: Array<{ id: StatusFilter; label: string }> = [
@@ -42,26 +40,29 @@ const STATUS_FILTERS: Array<{ id: StatusFilter; label: string }> = [
 export const FileListPanel = memo(
   ({
     images,
-    currentImageId,
-    annotatedImageIds,
-    onSelectImage,
+    currentItemId,
+    annotatedItemIds,
+    onSelectItem,
     isLoading = false,
+    total,
+    searchValue = "",
+    onSearchChange,
+    hasMore = false,
+    onLoadMore,
   }: FileListPanelProps) => {
-    const [query, setQuery] = useState("")
     const [status, setStatus] = useState<StatusFilter>("all")
 
+    // Search is server-side (whole project); the Done/Todo filter is applied
+    // locally to the items loaded so far.
     const visibleImages = useMemo(() => {
-      const normalizedQuery = query.trim().toLowerCase()
+      if (status === "all") return images
       return images.filter((image) => {
-        const matchesQuery =
-          !normalizedQuery || image.name.toLowerCase().includes(normalizedQuery)
-        if (!matchesQuery) return false
-        const isAnnotated = annotatedImageIds.has(image.id)
-        if (status === "annotated") return isAnnotated
-        if (status === "unlabeled") return !isAnnotated
-        return true
+        const isAnnotated = annotatedItemIds.has(image.id)
+        return status === "annotated" ? isAnnotated : !isAnnotated
       })
-    }, [images, query, status, annotatedImageIds])
+    }, [images, status, annotatedItemIds])
+
+    const totalCount = total ?? images.length
 
     return (
       <div className="flex h-full flex-col border-r border-border bg-card text-card-foreground">
@@ -69,17 +70,17 @@ export const FileListPanel = memo(
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold">Files</h2>
             <span className="text-xs text-muted-foreground">
-              {isLoading
+              {isLoading && images.length === 0
                 ? "Loading..."
-                : `${annotatedImageIds.size}/${images.length} done`}
+                : `${annotatedItemIds.size}/${totalCount} done`}
             </span>
           </div>
 
           <div className="relative">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              value={searchValue}
+              onChange={(event) => onSearchChange?.(event.target.value)}
               placeholder="Search files"
               className="h-8 pl-8"
             />
@@ -105,10 +106,12 @@ export const FileListPanel = memo(
           {visibleImages.length === 0 ? (
             <p className="p-6 text-center text-sm text-muted-foreground">
               {isLoading
-                ? "Loading images..."
-                : images.length === 0
-                  ? "No images in this project"
-                  : "No files match the filter"}
+                ? "Loading items..."
+                : searchValue.trim()
+                  ? "No items match your search"
+                  : images.length === 0
+                    ? "No items in this project"
+                    : "No items match the filter"}
             </p>
           ) : (
             <ul className="p-2">
@@ -116,12 +119,30 @@ export const FileListPanel = memo(
                 <FileListItem
                   key={image.id}
                   image={image}
-                  isActive={image.id === currentImageId}
-                  isAnnotated={annotatedImageIds.has(image.id)}
-                  onSelect={onSelectImage}
+                  isActive={image.id === currentItemId}
+                  isAnnotated={annotatedItemIds.has(image.id)}
+                  onSelect={onSelectItem}
                 />
               ))}
             </ul>
+          )}
+
+          {hasMore && (
+            <div className="p-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-full gap-2"
+                disabled={isLoading}
+                onClick={onLoadMore}
+              >
+                {isLoading && <Loader2 className="size-3.5 animate-spin" />}
+                {isLoading
+                  ? "Loading…"
+                  : `Load more (${images.length} of ${totalCount})`}
+              </Button>
+            </div>
           )}
         </ScrollArea>
       </div>
@@ -138,12 +159,13 @@ const FileListItem = memo(
     isAnnotated,
     onSelect,
   }: {
-    image: ImageData
+    image: Item
     isActive: boolean
     isAnnotated: boolean
-    onSelect: (imageId: string) => void
+    onSelect: (itemId: string) => void
   }) => {
     const handleClick = useCallback(() => onSelect(image.id), [image.id, onSelect])
+    const KindIcon = itemKindIcon(image)
 
     return (
       <li>
@@ -165,12 +187,8 @@ const FileListItem = memo(
                 loading="lazy"
                 className="h-full w-full object-cover"
               />
-            ) : isImageItem(image) ? (
-              <ImageIcon className="m-2.5 h-5 w-5 text-muted-foreground" />
-            ) : isAudioItem(image) ? (
-              <Music className="m-2.5 h-5 w-5 text-muted-foreground" />
             ) : (
-              <FileText className="m-2.5 h-5 w-5 text-muted-foreground" />
+              <KindIcon className="m-2.5 h-5 w-5 text-muted-foreground" />
             )}
           </div>
 

@@ -17,7 +17,7 @@ const PROGRESS_EVERY: usize = 25;
 ///
 /// Orchestrates the persistence ([`AnalysisRepository`]) and pixel-decode
 /// ([`ImageDecoder`]) ports injected by the composition root. The background job
-/// lifecycle (threads + the `analysis://progress` event) lives in the binary,
+/// lifecycle (threads + the `studio://activity` event) lives in the binary,
 /// which drives [`AnalysisAppService::run`] through an [`AnalysisReporter`].
 pub struct AnalysisAppService {
     repo: Arc<dyn AnalysisRepository>,
@@ -71,7 +71,7 @@ impl AnalysisAppService {
                     }
                     PixelOutcome::Corrupted(reason) => {
                         corrupted_images.push(ImageRef {
-                            image_id: id.to_string(),
+                            item_id: id.to_string(),
                             name: name.to_string(),
                             reason: Some(reason),
                         });

@@ -1,4 +1,4 @@
-import type { Annotation, ImageData, Label } from "@/shared/types/core"
+import type { Annotation, Item, Label } from "@/shared/types/core"
 import type { Modality } from "@/shared/types/modality"
 import { ensureDirectory, readTextFile, writeTextFile } from "@/shared/lib/desktop"
 import { toLabelMe } from "@/shared/lib/labelme-adapter"
@@ -21,7 +21,7 @@ export type ExportFormat =
   | "label-studio"
 
 export interface ExportDataset {
-  images: ImageData[]
+  images: Item[]
   annotationsByImage: Map<string, Annotation[]>
   labels: Label[]
 }

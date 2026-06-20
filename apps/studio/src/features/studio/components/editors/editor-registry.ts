@@ -5,6 +5,7 @@ import { TextEditor } from "./text-editor"
 import { AudioEditor } from "./audio-editor"
 import { CustomEditor } from "./custom-editor"
 import { VideoEditor } from "./video-editor"
+import { TableEditor } from "./table-editor"
 import type { EditorProps } from "./types"
 
 // Maps a project's resolved editor kind to the editor body the shell mounts.
@@ -19,6 +20,7 @@ export const EDITOR_REGISTRY: Partial<
   audio: AudioEditor,
   custom: CustomEditor,
   video: VideoEditor,
+  table: TableEditor,
 }
 
 /** The editor body for a kind, falling back to the image editor. */

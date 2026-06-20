@@ -30,7 +30,7 @@ export class LinestripHandler implements ToolHandler {
               ? {
                   type: "linestrip",
                   coordinates: newPoints,
-                  imageId: this.context.annotationsStore.currentImage?.id || "",
+                  itemId: this.context.annotationsStore.currentImage?.id || "",
                 }
               : null,
         })
@@ -51,7 +51,7 @@ export class LinestripHandler implements ToolHandler {
       tempAnnotation: {
         type: "linestrip",
         coordinates: newPoints,
-        imageId: this.context.annotationsStore.currentImage?.id || "",
+        itemId: this.context.annotationsStore.currentImage?.id || "",
       },
     })
   }
@@ -63,7 +63,7 @@ export class LinestripHandler implements ToolHandler {
         tempAnnotation: {
           type: "linestrip",
           coordinates: [...toolState.polygonPoints, point],
-          imageId: this.context.annotationsStore.currentImage?.id || "",
+          itemId: this.context.annotationsStore.currentImage?.id || "",
         },
       })
     }
@@ -93,7 +93,7 @@ export class LinestripHandler implements ToolHandler {
           type: "linestrip",
           color: "#2196f3",
           coordinates: points,
-          imageId: this.context.annotationsStore.currentImage?.id || "",
+          itemId: this.context.annotationsStore.currentImage?.id || "",
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -120,7 +120,7 @@ export class LinestripHandler implements ToolHandler {
               ? {
                   type: "linestrip",
                   coordinates: newPoints,
-                  imageId: this.context.annotationsStore.currentImage?.id || "",
+                  itemId: this.context.annotationsStore.currentImage?.id || "",
                 }
               : null,
         })

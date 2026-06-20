@@ -1,7 +1,7 @@
 ﻿#![recursion_limit = "256"]
 
 mod shared;
-pub use shared::{emit_domain_event, now_iso};
+pub use shared::{emit_activity, emit_domain_event, now_iso, ActivityEvent};
 pub(crate) use shared::{
     as_object_mut, emit_domain_event_for_ids, merge_patch, read_secret, value_string,
 };
@@ -28,7 +28,7 @@ pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 pub struct AppState {
     pub project_service: Arc<vailabel_project::application::ProjectAppService>,
     pub label_service: Arc<vailabel_annotation::application::LabelClassAppService>,
-    pub image_service: Arc<vailabel_dataset::application::ImageAppService>,
+    pub item_service: Arc<vailabel_dataset::application::ItemAppService>,
     pub ai_service: Arc<AiService>,
     pub analysis_service: Arc<AnalysisService>,
     pub video_service: Arc<VideoService>,
@@ -135,11 +135,11 @@ pub fn run() {
                     event_publisher.clone(),
                 ),
             );
-            let image_repo: Arc<dyn vailabel_dataset::domain::ImageRepository> = Arc::new(
-                vailabel_dataset::infrastructure::DieselImageRepository::new(db.clone()),
+            let item_repo: Arc<dyn vailabel_dataset::domain::ItemRepository> = Arc::new(
+                vailabel_dataset::infrastructure::DieselItemRepository::new(db.clone()),
             );
-            let image_service = Arc::new(vailabel_dataset::application::ImageAppService::new(
-                image_repo.clone(),
+            let item_service = Arc::new(vailabel_dataset::application::ItemAppService::new(
+                item_repo.clone(),
                 event_publisher.clone(),
             ));
             // Annotation shapes: typed Diesel repo over the shared `db` (also lent
@@ -209,13 +209,13 @@ pub fn run() {
                 prediction_repo.clone(),
                 annotation_repo.clone(),
                 label_repo.clone(),
-                image_repo.clone(),
+                item_repo.clone(),
             ));
             // Dataset YOLO import/export adapter: owns the label/image/annotation
             // repos it walks, so the dataset commands stay thin.
             let dataset_service = Arc::new(crate::features::dataset::service::DatasetService::new(
                 label_repo.clone(),
-                image_repo.clone(),
+                item_repo.clone(),
                 annotation_repo.clone(),
             ));
             // Analysis module: source rows are read through the owning module
@@ -226,7 +226,7 @@ pub fn run() {
             let analysis_repo: Arc<dyn vailabel_analysis::domain::AnalysisRepository> = Arc::new(
                 vailabel_analysis::infrastructure::DieselAnalysisRepository::new(
                     db.clone(),
-                    image_repo.clone(),
+                    item_repo.clone(),
                     annotation_repo.clone(),
                     label_repo.clone(),
                 ),
@@ -286,7 +286,7 @@ pub fn run() {
             let copilot_inference: Arc<dyn vailabel_copilot::application::CopilotInference> =
                 Arc::new(crate::features::copilot::ports::BinaryCopilotInference::new(
                     ai_service.clone(),
-                    image_repo.clone(),
+                    item_repo.clone(),
                     label_repo.clone(),
                     annotation_repo.clone(),
                     prediction_repo.clone(),
@@ -315,7 +315,7 @@ pub fn run() {
             app.manage(AppState {
                 project_service,
                 label_service,
-                image_service,
+                item_service,
                 ai_service,
                 analysis_service,
                 video_service,
@@ -390,7 +390,7 @@ pub fn run() {
             features::annotation::commands::labels_save,
             features::annotation::commands::labels_delete,
             features::annotation::commands::annotations_list_by_project,
-            features::annotation::commands::annotations_list_by_image,
+            features::annotation::commands::annotations_list_by_item,
             features::annotation::commands::annotations_save,
             features::annotation::commands::annotations_delete,
             features::workspace::commands::history_list_by_project,
@@ -402,13 +402,15 @@ pub fn run() {
             features::workspace::commands::secret_get,
             features::workspace::commands::secret_delete,
             features::workspace::commands::secret_list,
-            features::dataset::commands::images_list_by_project,
-            features::dataset::commands::images_list_range,
-            features::dataset::commands::images_get,
-            features::dataset::commands::images_save,
-            features::dataset::commands::images_delete,
+            features::dataset::commands::items_list_by_project,
+            features::dataset::commands::items_list_range,
+            features::dataset::commands::items_list_page,
+            features::dataset::commands::items_get,
+            features::dataset::commands::items_save,
+            features::dataset::commands::items_delete,
             features::dataset::commands::dataset_export_yolo,
             features::dataset::commands::dataset_import_yolo,
+            features::dataset::commands::spreadsheet_parse,
             features::ai::commands::ai_models_list,
             features::ai::commands::ai_models_list_by_project,
             features::ai::commands::ai_models_save,
@@ -417,7 +419,7 @@ pub fn run() {
             features::ai::commands::ai_models_import,
             features::ai::commands::ai_models_install,
             features::ai::commands::ai_models_catalog_releases,
-            features::ai::commands::predictions_list_by_image,
+            features::ai::commands::predictions_list_by_item,
             features::ai::commands::predictions_generate,
             features::ai::commands::pipeline_run,
             features::ai::commands::predictions_accept,

@@ -11,8 +11,8 @@
 //! the FFmpeg CLI; that lives behind the [`application::VideoPipeline`] port,
 //! implemented in [`infrastructure`] (the only layer allowed `std::process` /
 //! `std::fs`). Persistence is the [`domain::VideoRepository`] port, implemented
-//! by the binary over its store. The ingest job lifecycle (threads + the
-//! `video://progress` Tauri event) stays in the binary, driving the crate's
+//! by the binary over its store. The ingest job lifecycle (threads + the unified
+//! `studio://activity` Tauri event) stays in the binary, driving the crate's
 //! [`application::VideoAppService`] through the [`application::IngestReporter`]
 //! port.
 

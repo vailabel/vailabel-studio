@@ -10,10 +10,10 @@ import {
 } from "@/shared/ui/tooltip"
 
 interface StudioBottomBarProps {
-  currentImageIndex: number
+  currentItemIndex: number
   projectStats: {
-    totalImages: number
-    labeledImages: number
+    totalItems: number
+    labeledItems: number
     totalLabels: number
   }
   hasNext: boolean
@@ -32,7 +32,7 @@ interface StudioBottomBarProps {
 // current item (work already autosaves) and advances. ←/→ also navigate.
 export const StudioBottomBar = memo(
   ({
-    currentImageIndex,
+    currentItemIndex,
     projectStats,
     hasNext,
     hasPrevious,
@@ -42,9 +42,9 @@ export const StudioBottomBar = memo(
     onSubmit,
   }: StudioBottomBarProps) => {
     const progress =
-      projectStats.totalImages > 0
+      projectStats.totalItems > 0
         ? Math.round(
-            (projectStats.labeledImages / projectStats.totalImages) * 100
+            (projectStats.labeledItems / projectStats.totalItems) * 100
           )
         : 0
 
@@ -75,14 +75,14 @@ export const StudioBottomBar = memo(
         </TooltipProvider>
 
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
-          {currentImageIndex >= 0 && projectStats.totalImages > 0 ? (
+          {currentItemIndex >= 0 && projectStats.totalItems > 0 ? (
             <span className="font-medium text-foreground">
-              Item {currentImageIndex + 1} of {projectStats.totalImages}
+              Item {currentItemIndex + 1} of {projectStats.totalItems}
             </span>
           ) : null}
           <Separator orientation="vertical" className="h-4" />
           <span>
-            {projectStats.labeledImages}/{projectStats.totalImages} labeled ·{" "}
+            {projectStats.labeledItems}/{projectStats.totalItems} labeled ·{" "}
             {progress}%
           </span>
         </div>

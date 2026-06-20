@@ -12,8 +12,8 @@ import { ThemeToggle } from "@/shared/ui/theme-toggle"
 interface StudioHeaderProps {
   projectName: string
   projectStats: {
-    totalImages: number
-    labeledImages: number
+    totalItems: number
+    labeledItems: number
     totalLabels: number
   }
   isLoading: boolean
@@ -48,7 +48,7 @@ export const StudioHeader = memo(
             <p className="text-xs text-muted-foreground">
               {isLoading
                 ? "Loading project stats…"
-                : `${projectStats.labeledImages} of ${projectStats.totalImages} items labeled · ${projectStats.totalLabels} labels`}
+                : `${projectStats.labeledItems} of ${projectStats.totalItems} items labeled · ${projectStats.totalLabels} labels`}
             </p>
           </div>
         </div>

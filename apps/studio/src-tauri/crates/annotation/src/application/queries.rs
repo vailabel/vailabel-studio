@@ -17,14 +17,14 @@ pub struct ListLabelsByProjectQuery {
 }
 
 /// List all annotations on an image.
-pub struct ListAnnotationsByImageQuery {
-    pub image_id: String,
+pub struct ListAnnotationsByItemQuery {
+    pub item_id: String,
 }
 
-impl ListAnnotationsByImageQuery {
-    pub fn new(image_id: impl Into<String>) -> Self {
+impl ListAnnotationsByItemQuery {
+    pub fn new(item_id: impl Into<String>) -> Self {
         Self {
-            image_id: image_id.into(),
+            item_id: item_id.into(),
         }
     }
 }

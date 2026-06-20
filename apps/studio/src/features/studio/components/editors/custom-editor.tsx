@@ -19,7 +19,7 @@ function fileDir(filePath: string): string {
 // renders object viewers + control widgets from it, storing every result in the
 // generic Label Studio-style envelope (annotation.meta kind "result").
 export const CustomEditor = memo(({ viewModel }: EditorProps) => {
-  const doc = viewModel.data.image
+  const doc = viewModel.data.item
   const { annotations } = viewModel.data
   const rawConfig = viewModel.project?.settings?.labelConfig as string | undefined
 

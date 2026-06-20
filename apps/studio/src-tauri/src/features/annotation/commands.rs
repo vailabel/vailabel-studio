@@ -5,7 +5,7 @@ use serde::Deserialize;
 use serde_json::Value;
 use tauri::State;
 use vailabel_annotation::application::{
-    DeleteAnnotationCommand, DeleteLabelCommand, ListAnnotationsByImageQuery,
+    DeleteAnnotationCommand, DeleteLabelCommand, ListAnnotationsByItemQuery,
     ListAnnotationsByProjectQuery, ListLabelsByProjectQuery, SaveAnnotationCommand, SaveLabelCommand,
 };
 use vailabel_annotation::contracts::ProjectIdPayload;
@@ -15,8 +15,8 @@ use crate::{AppError, AppState};
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ImageIdPayload {
-    pub image_id: String,
+pub struct ItemIdPayload {
+    pub item_id: String,
 }
 
 // ───────────────────────────── Labels ─────────────────────────────
@@ -59,13 +59,13 @@ pub fn annotations_list_by_project(
 }
 
 #[tauri::command]
-pub fn annotations_list_by_image(
+pub fn annotations_list_by_item(
     state: State<AppState>,
-    payload: ImageIdPayload,
+    payload: ItemIdPayload,
 ) -> Result<Vec<Value>, AppError> {
     let items = state
         .annotation_service
-        .list_by_image(ListAnnotationsByImageQuery::new(payload.image_id))?;
+        .list_by_item(ListAnnotationsByItemQuery::new(payload.item_id))?;
     Ok(items.iter().map(|a| a.to_value()).collect())
 }
 

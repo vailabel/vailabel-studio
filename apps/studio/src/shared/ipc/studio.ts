@@ -17,7 +17,7 @@ import type {
   AIModel,
   Annotation,
   History,
-  ImageData,
+  Item,
   Label,
   ModelInstallPayload,
   ModelImportPayload,
@@ -62,8 +62,21 @@ interface ImageRangeRequest {
   limit?: number
 }
 
+export interface ItemPageRequest {
+  projectId: string
+  offset: number
+  limit: number
+  /** Optional case-insensitive name filter applied server-side. */
+  search?: string
+}
+
+export interface ItemPageResult {
+  items: Item[]
+  total: number
+}
+
 interface PredictionGenerateRequest {
-  imageId: string
+  itemId: string
   modelId: string
   threshold?: number
 }
@@ -93,7 +106,7 @@ export interface PipelinePrompt {
  *  Rust `PipelineRunPayload`. `registryId` overrides plugin selection; when
  *  omitted the backend derives it from the model entity. */
 export interface PipelineRunRequest {
-  imageId: string
+  itemId: string
   modelId: string
   registryId?: string
   threshold?: number
@@ -123,24 +136,28 @@ export const studioCommands = {
   labelsDelete: (id: string) =>
     call<SuccessResponse>("labels_delete", { payload: { id } }),
 
-  imagesListByProject: (projectId: string) =>
-    call<ImageData[]>("images_list_by_project", { payload: { projectId } }),
-  imagesListRange: ({ projectId, offset, limit }: ImageRangeRequest) =>
-    call<ImageData[]>("images_list_range", {
+  itemsListByProject: (projectId: string) =>
+    call<Item[]>("items_list_by_project", { payload: { projectId } }),
+  itemsListRange: ({ projectId, offset, limit }: ImageRangeRequest) =>
+    call<Item[]>("items_list_range", {
       payload: { projectId, offset, limit },
     }),
-  imagesGet: (id: string) => call<ImageData>("images_get", { payload: { id } }),
-  imagesSave: (payload: Partial<ImageData>) =>
-    call<ImageData>("images_save", { payload }),
-  imagesDelete: (id: string) =>
-    call<SuccessResponse>("images_delete", { payload: { id } }),
+  // One page of items + the search-aware total, for server-driven pagination /
+  // infinite scroll (the full project is never loaded at once).
+  itemsListPage: (payload: ItemPageRequest) =>
+    call<ItemPageResult>("items_list_page", { payload }),
+  itemsGet: (id: string) => call<Item>("items_get", { payload: { id } }),
+  itemsSave: (payload: Partial<Item>) =>
+    call<Item>("items_save", { payload }),
+  itemsDelete: (id: string) =>
+    call<SuccessResponse>("items_delete", { payload: { id } }),
 
   annotationsListByProject: (projectId: string) =>
     call<Annotation[]>("annotations_list_by_project", {
       payload: { projectId },
     }),
-  annotationsListByImage: (imageId: string) =>
-    call<Annotation[]>("annotations_list_by_image", { payload: { imageId } }),
+  annotationsListByItem: (itemId: string) =>
+    call<Annotation[]>("annotations_list_by_item", { payload: { itemId } }),
   annotationsSave: (payload: Partial<Annotation>) =>
     call<Annotation>("annotations_save", { payload }),
   annotationsDelete: (id: string) =>
@@ -173,8 +190,8 @@ export const studioCommands = {
   aiModelsCatalogReleases: (payload: GitHubReleaseLookupRequest) =>
     call<GitHubRelease[]>("ai_models_catalog_releases", { payload }),
 
-  predictionsListByImage: (imageId: string) =>
-    call<Prediction[]>("predictions_list_by_image", { payload: { imageId } }),
+  predictionsListByItem: (itemId: string) =>
+    call<Prediction[]>("predictions_list_by_item", { payload: { itemId } }),
   predictionsGenerate: (payload: PredictionGenerateRequest) =>
     call<Prediction[]>("predictions_generate", { payload }),
   pipelineRun: (payload: PipelineRunRequest) =>

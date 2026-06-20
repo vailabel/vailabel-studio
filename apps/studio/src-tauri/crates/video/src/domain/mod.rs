@@ -160,7 +160,7 @@ pub struct MaterializedShape {
 // ── Ingest jobs ────────────────────────────────────────────────────────────────
 
 /// Progress handle for a background ingest (extract + scene detect), streamed
-/// to the UI over the `video://progress` event.
+/// to the UI over the unified `studio://activity` event (kind `video-ingest`).
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VideoJob {

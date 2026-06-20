@@ -103,7 +103,7 @@ impl LabelRow {
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct AnnotationRow {
     pub id: String,
-    pub image_id: String,
+    pub item_id: String,
     pub label_id: Option<String>,
     pub name: String,
     pub color: String,
@@ -125,7 +125,7 @@ impl AnnotationRow {
     pub fn from_annotation(annotation: &Annotation, now: &str) -> Self {
         Self {
             id: annotation.id.clone(),
-            image_id: annotation.image_id.clone(),
+            item_id: annotation.item_id.clone(),
             label_id: annotation.label_id.clone(),
             name: annotation.name.clone(),
             color: if annotation.color.is_empty() {
@@ -156,7 +156,7 @@ impl AnnotationRow {
     pub fn into_annotation(self) -> Annotation {
         Annotation {
             id: self.id,
-            image_id: self.image_id,
+            item_id: self.item_id,
             label_id: self.label_id,
             name: self.name,
             color: self.color,
@@ -179,7 +179,7 @@ impl AnnotationRow {
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct PredictionRow {
     pub id: String,
-    pub image_id: String,
+    pub item_id: String,
     pub label_id: Option<String>,
     pub label_name: Option<String>,
     pub label_color: Option<String>,
@@ -207,7 +207,7 @@ impl PredictionRow {
     pub fn from_prediction(prediction: &Prediction, now: &str) -> Self {
         Self {
             id: prediction.id.clone(),
-            image_id: prediction.image_id.clone(),
+            item_id: prediction.item_id.clone(),
             label_id: prediction.label_id.clone(),
             label_name: prediction.label_name.clone(),
             label_color: prediction.label_color.clone(),
@@ -243,7 +243,7 @@ impl PredictionRow {
     pub fn into_prediction(self) -> Prediction {
         Prediction {
             id: self.id,
-            image_id: self.image_id,
+            item_id: self.item_id,
             label_id: self.label_id,
             label_name: self.label_name,
             label_color: self.label_color,

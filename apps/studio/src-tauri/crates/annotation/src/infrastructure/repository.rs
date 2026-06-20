@@ -216,12 +216,12 @@ impl Repository<Annotation> for DieselAnnotationRepository {
 }
 
 impl AnnotationRepository for DieselAnnotationRepository {
-    fn list_by_image(&self, image_id: &str) -> DomainResult<Vec<Annotation>> {
-        let image_id = image_id.to_string();
+    fn list_by_item(&self, item_id: &str) -> DomainResult<Vec<Annotation>> {
+        let item_id = item_id.to_string();
         self.db
             .with_conn(move |conn| {
                 Ok(annotations::table
-                    .filter(annotations::image_id.eq(image_id))
+                    .filter(annotations::item_id.eq(item_id))
                     .select(AnnotationRow::as_select())
                     .load::<AnnotationRow>(conn)?
                     .into_iter()
@@ -360,12 +360,12 @@ impl Repository<Prediction> for DieselPredictionRepository {
 }
 
 impl PredictionRepository for DieselPredictionRepository {
-    fn list_by_image(&self, image_id: &str) -> DomainResult<Vec<Prediction>> {
-        let image_id = image_id.to_string();
+    fn list_by_item(&self, item_id: &str) -> DomainResult<Vec<Prediction>> {
+        let item_id = item_id.to_string();
         self.db
             .with_conn(move |conn| {
                 Ok(predictions::table
-                    .filter(predictions::image_id.eq(image_id))
+                    .filter(predictions::item_id.eq(item_id))
                     .select(PredictionRow::as_select())
                     .load::<PredictionRow>(conn)?
                     .into_iter()

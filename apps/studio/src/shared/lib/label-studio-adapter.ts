@@ -1,7 +1,7 @@
 import type {
   AIModel,
   Annotation,
-  ImageData,
+  Item,
   LabelStudioResult,
   LabelStudioTask,
   Prediction,
@@ -32,23 +32,23 @@ function clampPercentage(value: number) {
   return Math.max(0, Math.min(100, value))
 }
 
-function getImageSource(image: ImageData) {
+function getImageSource(image: Item) {
   return image.url || image.path || image.name
 }
 
-function toPercentX(value: number, image: ImageData) {
+function toPercentX(value: number, image: Item) {
   return clampPercentage((value / Math.max(image.width, 1)) * 100)
 }
 
-function toPercentY(value: number, image: ImageData) {
+function toPercentY(value: number, image: Item) {
   return clampPercentage((value / Math.max(image.height, 1)) * 100)
 }
 
-function fromPercentX(value: number, image: ImageData) {
+function fromPercentX(value: number, image: Item) {
   return (value / 100) * Math.max(image.width, 1)
 }
 
-function fromPercentY(value: number, image: ImageData) {
+function fromPercentY(value: number, image: Item) {
   return (value / 100) * Math.max(image.height, 1)
 }
 
@@ -66,7 +66,7 @@ function getResultType(region: RegionLike) {
 
 export function toLabelStudioResult(
   region: RegionLike,
-  image: ImageData,
+  image: Item,
   index = 0
 ): LabelStudioResult {
   const id = region.id || createFallbackId(index)
@@ -116,7 +116,7 @@ export function toLabelStudioResult(
 }
 
 export function createLabelStudioTask(args: {
-  image: ImageData
+  image: Item
   predictions: Prediction[]
   model?: AIModel | null
 }): LabelStudioTask {
@@ -155,7 +155,7 @@ export function createLabelStudioTask(args: {
 }
 
 export function createLabelStudioTaskFromAnnotations(args: {
-  image: ImageData
+  image: Item
   annotations: Annotation[]
   modelVersion?: string
 }): LabelStudioTask {
@@ -188,7 +188,7 @@ export function createLabelStudioTaskFromAnnotations(args: {
 
 export function fromLabelStudioTask(args: {
   task: LabelStudioTask
-  image: ImageData
+  image: Item
   modelId?: string
   projectId?: string
 }): Array<Partial<Prediction>> {
@@ -224,8 +224,8 @@ export function fromLabelStudioTask(args: {
             type: "box",
             coordinates: [topLeft, bottomRight],
             confidence: result.score || prediction.score || 0,
-            imageId: image.id,
-            image_id: image.id,
+            itemId: image.id,
+            item_id: image.id,
             projectId,
             project_id: projectId,
             modelId,
@@ -263,8 +263,8 @@ export function fromLabelStudioTask(args: {
               y: fromPercentY(y, image),
             })),
             confidence: result.score || prediction.score || 0,
-            imageId: image.id,
-            image_id: image.id,
+            itemId: image.id,
+            item_id: image.id,
             projectId,
             project_id: projectId,
             modelId,

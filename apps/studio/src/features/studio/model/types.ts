@@ -1,4 +1,4 @@
-import type { Annotation, ImageData, Label, Prediction, Project } from "@/shared/types/core"
+import type { Annotation, Item, Label, Prediction, Project } from "@/shared/types/core"
 
 export type CanvasTool =
   | "move"
@@ -32,8 +32,8 @@ export interface CanvasSessionState {
 }
 
 export interface StudioHeaderStats {
-  totalImages: number
-  labeledImages: number
+  totalItems: number
+  labeledItems: number
   totalLabels: number
 }
 
@@ -43,7 +43,7 @@ export interface StudioProjectSummary {
 }
 
 export interface StudioScreenData {
-  image: ImageData | null
+  image: Item | null
   annotations: Annotation[]
   predictions: Prediction[]
   labels: Label[]

@@ -12,10 +12,10 @@ use std::time::{Duration, Instant};
 
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
-use tauri::{Emitter, Manager};
+use tauri::Manager;
 use uuid::Uuid;
 
-use crate::AppError;
+use crate::{emit_activity, ActivityEvent, AppError};
 use runtime_manager::RuntimeConfiguration;
 use vailabel_models::domain::{RuntimeModel, RuntimeModelRepository};
 
@@ -31,8 +31,6 @@ fn upsert_runtime_model(
     let (stored, _) = repo.save_atomic(&model)?;
     Ok(stored.to_value())
 }
-
-const MODEL_PROGRESS_EVENT: &str = "runtime-models-install://progress";
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -141,7 +139,6 @@ fn resolve_requirements(resource_dir: &Path) -> PathBuf {
 // macOS cross-arch build problem (provisioning runs on the user's real arch).
 // ---------------------------------------------------------------------------
 
-const RUNTIME_INSTALL_EVENT: &str = "runtime-install://progress";
 /// CPython version + python-build-standalone release tag. Keep in sync with
 /// `scripts/build-runtime.{sh,ps1}`.
 const PY_VERSION: &str = "3.11.9";
@@ -217,7 +214,8 @@ fn pbs_asset_triple() -> Result<&'static str, AppError> {
 /// Download a standalone CPython into `<app_data>/runtime/python` and pip-install
 /// the bundled `requirements.txt` into it. Idempotent (no-op once installed) and
 /// re-entrancy guarded. Long-running → call on a blocking thread. Streams
-/// `runtime-install://progress`; emits a final `error` phase on failure.
+/// progress over the unified `studio://activity` channel (id `runtime-install`);
+/// emits a final `error` phase on failure.
 pub fn install_runtime(app: &tauri::AppHandle) -> Result<Value, AppError> {
     if is_runtime_installed(app) {
         return Ok(json!({ "installed": true }));
@@ -284,7 +282,7 @@ fn install_runtime_inner(app: &tauri::AppHandle) -> Result<Value, AppError> {
     Ok(json!({ "installed": true }))
 }
 
-/// Stream a URL to `dest`, emitting `runtime-install://progress`. No checksum —
+/// Stream a URL to `dest`, emitting progress over `studio://activity`. No checksum —
 /// assets are fetched over TLS from the python-build-standalone GitHub release.
 fn download_to(app: &tauri::AppHandle, url: &str, dest: &Path) -> Result<(), AppError> {
     let client = reqwest::blocking::Client::builder()
@@ -340,8 +338,8 @@ fn extract_tar_gz(archive: &Path, dest: &Path) -> Result<(), AppError> {
 }
 
 /// Run `<py> -m pip install <args>`, draining stdout+stderr concurrently (so a
-/// full pipe can't deadlock the long install) and streaming each line as
-/// `runtime-install://progress`.
+/// full pipe can't deadlock the long install) and streaming each line over
+/// `studio://activity`.
 fn run_pip(app: &tauri::AppHandle, py: &Path, install_args: &[&str]) -> Result<(), AppError> {
     let mut command = Command::new(py);
     command
@@ -407,15 +405,14 @@ fn handle_install_pip_line(app: &tauri::AppHandle, line: &str, last_emit: &mut I
 }
 
 fn emit_install(app: &tauri::AppHandle, phase: &str, message: &str, received: u64, total: u64) {
-    let _ = app.emit(
-        RUNTIME_INSTALL_EVENT,
-        json!({
-            "phase": phase,
-            "message": message,
-            "receivedBytes": received,
-            "totalBytes": total,
-        }),
-    );
+    const ID: &str = "runtime-install";
+    let event = match phase {
+        "done" => ActivityEvent::done(ID, ID, "AI runtime"),
+        "error" => ActivityEvent::error(ID, ID, "AI runtime"),
+        _ => ActivityEvent::active(ID, ID, "AI runtime").bytes(received, total),
+    }
+    .message(message);
+    emit_activity(app, event);
 }
 
 // ---------------------------------------------------------------------------
@@ -700,8 +697,6 @@ fn download_with_progress(
 // PyTorch into the overlay so it "just works" once the user has an NVIDIA driver.
 // ---------------------------------------------------------------------------
 
-const GPU_PROGRESS_EVENT: &str = "runtime-gpu-install://progress";
-
 /// Probe for an NVIDIA GPU + driver via `nvidia-smi`, independent of whether the
 /// runtime's torch is a CUDA build (CPU-only torch reports no GPU even when one
 /// is present). Lets the UI tell the user a GPU is available and pick the right
@@ -791,8 +786,8 @@ fn cuda_wheel_tag(cuda_version: Option<&str>) -> &'static str {
 /// (`<app_data>/runtime/cuda`) using the bundled Python's pip, so the next
 /// runtime start uses the GPU. On Windows the torch wheel bundles its own CUDA
 /// DLLs, so a torch-only `--no-deps` overlay is enough (its pure-python deps stay
-/// satisfied by the bundled site-packages). Streams pip output as
-/// `runtime-gpu-install://progress`. Runs on a blocking thread.
+/// satisfied by the bundled site-packages). Streams pip output over
+/// `studio://activity` (id `gpu-install`). Runs on a blocking thread.
 pub fn enable_gpu_overlay(app: &tauri::AppHandle, tag: &str) -> Result<Value, AppError> {
     if cfg!(target_os = "macos") {
         return Err(AppError::Message(
@@ -904,15 +899,14 @@ fn emit_gpu_progress(
     received: u64,
     total: u64,
 ) {
-    let _ = app.emit(
-        GPU_PROGRESS_EVENT,
-        json!({
-            "phase": phase,
-            "message": message,
-            "receivedBytes": received,
-            "totalBytes": total,
-        }),
-    );
+    const ID: &str = "gpu-install";
+    let event = match phase {
+        "done" => ActivityEvent::done(ID, ID, "GPU acceleration"),
+        "error" => ActivityEvent::error(ID, ID, "GPU acceleration"),
+        _ => ActivityEvent::active(ID, ID, "GPU acceleration").bytes(received, total),
+    }
+    .message(message);
+    emit_activity(app, event);
 }
 
 /// Parse a pip `--progress-bar raw` line: "Progress <received> of <total>".
@@ -939,15 +933,14 @@ fn handle_pip_line(app: &tauri::AppHandle, line: &str, last_emit: &mut Instant) 
 }
 
 fn emit_progress(app: &tauri::AppHandle, phase: &str, message: &str, received: u64, total: u64) {
-    let _ = app.emit(
-        MODEL_PROGRESS_EVENT,
-        json!({
-            "phase": phase,
-            "message": message,
-            "receivedBytes": received,
-            "totalBytes": total,
-        }),
-    );
+    const ID: &str = "model-download";
+    let event = match phase {
+        "done" => ActivityEvent::done(ID, ID, "Model download"),
+        "error" => ActivityEvent::error(ID, ID, "Model download"),
+        _ => ActivityEvent::active(ID, ID, "Model download").bytes(received, total),
+    }
+    .message(message);
+    emit_activity(app, event);
 }
 
 fn now_iso() -> String {

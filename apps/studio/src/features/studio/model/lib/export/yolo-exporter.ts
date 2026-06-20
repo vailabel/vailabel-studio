@@ -1,4 +1,4 @@
-import type { Annotation, ImageData, Label, Point } from "@/shared/types/core"
+import type { Annotation, Item, Label, Point } from "@/shared/types/core"
 import { annotationBBox, baseName, clamp01, isPolygonal } from "./geometry"
 import { buildCategoryIndex } from "./categories"
 
@@ -33,7 +33,7 @@ function boxPolygon(annotation: Annotation): Point[] {
  * `classes.txt` listing class names in id order.
  */
 export function toYolo(
-  images: ImageData[],
+  images: Item[],
   annotationsByImage: Map<string, Annotation[]>,
   labels: Label[],
   options: { segmentation?: boolean } = {}

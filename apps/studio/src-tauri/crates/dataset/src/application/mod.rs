@@ -5,6 +5,8 @@ pub mod commands;
 pub mod queries;
 pub mod service;
 
-pub use commands::{DeleteImageCommand, SaveImageCommand};
-pub use queries::{GetImageQuery, ListImagesByProjectQuery, ListImagesRangeQuery};
-pub use service::ImageAppService;
+pub use commands::{DeleteItemCommand, SaveItemCommand};
+pub use queries::{
+    GetItemQuery, ListItemsByProjectQuery, ListItemsPageQuery, ListItemsRangeQuery,
+};
+pub use service::{ItemAppService, ItemPage};

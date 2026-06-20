@@ -82,7 +82,7 @@ export interface CopilotTurnResult {
 // configuration. Everything stays on the user's machine.
 export interface CopilotTurnRequest {
   projectId?: string
-  imageId: string
+  itemId: string
   message: string
   /** Tool ids the user has enabled (Tools menu). Omitted/empty = all tools on.
    *  A disabled tool is never run, even if the message asks for it. */

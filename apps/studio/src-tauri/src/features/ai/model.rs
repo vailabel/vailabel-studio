@@ -30,14 +30,14 @@ pub use vailabel_models::contracts::{
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ImageIdPayload {
-    pub image_id: String,
+pub struct ItemIdPayload {
+    pub item_id: String,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PredictionGeneratePayload {
-    pub image_id: String,
+    pub item_id: String,
     pub model_id: String,
     pub threshold: Option<f32>,
 }
@@ -61,7 +61,7 @@ pub struct PredictionActionPayload {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PipelineRunPayload {
-    pub image_id: String,
+    pub item_id: String,
     pub model_id: String,
     #[serde(default)]
     pub registry_id: Option<String>,
