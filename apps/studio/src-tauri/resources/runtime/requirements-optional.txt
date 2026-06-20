@@ -1,0 +1,10 @@
+# Optional, platform-fragile model-family deps. These are installed best-effort
+# AFTER the core requirements.txt: if a wheel is missing for the host
+# platform/arch (e.g. paddlepaddle has no macOS arm64 wheel), the install of
+# THIS file is allowed to fail without aborting runtime provisioning. The
+# corresponding capability then degrades to a clean per-family error (HTTP 501)
+# instead of the whole AI runtime never becoming ready.
+
+# OCR (PaddleOCR):
+paddleocr
+paddlepaddle

@@ -352,7 +352,28 @@ pub fn run() {
                     return;
                 }
                 tauri::async_runtime::spawn(async move {
-                    let _ = runtime_startup.start().await;
+                    // Surface the (slow) cold-start in the global activity
+                    // indicator so the user knows the AI runtime is spinning up.
+                    emit_activity(
+                        &runtime_startup_app,
+                        crate::features::runtime::glue::runtime_lifecycle_active(
+                            "Starting AI runtime…",
+                        ),
+                    );
+                    match runtime_startup.start().await {
+                        Ok(_) => emit_activity(
+                            &runtime_startup_app,
+                            crate::features::runtime::glue::runtime_lifecycle_done(
+                                "AI runtime ready",
+                            ),
+                        ),
+                        Err(error) => emit_activity(
+                            &runtime_startup_app,
+                            crate::features::runtime::glue::runtime_lifecycle_error(
+                                error.to_string(),
+                            ),
+                        ),
+                    }
                 });
             });
 
@@ -364,6 +385,14 @@ pub fn run() {
                     .run_monitor(move |evt| {
                         let _ = monitor_handle.emit(evt.channel(), evt.payload());
                         if let runtime_manager::RuntimeEvent::Status(s) = &evt {
+                            // Mirror background lifecycle transitions (auto-restart
+                            // after a crash, going unhealthy, recovering) into the
+                            // global activity indicator.
+                            if let Some(activity) =
+                                crate::features::runtime::glue::runtime_status_activity(s)
+                            {
+                                emit_activity(&monitor_handle, activity);
+                            }
                             if s.give_up
                                 || matches!(s.state, runtime_manager::RuntimeState::Crashed)
                             {
@@ -409,7 +438,7 @@ pub fn run() {
             features::dataset::commands::items_save,
             features::dataset::commands::items_delete,
             features::dataset::commands::dataset_export_yolo,
-            features::dataset::commands::dataset_import_yolo,
+            features::dataset::commands::dataset_import,
             features::dataset::commands::spreadsheet_parse,
             features::ai::commands::ai_models_list,
             features::ai::commands::ai_models_list_by_project,

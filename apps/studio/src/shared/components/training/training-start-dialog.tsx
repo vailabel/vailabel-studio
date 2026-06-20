@@ -18,54 +18,27 @@ import {
 import { Button } from "@/shared/ui/button"
 import { Input } from "@/shared/ui/input"
 import { Label } from "@/shared/ui/label"
-import { Loader2, Play } from "lucide-react"
+import { Loader2, Play, Wand2 } from "lucide-react"
 import { projectsService } from "@/shared/services/projects-service"
 import { useStartTraining } from "@/shared/model/ai-runtime-viewmodel"
+import { AugmentationControls } from "@/shared/components/training/augmentation-controls"
+import {
+  AUG_PRESETS,
+  FAMILIES,
+  PRESETS,
+  type AugKey,
+  type Augmentation,
+  type PresetKey,
+} from "@/shared/components/training/training-config"
 import type { Project } from "@/shared/types/core"
 import type { DatasetExportResult } from "@/shared/types/ai-runtime"
 
-const FAMILIES = [
-  { value: "yolo", label: "YOLO (detection)" },
-  { value: "rtdetr", label: "RT-DETR (detection)" },
-]
-
 /**
- * Plain-language presets so non-experts don't have to guess epochs/image-size.
- * `custom` keeps whatever's in the advanced fields. Order matters for the picker.
- */
-const PRESETS = {
-  fast: {
-    label: "Fast",
-    epochs: 40,
-    imgsz: 512,
-    hint: "Quick first pass — good for testing the loop on a few images.",
-  },
-  balanced: {
-    label: "Balanced",
-    epochs: 100,
-    imgsz: 640,
-    hint: "Sensible default for most datasets.",
-  },
-  accurate: {
-    label: "Accurate",
-    epochs: 200,
-    imgsz: 960,
-    hint: "Best quality, but the slowest to train.",
-  },
-  custom: {
-    label: "Custom",
-    epochs: 100,
-    imgsz: 640,
-    hint: "Set epochs and image size yourself below.",
-  },
-} as const
-
-type PresetKey = keyof typeof PRESETS
-
-/**
- * Launches a training run: pick a project + model + hyperparameters, then the
- * project's annotations are exported to a YOLO dataset and a run is started in
- * the embedded runtime. Renders `trigger` as the dialog opener.
+ * Quick "new training job" dialog: pick a project + model + hyperparameters +
+ * augmentation, then the project's annotations are exported to a YOLO dataset
+ * and a run starts in the embedded runtime. The full-page training experience
+ * (with live augmentation previews) lives at /projects/train/:projectId; this
+ * dialog is the compact alternative. Renders `trigger` as the opener.
  */
 export function TrainingStartDialog({
   trigger,
@@ -89,6 +62,8 @@ export function TrainingStartDialog({
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [epochs, setEpochs] = useState(String(PRESETS.balanced.epochs))
   const [imgsz, setImgsz] = useState(String(PRESETS.balanced.imgsz))
+  const [augPreset, setAugPreset] = useState<AugKey | "custom">("standard")
+  const [aug, setAug] = useState<Augmentation>(AUG_PRESETS.standard.values)
   const [result, setResult] = useState<DatasetExportResult | null>(null)
 
   // Picking a preset fills the hyperparameters; editing them flips to "custom".
@@ -98,6 +73,15 @@ export function TrainingStartDialog({
       setEpochs(String(PRESETS[key].epochs))
       setImgsz(String(PRESETS[key].imgsz))
     }
+  }
+
+  const applyAugPreset = (key: AugKey) => {
+    setAugPreset(key)
+    setAug(AUG_PRESETS[key].values)
+  }
+  const setAugField = (field: keyof Augmentation, value: number) => {
+    setAug((prev) => ({ ...prev, [field]: value }))
+    setAugPreset("custom")
   }
 
   const { start, busy, error, clearError } = useStartTraining()
@@ -132,6 +116,7 @@ export function TrainingStartDialog({
       name: name.trim() || undefined,
       epochs: Number(epochs) || undefined,
       imgsz: Number(imgsz) || undefined,
+      augmentation: { ...aug } as Record<string, number>,
     })
     if (summary) {
       setResult(summary)
@@ -142,7 +127,7 @@ export function TrainingStartDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger render={trigger} />
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>New training job</DialogTitle>
           <DialogDescription>
@@ -235,8 +220,7 @@ export function TrainingStartDialog({
               </Select>
               <p className="text-xs text-muted-foreground">
                 {PRESETS[preset].hint}
-                {preset !== "custom" &&
-                  ` (${epochs} epochs · ${imgsz}px)`}
+                {preset !== "custom" && ` (${epochs} epochs · ${imgsz}px)`}
               </p>
             </div>
 
@@ -279,6 +263,19 @@ export function TrainingStartDialog({
                   </div>
                 </div>
               )}
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5">
+                <Wand2 className="h-3.5 w-3.5 text-muted-foreground" />
+                Data augmentation
+              </Label>
+              <AugmentationControls
+                aug={aug}
+                augPreset={augPreset}
+                onPreset={applyAugPreset}
+                onField={setAugField}
+              />
             </div>
 
             <p className="rounded-md border border-warning/20 bg-warning/10 p-2.5 text-xs text-muted-foreground">

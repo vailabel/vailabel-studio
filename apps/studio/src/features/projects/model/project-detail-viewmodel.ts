@@ -6,7 +6,10 @@ import { useNavigate } from "react-router-dom"
 import { listenToStudioEvents } from "@/shared/ipc/events"
 import { studioCommands } from "@/shared/ipc/studio"
 import { services } from "@/shared/services"
-import type { DatasetImportResult } from "@/shared/types/ai-runtime"
+import type {
+  DatasetImportFormat,
+  DatasetImportResult,
+} from "@/shared/types/ai-runtime"
 import {
   allowImageDirectory,
   openPathDialog,
@@ -226,18 +229,22 @@ export const useProjectDetailViewModel = (projectId: string) => {
     }
   }
 
-  // Import a YOLO / Roboflow export folder (data.yaml + images + labels) — the
-  // classes, images, and boxes are created in the backend, then we reload.
-  const importDataset = async (): Promise<DatasetImportResult | undefined> => {
+  // Import an annotated dataset folder (YOLO data.yaml+labels, or COCO
+  // _annotations.coco.json) — classes, images, and boxes are created in the
+  // backend (format auto-detected unless forced), then we reload.
+  const importDataset = async (
+    format: DatasetImportFormat = "auto"
+  ): Promise<DatasetImportResult | undefined> => {
     const [folder] = await openPathDialog({ directory: true })
     if (!folder) return undefined
 
     setIsImporting(true)
     try {
       await allowImageDirectory(folder)
-      const result = await studioCommands.datasetImportYolo({
+      const result = await studioCommands.datasetImport({
         projectId,
         folder,
+        format,
       })
       await refreshData()
       await reloadItems()

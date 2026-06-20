@@ -17,6 +17,7 @@ const ProjectCreate = lazy(() =>
   }))
 )
 const ProjectDetails = lazy(() => import("@/features/projects/routes/project-detail"))
+const TrainingPage = lazy(() => import("@/features/training/routes/training-page"))
 const AIModelListPage = lazy(() => import("@/features/ai-models"))
 const DatasetIntelligence = lazy(() => import("@/features/dataset-intelligence"))
 const LabelsPage = lazy(() => import("@/features/labels"))
@@ -43,6 +44,10 @@ const AppRoutes = () => {
           <Route
             path="/projects/detail/:projectId"
             element={withSuspense(<ProjectDetails />)}
+          />
+          <Route
+            path="/projects/train/:projectId"
+            element={withSuspense(<TrainingPage />)}
           />
           <Route path="/ai-models" element={withSuspense(<AIModelListPage />)} />
           <Route

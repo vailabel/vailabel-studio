@@ -83,9 +83,17 @@ base64 = "0.22"
 # `calamine` reads Excel/ODS; `csv` reads CSV/TSV.
 calamine = "0.26"
 csv = "1"
+# Pure-Rust extraction of the downloaded Python runtime tarball (no reliance on a
+# system `tar` on PATH; preserves Unix exec bits on the bundled interpreter).
+flate2 = "1"
+tar = "0.4"
 chrono = { version = "0.4", features = ["serde"] }
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "gif", "rayon"] }
-keyring = { version = "3", default-features = false, features = ["apple-native", "linux-native", "windows-native"] }
+# On Linux use the D-Bus Secret Service (gnome-keyring / kwallet) so saved
+# cloud/copilot secrets PERSIST across reboot. The previous `linux-native`
+# (kernel keyutils) backend is session-volatile — secrets vanished on logout.
+# `crypto-rust` keeps it free of a system OpenSSL build dep.
+keyring = { version = "3", default-features = false, features = ["apple-native", "sync-secret-service", "crypto-rust", "windows-native"] }
 open = "5"
 rfd = "0.15"
 # Embedded Python/FastAPI runtime lifecycle manager (Tauri-free; this crate owns

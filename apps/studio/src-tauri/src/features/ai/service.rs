@@ -348,6 +348,7 @@ impl AiService {
         };
 
         let model = build_ai_model_entity(AiModelEntityInput {
+            app,
             model_id: &model_id,
             name: &payload.name,
             description: &payload.description,
@@ -385,6 +386,7 @@ impl AiService {
         let seed_metadata = json!({ "classNames": class_names, "labelSource": "trained" });
         let project_id_owned = project_id.map(ToString::to_string);
         let model = build_ai_model_entity(AiModelEntityInput {
+            app,
             model_id: &model_id,
             name,
             description: "Trained with the embedded runtime",
@@ -458,6 +460,7 @@ impl AiService {
             }
 
             let model = build_ai_model_entity(AiModelEntityInput {
+                app,
                 model_id: &model_id,
                 name: &payload.name,
                 description: &payload.description,
@@ -624,7 +627,7 @@ impl AiService {
                 "Selected AI model was not found",
             )?,
         )?;
-        let model = upgrade_model_for_local_inference(&self.store, hydrated_model.clone())?;
+        let model = upgrade_model_for_local_inference(app, &self.store, hydrated_model.clone())?;
         if model != hydrated_model {
             emit_domain_event(app, "ai_models", "updated", &model)?;
         }
@@ -1335,7 +1338,10 @@ fn extract_exported_onnx_path(output: &str) -> Option<PathBuf> {
     })
 }
 
-fn export_pytorch_checkpoint_to_onnx(model_path: &Path) -> Result<PathBuf, AppError> {
+fn export_pytorch_checkpoint_to_onnx(
+    app: &tauri::AppHandle,
+    model_path: &Path,
+) -> Result<PathBuf, AppError> {
     let expected_output_path = model_path.with_extension("onnx");
     if expected_output_path.exists() {
         return Ok(expected_output_path);
@@ -1350,25 +1356,21 @@ fn export_pytorch_checkpoint_to_onnx(model_path: &Path) -> Result<PathBuf, AppEr
         "print(exported or '')\n"
     );
     let model_path_arg = model_path.to_string_lossy().to_string();
-    let attempts = vec![
-        (
-            "python",
-            vec!["-c".to_string(), script.to_string(), model_path_arg.clone()],
-        ),
-        (
-            "py",
-            vec![
-                "-3".to_string(),
-                "-c".to_string(),
-                script.to_string(),
-                model_path_arg,
-            ],
-        ),
-    ];
+    let common_args = vec!["-c".to_string(), script.to_string(), model_path_arg];
+
+    // Prefer the bundled/embedded interpreter — it has `ultralytics` on every OS.
+    // Fall back to a system interpreter (`python3` on macOS/Linux, `python` on
+    // Windows). The Windows-only `py` launcher is intentionally dropped.
+    let mut attempts: Vec<(String, Vec<String>)> = Vec::new();
+    if let Some(embedded) = crate::features::runtime::glue::runtime_python_exe(app) {
+        attempts.push((embedded.to_string_lossy().into_owned(), common_args.clone()));
+    }
+    attempts.push(("python3".to_string(), common_args.clone()));
+    attempts.push(("python".to_string(), common_args));
     let mut failures = Vec::new();
 
     for (program, args) in attempts {
-        match Command::new(program).args(&args).output() {
+        match Command::new(&program).args(&args).output() {
             Ok(output) if output.status.success() => {
                 if expected_output_path.exists() {
                     return Ok(expected_output_path);
@@ -1412,7 +1414,10 @@ struct PreparedModelAsset {
     metadata_seed: Option<Value>,
 }
 
-fn prepare_model_asset_for_inference(model_path: &Path) -> PreparedModelAsset {
+fn prepare_model_asset_for_inference(
+    app: &tauri::AppHandle,
+    model_path: &Path,
+) -> PreparedModelAsset {
     if !is_pytorch_checkpoint(model_path) {
         return PreparedModelAsset {
             runtime_model_path: model_path.to_path_buf(),
@@ -1421,7 +1426,7 @@ fn prepare_model_asset_for_inference(model_path: &Path) -> PreparedModelAsset {
     }
 
     let source_path = model_path.to_string_lossy().to_string();
-    match export_pytorch_checkpoint_to_onnx(model_path) {
+    match export_pytorch_checkpoint_to_onnx(app, model_path) {
         Ok(runtime_model_path) => PreparedModelAsset {
             runtime_model_path: runtime_model_path.clone(),
             metadata_seed: Some(json!({
@@ -1554,6 +1559,7 @@ fn build_model_metadata(
 }
 
 fn upgrade_model_for_local_inference(
+    app: &tauri::AppHandle,
     store: &RepoStore,
     model: Value,
 ) -> Result<Value, AppError> {
@@ -1562,7 +1568,7 @@ fn upgrade_model_for_local_inference(
         return Ok(model);
     }
 
-    let prepared_asset = prepare_model_asset_for_inference(Path::new(&current_model_path));
+    let prepared_asset = prepare_model_asset_for_inference(app, Path::new(&current_model_path));
     if prepared_asset.runtime_model_path == Path::new(&current_model_path)
         && prepared_asset.metadata_seed.is_none()
     {
@@ -1881,6 +1887,7 @@ fn find_existing_model_installation(
 }
 
 struct AiModelEntityInput<'a> {
+    app: &'a tauri::AppHandle,
     model_id: &'a str,
     name: &'a str,
     description: &'a str,
@@ -1897,7 +1904,7 @@ struct AiModelEntityInput<'a> {
 }
 
 fn build_ai_model_entity(input: AiModelEntityInput<'_>) -> Result<Value, AppError> {
-    let prepared_asset = prepare_model_asset_for_inference(input.model_path);
+    let prepared_asset = prepare_model_asset_for_inference(input.app, input.model_path);
     let effective_model_path = &prepared_asset.runtime_model_path;
     let mut seed_metadata = input.seed_metadata.cloned().unwrap_or_else(|| json!({}));
     if let Some(prepared_metadata) = prepared_asset.metadata_seed.as_ref() {

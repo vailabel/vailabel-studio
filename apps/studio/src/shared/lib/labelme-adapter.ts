@@ -103,6 +103,9 @@ export function fromLabelMe(
 /** The sidecar path for an image path: `/dir/foo.jpg` -> `/dir/foo.json`. */
 export function sidecarPathFor(imagePath: string): string {
   const dot = imagePath.lastIndexOf(".")
-  const base = dot > imagePath.lastIndexOf("/") ? imagePath.slice(0, dot) : imagePath
+  // Consider BOTH separators so a Windows path like `C:\my.dir\photo` (dotted
+  // parent dir, extension-less file) isn't truncated at the directory's dot.
+  const sep = Math.max(imagePath.lastIndexOf("/"), imagePath.lastIndexOf("\\"))
+  const base = dot > sep ? imagePath.slice(0, dot) : imagePath
   return `${base}.json`
 }

@@ -28,9 +28,9 @@ accelerate
 einops
 timm
 
-# OCR (PaddleOCR):
-paddleocr
-paddlepaddle
+# OCR (PaddleOCR) lives in requirements-optional.txt: paddlepaddle has no wheel
+# on some platforms (notably macOS arm64), so it is installed best-effort and a
+# failure there must NOT abort the whole runtime install. See glue.rs.
 
 # Export toolchains:
 onnx

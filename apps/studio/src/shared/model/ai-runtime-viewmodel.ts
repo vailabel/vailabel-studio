@@ -315,6 +315,10 @@ export function useStartTraining(onStarted?: () => void) {
       epochs?: number
       imgsz?: number
       valSplit?: number
+      /** ultralytics augmentation hyperparameters (fliplr, hsv_s, mosaic, …),
+       *  merged into the training config. ultralytics applies them on the fly
+       *  per batch during training — no pre-generated images on disk. */
+      augmentation?: Record<string, number>
     }): Promise<DatasetExportResult | null> => {
       setBusy(true)
       setError(null)
@@ -328,6 +332,7 @@ export function useStartTraining(onStarted?: () => void) {
         const config: Record<string, unknown> = {}
         if (opts.epochs) config.epochs = opts.epochs
         if (opts.imgsz) config.imgsz = opts.imgsz
+        if (opts.augmentation) Object.assign(config, opts.augmentation)
 
         await aiRuntimeService.startTraining({
           projectId: opts.projectId,

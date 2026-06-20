@@ -57,9 +57,12 @@ pub struct DatasetExportResult {
 #[serde(rename_all = "camelCase")]
 pub struct DatasetImportPayload {
     pub project_id: String,
-    /// Root of an unzipped YOLO/Roboflow export (holds `data.yaml` and the
-    /// image/label files, in any of the common layouts).
+    /// Root of an unzipped dataset export (YOLO `data.yaml` + label files, or a
+    /// COCO `_annotations.coco.json`, in any of the common layouts).
     pub folder: String,
+    /// `"auto"` (default) detects the format from the folder contents; or force
+    /// `"yolo"` / `"coco"`.
+    pub format: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -74,6 +77,8 @@ pub struct DatasetImportResult {
     pub class_names: Vec<String>,
     pub skipped_image_count: usize,
     pub warnings: Vec<String>,
+    /// Which importer ran: `"yolo"` or `"coco"`.
+    pub format: String,
 }
 
 const IMAGE_EXTS: [&str; 8] = ["png", "jpg", "jpeg", "gif", "bmp", "webp", "tiff", "tif"];
@@ -452,37 +457,8 @@ impl DatasetService {
             class_names.len()
         };
 
-        // 4. Single write pass: labels first (annotations reference them), then
-        //    images, then annotations.
-        {
-            for label in new_labels {
-                let label: LabelClass = serde_json::from_value(label)?;
-                self.labels.save_atomic(&label)?;
-            }
-            for image in images_buf {
-                let image: Item = serde_json::from_value(image)?;
-                self.images.save_atomic(&image)?;
-            }
-            for ann in anns_buf {
-                let ann: Annotation = serde_json::from_value(ann)?;
-                self.annotations.save_atomic(&ann)?;
-            }
-        }
-
-        // Let the webview render the referenced images without copying them.
-        let _ = app.asset_protocol_scope().allow_directory(&root, true);
-
-        // One refresh nudge per entity kind (frontend also reloads after the await).
-        for entity in ["labels", "items", "annotations"] {
-            let _ = emit_domain_event_for_ids(
-                app,
-                entity,
-                "created",
-                project_id.clone(),
-                Some(project_id.clone()),
-                None,
-            );
-        }
+        // 4. Persist labels → images → annotations, scope the folder, notify.
+        self.commit_buffers(app, &project_id, &root, new_labels, images_buf, anns_buf)?;
 
         Ok(DatasetImportResult {
             item_count,
@@ -492,7 +468,296 @@ impl DatasetService {
             class_names,
             skipped_image_count: skipped,
             warnings,
+            format: "yolo".to_string(),
         })
+    }
+
+    /// Import a COCO dataset (one or more `*.coco.json` files, e.g. Roboflow's
+    /// per-split `_annotations.coco.json`). Categories become classes, image
+    /// `file_name`s are referenced in place (resolved next to their JSON), and
+    /// each annotation's `bbox`/`segmentation` becomes an image-space box/polygon.
+    fn import_coco(
+        &self,
+        app: &tauri::AppHandle,
+        project_id: &str,
+        root: &Path,
+        json_files: Vec<PathBuf>,
+    ) -> Result<DatasetImportResult, AppError> {
+        if json_files.is_empty() {
+            return Err(AppError::Message(
+                "No COCO annotation JSON (e.g. _annotations.coco.json) found in that folder.".into(),
+            ));
+        }
+
+        // Existing project labels → case-insensitive name → (id, color).
+        let mut name_to_label: HashMap<String, (String, String)> = HashMap::new();
+        for label in self
+            .labels
+            .list_by_project(project_id)?
+            .iter()
+            .map(serde_json::to_value)
+            .collect::<Result<Vec<Value>, _>>()?
+        {
+            if let (Some(name), Some(id)) = (
+                label.get("name").and_then(Value::as_str),
+                label.get("id").and_then(Value::as_str),
+            ) {
+                let color = label
+                    .get("color")
+                    .and_then(Value::as_str)
+                    .unwrap_or("#2563eb")
+                    .to_string();
+                name_to_label.insert(name.trim().to_lowercase(), (id.to_string(), color));
+            }
+        }
+
+        let mut class_names: Vec<String> = Vec::new();
+        let mut catname_to_idx: HashMap<String, usize> = HashMap::new();
+        let mut index_to_label: HashMap<usize, (String, String, String)> = HashMap::new();
+        let mut new_labels: Vec<Value> = Vec::new();
+        let mut images_buf: Vec<Value> = Vec::new();
+        let mut anns_buf: Vec<Value> = Vec::new();
+        let mut warnings: Vec<String> = Vec::new();
+        let mut skipped = 0usize;
+
+        for json_path in &json_files {
+            let dir = json_path.parent().unwrap_or(root);
+            let Ok(text) = std::fs::read_to_string(json_path) else {
+                continue;
+            };
+            let Ok(doc) = serde_json::from_str::<Value>(&text) else {
+                continue;
+            };
+
+            // categories → global class indices.
+            let mut catid_to_idx: HashMap<i64, usize> = HashMap::new();
+            if let Some(cats) = doc.get("categories").and_then(Value::as_array) {
+                let mut sorted: Vec<&Value> = cats.iter().collect();
+                sorted.sort_by_key(|c| c.get("id").and_then(Value::as_i64).unwrap_or(0));
+                for c in sorted {
+                    let Some(id) = c.get("id").and_then(Value::as_i64) else {
+                        continue;
+                    };
+                    let name = c
+                        .get("name")
+                        .and_then(Value::as_str)
+                        .unwrap_or("")
+                        .trim()
+                        .to_string();
+                    if name.is_empty() {
+                        continue;
+                    }
+                    let key = name.to_lowercase();
+                    let idx = match catname_to_idx.get(&key) {
+                        Some(&i) => i,
+                        None => {
+                            class_names.push(name.clone());
+                            let i = class_names.len() - 1;
+                            catname_to_idx.insert(key, i);
+                            i
+                        }
+                    };
+                    catid_to_idx.insert(id, idx);
+                }
+            }
+
+            // images → buffered item rows; keep coco image_id → (our id, w, h).
+            let mut imgid_to_local: HashMap<i64, (String, f64, f64)> = HashMap::new();
+            if let Some(imgs) = doc.get("images").and_then(Value::as_array) {
+                for im in imgs {
+                    let Some(cid) = im.get("id").and_then(Value::as_i64) else {
+                        continue;
+                    };
+                    let file_name = match im.get("file_name").and_then(Value::as_str) {
+                        Some(f) if !f.is_empty() => f,
+                        _ => continue,
+                    };
+                    let Some(img_path) = resolve_coco_image(dir, file_name) else {
+                        skipped += 1;
+                        if warnings.len() < 25 {
+                            warnings.push(format!("{file_name}: image file not found — skipped"));
+                        }
+                        continue;
+                    };
+                    let mut w = im.get("width").and_then(Value::as_f64).unwrap_or(0.0);
+                    let mut h = im.get("height").and_then(Value::as_f64).unwrap_or(0.0);
+                    if w <= 0.0 || h <= 0.0 {
+                        match image::image_dimensions(&img_path) {
+                            Ok((iw, ih)) => {
+                                w = iw as f64;
+                                h = ih as f64;
+                            }
+                            Err(_) => {
+                                skipped += 1;
+                                continue;
+                            }
+                        }
+                    }
+                    let local_id = uuid::Uuid::new_v4().to_string();
+                    let name = img_path
+                        .file_name()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or("image")
+                        .to_string();
+                    let rel = img_path
+                        .strip_prefix(root)
+                        .ok()
+                        .and_then(|p| p.to_str())
+                        .map(str::to_string)
+                        .unwrap_or_else(|| name.clone());
+                    images_buf.push(json!({
+                        "id": local_id,
+                        "name": name,
+                        "path": img_path.to_string_lossy(),
+                        "imagePath": rel,
+                        "image_path": rel,
+                        "width": w,
+                        "height": h,
+                        "projectId": project_id,
+                        "project_id": project_id,
+                    }));
+                    imgid_to_local.insert(cid, (local_id, w, h));
+                }
+            }
+
+            // annotations → buffered box/polygon rows.
+            if let Some(anns) = doc.get("annotations").and_then(Value::as_array) {
+                for a in anns {
+                    let Some(image_id) = a.get("image_id").and_then(Value::as_i64) else {
+                        continue;
+                    };
+                    let Some((local_id, w, h)) = imgid_to_local.get(&image_id).cloned() else {
+                        continue;
+                    };
+                    let cat_id = a.get("category_id").and_then(Value::as_i64).unwrap_or(-1);
+                    let Some(&idx) = catid_to_idx.get(&cat_id) else {
+                        continue;
+                    };
+                    let (ann_type, pts) = coco_ann_geometry(a, w, h);
+                    if pts.is_empty() {
+                        continue;
+                    }
+                    let (label_id, label_name, color) = resolve_class(
+                        idx,
+                        &class_names,
+                        project_id,
+                        &mut name_to_label,
+                        &mut index_to_label,
+                        &mut new_labels,
+                    );
+                    let coords: Vec<Value> =
+                        pts.iter().map(|(x, y)| json!({ "x": x, "y": y })).collect();
+                    anns_buf.push(json!({
+                        "id": uuid::Uuid::new_v4().to_string(),
+                        "type": ann_type,
+                        "coordinates": coords,
+                        "labelId": label_id,
+                        "label_id": label_id,
+                        "name": label_name,
+                        "color": color,
+                        "itemId": local_id,
+                        "item_id": local_id,
+                        "projectId": project_id,
+                        "project_id": project_id,
+                    }));
+                }
+            }
+        }
+
+        if images_buf.is_empty() {
+            return Err(AppError::Message(
+                "No images referenced by the COCO annotations were found on disk.".into(),
+            ));
+        }
+
+        let item_count = images_buf.len();
+        let annotation_count = anns_buf.len();
+        let created_class_count = new_labels.len();
+        let class_count = class_names.len();
+
+        self.commit_buffers(app, project_id, root, new_labels, images_buf, anns_buf)?;
+
+        Ok(DatasetImportResult {
+            item_count,
+            annotation_count,
+            class_count,
+            created_class_count,
+            class_names,
+            skipped_image_count: skipped,
+            warnings,
+            format: "coco".to_string(),
+        })
+    }
+
+    /// Persist a built import batch (labels → images → annotations), grant the
+    /// asset-protocol scope so the referenced images render, and emit one refresh
+    /// event per entity kind. Shared by every importer.
+    fn commit_buffers(
+        &self,
+        app: &tauri::AppHandle,
+        project_id: &str,
+        root: &Path,
+        new_labels: Vec<Value>,
+        images_buf: Vec<Value>,
+        anns_buf: Vec<Value>,
+    ) -> Result<(), AppError> {
+        for label in new_labels {
+            let label: LabelClass = serde_json::from_value(label)?;
+            self.labels.save_atomic(&label)?;
+        }
+        for image in images_buf {
+            let image: Item = serde_json::from_value(image)?;
+            self.images.save_atomic(&image)?;
+        }
+        for ann in anns_buf {
+            let ann: Annotation = serde_json::from_value(ann)?;
+            self.annotations.save_atomic(&ann)?;
+        }
+        let _ = app.asset_protocol_scope().allow_directory(root, true);
+        for entity in ["labels", "items", "annotations"] {
+            let _ = emit_domain_event_for_ids(
+                app,
+                entity,
+                "created",
+                project_id.to_string(),
+                Some(project_id.to_string()),
+                None,
+            );
+        }
+        Ok(())
+    }
+
+    /// Import a dataset folder, auto-detecting YOLO vs COCO (or honoring an
+    /// explicit `payload.format`). The unified entry the `dataset_import` command
+    /// calls.
+    pub fn import_dataset(
+        &self,
+        app: &tauri::AppHandle,
+        payload: DatasetImportPayload,
+    ) -> Result<DatasetImportResult, AppError> {
+        let root = PathBuf::from(&payload.folder);
+        if !root.is_dir() {
+            return Err(AppError::Message(format!(
+                "Folder not found: {}",
+                root.display()
+            )));
+        }
+        let requested = payload
+            .format
+            .as_deref()
+            .unwrap_or("auto")
+            .to_ascii_lowercase();
+        let coco_jsons = find_coco_jsons(&root);
+        let use_coco = match requested.as_str() {
+            "coco" => true,
+            "yolo" => false,
+            _ => !coco_jsons.is_empty(),
+        };
+        if use_coco {
+            self.import_coco(app, &payload.project_id, &root, coco_jsons)
+        } else {
+            self.import_yolo(app, payload)
+        }
     }
 }
 
@@ -684,9 +949,150 @@ fn resolve_class(
     (id, name, color)
 }
 
+// ---------------------------------------------------------------------------
+// COCO helpers
+// ---------------------------------------------------------------------------
+
+/// Recursively collect COCO annotation JSON files under `root` (a file with
+/// `images` + `annotations` arrays and a `categories` field — e.g. Roboflow's
+/// per-split `_annotations.coco.json`).
+fn find_coco_jsons(root: &Path) -> Vec<PathBuf> {
+    let mut out = Vec::new();
+    collect_coco_jsons(root, &mut out);
+    out.sort();
+    out
+}
+
+fn collect_coco_jsons(root: &Path, out: &mut Vec<PathBuf>) {
+    let Ok(entries) = std::fs::read_dir(root) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            collect_coco_jsons(&path, out);
+        } else if is_coco_json(&path) {
+            out.push(path);
+        }
+    }
+}
+
+/// True when `path` is a `.json` whose top level has COCO's `images` +
+/// `annotations` arrays and a `categories` field.
+fn is_coco_json(path: &Path) -> bool {
+    let is_json = path
+        .extension()
+        .and_then(|x| x.to_str())
+        .map(|x| x.eq_ignore_ascii_case("json"))
+        .unwrap_or(false);
+    if !is_json {
+        return false;
+    }
+    let Ok(text) = std::fs::read_to_string(path) else {
+        return false;
+    };
+    let Ok(value) = serde_json::from_str::<Value>(&text) else {
+        return false;
+    };
+    value.get("images").map(Value::is_array).unwrap_or(false)
+        && value.get("annotations").map(Value::is_array).unwrap_or(false)
+        && value.get("categories").is_some()
+}
+
+/// Locate a COCO image `file_name` on disk: next to its JSON, by basename, or
+/// under a sibling `images/` dir (the common Roboflow / COCO layouts).
+fn resolve_coco_image(dir: &Path, file_name: &str) -> Option<PathBuf> {
+    let direct = dir.join(file_name);
+    if direct.is_file() {
+        return Some(direct);
+    }
+    let base = Path::new(file_name).file_name()?;
+    let sibling = dir.join(base);
+    if sibling.is_file() {
+        return Some(sibling);
+    }
+    let nested = dir.join("images").join(base);
+    if nested.is_file() {
+        return Some(nested);
+    }
+    None
+}
+
+/// Convert one COCO annotation to `(type, pixel_points)`: a non-crowd polygon
+/// `segmentation` becomes a polygon, otherwise the `bbox [x, y, w, h]` becomes a
+/// two-corner box. Empty points when neither is usable.
+fn coco_ann_geometry(ann: &Value, width: f64, height: f64) -> (&'static str, Vec<(f64, f64)>) {
+    let clamp_x = |x: f64| x.clamp(0.0, width.max(0.0));
+    let clamp_y = |y: f64| y.clamp(0.0, height.max(0.0));
+
+    let iscrowd = ann.get("iscrowd").and_then(Value::as_i64).unwrap_or(0);
+    if iscrowd == 0 {
+        if let Some(seg) = ann.get("segmentation").and_then(Value::as_array) {
+            if let Some(poly) = seg.iter().find_map(Value::as_array) {
+                let nums: Vec<f64> = poly.iter().filter_map(Value::as_f64).collect();
+                if nums.len() >= 6 && nums.len() % 2 == 0 {
+                    let pts = nums
+                        .chunks(2)
+                        .map(|c| (clamp_x(c[0]), clamp_y(c[1])))
+                        .collect();
+                    return ("polygon", pts);
+                }
+            }
+        }
+    }
+
+    if let Some(bbox) = ann.get("bbox").and_then(Value::as_array) {
+        if bbox.len() == 4 {
+            let x = bbox[0].as_f64().unwrap_or(0.0);
+            let y = bbox[1].as_f64().unwrap_or(0.0);
+            let bw = bbox[2].as_f64().unwrap_or(0.0);
+            let bh = bbox[3].as_f64().unwrap_or(0.0);
+            if bw > 0.0 && bh > 0.0 {
+                return (
+                    "box",
+                    vec![(clamp_x(x), clamp_y(y)), (clamp_x(x + bw), clamp_y(y + bh))],
+                );
+            }
+        }
+    }
+
+    ("box", Vec::new())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn coco_bbox_becomes_two_corner_box() {
+        let ann = json!({ "bbox": [10.0, 20.0, 30.0, 40.0], "iscrowd": 0 });
+        let (ty, pts) = coco_ann_geometry(&ann, 200.0, 200.0);
+        assert_eq!(ty, "box");
+        assert_eq!(pts, vec![(10.0, 20.0), (40.0, 60.0)]);
+    }
+
+    #[test]
+    fn coco_polygon_segmentation_becomes_polygon() {
+        let ann = json!({
+            "segmentation": [[10.0, 20.0, 60.0, 20.0, 35.0, 70.0]],
+            "bbox": [10.0, 20.0, 50.0, 50.0],
+            "iscrowd": 0,
+        });
+        let (ty, pts) = coco_ann_geometry(&ann, 100.0, 100.0);
+        assert_eq!(ty, "polygon");
+        assert_eq!(pts.len(), 3);
+    }
+
+    #[test]
+    fn coco_crowd_falls_back_to_bbox() {
+        let ann = json!({
+            "segmentation": [[1.0, 2.0, 3.0, 4.0, 5.0, 6.0]],
+            "bbox": [0.0, 0.0, 10.0, 10.0],
+            "iscrowd": 1,
+        });
+        let (ty, _pts) = coco_ann_geometry(&ann, 100.0, 100.0);
+        assert_eq!(ty, "box");
+    }
 
     #[test]
     fn yaml_names_parses_list_and_mapping_forms() {

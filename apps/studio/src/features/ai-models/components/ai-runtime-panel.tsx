@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react"
 import type { ReactNode } from "react"
 import { listen } from "@tauri-apps/api/event"
-import { Cpu, Download, Loader2, RotateCw, Zap } from "lucide-react"
+import { Cpu, Download, Loader2, Play, RotateCw, ScrollText, Square, Zap } from "lucide-react"
 import { Badge } from "@/shared/ui/badge"
 import { Button } from "@/shared/ui/button"
 import {
@@ -69,7 +69,8 @@ export function AiRuntimePanel() {
   const [status, setStatus] = useState<RuntimeStatus | null>(null)
   const [system, setSystem] = useState<RuntimeSystemInfo | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [restarting, setRestarting] = useState(false)
+  const [actionBusy, setActionBusy] = useState(false)
+  const [logs, setLogs] = useState<string>("")
   const [gpuProbe, setGpuProbe] = useState<GpuProbe | null>(null)
   const gpuInstall = useGpuInstall()
   const install = useRuntimeInstall()
@@ -136,15 +137,27 @@ export function AiRuntimePanel() {
     }
   }, [])
 
-  const handleRestart = async () => {
-    setRestarting(true)
+  // Start / Stop / Restart all share the same in-flight guard + refresh; the
+  // runtime://status event keeps the badge live regardless.
+  const runAction = async (action: () => Promise<RuntimeStatus>) => {
+    setActionBusy(true)
     try {
-      setStatus(await aiRuntimeService.restart())
+      setStatus(await action())
       await refresh()
     } catch {
       // The status event / next refresh will surface the failure state.
     } finally {
-      setRestarting(false)
+      setActionBusy(false)
+    }
+  }
+  const handleStart = () => runAction(aiRuntimeService.start)
+  const handleStop = () => runAction(aiRuntimeService.stop)
+  const handleRestart = () => runAction(aiRuntimeService.restart)
+  const handleViewLogs = async () => {
+    try {
+      setLogs(await aiRuntimeService.logs())
+    } catch {
+      // Non-fatal — leave whatever is already shown in place.
     }
   }
 
@@ -152,7 +165,7 @@ export function AiRuntimePanel() {
   const sys = system?.system
   const gpu = system?.gpu
   const gpuActive = Boolean(gpu?.available)
-  const busy = restarting || isBusy(state)
+  const busy = actionBusy || isBusy(state)
   // The interpreter is provisioned on first run, not bundled — until it's
   // installed, the panel shows an install prompt instead of runtime stats.
   const notInstalled = install.installed === false
@@ -185,19 +198,51 @@ export function AiRuntimePanel() {
             </CardDescription>
           </div>
           {!notInstalled && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => void handleRestart()}
-              disabled={busy}
-            >
-              {busy ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <RotateCw className="h-4 w-4" />
-              )}
-              Restart
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5"
+                onClick={() => void handleStart()}
+                disabled={busy || state === "healthy"}
+              >
+                <Play className="h-4 w-4" />
+                Start
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5"
+                onClick={() => void handleStop()}
+                disabled={busy || state === "stopped"}
+              >
+                <Square className="h-4 w-4" />
+                Stop
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5"
+                onClick={() => void handleRestart()}
+                disabled={busy}
+              >
+                {busy ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RotateCw className="h-4 w-4" />
+                )}
+                Restart
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5"
+                onClick={() => void handleViewLogs()}
+              >
+                <ScrollText className="h-4 w-4" />
+                View logs
+              </Button>
+            </div>
           )}
         </div>
       </CardHeader>
@@ -342,6 +387,12 @@ export function AiRuntimePanel() {
               <CardDescription className="text-destructive">
                 {status.lastError}
               </CardDescription>
+            )}
+
+            {logs && (
+              <pre className="max-h-56 overflow-auto rounded-md border bg-muted/30 p-3 text-xs whitespace-pre-wrap">
+                {logs}
+              </pre>
             )}
           </>
         )}

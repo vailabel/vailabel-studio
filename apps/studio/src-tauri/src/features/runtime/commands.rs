@@ -9,7 +9,7 @@ use tauri::State;
 
 use runtime_manager::{CaptionRequest, DetectRequest, OcrRequest, RuntimeStatus, SegmentRequest};
 
-use crate::{emit_domain_event, AppError, AppState};
+use crate::{emit_activity, emit_domain_event, AppError, AppState};
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -54,24 +54,60 @@ pub struct OcrPayload {
 // ───────────────────────────── Lifecycle ─────────────────────────────
 
 #[tauri::command]
-pub async fn runtime_start(state: State<'_, AppState>) -> Result<RuntimeStatus, AppError> {
+pub async fn runtime_start(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+) -> Result<RuntimeStatus, AppError> {
     let svc = state.runtime_service.clone();
-    svc.start().await?;
-    Ok(svc.status())
+    emit_activity(&app, super::glue::runtime_lifecycle_active("Starting AI runtime…"));
+    match svc.start().await {
+        Ok(_) => {
+            emit_activity(&app, super::glue::runtime_lifecycle_done("AI runtime ready"));
+            Ok(svc.status())
+        }
+        Err(error) => {
+            emit_activity(&app, super::glue::runtime_lifecycle_error(error.to_string()));
+            Err(error.into())
+        }
+    }
 }
 
 #[tauri::command]
-pub async fn runtime_stop(state: State<'_, AppState>) -> Result<RuntimeStatus, AppError> {
+pub async fn runtime_stop(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+) -> Result<RuntimeStatus, AppError> {
     let svc = state.runtime_service.clone();
-    svc.stop().await?;
-    Ok(svc.status())
+    emit_activity(&app, super::glue::runtime_lifecycle_active("Stopping AI runtime…"));
+    match svc.stop().await {
+        Ok(_) => {
+            emit_activity(&app, super::glue::runtime_lifecycle_done("AI runtime stopped"));
+            Ok(svc.status())
+        }
+        Err(error) => {
+            emit_activity(&app, super::glue::runtime_lifecycle_error(error.to_string()));
+            Err(error.into())
+        }
+    }
 }
 
 #[tauri::command]
-pub async fn runtime_restart(state: State<'_, AppState>) -> Result<RuntimeStatus, AppError> {
+pub async fn runtime_restart(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+) -> Result<RuntimeStatus, AppError> {
     let svc = state.runtime_service.clone();
-    svc.restart().await?;
-    Ok(svc.status())
+    emit_activity(&app, super::glue::runtime_lifecycle_active("Restarting AI runtime…"));
+    match svc.restart().await {
+        Ok(_) => {
+            emit_activity(&app, super::glue::runtime_lifecycle_done("AI runtime ready"));
+            Ok(svc.status())
+        }
+        Err(error) => {
+            emit_activity(&app, super::glue::runtime_lifecycle_error(error.to_string()));
+            Err(error.into())
+        }
+    }
 }
 
 #[tauri::command]

@@ -120,12 +120,91 @@ fn resolve_app_entry(resource_dir: &Path) -> PathBuf {
     first_existing(&cands).unwrap_or_else(|| cands[0].clone())
 }
 
-fn resolve_requirements(resource_dir: &Path) -> PathBuf {
+fn resolve_runtime_file(resource_dir: &Path, name: &str) -> PathBuf {
     let cands = [
-        resource_dir.join("resources").join("runtime").join("requirements.txt"),
-        resource_dir.join("runtime").join("requirements.txt"),
+        resource_dir.join("resources").join("runtime").join(name),
+        resource_dir.join("runtime").join(name),
     ];
     first_existing(&cands).unwrap_or_else(|| cands[0].clone())
+}
+
+fn resolve_requirements(resource_dir: &Path) -> PathBuf {
+    resolve_runtime_file(resource_dir, "requirements.txt")
+}
+
+// ---------------------------------------------------------------------------
+// Runtime lifecycle activity
+//
+// The embedded interpreter takes several seconds to spawn + import PyTorch, and
+// it can crash / auto-restart in the background. We mirror every lifecycle
+// transition to the unified `studio://activity` channel under one stable id, so
+// the global indicator always shows what the runtime is doing — no more "stuck
+// with no feedback" on a slow start or restart.
+// ---------------------------------------------------------------------------
+
+/// Stable activity id for the embedded-runtime lifecycle. One id so each
+/// transition (start → ready, restart, crash) updates a single indicator chip
+/// instead of stacking.
+pub const RUNTIME_LIFECYCLE_ID: &str = "runtime-lifecycle";
+const RUNTIME_LIFECYCLE_KIND: &str = "runtime";
+const RUNTIME_LIFECYCLE_TITLE: &str = "AI runtime";
+
+/// An in-progress runtime-lifecycle activity (e.g. "Starting AI runtime…").
+pub fn runtime_lifecycle_active(message: impl Into<String>) -> ActivityEvent {
+    ActivityEvent::active(
+        RUNTIME_LIFECYCLE_ID,
+        RUNTIME_LIFECYCLE_KIND,
+        RUNTIME_LIFECYCLE_TITLE,
+    )
+    .message(message)
+}
+
+/// A finished runtime-lifecycle activity (the indicator auto-dismisses it).
+pub fn runtime_lifecycle_done(message: impl Into<String>) -> ActivityEvent {
+    ActivityEvent::done(
+        RUNTIME_LIFECYCLE_ID,
+        RUNTIME_LIFECYCLE_KIND,
+        RUNTIME_LIFECYCLE_TITLE,
+    )
+    .message(message)
+}
+
+/// A failed runtime-lifecycle activity (sticky until the user dismisses it).
+pub fn runtime_lifecycle_error(message: impl Into<String>) -> ActivityEvent {
+    ActivityEvent::error(
+        RUNTIME_LIFECYCLE_ID,
+        RUNTIME_LIFECYCLE_KIND,
+        RUNTIME_LIFECYCLE_TITLE,
+    )
+    .message(message)
+}
+
+/// Translate a runtime [`runtime_manager::StatusEvent`] from the monitor into an
+/// activity snapshot, so *background* transitions the user didn't trigger
+/// (auto-restart after a crash, going unhealthy, recovering) still surface in
+/// the indicator. `None` for the idle `Stopped` state — nothing is in flight.
+pub fn runtime_status_activity(
+    status: &runtime_manager::StatusEvent,
+) -> Option<ActivityEvent> {
+    use runtime_manager::RuntimeState;
+    let event = match status.state {
+        RuntimeState::Stopped => return None,
+        RuntimeState::Starting => runtime_lifecycle_active("Starting AI runtime…"),
+        RuntimeState::Restarting => runtime_lifecycle_active(if status.restarted_from_crash {
+            "Recovering AI runtime after a crash…"
+        } else {
+            "Restarting AI runtime…"
+        }),
+        RuntimeState::Unhealthy => runtime_lifecycle_active("AI runtime is not responding…"),
+        RuntimeState::Healthy => runtime_lifecycle_done("AI runtime ready"),
+        RuntimeState::Crashed => runtime_lifecycle_error(
+            status
+                .last_error
+                .clone()
+                .unwrap_or_else(|| "AI runtime crashed".to_string()),
+        ),
+    };
+    Some(event)
 }
 
 // ---------------------------------------------------------------------------
@@ -159,6 +238,15 @@ fn runtime_python_dir_from(app_dir: &Path) -> PathBuf {
 /// `<app_data>/runtime/python` — where the provisioned interpreter lives.
 pub fn runtime_python_dir(app: &tauri::AppHandle) -> Result<PathBuf, AppError> {
     Ok(runtime_python_dir_from(&app.path().app_data_dir()?))
+}
+
+/// The provisioned embedded interpreter executable, if it exists on disk. Use
+/// this for any Python subprocess (e.g. ultralytics `.pt`→ONNX export) so it
+/// works on a clean machine of ANY OS, instead of relying on a system
+/// `python`/`py` (the latter is Windows-only and won't have our deps).
+pub fn runtime_python_exe(app: &tauri::AppHandle) -> Option<PathBuf> {
+    let exe = python_exe_path(&runtime_python_dir(app).ok()?);
+    exe.exists().then_some(exe)
 }
 
 /// Sentinel written only after pip succeeds, so a half-finished install (e.g.
@@ -263,6 +351,18 @@ fn install_runtime_inner(app: &tauri::AppHandle) -> Result<Value, AppError> {
         ));
     }
 
+    // Belt-and-suspenders on Unix: guarantee the interpreter is executable even
+    // if the archive's mode bits were not preserved, so the spawn never EACCESes.
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if let Ok(meta) = std::fs::metadata(&py) {
+            let mut perms = meta.permissions();
+            perms.set_mode(perms.mode() | 0o755);
+            let _ = std::fs::set_permissions(&py, perms);
+        }
+    }
+
     // 2. Install the runtime's Python dependencies into the interpreter.
     let requirements = resolve_requirements(&resource_dir);
     let req_str = requirements.to_string_lossy().into_owned();
@@ -276,7 +376,19 @@ fn install_runtime_inner(app: &tauri::AppHandle) -> Result<Value, AppError> {
     run_pip(app, &py, &["--upgrade", "pip"])?;
     run_pip(app, &py, &["-r", req_str.as_str()])?;
 
-    // 3. Mark ready only after pip succeeds.
+    // Optional, platform-fragile model families (e.g. PaddleOCR, whose
+    // `paddlepaddle` has no macOS arm64 wheel). Install best-effort: a failure
+    // here must NOT abort provisioning — the missing family degrades to a clean
+    // per-capability error while the core runtime (YOLO/SAM/Florence/…) stays up.
+    let optional = resolve_runtime_file(&resource_dir, "requirements-optional.txt");
+    if optional.exists() {
+        let opt_str = optional.to_string_lossy().into_owned();
+        if let Err(err) = run_pip(app, &py, &["-r", opt_str.as_str()]) {
+            eprintln!("[runtime] optional AI deps install failed (continuing): {err}");
+        }
+    }
+
+    // 3. Mark ready only after the CORE pip install succeeds.
     std::fs::write(ready_marker(&python_dir), now_iso())?;
     emit_install(app, "done", "AI runtime installed.", 0, 0);
     Ok(json!({ "installed": true }))
@@ -316,23 +428,38 @@ fn download_to(app: &tauri::AppHandle, url: &str, dest: &Path) -> Result<(), App
     Ok(())
 }
 
-/// Extract a `.tar.gz` into `dest`, flattening the archive's top-level folder.
-/// Shells out to `tar` (bsdtar on Win10+/macOS, GNU tar on Linux), matching the
-/// build-runtime scripts and avoiding extra crate deps.
+/// Extract a `.tar.gz` into `dest`, flattening the archive's single top-level
+/// folder (equivalent to `tar --strip-components=1`). Done in-process with
+/// flate2 + the `tar` crate so it needs NO system `tar` on PATH (absent on
+/// minimal Linux containers and pre-1803 Windows) and preserves the Unix exec
+/// bit on the bundled interpreter.
 fn extract_tar_gz(archive: &Path, dest: &Path) -> Result<(), AppError> {
     std::fs::create_dir_all(dest)?;
-    let status = Command::new("tar")
-        .arg("-xzf")
-        .arg(archive)
-        .arg("-C")
-        .arg(dest)
-        .arg("--strip-components=1")
-        .status()
-        .map_err(|e| AppError::Message(format!("Failed to run tar: {e}")))?;
-    if !status.success() {
-        return Err(AppError::Message(
-            "Failed to extract the Python runtime archive.".into(),
-        ));
+    let file = std::fs::File::open(archive)?;
+    let mut ar = tar::Archive::new(flate2::read::GzDecoder::new(file));
+    ar.set_preserve_permissions(true);
+    let entries = ar
+        .entries()
+        .map_err(|e| AppError::Message(format!("Failed to read runtime archive: {e}")))?;
+    for entry in entries {
+        let mut entry =
+            entry.map_err(|e| AppError::Message(format!("Corrupt runtime archive: {e}")))?;
+        let path = entry
+            .path()
+            .map_err(|e| AppError::Message(format!("Bad archive entry path: {e}")))?
+            .into_owned();
+        // Drop the archive's single top-level dir (== tar --strip-components=1).
+        let stripped: PathBuf = path.components().skip(1).collect();
+        if stripped.as_os_str().is_empty() {
+            continue;
+        }
+        let out_path = dest.join(stripped);
+        if let Some(parent) = out_path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        entry.unpack(&out_path).map_err(|e| {
+            AppError::Message(format!("Failed to extract {}: {e}", out_path.display()))
+        })?;
     }
     Ok(())
 }

@@ -118,13 +118,18 @@ export interface DatasetExportRequest {
   valSplit?: number
 }
 
+/** Annotation import format. `"auto"` detects from the folder contents. */
+export type DatasetImportFormat = "auto" | "yolo" | "coco"
+
 export interface DatasetImportRequest {
   projectId: string
-  /** Root folder of an unzipped YOLO/Roboflow export. */
+  /** Root folder of an unzipped dataset export (YOLO or COCO). */
   folder: string
+  /** Force a format, or `"auto"` (default) to detect it. */
+  format?: DatasetImportFormat
 }
 
-/** Summary of a YOLO/Roboflow dataset imported into a project. */
+/** Summary of a dataset imported into a project. */
 export interface DatasetImportResult {
   itemCount: number
   annotationCount: number
@@ -133,6 +138,8 @@ export interface DatasetImportResult {
   classNames: string[]
   skippedImageCount: number
   warnings: string[]
+  /** Which importer ran: "yolo" or "coco". */
+  format: string
 }
 
 /** Summary of a YOLO dataset materialized from a project's annotations. */

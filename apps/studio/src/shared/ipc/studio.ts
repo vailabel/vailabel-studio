@@ -287,8 +287,8 @@ export const studioCommands = {
 
   datasetExportYolo: (payload: DatasetExportRequest) =>
     call<DatasetExportResult>("dataset_export_yolo", { payload }),
-  datasetImportYolo: (payload: DatasetImportRequest) =>
-    call<DatasetImportResult>("dataset_import_yolo", { payload }),
+  datasetImport: (payload: DatasetImportRequest) =>
+    call<DatasetImportResult>("dataset_import", { payload }),
 
   trainingStart: (payload: TrainingStartRequest) =>
     call<TrainingJob>("training_start", { payload }),

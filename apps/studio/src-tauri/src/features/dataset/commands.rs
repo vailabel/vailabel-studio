@@ -86,12 +86,12 @@ pub async fn dataset_export_yolo(
 }
 
 #[tauri::command]
-pub async fn dataset_import_yolo(
+pub async fn dataset_import(
     app: tauri::AppHandle,
     state: State<'_, AppState>,
     payload: DatasetImportPayload,
 ) -> Result<DatasetImportResult, AppError> {
-    state.dataset_service.import_yolo(&app, payload)
+    state.dataset_service.import_dataset(&app, payload)
 }
 
 /// Parse a CSV / TSV / Excel file into `{ headers, rows }` for the structured-data

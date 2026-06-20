@@ -115,6 +115,20 @@ jobs:
           # tauri.conf.json (plugins.updater.pubkey).
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # macOS Developer-ID signing + notarization. DORMANT until these repo
+          # secrets are set (requires a paid Apple Developer ID): when absent,
+          # tauri-action skips Apple signing and the mac build still succeeds
+          # (unsigned → users must `xattr -dr com.apple.quarantine` it, and the
+          # macOS auto-updater is inactive). Add the secrets to activate signing —
+          # no workflow change needed. tauri.conf.json bundle.macOS already points
+          # at entitlements.plist (disable-library-validation for the downloaded
+          # CPython/torch dylibs under the hardened runtime).
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
           projectPath: ./apps/studio
           releaseId: ${{ needs.create-release.outputs.release_id }}
