@@ -8,6 +8,7 @@ import Footer from "@/components/footer"
 import ScrollToTop from "@/components/scroll-to-top"
 import { cn } from "@/lib/utils";
 import { data } from "@/app/data"
+import { Analytics } from '@vercel/analytics/next';
 
 const figtree = Figtree({subsets:['latin'],variable:'--font-sans'});
 
@@ -94,6 +95,7 @@ export default function RootLayout({
           <Footer />
           <ScrollToTop />
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   )
