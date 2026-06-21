@@ -113,6 +113,44 @@ export interface PipelineRunRequest {
   prompt?: PipelinePrompt
 }
 
+export interface AutoLabelBacklogRequest {
+  projectId: string
+  /** Empty/absent → the served/active detector is resolved on the backend. */
+  modelId?: string
+  threshold?: number
+  /** Cap on backlog items processed this run (absent = all). */
+  limit?: number
+}
+
+export interface AutoLabelBacklogResult {
+  /** Backlog items processed this run. */
+  items: number
+  /** Items that produced at least one prediction. */
+  predictedItems: number
+  /** Total predictions created. */
+  predictions: number
+  /** Items skipped due to a per-item error. */
+  errors: number
+}
+
+export interface PendingPredictionsSummary {
+  /** Total un-reviewed predictions across the project. */
+  predictions: number
+  /** Distinct items carrying predictions. */
+  items: number
+  /** One item id with predictions, for the "Review" jump target. */
+  firstItemId?: string | null
+}
+
+export interface BatchAcceptResult {
+  accepted: number
+  annotations: Annotation[]
+}
+
+export interface BatchRejectResult {
+  rejected: number
+}
+
 interface GitHubReleaseLookupRequest {
   owner: string
   repo: string
@@ -201,6 +239,24 @@ export const studioCommands = {
   predictionsReject: (predictionId: string) =>
     call<SuccessResponse>("predictions_reject", {
       payload: { predictionId },
+    }),
+  /** Accept many predictions in one call (one event + one reload) — "Accept all". */
+  predictionsAcceptBatch: (predictionIds: string[]) =>
+    call<BatchAcceptResult>("predictions_accept_batch", {
+      payload: { predictionIds },
+    }),
+  /** Reject many predictions in one call (one event + one reload) — "Reject all". */
+  predictionsRejectBatch: (predictionIds: string[]) =>
+    call<BatchRejectResult>("predictions_reject_batch", {
+      payload: { predictionIds },
+    }),
+  /** Batch-run the served detector over a project's unlabeled items. */
+  predictionsAutoLabelBacklog: (payload: AutoLabelBacklogRequest) =>
+    call<AutoLabelBacklogResult>("predictions_auto_label_backlog", { payload }),
+  /** Project-wide pending-prediction summary for the flywheel "Review N" CTA. */
+  predictionsCountByProject: (projectId: string) =>
+    call<PendingPredictionsSummary>("predictions_count_by_project", {
+      payload: { projectId },
     }),
 
   // Local AI assistant: capability/model registry (the embedded Python runtime

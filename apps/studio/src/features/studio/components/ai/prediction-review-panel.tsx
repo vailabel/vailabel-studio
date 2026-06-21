@@ -1,42 +1,39 @@
 import { useState } from "react"
-import { Check, Sparkles, X } from "lucide-react"
-import type { Label, Prediction } from "@/shared/types/core"
+import { CheckCheck, Loader2, Sparkles, X } from "lucide-react"
+import type { Prediction } from "@/shared/types/core"
 import { Button } from "@/shared/ui/button"
-import { ScrollArea } from "@/shared/ui/scroll-area"
 
 interface PredictionReviewPanelProps {
   predictions: Prediction[]
-  labels: Label[]
-  /** Accept a suggestion, optionally with a corrected label id (overrides the
-   *  model's predicted label). */
-  onAccept: (predictionId: string, labelId?: string) => Promise<unknown>
-  onReject: (predictionId: string) => Promise<void>
+  /** Accept/reject every current prediction at once. Returns how many were
+   *  processed (used for the "retrain to improve" nudge). */
+  onAcceptAll?: () => Promise<number>
+  onRejectAll?: () => Promise<number>
 }
 
-function willCreateLabel(prediction: Prediction, labels: Label[]) {
-  if (prediction.labelId || prediction.label_id) {
-    const labelId = prediction.labelId || prediction.label_id
-    return !labels.some((label) => label.id === labelId)
-  }
-
-  const desiredName = prediction.labelName || prediction.label_name || prediction.name
-  if (!desiredName) return false
-
-  return !labels.some(
-    (label) => label.name.toLowerCase() === desiredName.toLowerCase()
-  )
-}
-
+/**
+ * Batch review bar for AI predictions. Per-box accept/reject now happens directly
+ * on the canvas (the ✓/✗ pills); this surfaces the count and the bulk actions for
+ * the whole image. Renders nothing when there are no predictions.
+ */
 export function PredictionReviewPanel({
   predictions,
-  labels,
-  onAccept,
-  onReject,
+  onAcceptAll,
+  onRejectAll,
 }: PredictionReviewPanelProps) {
-  // Per-prediction label override; empty string = keep the model's prediction.
-  const [chosen, setChosen] = useState<Record<string, string>>({})
+  const [isBatching, setIsBatching] = useState(false)
 
   if (predictions.length === 0) return null
+
+  const runBatch = async (run: () => Promise<number>) => {
+    if (isBatching) return
+    setIsBatching(true)
+    try {
+      await run()
+    } finally {
+      setIsBatching(false)
+    }
+  }
 
   return (
     <div className="w-full rounded-xl border border-success/30 bg-card/95 p-4">
@@ -44,102 +41,50 @@ export function PredictionReviewPanel({
         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-success/15 text-success">
           <Sparkles className="h-4 w-4" />
         </div>
-        <div>
-          <p className="text-sm font-semibold">AI Predictions</p>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold">
+            AI Predictions
+            <span className="ml-1.5 font-normal text-muted-foreground">
+              {predictions.length}
+            </span>
+          </p>
           <p className="text-xs text-muted-foreground">
-            Pick a label, then accept the ones you want.
+            Review each with the ✓/✗ on its box — or act on all of them:
           </p>
         </div>
       </div>
 
-      <ScrollArea className="max-h-72">
-        <div className="space-y-3">
-          {predictions.map((prediction) => {
-            const overrideId = chosen[prediction.id] ?? ""
-            const overrideLabel = overrideId
-              ? labels.find((label) => label.id === overrideId)
-              : undefined
-            const displayName =
-              overrideLabel?.name || prediction.labelName || prediction.name
-            const displayColor =
-              overrideLabel?.color ||
-              prediction.labelColor ||
-              prediction.color ||
-              "#22c55e"
-            const willCreate = !overrideLabel && willCreateLabel(prediction, labels)
-
-            return (
-              <div
-                key={prediction.id}
-                className="rounded-lg border border-border bg-background/70 p-3"
-              >
-                {willCreate && (
-                  <p className="mb-2 text-xs font-medium text-warning">
-                    Accepting this will create a new project label.
-                  </p>
-                )}
-                <div className="mb-2 flex items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{displayName}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {(prediction.confidence * 100).toFixed(0)}% confidence
-                    </p>
-                  </div>
-                  <div
-                    className="h-3 w-3 shrink-0 rounded-full border border-background shadow"
-                    style={{ backgroundColor: displayColor }}
-                  />
-                </div>
-
-                {labels.length > 0 && (
-                  <select
-                    value={overrideId}
-                    onChange={(event) =>
-                      setChosen((current) => ({
-                        ...current,
-                        [prediction.id]: event.target.value,
-                      }))
-                    }
-                    className="mb-2 w-full rounded-md border border-border bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                    title="Change the label before accepting"
-                  >
-                    <option value="">
-                      Keep: {prediction.labelName || prediction.name}
-                    </option>
-                    {labels.map((label) => (
-                      <option key={label.id} value={label.id}>
-                        {label.name}
-                      </option>
-                    ))}
-                  </select>
-                )}
-
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    className="flex-1"
-                    onClick={() =>
-                      void onAccept(prediction.id, overrideId || undefined)
-                    }
-                  >
-                    <Check className="mr-2 h-4 w-4" />
-                    Accept
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() => void onReject(prediction.id)}
-                  >
-                    <X className="mr-2 h-4 w-4" />
-                    Reject
-                  </Button>
-                </div>
-              </div>
-            )
-          })}
+      {(onAcceptAll || onRejectAll) && (
+        <div className="flex gap-2">
+          {onAcceptAll && (
+            <Button
+              size="sm"
+              className="h-7 flex-1 text-xs"
+              disabled={isBatching}
+              onClick={() => void runBatch(onAcceptAll)}
+            >
+              {isBatching ? (
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <CheckCheck className="mr-1.5 h-3.5 w-3.5" />
+              )}
+              Accept all
+            </Button>
+          )}
+          {onRejectAll && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 flex-1 text-xs"
+              disabled={isBatching}
+              onClick={() => void runBatch(onRejectAll)}
+            >
+              <X className="mr-1.5 h-3.5 w-3.5" />
+              Reject all
+            </Button>
+          )}
         </div>
-      </ScrollArea>
+      )}
     </div>
   )
 }

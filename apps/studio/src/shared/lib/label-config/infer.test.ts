@@ -83,6 +83,61 @@ describe("inferModalityTask", () => {
     ).toEqual({ modality: "tabular", task: "classification" })
   })
 
+  it("routes multi-text LLM-eval configs (prompt + responses) to the custom engine", () => {
+    // RLHF: two response fields scored by a pairwise control → config editor.
+    expect(
+      infer(
+        JSON.stringify({
+          objects: [
+            { tag: "text", name: "prompt", value: "$prompt" },
+            { tag: "text", name: "response_a", value: "$response_a" },
+            { tag: "text", name: "response_b", value: "$response_b" },
+          ],
+          controls: [
+            {
+              tag: "pairwise",
+              name: "pref",
+              toName: "response_a",
+              toNames: ["response_a", "response_b"],
+            },
+          ],
+        })
+      )
+    ).toEqual({ modality: "custom" })
+
+    // Grading: prompt + response scored by rating/choices/textarea.
+    expect(
+      infer(
+        JSON.stringify({
+          objects: [
+            { tag: "text", name: "prompt", value: "$prompt" },
+            { tag: "text", name: "response", value: "$response" },
+          ],
+          controls: [
+            { tag: "rating", name: "q", toName: "response" },
+            { tag: "choices", name: "v", toName: "response", labels: ["Correct"] },
+          ],
+        })
+      )
+    ).toEqual({ modality: "custom" })
+  })
+
+  it("keeps a multi-text config in its native editor when it has span labeling", () => {
+    // Question answering (text + question, but a span `labels` control) stays a
+    // single-document text task, not a whole-text judgement.
+    expect(
+      infer(
+        JSON.stringify({
+          objects: [
+            { tag: "text", name: "text", value: "$text" },
+            { tag: "text", name: "question", value: "$question" },
+          ],
+          controls: [{ tag: "labels", name: "answer", toName: "text", labels: ["Answer"] }],
+        })
+      )
+    ).toEqual({ modality: "text", task: "ner" })
+  })
+
   it("falls back to custom for unsupported objects (timeseries/…)", () => {
     expect(
       infer(

@@ -177,6 +177,9 @@ export interface TrainingReport {
   /** Final-epoch row of ultralytics' results.csv, keyed by column name
    * (e.g. "metrics/mAP50(B)"). Non-numeric cells come back as null. */
   final: Record<string, number | null>
+  /** Every epoch's row from results.csv (same shape as `final`), in order —
+   * the source for the mAP/loss curves. Empty for runs with no results.csv. */
+  history: Record<string, number | null>[]
   plots: TrainingReportPlot[]
 }
 

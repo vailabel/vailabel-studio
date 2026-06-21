@@ -34,6 +34,7 @@ const CONTROL_LABELS: Record<string, string> = {
   textarea: "Text area",
   number: "Number",
   relations: "Relations",
+  pairwise: "Pairwise (A/B)",
 }
 
 const OBJECT_OPTIONS = [

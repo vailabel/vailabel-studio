@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import type { PipelinePrompt } from "@/shared/ipc/studio"
+import { getLastItem, setLastItem } from "@/shared/lib/last-item"
 import {
   useCanvasContainer,
   useCanvasContextMenu,
@@ -195,6 +196,14 @@ export function useStudioScreenViewModel(projectId?: string, itemId?: string) {
     if (!effectiveProjectId) return
 
     let unlisten: (() => void) | undefined
+    // Coalesce event bursts (e.g. "Accept all") into a single summary refresh.
+    let summaryTimer: ReturnType<typeof setTimeout> | undefined
+    const scheduleSummary = () => {
+      if (summaryTimer) clearTimeout(summaryTimer)
+      summaryTimer = setTimeout(() => {
+        void refreshProjectSummary({ silent: true })
+      }, 150)
+    }
 
     void listenToStudioEvents(
       (event) => {
@@ -203,7 +212,7 @@ export function useStudioScreenViewModel(projectId?: string, itemId?: string) {
           !eventProjectId || eventProjectId === effectiveProjectId
 
         if (matchesProject) {
-          void refreshProjectSummary({ silent: true })
+          scheduleSummary()
           // Only re-pull the item list when items themselves change (add/delete)
           // — not on every annotation save, which would reset the file panel.
           if (event.entity === "items") void loadItemsPage(0, true)
@@ -216,6 +225,7 @@ export function useStudioScreenViewModel(projectId?: string, itemId?: string) {
 
     return () => {
       unlisten?.()
+      if (summaryTimer) clearTimeout(summaryTimer)
     }
   }, [effectiveProjectId, refreshProjectSummary, loadItemsPage])
 
@@ -226,6 +236,28 @@ export function useStudioScreenViewModel(projectId?: string, itemId?: string) {
     },
     [effectiveProjectId, navigate]
   )
+
+  // Remember the active item so reopening the studio resumes here.
+  useEffect(() => {
+    if (itemId) setLastItem(effectiveProjectId, itemId)
+  }, [effectiveProjectId, itemId])
+
+  // Resume: when the studio is opened without an item (the `/studio` route), jump
+  // to where the user left off — the saved item, else the first one. Runs once.
+  const resumedRef = useRef(false)
+  useEffect(() => {
+    if (itemId || resumedRef.current || !effectiveProjectId) return
+    const saved = getLastItem(effectiveProjectId)
+    if (saved) {
+      resumedRef.current = true
+      navigateToItem(saved)
+      return
+    }
+    if (projectItems.length > 0) {
+      resumedRef.current = true
+      navigateToItem(projectItems[0].id)
+    }
+  }, [itemId, effectiveProjectId, projectItems, navigateToItem])
 
   // Derive prev/next from the project's image list + the current image id —
   // the SAME list the file panel renders — so the header navigation can never
@@ -498,6 +530,8 @@ export function useStudioScreenViewModel(projectId?: string, itemId?: string) {
     smartSegment,
     acceptPrediction,
     rejectPrediction: imageLabeler.rejectPrediction,
+    acceptAllPredictions: imageLabeler.acceptAllPredictions,
+    rejectAllPredictions: imageLabeler.rejectAllPredictions,
     goToNextItem,
     goToPreviousItem,
     projectItems,

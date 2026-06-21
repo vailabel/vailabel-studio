@@ -35,7 +35,7 @@ pub struct AppState {
     pub runtime_service: Arc<runtime_manager::RuntimeService>,
     pub plugin_registry: Arc<Mutex<vailabel_plugin::PluginRegistry>>,
     pub training_service: Arc<vailabel_training::application::TrainingAppService>,
-    pub copilot_service: Arc<vailabel_copilot::application::CopilotAppService>,
+    pub copilot_service: Arc<crate::features::copilot::bridge::CopilotBridge>,
     pub settings_service: Arc<vailabel_workspace::application::SettingAppService>,
     pub history_service: Arc<vailabel_workspace::application::HistoryAppService>,
     pub secret_key_service: Arc<vailabel_workspace::application::SecretKeyAppService>,
@@ -276,28 +276,19 @@ pub fn run() {
                 ),
             );
 
-            // Copilot module: the LLM brain (owns the resolution cache + reads
-            // copilot settings/secret) and the grounding side (the AiService
-            // predictions/pipeline engine + a cloned AppHandle + the typed repos
-            // it reads) as ports behind the pure CopilotAppService.
-            let copilot_llm: Arc<dyn vailabel_copilot::application::CopilotLlm> = Arc::new(
-                crate::features::copilot::ports::BinaryCopilotLlm::new(settings_repo.clone()),
-            );
-            let copilot_inference: Arc<dyn vailabel_copilot::application::CopilotInference> =
-                Arc::new(crate::features::copilot::ports::BinaryCopilotInference::new(
-                    ai_service.clone(),
-                    item_repo.clone(),
-                    label_repo.clone(),
-                    annotation_repo.clone(),
-                    prediction_repo.clone(),
-                    app.handle().clone(),
-                ));
-            let copilot_service = Arc::new(
-                vailabel_copilot::application::CopilotAppService::new(
-                    copilot_llm,
-                    copilot_inference,
-                ),
-            );
+            // Copilot: the brain (routing/planning/QA/LLM/orchestration) runs in the
+            // Python runtime. This Rust bridge gathers the read-context, calls
+            // `/copilot/turn`, and persists the prediction drafts it returns via the
+            // AiService (single SQLite writer + `predictions:generated` events).
+            let copilot_service = Arc::new(crate::features::copilot::bridge::CopilotBridge::new(
+                ai_service.clone(),
+                runtime_service.clone(),
+                item_repo.clone(),
+                label_repo.clone(),
+                annotation_repo.clone(),
+                settings_repo.clone(),
+                app.handle().clone(),
+            ));
 
             // Plugin framework: register the runtime-backed reference detector and
             // drive it install→load→enable. Surfaced to the UI via `plugins_list`.
@@ -453,6 +444,10 @@ pub fn run() {
             features::ai::commands::pipeline_run,
             features::ai::commands::predictions_accept,
             features::ai::commands::predictions_reject,
+            features::ai::commands::predictions_accept_batch,
+            features::ai::commands::predictions_reject_batch,
+            features::ai::commands::predictions_auto_label_backlog,
+            features::ai::commands::predictions_count_by_project,
             features::ai::commands::ai_model_registry,
             features::copilot::commands::ai_copilot_turn,
             features::copilot::commands::ai_copilot_apply_action,

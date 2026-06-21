@@ -214,6 +214,24 @@ pub async fn training_export_onnx(
         .get(&job_id)?
         .ok_or_else(|| AppError::Message(format!("Training job {job_id} not found")))?;
 
+    // The exported ONNX path is deterministic per run. If this version was already
+    // served, just re-activate that model (fast, no duplicate export/registration)
+    // — this is what makes the flywheel's one-click "Serve this version" idempotent.
+    let models_dir = app.path().app_data_dir()?.join("runtime").join("models");
+    std::fs::create_dir_all(&models_dir)?;
+    let output_path = models_dir
+        .join(format!("{}-{job_id}.onnx", sanitize_stem(&run.name)))
+        .to_string_lossy()
+        .to_string();
+
+    if state
+        .ai_service
+        .serve_existing_detector_by_path(app, &output_path)?
+        .is_some()
+    {
+        return Ok(json!({ "ok": true, "reused": true, "outputPath": output_path }));
+    }
+
     let weights = run
         .metrics
         .get("weights")
@@ -235,13 +253,6 @@ pub async fn training_export_onnx(
                     .into(),
             )
         })?;
-
-    let models_dir = app.path().app_data_dir()?.join("runtime").join("models");
-    std::fs::create_dir_all(&models_dir)?;
-    let output_path = models_dir
-        .join(format!("{}-{job_id}.onnx", sanitize_stem(&run.name)))
-        .to_string_lossy()
-        .to_string();
 
     let client = state.runtime_service.clone().ensure_started().await?;
     let result = serde_json::to_value(
@@ -318,13 +329,24 @@ pub fn training_report(state: &AppState, job_id: String) -> Result<Value, AppErr
 
     let csv = std::fs::read_to_string(dir.join("results.csv")).unwrap_or_default();
     let (columns, rows) = parse_results_csv(&csv);
-    let final_row = rows.last();
-    let mut final_metrics = serde_json::Map::new();
-    if let Some(values) = final_row {
+
+    // One JSON object per epoch, keyed by column name (NaN → null). The frontend
+    // charts mAP/loss curves from this; `final` is kept as the last row so older
+    // consumers that only read final-epoch metrics keep working.
+    let row_to_obj = |values: &[f64]| {
+        let mut obj = serde_json::Map::new();
         for (name, value) in columns.iter().zip(values.iter()) {
-            final_metrics.insert(name.clone(), json!(value));
+            obj.insert(name.clone(), json!(value));
         }
-    }
+        Value::Object(obj)
+    };
+    let history: Vec<Value> = rows.iter().map(|values| row_to_obj(values)).collect();
+
+    let final_row = rows.last();
+    let final_metrics = match final_row {
+        Some(values) => row_to_obj(values),
+        None => Value::Object(serde_json::Map::new()),
+    };
     let epochs = final_row
         .and_then(|r| columns.iter().position(|c| c == "epoch").and_then(|i| r.get(i)))
         .map(|e| *e as i64)
@@ -351,7 +373,8 @@ pub fn training_report(state: &AppState, job_id: String) -> Result<Value, AppErr
         "name": run.name,
         "saveDir": dir.to_string_lossy(),
         "epochs": epochs,
-        "final": Value::Object(final_metrics),
+        "final": final_metrics,
+        "history": history,
         "plots": plots,
     }))
 }

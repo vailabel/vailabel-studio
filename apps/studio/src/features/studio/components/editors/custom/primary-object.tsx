@@ -72,6 +72,7 @@ export const PrimaryObject = ({
     return (
       <ObjectText
         doc={doc}
+        valueKey={primary.valueKey}
         control={controls[0]}
         spanResults={resultsForControl(annotations, controls[0]?.name ?? "")}
         onCreateSpan={onCreateSpan}

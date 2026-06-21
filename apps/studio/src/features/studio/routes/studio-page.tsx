@@ -24,9 +24,11 @@ export default function ImageStudio() {
 
   return (
     <CanvasProvider>
-      {/* Per-image region visibility lives in its own scoped provider; keying it
-          by image resets the hidden set when the user navigates to another item. */}
-      <RegionVisibilityProvider key={itemId}>
+      {/* Per-image region visibility lives in its own scoped provider. It resets
+          its hidden set when the item changes via `resetKey` — NOT a `key`, which
+          would remount the whole labeling screen (file list + canvas + panels) on
+          every navigation. */}
+      <RegionVisibilityProvider resetKey={itemId}>
         <MemoizedLabelingScreen {...labelerProps} />
       </RegionVisibilityProvider>
     </CanvasProvider>

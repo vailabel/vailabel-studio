@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   Check,
   Cpu,
+  FileText,
   Lasso,
   Loader2,
   Plus,
@@ -18,8 +19,10 @@ import {
   X,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
+import type { Prediction } from "@/shared/types/core"
 import { Button } from "@/shared/ui/button"
 import { Markdown } from "@/features/studio/components/ai/markdown"
+import { PredictionReviewPanel } from "@/features/studio/components/ai/prediction-review-panel"
 import { Switch } from "@/shared/ui/switch"
 import {
   Popover,
@@ -31,12 +34,27 @@ import {
   useCopilotTools,
 } from "@/features/studio/model/ai-copilot-viewmodel"
 import type { CopilotMessage } from "@/features/studio/model/ai-copilot-viewmodel"
-import { COPILOT_TOOLS, type CopilotTool } from "@/features/studio/model/lib/copilot-tools"
+import {
+  copilotToolsFor,
+  type CopilotTool,
+} from "@/features/studio/model/lib/copilot-tools"
 
 interface AiCopilotPanelProps {
   projectId?: string
   itemId?: string
-  imageName?: string
+  /** Name of the open item (image/document/clip), shown in the header. */
+  itemName?: string
+  /** Project data modality — drives which tools the copilot offers and how the
+   *  backend handles the turn. Defaults to image when omitted. */
+  modality?: string
+  /** Project labeling task — tailors the backend's generic prompts. */
+  task?: string
+  /** Live AI predictions on the canvas, with batch approve/reject. The copilot is
+   *  now the single place to review what the agent proposed — the user just
+   *  approves. Image projects only; omitted elsewhere (the bar stays hidden). */
+  predictions?: Prediction[]
+  onAcceptAllPredictions?: () => Promise<number>
+  onRejectAllPredictions?: () => Promise<number>
   /** Optional: when provided, a close button is shown (floating/drawer use). In
    *  the docked right-panel tab it's omitted. */
   onClose?: () => void
@@ -50,14 +68,38 @@ const TOOL_ICONS: Record<string, LucideIcon> = {
   qa_review: ShieldCheck,
   describe: Text,
   ocr: ScanText,
+  summarize: FileText,
 }
 
 const toolIcon = (id: string): LucideIcon => TOOL_ICONS[id] ?? Sparkles
 
+/** One-line empty-state hint tailored to the modality being labeled. */
+function emptyStateHint(modality?: string): string {
+  switch (modality) {
+    case "text":
+      return "I run on-device — suggest labels, summarize, or answer questions about this document."
+    case "tabular":
+      return "I run on-device — suggest labels or reason over this row's fields."
+    case "audio":
+      return "I run on-device — suggest label names and help you plan this clip's labels."
+    case "video":
+      return "I run on-device — suggest label names and help you plan this clip's tracks."
+    case "custom":
+      return "I run on-device — suggest labels and answer questions about this item."
+    default:
+      return "I run on-device — detect, review, or describe this image."
+  }
+}
+
 export function AiCopilotPanel({
   projectId,
   itemId,
-  imageName,
+  itemName,
+  modality,
+  task,
+  predictions,
+  onAcceptAllPredictions,
+  onRejectAllPredictions,
   onClose,
 }: AiCopilotPanelProps) {
   const { messages, isSending, send, resolveAction, clear } =
@@ -72,16 +114,24 @@ export function AiCopilotPanel({
 
   const disabled = !itemId || isSending
 
+  // The tools offered for this modality (image gets the full set; others a
+  // smaller, relevant set). Single source for the quick actions, Tools menu,
+  // and empty state so they never drift.
+  const modalityTools = useMemo(
+    () => copilotToolsFor(modality, task),
+    [modality, task]
+  )
+
   // Only enabled tools surface as quick actions; the same set is sent with each
   // turn so the backend won't run a tool the user switched off.
   const activeTools = useMemo(
-    () => COPILOT_TOOLS.filter((tool) => enabledTools.includes(tool.id)),
-    [enabledTools]
+    () => modalityTools.filter((tool) => enabledTools.includes(tool.id)),
+    [modalityTools, enabledTools]
   )
 
   const submit = (message: string) => {
     if (!itemId || !message.trim() || isSending) return
-    void send({ projectId, itemId, message, enabledTools })
+    void send({ projectId, itemId, message, modality, task, enabledTools })
     setDraft("")
   }
 
@@ -96,11 +146,11 @@ export function AiCopilotPanel({
             AI Copilot
           </p>
           <p className="truncate text-xs text-muted-foreground">
-            {imageName ? imageName : "On-device assistant"}
+            {itemName ? itemName : "On-device assistant"}
           </p>
         </div>
         <ToolsMenu
-          enabledCount={enabledTools.length}
+          tools={modalityTools}
           isToolEnabled={isToolEnabled}
           onToggle={toggleTool}
         />
@@ -127,6 +177,18 @@ export function AiCopilotPanel({
         ) : null}
       </header>
 
+      {/* Review bar: when the agent (or a detector run) has put predictions on the
+          canvas, the user approves/rejects them here. Renders nothing when empty. */}
+      {predictions && predictions.length > 0 ? (
+        <div className="border-b border-border p-3">
+          <PredictionReviewPanel
+            predictions={predictions}
+            onAcceptAll={onAcceptAllPredictions}
+            onRejectAll={onRejectAllPredictions}
+          />
+        </div>
+      ) : null}
+
       <div
         ref={scrollRef}
         className="flex flex-1 flex-col gap-3 overflow-y-auto p-3.5"
@@ -134,6 +196,7 @@ export function AiCopilotPanel({
         {messages.length === 0 ? (
           <CopilotEmptyState
             tools={activeTools}
+            hint={emptyStateHint(modality)}
             onPick={submit}
             disabled={disabled}
           />
@@ -182,7 +245,7 @@ export function AiCopilotPanel({
               }
             }}
             rows={1}
-            placeholder={itemId ? "Ask the copilot…" : "Open an image to start"}
+            placeholder={itemId ? "Ask the copilot…" : "Open an item to start"}
             disabled={disabled}
             className="max-h-32 min-h-[1.75rem] flex-1 resize-none bg-transparent px-1.5 py-1 text-sm outline-none disabled:opacity-50"
           />
@@ -205,16 +268,18 @@ export function AiCopilotPanel({
 }
 
 // Floating Tools menu: switch each copilot tool on/off. The choice persists and
-// gates both the quick actions and what the backend is allowed to run.
+// gates both the quick actions and what the backend is allowed to run. Only the
+// current modality's tools are listed.
 function ToolsMenu({
-  enabledCount,
+  tools,
   isToolEnabled,
   onToggle,
 }: {
-  enabledCount: number
+  tools: CopilotTool[]
   isToolEnabled: (id: string) => boolean
   onToggle: (id: string) => void
 }) {
+  const enabledCount = tools.filter((tool) => isToolEnabled(tool.id)).length
   return (
     <Popover>
       <PopoverTrigger
@@ -233,11 +298,11 @@ function ToolsMenu({
         <div className="border-b border-border px-3.5 py-2.5">
           <p className="text-sm font-semibold leading-tight">Tools</p>
           <p className="text-xs text-muted-foreground">
-            {enabledCount} of {COPILOT_TOOLS.length} on · choose what I can use
+            {enabledCount} of {tools.length} on · choose what I can use
           </p>
         </div>
         <div className="max-h-80 overflow-y-auto p-1.5">
-          {COPILOT_TOOLS.map((tool) => {
+          {tools.map((tool) => {
             const Icon = toolIcon(tool.id)
             const on = isToolEnabled(tool.id)
             return (
@@ -272,10 +337,12 @@ function ToolsMenu({
 
 function CopilotEmptyState({
   tools,
+  hint,
   onPick,
   disabled,
 }: {
   tools: CopilotTool[]
+  hint: string
   onPick: (prompt: string) => void
   disabled: boolean
 }) {
@@ -286,9 +353,7 @@ function CopilotEmptyState({
       </div>
       <div className="space-y-1">
         <p className="text-sm font-semibold">How can I help you label?</p>
-        <p className="text-xs text-muted-foreground">
-          I run on-device — detect, review, or describe this image.
-        </p>
+        <p className="text-xs text-muted-foreground">{hint}</p>
       </div>
       {tools.length > 0 ? (
         <div className="w-full space-y-1.5 text-left">

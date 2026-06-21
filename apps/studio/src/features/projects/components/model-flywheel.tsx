@@ -1,4 +1,5 @@
 import { Fragment } from "react"
+import { useNavigate } from "react-router-dom"
 import {
   ArrowRight,
   Eye,
@@ -17,6 +18,7 @@ import {
   CardTitle,
 } from "@/shared/ui/card"
 import { Badge } from "@/shared/ui/badge"
+import { Button } from "@/shared/ui/button"
 import { Progress } from "@/shared/ui/progress"
 import {
   ChartContainer,
@@ -67,13 +69,27 @@ export function ModelFlywheel({
   projectId,
   annotatedImages,
   totalItems,
+  onContinueLabeling,
 }: {
   projectId?: string
   annotatedImages: number
   totalItems: number
+  /** Navigate into labeling (first unlabeled item, else first item). */
+  onContinueLabeling?: () => void
 }) {
-  const { versions, latest, bestMap50, isTraining } =
-    useProjectModelVersions(projectId)
+  const {
+    versions,
+    latest,
+    bestMap50,
+    isTraining,
+    serveVersion,
+    servingJobId,
+    pendingPredictions,
+    autoLabelBacklog,
+    isAutoLabeling,
+  } = useProjectModelVersions(projectId)
+  const navigate = useNavigate()
+  const isServing = latest != null && servingJobId === latest.jobId
 
   const coverage =
     totalItems > 0 ? Math.round((annotatedImages / totalItems) * 100) : 0
@@ -86,6 +102,114 @@ export function ModelFlywheel({
     map50: v.map50,
     map5095: v.map5095,
   }))
+
+  // --- Workflow cockpit: the single next best action + the loop-step jumps. ---
+  const backlog = Math.max(0, totalItems - annotatedImages)
+  const pendingCount = pendingPredictions?.predictions ?? 0
+  const reviewItemId = pendingPredictions?.firstItemId ?? null
+  const nextVersionLabel = `v${versions.length + 1}`
+
+  const goLabel = () => onContinueLabeling?.()
+  const goReview = () => {
+    if (reviewItemId && projectId)
+      navigate(`/projects/${projectId}/studio/${reviewItemId}`)
+    else onContinueLabeling?.()
+  }
+  const goTrain = () => {
+    if (projectId) navigate(`/projects/train/${projectId}`)
+  }
+  const goServe = () => {
+    if (latest) void serveVersion(latest.jobId, `v${latest.version}`)
+  }
+  const goAutoLabel = () => void autoLabelBacklog()
+
+  const next: {
+    title: string
+    hint: string
+    primary: { label: string; icon: typeof Pencil; onClick: () => void; busy?: boolean }
+    secondary?: { label: string; onClick: () => void }
+  } = (() => {
+    if (isTraining) {
+      return {
+        title: `Training ${nextVersionLabel}…`,
+        hint: "Your next model version is training. You can keep labeling while it runs.",
+        primary: { label: "Continue labeling", icon: Pencil, onClick: goLabel },
+      }
+    }
+    if (totalItems === 0) {
+      return {
+        title: "Add data to get started",
+        hint: "Upload images on the Add data tab, then label a few and train your first model.",
+        primary: { label: "Start labeling", icon: Pencil, onClick: goLabel },
+      }
+    }
+    if (pendingCount > 0) {
+      return {
+        title: `Review ${pendingCount} AI prediction${pendingCount === 1 ? "" : "s"}`,
+        hint: "Accept or reject the model's suggestions right on the canvas (✓/✗ on each box).",
+        primary: { label: "Review predictions", icon: Eye, onClick: goReview },
+      }
+    }
+    if (versions.length === 0) {
+      if (annotatedImages < 10) {
+        return {
+          title: "Label a few images to start",
+          hint: `Label ${Math.max(1, 10 - annotatedImages)} more, then train your first model.`,
+          primary: { label: "Start labeling", icon: Pencil, onClick: goLabel },
+        }
+      }
+      return {
+        title: "Train your first model",
+        hint: `${annotatedImages} labeled images is enough for a v1 — give it a try.`,
+        primary: { label: "Train v1", icon: Zap, onClick: goTrain },
+      }
+    }
+    if (backlog > 0) {
+      if (isSmartEnough) {
+        return {
+          title: `Auto-label the ${backlog} remaining image${backlog === 1 ? "" : "s"}`,
+          hint: `This model is strong (best mAP ${pct(bestMap50)}). Auto-label the backlog, then spot-check the suggestions.`,
+          primary: {
+            label: isAutoLabeling ? "Auto-labeling…" : "Auto-label backlog",
+            icon: Wand2,
+            onClick: goAutoLabel,
+            busy: isAutoLabeling,
+          },
+          secondary: { label: "Keep labeling", onClick: goLabel },
+        }
+      }
+      return {
+        title: `Label more to lift mAP (${coverage}% covered)`,
+        hint: "Keep labeling the harder images, then retrain — that improves the model fastest.",
+        primary: { label: "Continue labeling", icon: Pencil, onClick: goLabel },
+        secondary: { label: `Train ${nextVersionLabel}`, onClick: goTrain },
+      }
+    }
+    return {
+      title: `Train ${nextVersionLabel} to improve`,
+      hint: "Everything's labeled and reviewed. Train a new version to push mAP higher.",
+      primary: { label: `Train ${nextVersionLabel}`, icon: Zap, onClick: goTrain },
+      secondary: latest ? { label: `Serve v${latest.version}`, onClick: goServe } : undefined,
+    }
+  })()
+
+  const NextIcon = next.primary.icon
+
+  // Loop-step → action (the strip is now clickable). Steps that don't apply yet
+  // are disabled rather than hidden, so the loop always reads the same.
+  const stepActions: Record<
+    (typeof LOOP_STEPS)[number]["label"],
+    { onClick: () => void; disabled: boolean }
+  > = {
+    Label: { onClick: goLabel, disabled: totalItems === 0 },
+    Train: { onClick: goTrain, disabled: !projectId || isTraining },
+    "Auto-label": {
+      onClick: goAutoLabel,
+      disabled: backlog === 0 || isAutoLabeling || isTraining,
+    },
+    Review: { onClick: goReview, disabled: pendingCount === 0 },
+    Improve: { onClick: goTrain, disabled: !projectId || isTraining },
+  }
 
   return (
     <Card>
@@ -113,13 +237,61 @@ export function ModelFlywheel({
       </CardHeader>
 
       <CardContent className="space-y-5">
-        {/* Loop strip */}
+        {/* Next best action — the workflow cockpit. */}
+        <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              {next.primary.busy ? (
+                <RefreshCw className="size-5 animate-spin" aria-hidden />
+              ) : (
+                <NextIcon className="size-5" aria-hidden />
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium uppercase tracking-wide text-primary">
+                Next step
+              </p>
+              <p className="text-sm font-semibold">{next.title}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{next.hint}</p>
+            </div>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              className="gap-1.5"
+              disabled={next.primary.busy}
+              onClick={next.primary.onClick}
+            >
+              {next.primary.busy ? (
+                <RefreshCw className="size-4 animate-spin" />
+              ) : (
+                <NextIcon className="size-4" />
+              )}
+              {next.primary.label}
+            </Button>
+            {next.secondary && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5"
+                onClick={next.secondary.onClick}
+              >
+                {next.secondary.label}
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Loop strip — each step jumps to that part of the workflow. */}
         <div className="flex flex-wrap items-center gap-2 rounded-lg bg-muted/40 p-3">
           {LOOP_STEPS.map((step, index) => (
             <Fragment key={step.label}>
-              <span
+              <button
+                type="button"
+                onClick={stepActions[step.label].onClick}
+                disabled={stepActions[step.label].disabled}
                 className={
-                  "inline-flex items-center gap-1.5 rounded-md border bg-card px-2.5 py-1.5 text-sm " +
+                  "inline-flex items-center gap-1.5 rounded-md border bg-card px-2.5 py-1.5 text-sm hover:bg-muted disabled:opacity-50 disabled:hover:bg-card " +
                   (index === LOOP_STEPS.length - 1
                     ? "border-primary/40 text-primary"
                     : "")
@@ -127,7 +299,7 @@ export function ModelFlywheel({
               >
                 <step.icon className="size-4 text-muted-foreground" aria-hidden />
                 {step.label}
-              </span>
+              </button>
               {index < LOOP_STEPS.length - 1 && (
                 <ArrowRight
                   className="size-3.5 text-muted-foreground/60"
@@ -141,6 +313,28 @@ export function ModelFlywheel({
             repeats each cycle
           </span>
         </div>
+
+        {/* Serve: make a trained version the active detector for auto-label & the
+            Copilot. Kept always-available (it isn't always the "next step"). */}
+        {latest && (
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              disabled={isTraining || isServing}
+              onClick={() => void serveVersion(latest.jobId, `v${latest.version}`)}
+              title="Export this version and make it the model auto-label & the Copilot use"
+            >
+              {isServing ? (
+                <RefreshCw className="size-4 animate-spin" />
+              ) : (
+                <Wand2 className="size-4" />
+              )}
+              Serve v{latest.version}
+            </Button>
+          </div>
+        )}
 
         {/* Metrics */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

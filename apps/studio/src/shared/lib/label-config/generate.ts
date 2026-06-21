@@ -1,12 +1,9 @@
 import type { LabelingTemplate } from "@/shared/lib/label-config/labeling-templates"
-import type {
-  ConfigChoice,
-  ControlTag,
-  LabelConfig,
-  ObjectTag,
-} from "./types"
+import type { ControlTag, LabelConfig } from "./types"
 import { parseLabelConfig } from "./parse"
 import { LS_TEMPLATES } from "./ls-gallery"
+import { ch, ctrl, obj } from "./builders"
+import { GENAI_CONFIGS } from "./genai-configs"
 
 // Authentic Label Studio configs (converted to our JSON), keyed by template id.
 const LS_CONFIG_BY_ID = new Map(LS_TEMPLATES.map((t) => [t.id, t.config]))
@@ -47,25 +44,6 @@ export const LABEL_BEARING_TAGS = new Set([
 
 export function isLabelBearing(control: ControlTag): boolean {
   return LABEL_BEARING_TAGS.has(control.tag)
-}
-
-// ── builders ────────────────────────────────────────────────────────────────
-function obj(tag: string): ObjectTag {
-  return { tag, name: tag, value: `$${tag}`, valueKey: tag, attrs: {} }
-}
-
-function ctrl(
-  tag: string,
-  name: string,
-  toName: string,
-  choices: ConfigChoice[] = [],
-  attrs: Record<string, string> = {}
-): ControlTag {
-  return { tag, name, toName, toNames: [toName], choices, attrs }
-}
-
-function ch(value: string, background?: string): ConfigChoice {
-  return background ? { value, background } : { value }
 }
 
 // Per-template configs for tasks that need a specific starter config the generic
@@ -138,6 +116,11 @@ const CONFIG_BY_ID: Record<string, () => LabelConfig> = {
       ]),
     ],
   }),
+
+  // Generative-AI / LLM evaluation templates (RLHF, grading, RAG eval, …) live
+  // in their own module so the catalog of judgement configs is easy to find and
+  // extend without touching the modality builders below.
+  ...GENAI_CONFIGS,
 }
 
 // ── template → config ─────────────────────────────────────────────────────────
@@ -379,6 +362,9 @@ export function serializeConfig(config: LabelConfig): string {
     tag: control.tag,
     name: control.name,
     toName: control.toName,
+    // Preserve the full target list for multi-target controls (e.g. pairwise
+    // compares two objects); single-target controls round-trip via `toName`.
+    ...(control.toNames.length > 1 ? { toNames: control.toNames } : {}),
     ...(control.choices.length ? { choices: control.choices } : {}),
     ...(hasKeys(control.attrs) ? { attrs: control.attrs } : {}),
   }))

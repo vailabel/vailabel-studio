@@ -6,9 +6,9 @@
 //! - model-management payloads → `vailabel-models` (`ModelImportPayload`,
 //!   `ModelComponent`, `ModelInstallPayload`, `GitHubReleaseLookupPayload`,
 //!   `ModelActivationPayload`, `RuntimeInstallPayload`).
-//! - copilot payloads → `vailabel-copilot` (`CopilotTurnPayload`,
-//!   `CopilotActionPayload`, `CopilotTestPayload`, `CopilotTestResult`), and the
-//!   `CopilotLlmConfig` (`vailabel_copilot::domain`).
+//! - copilot payloads → `crate::features::copilot::types` (`CopilotTurnPayload`,
+//!   `CopilotActionPayload`, `CopilotTestPayload`, `CopilotTestResult`); these
+//!   moved into the binary when the copilot core was migrated to Python.
 //!
 //! The prediction/inference types below stay here: they are coupled to the
 //! plugin/inference engine (`PipelineRunPayload` carries a [`PromptInput`];
@@ -19,10 +19,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::features::ai::plugin::PromptInput;
 
-pub use vailabel_copilot::contracts::{
+pub use crate::features::copilot::types::{
     CopilotActionPayload, CopilotTestPayload, CopilotTestResult, CopilotTurnPayload,
 };
-pub use vailabel_copilot::domain::CopilotLlmConfig;
 pub use vailabel_models::contracts::{
     GitHubReleaseLookupPayload, ModelActivationPayload, ModelComponent, ModelImportPayload,
     ModelInstallPayload, RuntimeInstallPayload,
@@ -42,6 +41,21 @@ pub struct PredictionGeneratePayload {
     pub threshold: Option<f32>,
 }
 
+/// Batch "auto-label the backlog": run a detector over a project's unlabeled
+/// items. `model_id` empty/absent → the active/served detector is resolved.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AutoLabelBacklogPayload {
+    pub project_id: String,
+    #[serde(default)]
+    pub model_id: Option<String>,
+    #[serde(default)]
+    pub threshold: Option<f32>,
+    /// Cap on how many backlog items to process this run (None = all).
+    #[serde(default)]
+    pub limit: Option<usize>,
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PredictionActionPayload {
@@ -50,6 +64,14 @@ pub struct PredictionActionPayload {
     /// (lets the user correct a suggestion before accepting it).
     #[serde(default)]
     pub label_id: Option<String>,
+}
+
+/// Accept/reject many predictions in one call (the "Accept all" / "Reject all"
+/// review actions), so the backend fires a single event instead of one per item.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PredictionBatchActionPayload {
+    pub prediction_ids: Vec<String>,
 }
 
 /// One prompt-driven inference run for a capability-aware model plugin

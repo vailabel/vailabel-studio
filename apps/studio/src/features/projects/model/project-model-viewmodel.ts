@@ -1,6 +1,9 @@
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
+import { toast } from "sonner"
 import { useTrainingJobs } from "@/shared/model/ai-runtime-viewmodel"
 import { aiRuntimeService } from "@/shared/services/ai-runtime-service"
+import { predictionsService } from "@/shared/services/predictions-service"
+import type { PendingPredictionsSummary } from "@/shared/ipc/studio"
 import type { TrainingJob } from "@/shared/types/ai-runtime"
 
 /** Final-epoch detection metrics pulled from a run's `results.csv`. */
@@ -109,11 +112,106 @@ export function useProjectModelVersions(projectId?: string) {
     (job) => job.status === "running" || job.status === "pending"
   )
 
+  // "Serve this version": export the run's weights to ONNX, register + activate
+  // it as the project detector so auto-label AND the Copilot detector use it next
+  // — the train→auto-label arrow of the flywheel. Idempotent on the backend
+  // (re-serving the same run just re-activates, no duplicate model).
+  const [servingJobId, setServingJobId] = useState<string | null>(null)
+  const serveVersion = useCallback(
+    async (jobId: string, versionLabel?: string) => {
+      setServingJobId(jobId)
+      try {
+        await aiRuntimeService.exportTrainedModel(jobId)
+        toast.success(
+          `Serving ${versionLabel ?? "this version"} — auto-label & Copilot now use it.`
+        )
+      } catch (err) {
+        toast.error("Couldn't serve this version", {
+          description:
+            err instanceof Error
+              ? err.message
+              : "Export failed — train with the embedded runtime and let it finish first.",
+        })
+      } finally {
+        setServingJobId(null)
+      }
+    },
+    []
+  )
+
+  // Pending (un-reviewed) predictions across the project — powers the cockpit's
+  // "Review N" step; refreshed after an auto-label run.
+  const [pendingPredictions, setPendingPredictions] =
+    useState<PendingPredictionsSummary | null>(null)
+  const refreshPending = useCallback(async () => {
+    if (!projectId) return
+    try {
+      setPendingPredictions(await predictionsService.countByProject(projectId))
+    } catch {
+      // Best-effort: keep the last known value.
+    }
+  }, [projectId])
+
+  // Mirror the metrics effect above: set state only inside the async callback
+  // (with a cancelled guard) so this doesn't fire setState synchronously.
+  useEffect(() => {
+    if (!projectId) return
+    let cancelled = false
+    void predictionsService
+      .countByProject(projectId)
+      .then((summary) => {
+        if (!cancelled) setPendingPredictions(summary)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [projectId])
+
+  // "Auto-label the backlog": batch-run the served detector over every unlabeled
+  // item, then refresh the pending count + jobs so the cockpit advances.
+  const [isAutoLabeling, setIsAutoLabeling] = useState(false)
+  const autoLabelBacklog = useCallback(async () => {
+    if (!projectId || isAutoLabeling) return
+    setIsAutoLabeling(true)
+    try {
+      const result = await predictionsService.autoLabelBacklog({ projectId })
+      if (result.predictedItems > 0) {
+        toast.success(
+          `Auto-labeled ${result.predictedItems} image${result.predictedItems === 1 ? "" : "s"} — review the ✓/✗ on each.`
+        )
+      } else {
+        toast.info(
+          result.items === 0
+            ? "No unlabeled images left to auto-label."
+            : "The detector didn't find anything to suggest on the backlog."
+        )
+      }
+      await refreshPending()
+      reload()
+    } catch (err) {
+      toast.error("Couldn't auto-label the backlog", {
+        description:
+          err instanceof Error
+            ? err.message
+            : "Make sure a detection model is installed or trained first.",
+      })
+    } finally {
+      setIsAutoLabeling(false)
+    }
+  }, [projectId, isAutoLabeling, refreshPending, reload])
+
   return {
     versions,
     latest,
     bestMap50,
     isTraining,
+    serveVersion,
+    servingJobId,
+    pendingPredictions,
+    autoLabelBacklog,
+    isAutoLabeling,
+    refreshPending,
     totalRuns: jobs.length,
     loading,
     error,

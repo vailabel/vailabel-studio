@@ -3,24 +3,38 @@ import { Clapperboard, Cpu, Download, Loader2 } from "lucide-react"
 import { Button } from "@/shared/ui/button"
 import { Card, CardContent } from "@/shared/ui/card"
 import { Progress } from "@/shared/ui/progress"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs"
 import { useVideoAnnotationViewModel } from "@/features/studio/model/video-annotation-viewmodel"
 import { VideoStage } from "@/features/studio/components/video/video-stage"
 import { VideoTimeline } from "@/features/studio/components/video/video-timeline"
 import { TrackPanel } from "@/features/studio/components/video/track-panel"
+import { AiCopilotPanel } from "@/features/studio/components/ai/ai-copilot-panel"
+import { usePersistentTab } from "@/features/studio/hooks/use-persistent-tab"
 import { CenteredSpinner, ErrorBanner, StatusBadge } from "./video-bits"
+
+const VIDEO_TABS = ["tracks", "copilot"] as const
 
 // The per-clip track editor, ported from the dedicated page's `Editor`. Runs the
 // full FFmpeg ingest pipeline and CVAT-style keyframe tracks via
 // `useVideoAnnotationViewModel`; reuses VideoStage/VideoTimeline/TrackPanel.
 export const VideoClipEditor = ({
   videoId,
+  projectId,
+  task,
   onBack,
 }: {
   videoId: string
+  projectId: string
+  task?: string
   onBack: () => void
 }) => {
   const vm = useVideoAnnotationViewModel(videoId)
   const [activeLabelId, setActiveLabelId] = useState<string | null>(null)
+  const [rightTab, setRightTab] = usePersistentTab(
+    "studio.rightTab.video",
+    VIDEO_TABS,
+    "tracks"
+  )
 
   const activeLabel = useMemo(
     () => vm.labels.find((label) => label.id === activeLabelId) ?? null,
@@ -142,19 +156,47 @@ export const VideoClipEditor = ({
             onSelectTrack={vm.setSelectedTrackId}
           />
         </div>
-        <TrackPanel
-          labels={vm.labels}
-          tracks={vm.tracks}
-          selectedTrackId={vm.selectedTrackId}
-          currentFrame={vm.currentFrame}
-          activeLabelId={activeLabelId}
-          onSetActiveLabel={setActiveLabelId}
-          onSelectTrack={vm.setSelectedTrackId}
-          onDeleteTrack={vm.deleteTrack}
-          onRemoveKeyframe={vm.removeKeyframe}
-          onToggleOutside={vm.toggleOutside}
-          onStepKeyframe={vm.stepKeyframe}
-        />
+        <div className="w-72 shrink-0">
+          <Tabs
+            value={rightTab}
+            onValueChange={setRightTab}
+            className="flex flex-col gap-0"
+          >
+            <TabsList variant="line" className="w-auto justify-start">
+              <TabsTrigger value="tracks">Tracks</TabsTrigger>
+              <TabsTrigger value="copilot">Copilot</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="tracks" className="min-h-0 pt-3">
+              <TrackPanel
+                labels={vm.labels}
+                tracks={vm.tracks}
+                selectedTrackId={vm.selectedTrackId}
+                currentFrame={vm.currentFrame}
+                activeLabelId={activeLabelId}
+                onSetActiveLabel={setActiveLabelId}
+                onSelectTrack={vm.setSelectedTrackId}
+                onDeleteTrack={vm.deleteTrack}
+                onRemoveKeyframe={vm.removeKeyframe}
+                onToggleOutside={vm.toggleOutside}
+                onStepKeyframe={vm.stepKeyframe}
+              />
+            </TabsContent>
+
+            <TabsContent value="copilot" keepMounted className="min-h-0 pt-3">
+              <div className="h-[36rem] overflow-hidden rounded-lg border border-border">
+                <AiCopilotPanel
+                  key={videoId}
+                  projectId={projectId}
+                  itemId={videoId}
+                  itemName={vm.meta.name}
+                  modality="video"
+                  task={task}
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
     </div>
   )

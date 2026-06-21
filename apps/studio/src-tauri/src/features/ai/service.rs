@@ -1,6 +1,7 @@
 use crate::features::ai::model::{
-    CopilotActionPayload, GitHubReleaseLookupPayload, InferenceAnnotationDraft, ModelImportPayload,
-    ModelInstallPayload, PipelineRunPayload, PredictionGeneratePayload,
+    AutoLabelBacklogPayload, CopilotActionPayload, GitHubReleaseLookupPayload,
+    InferenceAnnotationDraft, ModelImportPayload, ModelInstallPayload, PipelineRunPayload,
+    PredictionGeneratePayload,
 };
 use vailabel_annotation::domain::{
     Annotation, AnnotationRepository, LabelClass, LabelRepository, Prediction, PredictionRepository,
@@ -165,6 +166,16 @@ pub struct AiService {
     /// here (ultralytics/torch), started on demand; the Rust side only orchestrates
     /// (entity reads, label resolution, persistence, events).
     runtime: Arc<runtime_manager::RuntimeService>,
+}
+
+/// A model resolved for the copilot bridge: the record (for prediction metadata),
+/// its id (attribution + replace-on-rerun), the path-or-catalog-weight the Python
+/// runtime loads, and — for the detector — its class vocabulary (routing targets).
+pub struct CopilotModelRef {
+    pub model_id: String,
+    pub record: Value,
+    pub weight_or_path: String,
+    pub class_names: Vec<String>,
 }
 
 impl AiService {
@@ -408,6 +419,32 @@ impl AiService {
         self.set_active_model(app, &model_id)
     }
 
+    /// If a detection model is already registered for `model_path` (a previously
+    /// served training run — its exported ONNX path is deterministic), make it the
+    /// active detector and return its id. Lets "Serve this version" be a fast
+    /// re-activate instead of a duplicate export+register. `None` when not yet
+    /// registered, so the caller does the full export.
+    pub fn serve_existing_detector_by_path(
+        &self,
+        app: &tauri::AppHandle,
+        model_path: &str,
+    ) -> Result<Option<String>, AppError> {
+        let models = self.store.list_entities("ai_models")?;
+        let existing_id = models
+            .iter()
+            .find(|model| {
+                value_string(model, "modelPath", "model_path").as_deref() == Some(model_path)
+            })
+            .and_then(|model| value_string(model, "id", "id"));
+        match existing_id {
+            Some(id) => {
+                self.set_active_model(app, &id)?;
+                Ok(Some(id))
+            }
+            None => Ok(None),
+        }
+    }
+
     pub fn install_ai_model(
         &self,
         app: &tauri::AppHandle,
@@ -577,6 +614,140 @@ impl AiService {
         Ok(self
             .store
             .list_by_field("predictions", "item_id", item_id)?)
+    }
+
+    /// Project-wide pending-prediction summary for the flywheel's "Review N" CTA:
+    /// total predictions, how many distinct items carry them, and one such item id
+    /// to jump to. Cheap (one list by the project field).
+    pub fn count_pending_predictions(&self, project_id: &str) -> Result<Value, AppError> {
+        let predictions = self
+            .store
+            .list_by_field("predictions", "project_id", project_id)?;
+        let mut items: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+        for prediction in &predictions {
+            if let Some(item_id) = value_string(prediction, "itemId", "item_id") {
+                items.insert(item_id);
+            }
+        }
+        let first_item_id = items.iter().next().cloned();
+        Ok(json!({
+            "predictions": predictions.len(),
+            "items": items.len(),
+            "firstItemId": first_item_id,
+        }))
+    }
+
+    /// Batch "auto-label the backlog": run the resolved detector over every
+    /// unlabeled project item that has no predictions yet, persisting drafts for
+    /// canvas review. Per-item failures are skipped (one bad image must not abort
+    /// the run). Progress is mirrored to the unified `studio://activity` channel.
+    pub fn auto_label_backlog(
+        &self,
+        app: &tauri::AppHandle,
+        payload: AutoLabelBacklogPayload,
+    ) -> Result<Value, AppError> {
+        let model_id = match payload
+            .model_id
+            .as_deref()
+            .map(str::trim)
+            .filter(|id| !id.is_empty())
+        {
+            Some(id) => id.to_string(),
+            None => self.resolve_model_id()?.ok_or_else(|| {
+                AppError::Message("No detection model available. Install or train one first.".into())
+            })?,
+        };
+
+        // Backlog = items with no annotations AND no existing predictions, so a
+        // re-run skips work already done and never piles up duplicate drafts.
+        let items = self
+            .store
+            .list_by_field("images", "project_id", &payload.project_id)?;
+        let mut targets: Vec<String> = Vec::new();
+        for item in &items {
+            let Some(item_id) = value_string(item, "id", "id") else {
+                continue;
+            };
+            if !self
+                .store
+                .list_by_field("annotations", "item_id", &item_id)?
+                .is_empty()
+            {
+                continue;
+            }
+            if !self
+                .store
+                .list_by_field("predictions", "item_id", &item_id)?
+                .is_empty()
+            {
+                continue;
+            }
+            targets.push(item_id);
+        }
+        if let Some(limit) = payload.limit {
+            targets.truncate(limit);
+        }
+
+        let total = targets.len();
+        let activity_id = format!("autolabel:{}", payload.project_id);
+        let emit = |status: &str, message: String, percent: f64| {
+            crate::emit_activity(
+                app,
+                crate::ActivityEvent::from_status(
+                    activity_id.clone(),
+                    "autolabel",
+                    "Auto-labeling backlog",
+                    status,
+                )
+                .message(message)
+                .percent(Some(percent)),
+            );
+        };
+
+        if total == 0 {
+            emit("completed", "Nothing to auto-label".into(), 100.0);
+            return Ok(json!({ "items": 0, "predictedItems": 0, "predictions": 0, "errors": 0 }));
+        }
+
+        emit("running", format!("0 / {total}"), 0.0);
+        let mut predicted_items = 0usize;
+        let mut predicted_count = 0usize;
+        let mut errors = 0usize;
+        for (index, item_id) in targets.iter().enumerate() {
+            match self.generate_predictions(
+                app,
+                PredictionGeneratePayload {
+                    item_id: item_id.clone(),
+                    model_id: model_id.clone(),
+                    threshold: payload.threshold,
+                },
+            ) {
+                Ok(predictions) if !predictions.is_empty() => {
+                    predicted_items += 1;
+                    predicted_count += predictions.len();
+                }
+                Ok(_) => {}
+                Err(_) => errors += 1,
+            }
+            let done = index + 1;
+            emit(
+                "running",
+                format!("{done} / {total}"),
+                (done as f64 / total as f64) * 100.0,
+            );
+        }
+
+        emit(
+            "completed",
+            format!("Auto-labeled {predicted_items} of {total} image(s)"),
+            100.0,
+        );
+        Ok(json!({
+            "items": total,
+            "predictedItems": predicted_items,
+            "predictions": predicted_count,
+            "errors": errors,
+        }))
     }
 
     pub fn generate_predictions(
@@ -997,6 +1168,25 @@ impl AiService {
         prediction_id: &str,
         label_id_override: Option<&str>,
     ) -> Result<Value, AppError> {
+        let (annotation, created_label, prediction) =
+            self.accept_prediction_inner(prediction_id, label_id_override)?;
+        if let Some(created_label) = created_label {
+            emit_domain_event(app, "labels", "created", &created_label)?;
+        }
+        emit_domain_event(app, "annotations", "created", &annotation)?;
+        emit_domain_event(app, "predictions", "accepted", &prediction)?;
+        Ok(annotation)
+    }
+
+    /// Turn one prediction into an annotation (upsert annotation + delete the
+    /// prediction) **without emitting events** — so batch accept can fire a single
+    /// event instead of 2–3 per item. Returns the created annotation, the label it
+    /// created (if any), and the source prediction.
+    fn accept_prediction_inner(
+        &self,
+        prediction_id: &str,
+        label_id_override: Option<&str>,
+    ) -> Result<(Value, Option<Value>, Value), AppError> {
         let prediction = get_entity_or_error(
             &self.store,
             "predictions",
@@ -1054,14 +1244,43 @@ impl AiService {
         });
         let annotation = self.store.upsert_entity("annotations", annotation)?;
         self.store.delete_entity("predictions", prediction_id)?;
+        Ok((annotation, created_label, prediction))
+    }
 
-        if let Some(created_label) = created_label {
-            emit_domain_event(app, "labels", "created", &created_label)?;
+    /// Accept many predictions in one call, emitting a SINGLE `annotations:created`
+    /// event at the end (the studio's `loadData` refetches annotations, predictions
+    /// AND labels, so one event suffices). This is what makes "Accept all" fast —
+    /// no per-item event/reload storm. Per-item errors are skipped.
+    pub fn accept_predictions_batch(
+        &self,
+        app: &tauri::AppHandle,
+        prediction_ids: &[String],
+    ) -> Result<Value, AppError> {
+        let mut annotations = Vec::new();
+        let mut project_id: Option<String> = None;
+        let mut item_id: Option<String> = None;
+        for id in prediction_ids {
+            if let Ok((annotation, _created_label, _prediction)) =
+                self.accept_prediction_inner(id, None)
+            {
+                if project_id.is_none() {
+                    project_id = value_string(&annotation, "projectId", "project_id");
+                }
+                if item_id.is_none() {
+                    item_id = value_string(&annotation, "itemId", "item_id");
+                }
+                annotations.push(annotation);
+            }
         }
-        emit_domain_event(app, "annotations", "created", &annotation)?;
-        emit_domain_event(app, "predictions", "accepted", &prediction)?;
-
-        Ok(annotation)
+        emit_domain_event_for_ids(
+            app,
+            "annotations",
+            "created",
+            item_id.clone().unwrap_or_default(),
+            project_id,
+            item_id,
+        )?;
+        Ok(json!({ "accepted": annotations.len(), "annotations": annotations }))
     }
 
     pub fn reject_prediction(
@@ -1077,6 +1296,40 @@ impl AiService {
         )?;
         emit_domain_event(app, "predictions", "rejected", &prediction)?;
         Ok(json!({ "success": true }))
+    }
+
+    /// Reject many predictions in one call, emitting a SINGLE `predictions:rejected`
+    /// event at the end. Per-item errors are skipped.
+    pub fn reject_predictions_batch(
+        &self,
+        app: &tauri::AppHandle,
+        prediction_ids: &[String],
+    ) -> Result<Value, AppError> {
+        let mut rejected = 0usize;
+        let mut project_id: Option<String> = None;
+        let mut item_id: Option<String> = None;
+        for id in prediction_ids {
+            if let Ok(prediction) =
+                delete_entity(&self.store, "predictions", id, "Prediction not found")
+            {
+                if project_id.is_none() {
+                    project_id = value_string(&prediction, "projectId", "project_id");
+                }
+                if item_id.is_none() {
+                    item_id = value_string(&prediction, "itemId", "item_id");
+                }
+                rejected += 1;
+            }
+        }
+        emit_domain_event_for_ids(
+            app,
+            "predictions",
+            "rejected",
+            item_id.clone().unwrap_or_default(),
+            project_id,
+            item_id,
+        )?;
+        Ok(json!({ "rejected": rejected }))
     }
 
     /// Pick a detection model: the active one if set, otherwise the first
@@ -1132,6 +1385,165 @@ impl AiService {
         }
         // Fall back to the runtime-catalog SAM (fetched on first use).
         Ok(Some("sam2-base".to_string()))
+    }
+
+    // ───────────────────────── Copilot bridge support ─────────────────────────
+
+    /// Resolve the active detector for the copilot bridge: its (record, id,
+    /// path-or-catalog-weight, class names), validated for local inference exactly
+    /// like [`Self::generate_predictions_filtered`]. The Python copilot runs the
+    /// detector itself over the returned path; the record + id are reused to
+    /// persist the drafts it returns. `None` only when there is genuinely no
+    /// detector (today `resolve_model_id` falls back to the catalog, so this is
+    /// effectively always `Some`).
+    pub fn copilot_detector_ref(
+        &self,
+        app: &tauri::AppHandle,
+    ) -> Result<Option<CopilotModelRef>, AppError> {
+        let Some(model_id) = self.resolve_model_id()? else {
+            return Ok(None);
+        };
+        if let Some(weight) = crate::features::runtime::glue::runtime_model_weight(&model_id) {
+            return Ok(Some(CopilotModelRef {
+                record: json!({ "id": model_id, "name": model_id, "backend": "python" }),
+                model_id,
+                weight_or_path: weight.to_string(),
+                class_names: Vec::new(),
+            }));
+        }
+        let hydrated = hydrate_ai_model_entity(
+            &self.store,
+            get_entity_or_error(&self.store, "ai_models", &model_id, "Selected AI model was not found")?,
+        )?;
+        let model = upgrade_model_for_local_inference(app, &self.store, hydrated.clone())?;
+        if model != hydrated {
+            emit_domain_event(app, "ai_models", "updated", &model)?;
+        }
+        let model_path = value_string(&model, "modelPath", "model_path").unwrap_or_default();
+        if model_path.is_empty() {
+            return Err(AppError::Message(
+                "Selected AI model does not have a local file path".into(),
+            ));
+        }
+        if !Path::new(&model_path).exists() {
+            return Err(AppError::Message(
+                "Selected AI model file could not be found on disk".into(),
+            ));
+        }
+        if let Some(task) = task_suffix(Path::new(&model_path)) {
+            return Err(AppError::Message(non_detection_reason(task)));
+        }
+        let class_names = model
+            .get("modelMetadata")
+            .and_then(extract_class_names_from_value)
+            .unwrap_or_default();
+        Ok(Some(CopilotModelRef {
+            model_id,
+            record: model,
+            weight_or_path: model_path,
+            class_names,
+        }))
+    }
+
+    /// The built-in (catalog) detector's weight ref — `rtdetr-l`, fetched by the
+    /// Python runtime on first use. The copilot uses it as a fallback when the
+    /// user's fine-tuned/active model finds nothing on an image.
+    pub fn copilot_builtin_detector_weight(&self) -> Option<String> {
+        crate::features::runtime::glue::runtime_model_weight("rtdetr-l").map(ToString::to_string)
+    }
+
+    /// Resolve the segmentation (SAM) model for the copilot bridge: (record, id,
+    /// path-or-catalog-weight). `None` when none is installed (today the catalog
+    /// fallback makes this effectively always `Some`).
+    pub fn copilot_segmentation_ref(&self) -> Result<Option<CopilotModelRef>, AppError> {
+        let Some(model_id) = self.resolve_segmentation_model_id()? else {
+            return Ok(None);
+        };
+        if let Some(weight) = crate::features::runtime::glue::runtime_model_weight(&model_id) {
+            return Ok(Some(CopilotModelRef {
+                record: json!({ "id": model_id, "name": model_id, "backend": "python" }),
+                model_id,
+                weight_or_path: weight.to_string(),
+                class_names: Vec::new(),
+            }));
+        }
+        let hydrated = hydrate_ai_model_entity(
+            &self.store,
+            get_entity_or_error(&self.store, "ai_models", &model_id, "Selected AI model was not found")?,
+        )?;
+        let model_path = value_string(&hydrated, "modelPath", "model_path").unwrap_or_default();
+        if model_path.is_empty() {
+            return Err(AppError::Message(
+                "Selected segmentation model does not have a local file path".into(),
+            ));
+        }
+        Ok(Some(CopilotModelRef {
+            model_id,
+            record: hydrated,
+            weight_or_path: model_path,
+            class_names: Vec::new(),
+        }))
+    }
+
+    /// Persist the prediction drafts the Python copilot returned. Drafts are
+    /// partitioned by geometry — boxes belong to the detector (replacing its prior
+    /// run on this item), polygons to the segmentation model (appended) — so each
+    /// group is attributed to the right model with the right replace semantics,
+    /// matching the pre-migration detect / segment-each persistence. Returns the
+    /// total number of predictions written; emits `predictions:generated` per group.
+    pub fn copilot_persist_predictions(
+        &self,
+        app: &tauri::AppHandle,
+        item_id: &str,
+        project_id: &str,
+        detector: Option<&CopilotModelRef>,
+        segmentation: Option<&CopilotModelRef>,
+        drafts_json: Vec<Value>,
+    ) -> Result<usize, AppError> {
+        let mut boxes = Vec::new();
+        let mut polygons = Vec::new();
+        for value in drafts_json {
+            let is_polygon = value.get("type").and_then(Value::as_str) == Some("polygon");
+            let Ok(draft) = serde_json::from_value::<InferenceAnnotationDraft>(value) else {
+                continue;
+            };
+            if is_polygon {
+                polygons.push(draft);
+            } else {
+                boxes.push(draft);
+            }
+        }
+
+        if boxes.is_empty() && polygons.is_empty() {
+            return Ok(0);
+        }
+
+        let labels = if project_id.is_empty() {
+            Vec::new()
+        } else {
+            self.store.list_by_field("labels", "project_id", project_id)?
+        };
+
+        let mut total = 0usize;
+        if !boxes.is_empty() {
+            if let Some(detector) = detector {
+                let persisted = self.persist_drafts(
+                    app, item_id, project_id, &detector.record, &detector.model_id, &labels,
+                    boxes, "python", 0, true,
+                )?;
+                total += persisted.len();
+            }
+        }
+        if !polygons.is_empty() {
+            if let Some(seg) = segmentation {
+                let persisted = self.persist_drafts(
+                    app, item_id, project_id, &seg.record, &seg.model_id, &labels, polygons,
+                    "python", 0, false,
+                )?;
+                total += persisted.len();
+            }
+        }
+        Ok(total)
     }
 
     /// Apply a copilot action the user approved (relabel / delete / new label).

@@ -24,6 +24,15 @@ import { createToolHandler, TOOL_HOTKEYS } from "@/features/studio/canvas-state/
 // abstraction, not on this hook). Re-exported here for existing import sites.
 export type { ToolHandlerContext } from "@/features/studio/canvas-state/tools/tool-handlers"
 
+// Arrow key → unit nudge direction in image space (down is +y), for the
+// keyboard-nudge of the selected shape.
+const ARROW_NUDGES: Record<string, [number, number]> = {
+  ArrowLeft: [-1, 0],
+  ArrowRight: [1, 0],
+  ArrowUp: [0, -1],
+  ArrowDown: [0, 1],
+}
+
 export function useCanvasHandlers(
   canvasRef?: React.RefObject<HTMLDivElement | null>,
   annotations: Annotation[] = [],
@@ -384,6 +393,29 @@ export function useCanvasHandlers(
             console.error("Failed to delete annotation:", error)
           })
         L.setSelectedAnnotation(null)
+        return
+      }
+
+      // Arrow keys nudge the selected shape (1px, Shift = 10px) — the pixel-precise
+      // adjustment every annotation/design tool has. Moves all of its coordinates.
+      const nudge = ARROW_NUDGES[e.key]
+      if (nudge && L.selectedAnnotation) {
+        e.preventDefault()
+        const selected = L.annotationsStore.annotations.find(
+          (a) => a.id === L.selectedAnnotation?.id
+        )
+        if (selected) {
+          const step = e.shiftKey ? 10 : 1
+          const coordinates = selected.coordinates.map((p) => ({
+            ...p,
+            x: p.x + nudge[0] * step,
+            y: p.y + nudge[1] * step,
+          }))
+          void L.annotationsStore.updateAnnotation(selected.id, {
+            coordinates,
+            updatedAt: new Date(),
+          })
+        }
         return
       }
 

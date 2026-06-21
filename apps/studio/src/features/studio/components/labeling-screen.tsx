@@ -1,5 +1,6 @@
-import { memo, useCallback, useMemo, useState } from "react"
+import { Fragment, memo, useCallback, useMemo, useState } from "react"
 import { toast } from "sonner"
+import { useNavigate } from "react-router-dom"
 import { StudioRightPanel } from "@/features/studio/components/right-panel/studio-right-panel"
 import { FileListPanel } from "@/features/studio/components/file-list-panel"
 import { ResizablePanel } from "@/features/studio/components/common/resizable-panel"
@@ -25,6 +26,7 @@ interface LabelingScreenProps {
 export const LabelingScreen = memo(
   ({ projectId, itemId }: LabelingScreenProps) => {
     const [showExportDialog, setShowExportDialog] = useState(false)
+    const navigate = useNavigate()
     const viewModel = useStudioScreenViewModel(projectId, itemId)
 
     const capabilities = useMemo(
@@ -43,30 +45,36 @@ export const LabelingScreen = memo(
 
     const EditorBody = editorFor(capabilities.editor)
 
-    // Auto-label: run the picked detection model on the current image; results
-    // land in the AI tab's prediction-review list. Owns the user feedback since
-    // the view model's generatePredictions just returns the created suggestions.
-    const handleAutoLabel = useCallback(
-      async (modelId: string, threshold: number) => {
-        try {
-          const created = await viewModel.generatePredictions(modelId, threshold)
-          if (created.length > 0) {
-            toast.success(
-              `Auto-label found ${created.length} object${created.length === 1 ? "" : "s"} — review them in the AI tab.`
-            )
-          } else {
-            toast.info(
-              `No objects found at ${Math.round(threshold * 100)}% confidence. Lower the Conf slider, or try another image or model.`
-            )
+    // Batch review: accept every prediction at once, then nudge toward retraining
+    // — the corrections only improve the model on the next training version. The
+    // toast's action jumps straight to this project's training page.
+    const handleAcceptAllPredictions = useCallback(async () => {
+      const count = await viewModel.acceptAllPredictions()
+      if (count > 0) {
+        toast.success(
+          `Accepted ${count} prediction${count === 1 ? "" : "s"} as labels.`,
+          {
+            description: "Retrain to fold these into the next model version.",
+            action: viewModel.effectiveProjectId
+              ? {
+                  label: "Train",
+                  onClick: () =>
+                    navigate(`/projects/train/${viewModel.effectiveProjectId}`),
+                }
+              : undefined,
           }
-        } catch (error) {
-          toast.error(
-            `Auto-label failed: ${error instanceof Error ? error.message : String(error)}`
-          )
-        }
-      },
-      [viewModel.generatePredictions]
-    )
+        )
+      }
+      return count
+    }, [viewModel.acceptAllPredictions, viewModel.effectiveProjectId, navigate])
+
+    const handleRejectAllPredictions = useCallback(async () => {
+      const count = await viewModel.rejectAllPredictions()
+      if (count > 0) {
+        toast.info(`Dismissed ${count} prediction${count === 1 ? "" : "s"}.`)
+      }
+      return count
+    }, [viewModel.rejectAllPredictions])
 
     // Submit/Update (Label Studio task completion). Work already autosaves, so
     // this is a UI-only "mark done & advance": confirm, then move to the next
@@ -175,6 +183,11 @@ export const LabelingScreen = memo(
             </ResizablePanel>
           )}
 
+          {/* Editor + right panel remount when the item changes (fresh per-item
+              state), while the file list (above) stays mounted — so navigating
+              between files no longer re-renders the whole screen, but the editor
+              and panels still fully update to the new item. */}
+          <Fragment key={itemId}>
           <div className="relative flex flex-1 flex-col overflow-hidden">
             <EditorBody viewModel={viewModel} capabilities={capabilities} />
             {capabilities.chrome.showBottomBar && (
@@ -203,6 +216,8 @@ export const LabelingScreen = memo(
             >
               <StudioRightPanel
                 isImageEditor={capabilities.editor === "canvas"}
+                modality={capabilities.modality}
+                task={capabilities.task}
                 labels={viewModel.data.labels}
                 activeLabelId={viewModel.activeLabelId}
                 selectedLabelId={selectedShapeLabelId}
@@ -214,18 +229,16 @@ export const LabelingScreen = memo(
                 selectedAnnotationId={viewModel.selectedAnnotation?.id ?? null}
                 onSelectAnnotation={viewModel.setSelectedAnnotation}
                 onDeleteAnnotation={(id) => void viewModel.deleteAnnotation(id)}
-                aiModels={viewModel.data.aiModels}
-                isGeneratingPredictions={viewModel.isGeneratingPredictions}
-                onAutoLabel={handleAutoLabel}
                 predictions={viewModel.data.predictions}
-                onAcceptPrediction={viewModel.acceptPrediction}
-                onRejectPrediction={viewModel.rejectPrediction}
+                onAcceptAllPredictions={handleAcceptAllPredictions}
+                onRejectAllPredictions={handleRejectAllPredictions}
                 projectId={viewModel.effectiveProjectId}
                 itemId={viewModel.data.item?.id}
-                imageName={viewModel.data.item?.name}
+                itemName={viewModel.data.item?.name}
               />
             </ResizablePanel>
           )}
+          </Fragment>
         </div>
 
         {viewModel.showSettingsModal ? (

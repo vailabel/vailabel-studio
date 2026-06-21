@@ -8,6 +8,18 @@ export type BoxHandlerUIState = {
   showLabelInput?: boolean
 }
 
+/** Constrain the drag end-point so the box is a perfect square, preserving the
+ *  drag direction — the Shift-to-square behavior in Figma/Photoshop/CVAT. */
+function squareConstrain(start: Point, point: Point): Point {
+  const dx = point.x - start.x
+  const dy = point.y - start.y
+  const side = Math.max(Math.abs(dx), Math.abs(dy))
+  return {
+    x: start.x + (dx < 0 ? -side : side),
+    y: start.y + (dy < 0 ? -side : side),
+  }
+}
+
 export class BoxHandler implements ToolHandler {
   constructor(private context: ToolHandlerContext) {}
 
@@ -22,12 +34,15 @@ export class BoxHandler implements ToolHandler {
     })
   }
 
-  onMouseMove(_e: React.MouseEvent, point: Point) {
+  onMouseMove(e: React.MouseEvent, point: Point) {
     const { toolState } = this.context
     if (!toolState.isDragging || !toolState.startPoint) return
 
+    // Hold Shift while dragging to lock the box to a square.
+    const end = e.shiftKey ? squareConstrain(toolState.startPoint, point) : point
+
     this.context.setToolState({
-      currentPoint: point,
+      currentPoint: end,
       tempAnnotation: {
         id: "temp", // Temporary ID for preview
         name: "New Box", // Temporary name
@@ -35,12 +50,12 @@ export class BoxHandler implements ToolHandler {
         color: "#2196f3", // Default temporary color (blue)
         coordinates: [
           {
-            x: Math.min(toolState.startPoint.x, point.x),
-            y: Math.min(toolState.startPoint.y, point.y),
+            x: Math.min(toolState.startPoint.x, end.x),
+            y: Math.min(toolState.startPoint.y, end.y),
           },
           {
-            x: Math.max(toolState.startPoint.x, point.x),
-            y: Math.max(toolState.startPoint.y, point.y),
+            x: Math.max(toolState.startPoint.x, end.x),
+            y: Math.max(toolState.startPoint.y, end.y),
           },
         ],
         itemId: this.context.annotationsStore.currentImage?.id || "",
@@ -75,11 +90,9 @@ export class BoxHandler implements ToolHandler {
 
     const width = coordinates[1].x - coordinates[0].x
     const height = coordinates[1].y - coordinates[0].y
-    console.log("BoxHandler onMouseUp - box dimensions:", { width, height })
 
-    // Only create annotation for valid boxes
+    // Only create annotation for valid boxes (ignore a stray click / micro-drag).
     if (width > 5 && height > 5) {
-      console.log("BoxHandler onMouseUp - Setting showLabelInput to TRUE")
       this.context.setToolState({
         showLabelInput: true,
         tempAnnotation: {

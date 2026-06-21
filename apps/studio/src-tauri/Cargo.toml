@@ -17,7 +17,6 @@ members = [
     "crates/analysis",
     "crates/video",
     "crates/models",
-    "crates/copilot",
     "crates/annotation",
     "crates/search",
     "crates/training",
@@ -53,7 +52,6 @@ vailabel-cloud = { path = "crates/cloud" }
 vailabel-analysis = { path = "crates/analysis" }
 vailabel-video = { path = "crates/video" }
 vailabel-models = { path = "crates/models" }
-vailabel-copilot = { path = "crates/copilot" }
 vailabel-plugin = { path = "crates/plugin" }
 vailabel-runtime = { path = "crates/runtime" }
 vailabel-annotation = { path = "crates/annotation" }
@@ -112,7 +110,6 @@ vailabel-annotation = { workspace = true }
 vailabel-analysis = { workspace = true }
 vailabel-video = { workspace = true }
 vailabel-models = { workspace = true }
-vailabel-copilot = { workspace = true }
 vailabel-plugin = { workspace = true }
 vailabel-training = { workspace = true }
 vailabel-workspace = { workspace = true }

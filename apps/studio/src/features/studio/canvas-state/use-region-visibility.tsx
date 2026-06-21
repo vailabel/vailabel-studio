@@ -26,10 +26,24 @@ const RegionVisibilityActionsContext =
 
 export const RegionVisibilityProvider = ({
   children,
+  resetKey,
 }: {
   children: ReactNode
+  /** Reset the hidden set when this changes (the open item id). Resets state
+   *  WITHOUT remounting — previously the studio keyed this provider by item id,
+   *  which remounted the whole labeling screen (file list + canvas + panels) on
+   *  every navigation. */
+  resetKey?: string
 }) => {
   const [hidden, setHidden] = useState<ReadonlySet<string>>(() => new Set())
+
+  // Adjust state during render when the item changes (React's recommended
+  // alternative to a remount): clears the hidden set with no flicker or effect lag.
+  const [prevKey, setPrevKey] = useState(resetKey)
+  if (resetKey !== prevKey) {
+    setPrevKey(resetKey)
+    if (hidden.size > 0) setHidden(new Set())
+  }
 
   const toggle = useCallback((annotationId: string) => {
     setHidden((prev) => {
