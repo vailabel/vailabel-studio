@@ -1,4 +1,5 @@
 import type { LabelConfig } from "./types"
+import { isSpatialControl } from "./config-helpers"
 import type { Modality, Task } from "@/shared/types/modality"
 
 // Derive a project's (modality, task) from its labeling config — making the
@@ -15,12 +16,43 @@ const OBJECT_MODALITY: Record<string, Modality> = {
   table: "tabular",
 }
 
+/** Object tags that carry textual content (rendered as read-only panels by the
+ *  config-driven editor). */
+export const TEXTUAL_OBJECT_TAGS = new Set(["text", "hypertext", "paragraphs"])
+
+/**
+ * A "judge the text(s)" task: two or more textual data fields (`$`-bound) scored
+ * only by whole-item controls (choices / rating / textarea / pairwise — no
+ * span/region/relation labeling). These are inherently one-row-per-task (a
+ * prompt plus one or more model outputs), so they import as spreadsheet rows and
+ * render in the config-driven editor. This is what makes the Generative-AI
+ * templates (RLHF, LLM grading, side-by-side, RAG eval) work end-to-end.
+ */
+export function isMultiTextJudgement(config: LabelConfig): boolean {
+  const textFields = config.objects.filter(
+    (o) => o.value.startsWith("$") && TEXTUAL_OBJECT_TAGS.has(o.tag)
+  )
+  if (textFields.length < 2) return false
+  // A non-textual data object (image/audio/video) means the normal per-modality
+  // inference should win instead.
+  const hasMediaData = config.objects.some(
+    (o) => o.value.startsWith("$") && !TEXTUAL_OBJECT_TAGS.has(o.tag)
+  )
+  if (hasMediaData) return false
+  return config.controls.every(
+    (c) => !isSpatialControl(c) && c.tag !== "relations"
+  )
+}
+
 export function inferModalityTask(config: LabelConfig): {
   modality: Modality
   task?: Task
 } {
   const primary = config.objects.find((o) => OBJECT_MODALITY[o.tag])
   if (!primary) return { modality: "custom" }
+  // Multi-field LLM-evaluation configs (prompt + responses) route to the
+  // config-driven editor regardless of which control they use.
+  if (isMultiTextJudgement(config)) return { modality: "custom" }
   const base = OBJECT_MODALITY[primary.tag]
 
   const tags = config.controls.map((c) => c.tag)

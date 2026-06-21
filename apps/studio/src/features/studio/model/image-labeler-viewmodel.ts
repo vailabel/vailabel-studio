@@ -99,6 +99,17 @@ export const useItemLabelerViewModel = (
     if (!itemId) return
 
     let unlisten: (() => void) | undefined
+    // Coalesce bursts (e.g. an accept emits 2-3 events) into a single refetch so
+    // we don't reload N times in a row.
+    let reloadTimer: ReturnType<typeof setTimeout> | undefined
+    const scheduleReload = () => {
+      if (reloadTimer) clearTimeout(reloadTimer)
+      reloadTimer = setTimeout(() => {
+        // Silent: a save/approve elsewhere shouldn't flash the labeler through
+        // its loading state — just reconcile the data in place.
+        void loadData({ silent: true })
+      }, 150)
+    }
     void listenToStudioEvents(
       (event) => {
         const eventImageId = event.itemId || event.item_id
@@ -111,9 +122,7 @@ export const useItemLabelerViewModel = (
           !eventProjectId || !activeProjectId || eventProjectId === activeProjectId
 
         if (matchesImage && matchesProject) {
-          // Silent: a save/approve elsewhere shouldn't flash the labeler through
-          // its loading state — just reconcile the data in place.
-          void loadData({ silent: true })
+          scheduleReload()
         }
       },
       ["annotations", "predictions", "labels", "items", "ai_models"]
@@ -123,6 +132,7 @@ export const useItemLabelerViewModel = (
 
     return () => {
       unlisten?.()
+      if (reloadTimer) clearTimeout(reloadTimer)
     }
   }, [image?.projectId, image?.project_id, itemId, loadData, projectId])
 
@@ -332,6 +342,23 @@ export const useItemLabelerViewModel = (
       setPredictions((current) =>
         current.filter((prediction) => prediction.id !== predictionId)
       )
+    },
+    // Batch review: accept/reject every current prediction in ONE backend call
+    // (one event + one reload) — the per-item loop used to fire ~4N refetches via
+    // the domain-event subscription, which made "Accept all" very slow.
+    acceptAllPredictions: async () => {
+      const ids = predictions.map((prediction) => prediction.id)
+      if (ids.length === 0) return 0
+      const result = await services.getPredictionService().acceptAll(ids)
+      await loadData({ silent: true })
+      return result.accepted
+    },
+    rejectAllPredictions: async () => {
+      const ids = predictions.map((prediction) => prediction.id)
+      if (ids.length === 0) return 0
+      const result = await services.getPredictionService().rejectAll(ids)
+      await loadData({ silent: true })
+      return result.rejected
     },
     refreshAnnotations,
   }

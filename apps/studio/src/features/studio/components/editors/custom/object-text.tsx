@@ -6,10 +6,14 @@ import type { StoredResult } from "@/shared/lib/label-config/result"
 import type { EntitySpan } from "@/features/studio/model/lib/text-spans"
 import { SpanDocument } from "../text/span-document"
 import { useDocumentText } from "../text/use-document-text"
+import { inlineFieldText } from "./field-text"
 import { choicesToLabels, colorForChoice } from "@/shared/lib/label-config/config-helpers"
 
 interface ObjectTextProps {
   doc: Item
+  /** Field key for inline row data (`item.data[valueKey]`); falls back to the
+   *  document file when the item has no inline data. */
+  valueKey?: string
   /** The span control (Labels) bound to this text object, if any. */
   control?: ControlTag
   spanResults: StoredResult[]
@@ -26,8 +30,12 @@ interface ObjectTextProps {
 // Text object viewer for the config engine. Reuses the NER span document; spans
 // come from / go to the generic result store.
 export const ObjectText = memo(
-  ({ doc, control, spanResults, onCreateSpan, onDeleteRegion }: ObjectTextProps) => {
-    const { text, error } = useDocumentText(doc.path, doc.id)
+  ({ doc, valueKey, control, spanResults, onCreateSpan, onDeleteRegion }: ObjectTextProps) => {
+    const { text, error } = useDocumentText(
+      doc.path,
+      doc.id,
+      inlineFieldText(doc, valueKey)
+    )
     const labels = useMemo(
       () => (control ? choicesToLabels(control) : []),
       [control]

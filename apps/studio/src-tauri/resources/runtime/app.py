@@ -14,7 +14,7 @@ import time
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from routers import export, health, inference, training
+from routers import copilot, export, health, inference, training
 
 RUNTIME_VERSION = "0.1.0"
 
@@ -39,6 +39,7 @@ def build_app(token: str, models_dir: str, log_dir: str) -> FastAPI:
     app.include_router(health.router)
     app.include_router(inference.router)
     app.include_router(inference.ocr_router)
+    app.include_router(copilot.router)
     app.include_router(training.router)
     app.include_router(export.router)
 

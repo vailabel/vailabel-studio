@@ -12,11 +12,16 @@ interface LoadState {
 // State is only set inside the async resolution; "loading" is derived by
 // comparing the resolved path with the requested one (no synchronous reset in
 // the effect body). Shared by every text task's editor body.
-export function useDocumentText(path?: string, id?: string) {
+//
+// `inline` short-circuits the file read: tabular / LLM-eval tasks carry their
+// text inline on the spreadsheet row (`item.data[field]`) instead of on disk, so
+// when a string is supplied it is returned verbatim and no file is fetched.
+export function useDocumentText(path?: string, id?: string, inline?: string) {
   const [state, setState] = useState<LoadState>({ text: null, error: null })
+  const hasInline = typeof inline === "string"
 
   useEffect(() => {
-    if (!path) return
+    if (hasInline || !path) return
     let cancelled = false
     readTextFile(path)
       .then((content) => {
@@ -38,7 +43,10 @@ export function useDocumentText(path?: string, id?: string) {
     return () => {
       cancelled = true
     }
-  }, [path, id])
+  }, [path, id, hasInline])
+
+  // Inline content (a spreadsheet-row field) is returned as-is — no file read.
+  if (hasInline) return { text: inline as string, error: null }
 
   // Until the load for the current path resolves, report loading (text == null).
   const loading = state.path !== path

@@ -3,6 +3,7 @@ import type { Annotation } from "@/shared/types/core"
 import { useCanvasZoom, useCanvasTool } from "@/features/studio/canvas-state/canvas-context"
 import {
   AnnotationLabel,
+  DimensionBadge,
   dashFor,
   fillFor,
   strokeWidthFor,
@@ -41,11 +42,12 @@ export const BoxAnnotation = memo(
       }
     }, [annotation.coordinates])
 
-    // Corner + edge handles, drawn at a constant ~10px on screen (size / zoom),
-    // shown only with the move tool. Purely visual — resize hit-testing happens
-    // in image space in the tool handler (getBoxResizeHandle).
+    // Corner + edge handles, drawn at a constant ~10px on screen (size / zoom).
+    // Shown only on the SELECTED box (move tool) — like Figma/CVAT — so the move
+    // tool isn't cluttered with faint handles on every shape. Purely visual:
+    // resize hit-testing happens in image space in the tool handler.
     const handles = useMemo(() => {
-      if (!rect || !isMoveTool || readOnly) return null
+      if (!rect || !isMoveTool || readOnly || !isSelected) return null
       const size = (HANDLE_RADIUS * 2) / zoom
       const half = size / 2
       const { x, y, width, height } = rect
@@ -70,9 +72,7 @@ export const BoxAnnotation = memo(
           height={size}
           vectorEffect="non-scaling-stroke"
           style={{ strokeWidth: 1 }}
-          className={`fill-card stroke-border pointer-events-auto ${p.cursor} ${
-            isSelected ? "opacity-100" : "opacity-60"
-          } hover:opacity-100`}
+          className={`fill-card stroke-border pointer-events-auto ${p.cursor} opacity-100`}
         />
       ))
     }, [rect, isMoveTool, readOnly, zoom, isSelected])
@@ -112,6 +112,17 @@ export const BoxAnnotation = memo(
           name={annotation.name}
           zoom={zoom}
         />
+        {/* Live W×H on the selected box — updates as it's resized/moved (the box
+            renders with preview coordinates during those operations). */}
+        {isSelected && !readOnly ? (
+          <DimensionBadge
+            x={rect.x}
+            y={rect.y}
+            width={rect.width}
+            height={rect.height}
+            zoom={zoom}
+          />
+        ) : null}
         {handles}
       </svg>
     )

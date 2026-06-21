@@ -24,15 +24,21 @@ import {
   descriptorForKind,
   type ModalityDescriptor,
 } from "@/features/projects/model/modality-registry"
+import {
+  describeImport,
+  type ImportGuide,
+} from "@/features/projects/model/import-guide"
 import { parseLabelConfig } from "@/shared/lib/label-config/parse"
 import { configStringForTemplate } from "@/shared/lib/label-config/generate"
-import { inferModalityTask } from "@/shared/lib/label-config/infer"
+import { inferModalityTask, isMultiTextJudgement } from "@/shared/lib/label-config/infer"
 import type { LabelConfig } from "@/shared/lib/label-config/types"
 import { cn } from "@/shared/lib/utils"
 
 type ViewModel = ReturnType<typeof useProjectCreateViewModel>
 
-const TABS = ["Project Name", "Data Import", "Labeling Setup"] as const
+// Template-first flow: name the project, choose what you're labeling (which
+// fixes the data kind), then import data matching that template.
+const TABS = ["Project Name", "Labeling Setup", "Data Import"] as const
 const CUSTOM_TEMPLATE_ID = "custom"
 const MAIN_CATEGORIES = TEMPLATE_CATEGORY_ORDER.filter((c) => c !== "Custom")
 
@@ -69,8 +75,13 @@ export const ProjectCreate = memo(() => {
       const primary = parsed.objects.find((object) =>
         ["image", "text", "audio", "video", "table"].includes(object.tag)
       )
-      const dataKind: DataKind =
-        primary?.tag === "table"
+      // Multi-field LLM-eval tasks (prompt + responses) and explicit `table`
+      // objects are one-row-per-task, so they import via the spreadsheet path
+      // (each row carries its fields inline). Everything else maps the primary
+      // object tag straight to its data kind.
+      const dataKind: DataKind = isMultiTextJudgement(parsed)
+        ? "tabular"
+        : primary?.tag === "table"
           ? "tabular"
           : ((primary?.tag as DataKind) ?? "image")
       const ok = parsed.objects.length > 0 && parsed.controls.length > 0
@@ -142,12 +153,12 @@ export const ProjectCreate = memo(() => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveDataKind])
 
+  // One entry per tab, in tab order (name · template · data). `hasItems` is false
+  // when the kind has no descriptor, so it also gates out roadmap templates.
   const tabValid = [
     viewModel.name.trim().length > 0,
-    // `hasItems` is false when the kind has no descriptor, so this also gates
-    // out unsupported (roadmap) templates.
-    hasItems,
     selectedTemplate?.status === "available" && configInfo.ok,
+    hasItems,
   ]
   const canSave = tabValid.every(Boolean)
 
@@ -202,16 +213,6 @@ export const ProjectCreate = memo(() => {
         )}
 
         {tab === 1 && (
-          <div className="h-full overflow-y-auto p-6">
-            <DataStep
-              viewModel={viewModel}
-              selectedTemplate={selectedTemplate}
-              descriptor={descriptor}
-            />
-          </div>
-        )}
-
-        {tab === 2 && (
           <LabelingStep
             category={category}
             onSelectCategory={setCategory}
@@ -222,6 +223,17 @@ export const ProjectCreate = memo(() => {
             viewModel={viewModel}
             onSelectTemplate={selectTemplate}
           />
+        )}
+
+        {tab === 2 && (
+          <div className="h-full overflow-y-auto p-6">
+            <DataStep
+              viewModel={viewModel}
+              selectedTemplate={selectedTemplate}
+              descriptor={descriptor}
+              config={configInfo.config}
+            />
+          </div>
         )}
       </div>
 
@@ -431,15 +443,84 @@ const TemplateCard = memo(
 TemplateCard.displayName = "TemplateCard"
 
 // ── Tab: Data Import (drop zone) ─────────────────────────────────────────────
+// Tells the user exactly what to import for the chosen template — including the
+// spreadsheet columns LLM-eval / tabular templates expect (derived from config).
+const ImportGuideCard = memo(
+  ({
+    template,
+    guide,
+  }: {
+    template?: LabelingTemplate
+    guide: ImportGuide
+  }) => {
+    const Icon = template?.icon
+    return (
+      <div className="rounded-lg border border-border bg-card p-4">
+        <div className="flex items-center gap-2">
+          {Icon && <Icon className="size-4 shrink-0 text-primary" />}
+          <p className="text-sm font-semibold">{guide.title}</p>
+        </div>
+        {template && (
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            for {template.label}
+          </p>
+        )}
+        <p className="mt-2 text-sm text-muted-foreground">{guide.detail}</p>
+
+        {guide.columns.length > 0 && (
+          <div className="mt-3 border-t border-border pt-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Expected columns
+            </p>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {guide.columns.map((column) => (
+                <span
+                  key={column.key}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted px-2 py-0.5 text-xs"
+                >
+                  <code className="font-mono text-foreground">{column.key}</code>
+                  {column.label !== column.key && (
+                    <span className="text-muted-foreground">{column.label}</span>
+                  )}
+                </span>
+              ))}
+            </div>
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              Your file's header row should include these columns (extra columns
+              are ignored). To use different names, edit the field bindings in
+              Labeling Setup.
+            </p>
+          </div>
+        )}
+
+        {guide.example && (
+          <div className="mt-3 border-t border-border pt-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Example
+            </p>
+            <pre className="mt-1.5 overflow-x-auto rounded-md border border-border bg-muted/50 p-3 text-xs leading-relaxed text-foreground">
+              <code>{guide.example}</code>
+            </pre>
+          </div>
+        )}
+      </div>
+    )
+  }
+)
+
+ImportGuideCard.displayName = "ImportGuideCard"
+
 const DataStep = memo(
   ({
     viewModel,
     selectedTemplate,
     descriptor,
+    config,
   }: {
     viewModel: ViewModel
     selectedTemplate?: LabelingTemplate
     descriptor?: ModalityDescriptor
+    config: LabelConfig | null
   }) => {
     const isImage = descriptor?.kind === "image"
     const isFiles = descriptor?.importMode === "files"
@@ -491,18 +572,17 @@ const DataStep = memo(
       )
     }
 
+    const guide = describeImport(descriptor, config)
+
     return (
       <div className="mx-auto flex max-w-2xl flex-col gap-4">
-        <p className="text-sm text-muted-foreground">
-          Importing{" "}
-          <span className="font-medium text-foreground">{descriptor.label}</span>{" "}
-          — files are referenced in place, never copied.
-        </p>
+        <ImportGuideCard template={selectedTemplate} guide={guide} />
 
         <FileDropZone
           isOver={isOver}
           busy={viewModel.isScanning}
           onBrowse={() => void viewModel.openImport(descriptor)}
+          formats={guide.formats}
         />
 
         {isImage && viewModel.folderPath && (

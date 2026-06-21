@@ -16,7 +16,7 @@ use std::path::{Path, PathBuf};
 
 /// Crates whose ENTIRE `src/` must be infrastructure-free.
 const FULLY_PURE: &[&str] = &[
-    "core", "shared", "plugin", "copilot", "search",
+    "core", "shared", "plugin", "search",
 ];
 
 /// Module crates that own an `infrastructure/` layer (typed Diesel; for `cloud`

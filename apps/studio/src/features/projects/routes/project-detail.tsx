@@ -48,6 +48,7 @@ import type { DataKind } from "@/shared/lib/label-config/labeling-templates"
 import { useProjectCloudSync } from "@/features/projects/hooks/use-project-cloud-sync"
 import { ProjectSettingsTab } from "@/features/projects/components/project-settings-tab"
 import { useParams, useNavigate } from "react-router-dom"
+import { getLastItem } from "@/shared/lib/last-item"
 import { toast } from "sonner"
 import { cn } from "@/shared/lib/utils"
 
@@ -84,10 +85,14 @@ const ProjectDetails = memo(() => {
     [viewModel.annotations]
   )
 
+  // "Continue labeling" resumes where the user left off (the remembered item),
+  // falling back to the first still-unlabeled image, then the first image.
   const nextImageId = useMemo(() => {
+    const saved = getLastItem(projectId)
+    if (saved) return saved
     const next = viewModel.images.find((img) => !annotatedItemIds.has(img.id))
     return (next ?? viewModel.images[0])?.id
-  }, [viewModel.images, annotatedItemIds])
+  }, [viewModel.images, annotatedItemIds, projectId])
 
   // Annotation count per class, for the distribution view.
   const labelCounts = useMemo(() => {
@@ -641,6 +646,9 @@ const ProjectDetails = memo(() => {
                 projectId={projectId}
                 annotatedImages={s.annotatedImages}
                 totalItems={s.totalItems}
+                onContinueLabeling={() =>
+                  nextImageId && viewModel.navigateToItem(nextImageId)
+                }
               />
               <TrainingMonitor
                 projectId={projectId}

@@ -5,6 +5,7 @@ import {
 import type { LabelConfig, ObjectTag, ControlTag } from "@/shared/lib/label-config/types"
 import type { Annotation } from "@/shared/types/core"
 import { colorForChoice, isSpatialControl } from "@/shared/lib/label-config/config-helpers"
+import { isMultiTextJudgement, TEXTUAL_OBJECT_TAGS } from "@/shared/lib/label-config/infer"
 import type { RegionInfo, RelationInfo } from "./relations-panel"
 
 const FILE_OBJECT_TAGS = new Set(["image", "text", "audio", "hypertext"])
@@ -13,6 +14,9 @@ const FILE_OBJECT_TAGS = new Set(["image", "text", "audio", "hypertext"])
 export interface ConfigLayout {
   /** The interactive viewer object (first file object bound to "$data"). */
   primary: ObjectTag | undefined
+  /** Read-only data-bound text panels shown above the viewer (prompt + model
+   *  responses for LLM-eval tasks, query + candidates for retrieval, …). */
+  contextObjects: ObjectTag[]
   /** Literal-value objects rendered as static instruction blocks. */
   staticObjects: ObjectTag[]
   /** Non-spatial, non-relation controls (choices, rating, text input, …). */
@@ -37,9 +41,24 @@ export function deriveConfigLayout(
   config: LabelConfig,
   annotations: Annotation[]
 ): ConfigLayout {
-  const primary = config.objects.find(
-    (object) => FILE_OBJECT_TAGS.has(object.tag) && object.value.startsWith("$")
+  // LLM-eval tasks (≥2 text fields, no span labeling) have no single interactive
+  // viewer — every field is a read-only panel — so the primary is suppressed and
+  // all text fields become context panels. Other configs keep one interactive
+  // primary plus any extra text fields as context (e.g. a question above a doc).
+  const judgement = isMultiTextJudgement(config)
+  const dataBoundText = config.objects.filter(
+    (object) =>
+      object.value.startsWith("$") && TEXTUAL_OBJECT_TAGS.has(object.tag)
   )
+  const primary = judgement
+    ? undefined
+    : config.objects.find(
+        (object) =>
+          FILE_OBJECT_TAGS.has(object.tag) && object.value.startsWith("$")
+      )
+  const contextObjects = judgement
+    ? dataBoundText
+    : dataBoundText.filter((object) => object !== primary)
   const staticObjects = config.objects.filter(
     (object) => object !== primary && object.value && !object.value.startsWith("$")
   )
@@ -83,6 +102,7 @@ export function deriveConfigLayout(
 
   return {
     primary,
+    contextObjects,
     staticObjects,
     standalone,
     relationsControl,

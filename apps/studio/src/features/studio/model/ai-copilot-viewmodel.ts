@@ -14,6 +14,9 @@ import type {
 /** Settings key holding the JSON array of enabled copilot tool ids. */
 const ENABLED_TOOLS_KEY = "copilot.enabledTools"
 
+/** How many recent chat turns to replay as conversation memory per request. */
+const MAX_HISTORY_TURNS = 12
+
 export interface CopilotMessage {
   id: string
   role: "user" | "assistant"
@@ -42,10 +45,18 @@ export function useAiCopilotViewModel() {
       projectId?: string
       itemId: string
       message: string
+      modality?: string
+      task?: string
       enabledTools?: string[]
     }) => {
       const text = args.message.trim()
       if (!text || isSending) return
+
+      // Conversation memory: replay the recent turns so the agent handles
+      // follow-ups ("now outline them"). Cap the window to keep payloads small.
+      const history = messages
+        .slice(-MAX_HISTORY_TURNS)
+        .map((m) => ({ role: m.role, content: m.text }))
 
       setMessages((prev) => [
         ...prev,
@@ -58,7 +69,10 @@ export function useAiCopilotViewModel() {
           projectId: args.projectId,
           itemId: args.itemId,
           message: text,
+          modality: args.modality,
+          task: args.task,
           enabledTools: args.enabledTools,
+          history,
         })
         setMessages((prev) => [
           ...prev,
@@ -87,7 +101,7 @@ export function useAiCopilotViewModel() {
         setIsSending(false)
       }
     },
-    [isSending]
+    [isSending, messages]
   )
 
   const resolveAction = useCallback(

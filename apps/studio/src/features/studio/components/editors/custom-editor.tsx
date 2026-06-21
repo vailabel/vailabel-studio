@@ -6,6 +6,7 @@ import { StandaloneControls } from "@/shared/components/label-config/standalone-
 import { RelationsPanel } from "./custom/relations-panel"
 import { Notice } from "./custom/config-notice"
 import { PrimaryObject } from "./custom/primary-object"
+import { ContextObjects } from "./custom/context-objects"
 import { StaticObjects } from "./custom/static-objects"
 import { deriveConfigLayout } from "./custom/config-layout"
 import { useConfigResults } from "./custom/use-config-results"
@@ -75,15 +76,26 @@ export const CustomEditor = memo(({ viewModel }: EditorProps) => {
 
       <StaticObjects objects={layout.staticObjects} />
 
-      <PrimaryObject
-        primary={layout.primary}
+      <ContextObjects
+        objects={layout.contextObjects}
         doc={doc}
-        controls={layout.primary ? layout.spatialControlsFor(layout.primary.name) : []}
-        annotations={annotations}
-        onCreateRegion={results.addRegion}
-        onCreateSpan={results.createSpan}
-        onDeleteRegion={viewModel.deleteAnnotation}
+        grow={!layout.primary}
       />
+
+      {/* The interactive viewer. Suppressed for pure judgement layouts (every
+          field is a read-only context panel above); otherwise render it — when
+          there's no data object and no context panels it shows a helper notice. */}
+      {(layout.primary || layout.contextObjects.length === 0) && (
+        <PrimaryObject
+          primary={layout.primary}
+          doc={doc}
+          controls={layout.primary ? layout.spatialControlsFor(layout.primary.name) : []}
+          annotations={annotations}
+          onCreateRegion={results.addRegion}
+          onCreateSpan={results.createSpan}
+          onDeleteRegion={viewModel.deleteAnnotation}
+        />
+      )}
 
       <StandaloneControls
         controls={layout.standalone}

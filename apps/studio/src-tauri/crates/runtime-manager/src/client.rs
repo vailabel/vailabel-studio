@@ -108,6 +108,29 @@ impl RuntimeClient {
         self.post_to("/ocr", req, Duration::from_secs(300)).await
     }
 
+    // -- copilot -------------------------------------------------------------
+
+    /// One copilot chat turn. The request carries the payload + read-context +
+    /// LLM settings; the response carries the reply, capability, prediction
+    /// drafts, findings, and proposed actions (the Rust bridge persists the
+    /// drafts). Both sides are opaque JSON — the copilot core lives in Python.
+    pub async fn copilot_turn(
+        &self,
+        req: &serde_json::Value,
+    ) -> Result<serde_json::Value> {
+        self.post_to("/copilot/turn", req, Duration::from_secs(300))
+            .await
+    }
+
+    /// Probe a local LLM server (Settings → AI Copilot) via the Python copilot.
+    pub async fn copilot_test_connection(
+        &self,
+        req: &serde_json::Value,
+    ) -> Result<serde_json::Value> {
+        self.post_to("/copilot/test-connection", req, Duration::from_secs(20))
+            .await
+    }
+
     // -- training ------------------------------------------------------------
 
     pub async fn training_start(&self, req: &TrainingStartRequest) -> Result<TrainingJobRef> {

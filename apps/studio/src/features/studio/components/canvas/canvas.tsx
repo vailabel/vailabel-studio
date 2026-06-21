@@ -19,6 +19,7 @@ import {
   useCanvasFit,
 } from "@/features/studio/canvas-state/canvas-context"
 import { TempAnnotation } from "./temp-annotation"
+import { PredictionReviewOverlay } from "./prediction-review-overlay"
 import { Prediction } from "@/shared/types/core"
 import type { PipelinePrompt } from "@/shared/ipc/studio"
 import { getCenterOffset } from "@/features/studio/canvas-state/tools/canvas-utils"
@@ -47,6 +48,9 @@ interface CanvasProps {
   onRedo?: () => Promise<void> | void
   /** Smart-segment (SAM) runner for the smartSegment tool. */
   onSmartSegment?: (prompt: PipelinePrompt) => void | Promise<void>
+  /** Accept/reject an AI prediction inline on the canvas (the ✓/✗ on each box). */
+  onAcceptPrediction?: (predictionId: string) => void | Promise<unknown>
+  onRejectPrediction?: (predictionId: string) => void | Promise<unknown>
 }
 
 // Memoize the image component to prevent unnecessary re-renders
@@ -96,6 +100,8 @@ export const Canvas = memo(
     onUndo,
     onRedo,
     onSmartSegment,
+    onAcceptPrediction,
+    onRejectPrediction,
   }: CanvasProps) => {
     // Use Context hooks instead of Zustand
     const { zoom, setZoom } = useCanvasZoom()
@@ -477,6 +483,16 @@ export const Canvas = memo(
                   <PositionCoordinates baseOffset={baseOffset} />
                 )}
                 {showRuler && <Ruler baseOffset={baseOffset} />}
+
+                {onAcceptPrediction && onRejectPrediction && (
+                  <PredictionReviewOverlay
+                    predictions={predictions}
+                    baseOffset={baseOffset}
+                    zoom={zoom}
+                    onAccept={onAcceptPrediction}
+                    onReject={onRejectPrediction}
+                  />
+                )}
 
                 <ToolStatus
                   tool={selectedTool}

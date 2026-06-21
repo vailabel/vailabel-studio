@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useState } from "react"
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { CheckCircle2, Flag, Loader2, Search } from "lucide-react"
 import { cn } from "@/shared/lib/utils"
 import { Input } from "@/shared/ui/input"
@@ -64,8 +64,33 @@ export const FileListPanel = memo(
 
     const totalCount = total ?? images.length
 
+    // Infinite scroll: auto-load the next page when a sentinel near the bottom
+    // scrolls into view, instead of a manual "Load more" click. The observer's
+    // root must be the scroll viewport (the list scrolls inside it, not the page).
+    const panelRef = useRef<HTMLDivElement>(null)
+    const sentinelRef = useRef<HTMLButtonElement>(null)
+    useEffect(() => {
+      if (!hasMore || !onLoadMore) return
+      const viewport = panelRef.current?.querySelector<HTMLElement>(
+        '[data-slot="scroll-area-viewport"]'
+      )
+      const sentinel = sentinelRef.current
+      if (!viewport || !sentinel) return
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (entries[0]?.isIntersecting && !isLoading) onLoadMore()
+        },
+        { root: viewport, rootMargin: "240px" } // prefetch before the very bottom
+      )
+      observer.observe(sentinel)
+      return () => observer.disconnect()
+    }, [hasMore, onLoadMore, isLoading, visibleImages.length])
+
     return (
-      <div className="flex h-full flex-col border-r border-border bg-card text-card-foreground">
+      <div
+        ref={panelRef}
+        className="flex h-full flex-col border-r border-border bg-card text-card-foreground"
+      >
         <div className="space-y-2 border-b border-border p-3">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold">Files</h2>
@@ -128,21 +153,22 @@ export const FileListPanel = memo(
           )}
 
           {hasMore && (
-            <div className="p-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="w-full gap-2"
-                disabled={isLoading}
-                onClick={onLoadMore}
-              >
-                {isLoading && <Loader2 className="size-3.5 animate-spin" />}
-                {isLoading
-                  ? "Loading…"
-                  : `Load more (${images.length} of ${totalCount})`}
-              </Button>
-            </div>
+            // Sentinel: when this scrolls near the viewport bottom the observer
+            // loads the next page. Doubles as a click fallback if needed.
+            <button
+              ref={sentinelRef}
+              type="button"
+              onClick={() => !isLoading && onLoadMore?.()}
+              className="flex w-full items-center justify-center gap-2 p-3 text-xs text-muted-foreground hover:text-foreground"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="size-3.5 animate-spin" /> Loading more…
+                </>
+              ) : (
+                `${images.length} of ${totalCount}`
+              )}
+            </button>
           )}
         </ScrollArea>
       </div>
@@ -167,8 +193,16 @@ const FileListItem = memo(
     const handleClick = useCallback(() => onSelect(image.id), [image.id, onSelect])
     const KindIcon = itemKindIcon(image)
 
+    // Keep the active file in view — on first open (resume), after navigating, or
+    // when filtering. `block: "nearest"` only scrolls when it's actually off-screen,
+    // so clicking an already-visible item never jumps the list.
+    const ref = useRef<HTMLLIElement>(null)
+    useEffect(() => {
+      if (isActive) ref.current?.scrollIntoView({ block: "nearest" })
+    }, [isActive])
+
     return (
-      <li>
+      <li ref={ref}>
         <button
           type="button"
           onClick={handleClick}

@@ -20,6 +20,9 @@ interface FileDropZoneProps {
   isOver: boolean
   busy?: boolean
   onBrowse: () => void
+  /** Accepted formats for the selected template, e.g. "csv, tsv, xlsx". When
+   *  given, shows a single contextual line instead of the full format catalog. */
+  formats?: string
 }
 
 const FORMAT_GROUPS: { icon: LucideIcon; label: string; exts: string }[] = [
@@ -35,7 +38,7 @@ const FORMAT_GROUPS: { icon: LucideIcon; label: string; exts: string }[] = [
 // Label Studio-style import surface: a drag & drop / click-to-browse area, the
 // supported formats, and the cloud-storage caveat.
 export const FileDropZone = memo(
-  ({ isOver, busy, onBrowse }: FileDropZoneProps) => (
+  ({ isOver, busy, onBrowse, formats }: FileDropZoneProps) => (
     <div className="flex flex-col gap-4">
       <button
         type="button"
@@ -59,32 +62,43 @@ export const FileDropZone = memo(
             )}
           />
         )}
-        <p className="text-base font-medium">Drag &amp; drop files here</p>
+        <p className="text-base font-medium">Drag &amp; drop here</p>
         <p className="text-sm text-muted-foreground">or click to browse</p>
       </button>
 
-      <div className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
-        {FORMAT_GROUPS.map((group) => (
-          <div key={group.label} className="flex items-baseline gap-2 text-sm">
-            <group.icon className="size-4 shrink-0 translate-y-0.5 text-muted-foreground" />
-            <span className="font-medium">{group.label}</span>
-            <span className="min-w-0 truncate text-xs text-muted-foreground">
-              {group.exts}
-            </span>
+      {/* Contextual: only the formats this template accepts. Falls back to the
+          full catalog when no format hint is supplied. */}
+      {formats ? (
+        <p className="text-center text-sm text-muted-foreground">
+          Accepted formats:{" "}
+          <span className="font-medium text-foreground">{formats}</span>
+        </p>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
+            {FORMAT_GROUPS.map((group) => (
+              <div key={group.label} className="flex items-baseline gap-2 text-sm">
+                <group.icon className="size-4 shrink-0 translate-y-0.5 text-muted-foreground" />
+                <span className="font-medium">{group.label}</span>
+                <span className="min-w-0 truncate text-xs text-muted-foreground">
+                  {group.exts}
+                </span>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      <Alert>
-        <Info className="size-4" />
-        <AlertDescription>
-          <span className="font-medium text-foreground">Important:</span> We
-          recommend Cloud Storage over direct uploads due to upload limitations.
-          For PDFs, use multi-image labeling. JSONL or Parquet (Enterprise only)
-          files require cloud storage. Check the documentation to import
-          pre-annotated data.
-        </AlertDescription>
-      </Alert>
+          <Alert>
+            <Info className="size-4" />
+            <AlertDescription>
+              <span className="font-medium text-foreground">Important:</span> We
+              recommend Cloud Storage over direct uploads due to upload
+              limitations. For PDFs, use multi-image labeling. JSONL or Parquet
+              (Enterprise only) files require cloud storage. Check the
+              documentation to import pre-annotated data.
+            </AlertDescription>
+          </Alert>
+        </>
+      )}
     </div>
   )
 )

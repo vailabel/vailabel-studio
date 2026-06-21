@@ -70,6 +70,41 @@ const imageCaption = `{
   ]
 }`
 
+// Generative-AI presets. Multi-field tasks imported from a spreadsheet: each row
+// is one task and its columns map to the object field names below.
+const llmPreference = `{
+  "objects": [
+    { "tag": "text", "name": "prompt", "value": "$prompt", "attrs": { "title": "Prompt" } },
+    { "tag": "text", "name": "response_a", "value": "$response_a", "attrs": { "title": "Response A" } },
+    { "tag": "text", "name": "response_b", "value": "$response_b", "attrs": { "title": "Response B" } }
+  ],
+  "controls": [
+    { "tag": "pairwise", "name": "preference", "toName": "response_a",
+      "toNames": ["response_a", "response_b"],
+      "attrs": { "title": "Which response is better?" } },
+    { "tag": "textarea", "name": "rationale", "toName": "prompt", "attrs": { "title": "Rationale" } }
+  ]
+}`
+
+const llmGrading = `{
+  "objects": [
+    { "tag": "text", "name": "prompt", "value": "$prompt", "attrs": { "title": "Prompt" } },
+    { "tag": "text", "name": "response", "value": "$response", "attrs": { "title": "Model response" } }
+  ],
+  "controls": [
+    { "tag": "rating", "name": "quality", "toName": "response",
+      "attrs": { "title": "Overall quality", "maxRating": "5" } },
+    { "tag": "choices", "name": "verdict", "toName": "response",
+      "choices": [
+        { "value": "Correct", "background": "#10b981" },
+        { "value": "Partially correct", "background": "#f59e0b" },
+        { "value": "Incorrect", "background": "#ef4444" }
+      ],
+      "attrs": { "title": "Verdict", "choice": "single" } },
+    { "tag": "textarea", "name": "feedback", "toName": "response", "attrs": { "title": "Feedback" } }
+  ]
+}`
+
 export const CONFIG_PRESETS: ConfigPreset[] = [
   {
     id: "image-detection-review",
@@ -98,6 +133,20 @@ export const CONFIG_PRESETS: ConfigPreset[] = [
     description: "Write a caption and apply multiple tags to each image.",
     dataKind: "image",
     config: imageCaption,
+  },
+  {
+    id: "llm-preference",
+    label: "LLM: A/B preference (RLHF)",
+    description: "Prompt + two responses; pick the better one with a rationale.",
+    dataKind: "multimodal",
+    config: llmPreference,
+  },
+  {
+    id: "llm-grading",
+    label: "LLM: response grading",
+    description: "Prompt + response; rate quality, give a verdict and feedback.",
+    dataKind: "multimodal",
+    config: llmGrading,
   },
 ]
 

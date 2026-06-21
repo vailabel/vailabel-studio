@@ -84,9 +84,19 @@ export interface CopilotTurnRequest {
   projectId?: string
   itemId: string
   message: string
+  /** Project data modality (`image`/`text`/`audio`/`tabular`/`video`/`custom`).
+   *  Unset/`image` runs the full image pipeline; anything else runs the
+   *  LLM-driven generic path on the backend. */
+  modality?: string
+  /** Project labeling task (e.g. `ner`, `text_classification`); tailors the
+   *  generic path's prompts. */
+  task?: string
   /** Tool ids the user has enabled (Tools menu). Omitted/empty = all tools on.
    *  A disabled tool is never run, even if the message asks for it. */
   enabledTools?: string[]
+  /** Prior chat turns for the agent's conversation memory (oldest first). The
+   *  backend replays these so follow-ups like "now outline them" work. */
+  history?: { role: "user" | "assistant"; content: string }[]
 }
 
 // The shape sent back to apply an approved action. Mirrors the Rust

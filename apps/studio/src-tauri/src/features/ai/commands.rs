@@ -7,8 +7,9 @@ use tauri::State;
 use vailabel_project::contracts::{EntityIdPayload, ProjectIdPayload};
 
 use super::model::{
-    GitHubReleaseLookupPayload, ItemIdPayload, ModelActivationPayload, ModelImportPayload,
-    ModelInstallPayload, PipelineRunPayload, PredictionActionPayload, PredictionGeneratePayload,
+    AutoLabelBacklogPayload, GitHubReleaseLookupPayload, ItemIdPayload, ModelActivationPayload,
+    ModelImportPayload, ModelInstallPayload, PipelineRunPayload, PredictionActionPayload,
+    PredictionBatchActionPayload, PredictionGeneratePayload,
 };
 use crate::{AppError, AppState};
 
@@ -146,6 +147,62 @@ pub fn predictions_reject(
     state
         .ai_service
         .reject_prediction(&app, &payload.prediction_id)
+}
+
+/// Accept every prediction in `predictionIds` in one call (one event, one reload)
+/// — the fast path for "Accept all".
+#[tauri::command]
+pub fn predictions_accept_batch(
+    app: tauri::AppHandle,
+    state: State<AppState>,
+    payload: PredictionBatchActionPayload,
+) -> Result<Value, AppError> {
+    state
+        .ai_service
+        .accept_predictions_batch(&app, &payload.prediction_ids)
+}
+
+/// Reject every prediction in `predictionIds` in one call (one event, one reload).
+#[tauri::command]
+pub fn predictions_reject_batch(
+    app: tauri::AppHandle,
+    state: State<AppState>,
+    payload: PredictionBatchActionPayload,
+) -> Result<Value, AppError> {
+    state
+        .ai_service
+        .reject_predictions_batch(&app, &payload.prediction_ids)
+}
+
+/// Batch "auto-label the backlog": run the served/active detector over every
+/// unlabeled item in the project. Runs on a blocking thread (ONNX/Python
+/// inference) and streams progress on the `studio://activity` channel.
+#[tauri::command]
+pub async fn predictions_auto_label_backlog(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    payload: AutoLabelBacklogPayload,
+) -> Result<Value, AppError> {
+    let ai_service = state.ai_service.clone();
+    let app = app.clone();
+
+    tauri::async_runtime::spawn_blocking(move || -> Result<Value, AppError> {
+        ai_service.auto_label_backlog(&app, payload)
+    })
+    .await
+    .map_err(|error| AppError::Message(format!("Auto-label task failed: {error}")))?
+}
+
+/// Project-wide pending-prediction summary (count + distinct items + one item id
+/// to jump to) for the flywheel's "Review N" CTA.
+#[tauri::command]
+pub fn predictions_count_by_project(
+    state: State<AppState>,
+    payload: ProjectIdPayload,
+) -> Result<Value, AppError> {
+    state
+        .ai_service
+        .count_pending_predictions(&payload.project_id)
 }
 
 /// Local AI assistant: the model registry (catalog of models, their task,

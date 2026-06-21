@@ -90,3 +90,59 @@ export const AnnotationLabel = memo(
 )
 
 AnnotationLabel.displayName = "AnnotationLabel"
+
+interface DimensionBadgeProps {
+  /** Box origin + size in image space. */
+  x: number
+  y: number
+  width: number
+  height: number
+  zoom: number
+}
+
+/**
+ * A live "W × H" size pill, the way Figma / Photoshop / CVAT show a box's
+ * dimensions while you draw or resize it. Dark neutral pill (it sits over the
+ * image, so a literal color is intentional) centered just below the box, and
+ * counter-scaled by 1/zoom so it stays a constant on-screen size.
+ */
+export const DimensionBadge = memo(
+  ({ x, y, width, height, zoom }: DimensionBadgeProps) => {
+    const z = zoom || 1
+    const fontSize = 11 / z
+    const padX = 5 / z
+    const padY = 3 / z
+    const gap = 6 / z
+    const radius = 3 / z
+    const label = `${Math.round(width)} × ${Math.round(height)}`
+    const badgeH = fontSize + padY * 2
+    const badgeW = label.length * fontSize * 0.6 + padX * 2
+    // Centered just below the box (where Figma/Photoshop put it).
+    const left = x + width / 2 - badgeW / 2
+    const top = y + height + gap
+    return (
+      <g pointerEvents="none">
+        <rect
+          x={left}
+          y={top}
+          width={badgeW}
+          height={badgeH}
+          rx={radius}
+          ry={radius}
+          fill="rgba(17,24,39,0.9)"
+        />
+        <text
+          x={left + padX}
+          y={top + padY + fontSize * 0.82}
+          fontSize={fontSize}
+          fill="#ffffff"
+          style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}
+        >
+          {label}
+        </text>
+      </g>
+    )
+  }
+)
+
+DimensionBadge.displayName = "DimensionBadge"

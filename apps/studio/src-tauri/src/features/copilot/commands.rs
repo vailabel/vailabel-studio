@@ -1,19 +1,20 @@
-//! AI copilot IPC commands — thin handlers over the pure `CopilotAppService`
-//! (held in [`crate::AppState`]) and the `AiService` apply-action path.
+//! AI copilot IPC commands — thin handlers over the [`CopilotBridge`] (held in
+//! [`crate::AppState`]) and the `AiService` apply-action path. The copilot's
+//! brain runs in the Python runtime; the bridge gathers context, calls it, and
+//! persists the prediction drafts it returns.
 
 use serde_json::Value;
 use tauri::State;
 
-use crate::features::ai::copilot::CopilotTurnResult;
 use crate::features::ai::model::{
     CopilotActionPayload, CopilotTestPayload, CopilotTestResult, CopilotTurnPayload,
 };
+use crate::features::copilot::types::CopilotTurnResult;
 use crate::{AppError, AppState};
 
-/// Local AI copilot: one chat turn. Runs on a blocking thread because it may
-/// invoke the ONNX detector (same as `predictions_generate`). The orchestration
-/// lives in the copilot module; the inference port (which holds its own
-/// `AppHandle`) emits `predictions:generated` exactly as before.
+/// Local AI copilot: one chat turn. Runs on a blocking thread because the bridge
+/// does synchronous runtime HTTP + persistence. The bridge persists any returned
+/// prediction drafts and emits `predictions:generated` exactly as before.
 #[tauri::command]
 pub async fn ai_copilot_turn(
     state: State<'_, AppState>,
@@ -24,7 +25,6 @@ pub async fn ai_copilot_turn(
     tauri::async_runtime::spawn_blocking(move || copilot_service.turn(payload))
         .await
         .map_err(|error| AppError::Message(format!("AI copilot task failed: {error}")))?
-        .map_err(AppError::from)
 }
 
 /// Local AI copilot: apply a user-approved action (relabel / delete / new label).

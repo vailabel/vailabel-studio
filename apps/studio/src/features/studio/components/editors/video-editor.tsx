@@ -10,7 +10,7 @@ const clipKey = (projectId: string) => `video-clip:${projectId}`
 // open clip. The generic studio chrome (image file list, class palette, item
 // nav) is hidden for video via `capabilities.chrome` (see resolveCapabilities),
 // so this body provides the full video experience inside the studio shell.
-export const VideoEditor = memo(({ viewModel }: EditorProps) => {
+export const VideoEditor = memo(({ viewModel, capabilities }: EditorProps) => {
   const projectId = viewModel.effectiveProjectId
   const [videoId, setVideoId] = useState<string | null>(() =>
     projectId ? sessionStorage.getItem(clipKey(projectId)) : null
@@ -40,7 +40,12 @@ export const VideoEditor = memo(({ viewModel }: EditorProps) => {
   return (
     <div className="flex flex-1 flex-col overflow-hidden bg-background">
       {videoId ? (
-        <VideoClipEditor videoId={videoId} onBack={goToLibrary} />
+        <VideoClipEditor
+          videoId={videoId}
+          projectId={projectId}
+          task={capabilities.task}
+          onBack={goToLibrary}
+        />
       ) : (
         <VideoLibrary projectId={projectId} onOpen={openClip} />
       )}

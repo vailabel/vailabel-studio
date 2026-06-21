@@ -10,7 +10,11 @@ import type {
   LabelStudioTask,
   Prediction,
 } from "@/shared/types/core"
-import { studioCommands, type PipelineRunRequest } from "@/shared/ipc/studio"
+import {
+  studioCommands,
+  type AutoLabelBacklogRequest,
+  type PipelineRunRequest,
+} from "@/shared/ipc/studio"
 
 export const predictionsService = {
   listByItemId: (itemId: string) =>
@@ -28,6 +32,18 @@ export const predictionsService = {
     studioCommands.predictionsAccept(predictionId, labelId) as Promise<Annotation>,
   reject: (predictionId: string) =>
     studioCommands.predictionsReject(predictionId),
+  /** Accept every given prediction in one call (one event + one reload). */
+  acceptAll: (predictionIds: string[]) =>
+    studioCommands.predictionsAcceptBatch(predictionIds),
+  /** Reject every given prediction in one call (one event + one reload). */
+  rejectAll: (predictionIds: string[]) =>
+    studioCommands.predictionsRejectBatch(predictionIds),
+  /** Batch-run the served detector over a project's unlabeled backlog. */
+  autoLabelBacklog: (payload: AutoLabelBacklogRequest) =>
+    studioCommands.predictionsAutoLabelBacklog(payload),
+  /** Project-wide pending-prediction summary (count + a jump target). */
+  countByProject: (projectId: string) =>
+    studioCommands.predictionsCountByProject(projectId),
   exportToLabelStudioTask: (args: {
     image: Item
     predictions: Prediction[]

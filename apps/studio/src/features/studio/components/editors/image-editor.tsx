@@ -64,6 +64,8 @@ export const ImageEditor = memo(({ viewModel, capabilities }: EditorProps) => {
             onUndo={viewModel.undo}
             onRedo={viewModel.redo}
             onSmartSegment={viewModel.smartSegment}
+            onAcceptPrediction={viewModel.acceptPrediction}
+            onRejectPrediction={viewModel.rejectPrediction}
           />
         ) : (
           <EmptyImageState />
