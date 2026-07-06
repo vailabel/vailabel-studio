@@ -20,6 +20,7 @@
 
 - [Features](#features)
 - [Download](#download)
+- [Keyboard shortcuts](docs/keyboard-shortcuts.md)
 - [Development](#development)
 - [Project structure](#project-structure)
 - [Architecture](#architecture)
