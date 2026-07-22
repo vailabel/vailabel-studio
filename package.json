@@ -59,6 +59,9 @@
     "husky": "^9.1.7"
   },
   "packageManager": "yarn@1.22.22",
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {},
   "resolutions": {
     "dompurify": "^3.4.10",

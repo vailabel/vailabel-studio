@@ -88,6 +88,7 @@ Grab the latest installer for your platform from the
 
 ### Prerequisites
 - **Node.js** 20+ and **Yarn** (Classic / v1)
+- Run `nvm use` from the repository root to match the project's Node.js version
 - **Rust** (stable toolchain) — install via [rustup](https://rustup.rs)
 - The platform build dependencies for Tauri v2 — see the
   [Tauri prerequisites guide](https://tauri.app/start/prerequisites/)
