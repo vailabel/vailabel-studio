@@ -14,6 +14,10 @@ import {
   MoreVertical,
 } from "lucide-react"
 import { Button } from "@/shared/ui/button"
+import {
+  formatProjectDate,
+  formatProjectTime,
+} from "@/features/projects/model/format-date"
 import { Input } from "@/shared/ui/input"
 import {
   Card,
@@ -44,35 +48,6 @@ import { cn } from "@/shared/lib/utils"
 
 const ProjectList = memo(() => {
   const viewModel = useProjectListViewModel()
-
-  const formatDate = (date: Date | string | undefined) => {
-    if (!date) return "Unknown"
-    try {
-      const dateObj = typeof date === "string" ? new Date(date) : date
-      if (isNaN(dateObj.getTime())) return "Unknown"
-      return new Intl.DateTimeFormat("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      }).format(dateObj)
-    } catch {
-      return "Unknown"
-    }
-  }
-
-  const formatTime = (date: Date | string | undefined) => {
-    if (!date) return "Unknown"
-    try {
-      const dateObj = typeof date === "string" ? new Date(date) : date
-      if (isNaN(dateObj.getTime())) return "Unknown"
-      return new Intl.DateTimeFormat("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }).format(dateObj)
-    } catch {
-      return "Unknown"
-    }
-  }
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -261,7 +236,7 @@ const ProjectList = memo(() => {
                     <CardTitle className="truncate">{project.name}</CardTitle>
                     <CardDescription className="flex items-center gap-2 mt-1">
                       <Calendar className="h-3 w-3" />
-                      <span>Created {formatDate(project.createdAt)}</span>
+                      <span>Created {formatProjectDate(project.createdAt)}</span>
                     </CardDescription>
                   </div>
                   <Badge variant="secondary">
@@ -278,7 +253,7 @@ const ProjectList = memo(() => {
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Clock className="h-4 w-4" />
-                    <span>Modified {formatTime(project.updatedAt)}</span>
+                    <span>Modified {formatProjectTime(project.updatedAt)}</span>
                   </div>
                 </div>
               </CardContent>
