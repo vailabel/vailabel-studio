@@ -36,9 +36,12 @@ export function toCoco(
   let annotationId = 1
 
   images.forEach((image, imageIndex) => {
-    const itemId = imageIndex + 1
+    // COCO's own id for this image. Deliberately NOT called `itemId`: this is
+    // an external wire format, so the field stays `image_id` regardless of what
+    // we call the entity internally.
+    const cocoImageId = imageIndex + 1
     cocoImages.push({
-      id: itemId,
+      id: cocoImageId,
       file_name: image.imagePath || image.name,
       width: image.width,
       height: image.height,
@@ -54,7 +57,7 @@ export function toCoco(
       const polygonal = isPolygonal(annotation)
       cocoAnnotations.push({
         id: annotationId,
-        item_id: itemId,
+        image_id: cocoImageId,
         category_id: categoryId,
         bbox: [round(bbox.x), round(bbox.y), round(bbox.width), round(bbox.height)],
         area: round(
