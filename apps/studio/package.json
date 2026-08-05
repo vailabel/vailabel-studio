@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc -b && vite build",
     "tauri": "tauri",
     "tauri:build": "tauri build",
     "lint": "eslint .",
@@ -14,7 +14,7 @@
     "test:watch": "vitest",
     "publish": "yarn run build",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\" --ignore-path .gitignore --ignore-path .prettierignore",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc -b"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
@@ -68,7 +68,6 @@
     "@types/react": "^19.2.17",
     "@types/react-color": "^3.0.13",
     "@types/react-dom": "^19.2.3",
-    "@types/uuid": "^11.0.0",
     "@vitejs/plugin-react": "^6.0.2",
     "@vitest/coverage-v8": "^4.1.9",
     "esbuild": "^0.25.10",

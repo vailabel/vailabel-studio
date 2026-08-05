@@ -11,7 +11,9 @@
     "allowImportingTsExtensions": false,
     "isolatedModules": true,
     "moduleDetection": "force",
-    "noEmit": false,
+    // Type-checking only: `tsc -b` must not emit a vite.config.js next to the
+    // .ts source, which Vite would then prefer over it.
+    "noEmit": true,
 
     /* Linting */
     "strict": true,
@@ -22,4 +24,5 @@
     "composite": true
   },
   "include": ["vite.config.ts"]
+
 }

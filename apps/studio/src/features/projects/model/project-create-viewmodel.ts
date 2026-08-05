@@ -1,5 +1,4 @@
 import { useState } from "react"
-import { v4 as uuidv4 } from "uuid"
 import { useNavigate } from "react-router-dom"
 import { services } from "@/shared/services"
 import type { Annotation } from "@/shared/types/core"
@@ -145,7 +144,7 @@ export const useProjectCreateViewModel = () => {
       await allowImageDirectory(folder)
       const scanned = await scanImageDirectory(folder)
       const nextImages: ImageFile[] = scanned.map((image) => ({
-        id: uuidv4(),
+        id: crypto.randomUUID(),
         name: image.name,
         path: image.path,
         imagePath: image.name,
@@ -185,7 +184,7 @@ export const useProjectCreateViewModel = () => {
       )
     }
     const nextDocuments: DocumentFile[] = paths.map((path) => ({
-      id: uuidv4(),
+      id: crypto.randomUUID(),
       name: fileBaseName(path),
       path,
     }))
@@ -209,7 +208,7 @@ export const useProjectCreateViewModel = () => {
         data[key] = row[columnIndex] ?? ""
       })
       return {
-        id: uuidv4(),
+        id: crypto.randomUUID(),
         name: `${fileName} · row ${index + 1}`,
         path: "",
         data,
@@ -299,7 +298,7 @@ export const useProjectCreateViewModel = () => {
       picked.map(async (path) => {
         const { width, height } = await probeImageSize(path)
         return {
-          id: uuidv4(),
+          id: crypto.randomUUID(),
           name: fileBaseName(path),
           path,
           imagePath: fileBaseName(path),
@@ -330,7 +329,7 @@ export const useProjectCreateViewModel = () => {
       const seen = new Set(current.map((doc) => doc.path))
       const next = paths
         .filter((path) => !seen.has(path))
-        .map((path) => ({ id: uuidv4(), name: fileBaseName(path), path }))
+        .map((path) => ({ id: crypto.randomUUID(), name: fileBaseName(path), path }))
       return [...current, ...next]
     })
     setName((current) => current.trim() || "Dataset")
@@ -351,7 +350,7 @@ export const useProjectCreateViewModel = () => {
     setError(null)
     try {
       const project = await services.getProjectService().create({
-        id: uuidv4(),
+        id: crypto.randomUUID(),
         name: name.trim(),
         description: description.trim(),
         type,
@@ -388,7 +387,7 @@ export const useProjectCreateViewModel = () => {
       await Promise.all(
         derivedClasses.map((cls) =>
           services.getLabelService().createLabel({
-            id: uuidv4(),
+            id: crypto.randomUUID(),
             name: cls.name,
             color: cls.color,
             projectId: project.id,
@@ -459,7 +458,7 @@ export const useProjectCreateViewModel = () => {
                 drafts.map((draft) =>
                   services
                     .getAnnotationService()
-                    .createAnnotation({ id: uuidv4(), ...draft } as Annotation)
+                    .createAnnotation({ id: crypto.randomUUID(), ...draft } as Annotation)
                 )
               )
             } catch (sidecarError) {

@@ -18,7 +18,6 @@ import {
   SheetTitle,
 } from "@/shared/ui/sheet"
 import { Button } from "@/shared/ui/button"
-import { visuallyHidden } from "@base-ui/utils/visuallyHidden"
 
 type NavigationItem = {
   name: string
@@ -64,7 +63,7 @@ const MainLayout = () => {
           side="left"
           className="p-0 w-64 bg-background left-0 top-0 h-full fixed md:hidden"
         >
-          <SheetTitle style={visuallyHidden}>Main navigation</SheetTitle>
+          <SheetTitle className="sr-only">Main navigation</SheetTitle>
           <div className="flex items-center gap-2 mb-6 p-6">
             <img src="/logo.png" alt="ProjectHub Logo" className="h-7 w-7" />
             <span className="text-xl font-bold">ProjectHub</span>
