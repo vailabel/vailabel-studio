@@ -1,105 +1,56 @@
-import { memo, useCallback, useEffect, useMemo, useState } from "react"
-import { ChevronRight, Clapperboard, Clock, Film, FileText, ImageIcon, Table2, X } from "lucide-react"
-import { Button } from "@/shared/ui/button"
-import { Input } from "@/shared/ui/input"
-import { Label } from "@/shared/ui/label"
-import { Textarea } from "@/shared/ui/textarea"
-import { Badge } from "@/shared/ui/badge"
+import { memo, useEffect, useMemo, useState } from "react"
 import { Alert, AlertDescription } from "@/shared/ui/alert"
+import { Button } from "@/shared/ui/button"
 import { Spinner } from "@/shared/ui/spinner"
-import { ImageGrid } from "@/features/projects/components/image-upload"
-import { LabelingInterfaceEditor } from "@/features/projects/components/labeling-interface-editor"
-import { TemplateIllustration } from "@/features/projects/components/template-illustrations"
-import { FileDropZone } from "@/features/projects/components/file-drop-zone"
-import { useFileDrop } from "@/features/projects/hooks/use-file-drop"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs"
+import { ProjectStep } from "@/features/projects/components/create/project-step"
+import { LabelingStep } from "@/features/projects/components/create/labeling-step"
+import { DataStep } from "@/features/projects/components/create/data-step"
 import { useProjectCreateViewModel } from "@/features/projects/model/project-create-viewmodel"
+import { deriveConfigInfo } from "@/features/projects/model/config-info"
 import {
   LABELING_TEMPLATES,
   TEMPLATE_CATEGORY_ORDER,
-  DATA_KIND_LABELS,
   type DataKind,
   type LabelingTemplate,
 } from "@/shared/lib/label-config/labeling-templates"
-import {
-  descriptorForKind,
-  type ModalityDescriptor,
-} from "@/features/projects/model/modality-registry"
-import {
-  describeImport,
-  type ImportGuide,
-} from "@/features/projects/model/import-guide"
-import { parseLabelConfig } from "@/shared/lib/label-config/parse"
+import { descriptorForKind } from "@/features/projects/model/modality-registry"
 import { configStringForTemplate } from "@/shared/lib/label-config/generate"
-import { inferModalityTask, isMultiTextJudgement } from "@/shared/lib/label-config/infer"
-import type { LabelConfig } from "@/shared/lib/label-config/types"
-import { cn } from "@/shared/lib/utils"
-
-type ViewModel = ReturnType<typeof useProjectCreateViewModel>
+import { inferModalityTask } from "@/shared/lib/label-config/infer"
 
 // Template-first flow: name the project, choose what you're labeling (which
 // fixes the data kind), then import data matching that template.
-const TABS = ["Project Name", "Labeling Setup", "Data Import"] as const
-const CUSTOM_TEMPLATE_ID = "custom"
-const MAIN_CATEGORIES = TEMPLATE_CATEGORY_ORDER.filter((c) => c !== "Custom")
+const STEPS = [
+  { value: "name", label: "Project Name" },
+  { value: "labeling", label: "Labeling Setup" },
+  { value: "data", label: "Data Import" },
+] as const
 
-interface ConfigInfo {
-  ok: boolean
-  config: LabelConfig | null
-  dataKind: DataKind
-  error: string | null
-}
+const CUSTOM_TEMPLATE_ID = "custom"
+const MAIN_CATEGORIES = TEMPLATE_CATEGORY_ORDER.filter(
+  (category) => category !== "Custom"
+)
 
 export const ProjectCreate = memo(() => {
   const viewModel = useProjectCreateViewModel()
 
-  const [tab, setTab] = useState(0)
+  const [step, setStep] = useState<string>(STEPS[0].value)
   const [templateId, setTemplateId] = useState("object-detection")
   const [category, setCategory] = useState("Computer Vision")
 
   const selectedTemplate = useMemo(
-    () => LABELING_TEMPLATES.find((t) => t.id === templateId),
+    () => LABELING_TEMPLATES.find((template) => template.id === templateId),
     [templateId]
   )
   const customTemplate = useMemo(
-    () => LABELING_TEMPLATES.find((t) => t.id === CUSTOM_TEMPLATE_ID),
+    () => LABELING_TEMPLATES.find((template) => template.id === CUSTOM_TEMPLATE_ID),
     []
   )
 
-  // The labeling config is the single source of truth for validity, the data
-  // kind to import, and the visual editor + preview.
-  const configInfo = useMemo<ConfigInfo>(() => {
-    try {
-      const parsed = parseLabelConfig(viewModel.labelConfig)
-      // The primary object tag maps to a data kind. For image/text/audio/video
-      // the tag IS the kind; the `table` object maps to the `tabular` kind.
-      const primary = parsed.objects.find((object) =>
-        ["image", "text", "audio", "video", "table"].includes(object.tag)
-      )
-      // Multi-field LLM-eval tasks (prompt + responses) and explicit `table`
-      // objects are one-row-per-task, so they import via the spreadsheet path
-      // (each row carries its fields inline). Everything else maps the primary
-      // object tag straight to its data kind.
-      const dataKind: DataKind = isMultiTextJudgement(parsed)
-        ? "tabular"
-        : primary?.tag === "table"
-          ? "tabular"
-          : ((primary?.tag as DataKind) ?? "image")
-      const ok = parsed.objects.length > 0 && parsed.controls.length > 0
-      return {
-        ok,
-        config: parsed,
-        dataKind,
-        error: ok ? null : "Add a data object and at least one control.",
-      }
-    } catch (error) {
-      return {
-        ok: false,
-        config: null,
-        dataKind: "image",
-        error: error instanceof Error ? error.message : "Invalid config",
-      }
-    }
-  }, [viewModel.labelConfig])
+  const configInfo = useMemo(
+    () => deriveConfigInfo(viewModel.labelConfig),
+    [viewModel.labelConfig]
+  )
 
   // Selecting a template just loads its config; the config then drives
   // everything (modality, task, classes, data kind) — see the effect below.
@@ -153,38 +104,30 @@ export const ProjectCreate = memo(() => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveDataKind])
 
-  // One entry per tab, in tab order (name · template · data). `hasItems` is false
+  // One entry per step, in order (name · template · data). `hasItems` is false
   // when the kind has no descriptor, so it also gates out roadmap templates.
-  const tabValid = [
-    viewModel.name.trim().length > 0,
-    selectedTemplate?.status === "available" && configInfo.ok,
-    hasItems,
-  ]
-  const canSave = tabValid.every(Boolean)
+  const canSave =
+    viewModel.name.trim().length > 0 &&
+    selectedTemplate?.status === "available" &&
+    configInfo.ok &&
+    hasItems
 
   return (
-    <div className="-m-6 flex h-[calc(100%+3rem)] flex-col overflow-hidden bg-background text-foreground">
-      {/* Top bar: title · tabs · cancel/save */}
+    <Tabs
+      value={step}
+      onValueChange={setStep}
+      className="-m-6 flex h-[calc(100%+3rem)] flex-col gap-0 overflow-hidden bg-background text-foreground"
+    >
       <header className="flex items-center gap-4 border-b border-border px-6 py-3">
         <h1 className="text-xl font-bold">Create Project</h1>
         <div className="flex flex-1 justify-center">
-          <div className="inline-flex items-center gap-1 rounded-lg bg-muted p-1">
-            {TABS.map((label, index) => (
-              <button
-                key={label}
-                type="button"
-                onClick={() => setTab(index)}
-                className={cn(
-                  "rounded-md px-4 py-1.5 text-sm font-medium transition-colors",
-                  index === tab
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {label}
-              </button>
+          <TabsList>
+            {STEPS.map((entry) => (
+              <TabsTrigger key={entry.value} value={entry.value}>
+                {entry.label}
+              </TabsTrigger>
             ))}
-          </div>
+          </TabsList>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -197,7 +140,6 @@ export const ProjectCreate = memo(() => {
           <Button
             onClick={() => void viewModel.createProject(descriptor)}
             disabled={!canSave || viewModel.isCreating}
-            className="gap-2"
           >
             {viewModel.isCreating && <Spinner />}
             Save
@@ -206,35 +148,42 @@ export const ProjectCreate = memo(() => {
       </header>
 
       <div className="min-h-0 flex-1 overflow-hidden">
-        {tab === 0 && (
-          <div className="h-full overflow-y-auto p-6">
-            <ProjectStep viewModel={viewModel} />
-          </div>
-        )}
+        <TabsContent value="name" className="h-full overflow-y-auto p-6">
+          <ProjectStep
+            name={viewModel.name}
+            description={viewModel.description}
+            onNameChange={viewModel.setName}
+            onDescriptionChange={viewModel.setDescription}
+          />
+        </TabsContent>
 
-        {tab === 1 && (
+        <TabsContent value="labeling" className="h-full">
           <LabelingStep
+            categories={MAIN_CATEGORIES}
             category={category}
             onSelectCategory={setCategory}
             templateId={templateId}
             selectedTemplate={selectedTemplate}
             customTemplate={customTemplate}
             configInfo={configInfo}
-            viewModel={viewModel}
+            labelConfig={viewModel.labelConfig}
+            onLabelConfigChange={viewModel.setLabelConfig}
             onSelectTemplate={selectTemplate}
+            onSelectCustom={(template) => {
+              setCategory("Custom")
+              selectTemplate(template)
+            }}
           />
-        )}
+        </TabsContent>
 
-        {tab === 2 && (
-          <div className="h-full overflow-y-auto p-6">
-            <DataStep
-              viewModel={viewModel}
-              selectedTemplate={selectedTemplate}
-              descriptor={descriptor}
-              config={configInfo.config}
-            />
-          </div>
-        )}
+        <TabsContent value="data" className="h-full overflow-y-auto p-6">
+          <DataStep
+            viewModel={viewModel}
+            selectedTemplate={selectedTemplate}
+            descriptor={descriptor}
+            config={configInfo.config}
+          />
+        </TabsContent>
       </div>
 
       {viewModel.error ? (
@@ -248,423 +197,8 @@ export const ProjectCreate = memo(() => {
           </Alert>
         </div>
       ) : null}
-    </div>
+    </Tabs>
   )
 })
 
 ProjectCreate.displayName = "ProjectCreate"
-
-// ── Tab: Project Name ────────────────────────────────────────────────────────
-const ProjectStep = memo(({ viewModel }: { viewModel: ViewModel }) => (
-  <div className="mx-auto flex max-w-xl flex-col gap-4">
-    <div className="space-y-2">
-      <Label htmlFor="project-name">Project name</Label>
-      <Input
-        id="project-name"
-        value={viewModel.name}
-        onChange={(event) => viewModel.setName(event.target.value)}
-        placeholder="My dataset"
-        autoFocus
-      />
-    </div>
-    <div className="space-y-2">
-      <Label htmlFor="project-description">
-        Description <span className="text-muted-foreground">(optional)</span>
-      </Label>
-      <Textarea
-        id="project-description"
-        value={viewModel.description}
-        onChange={(event) => viewModel.setDescription(event.target.value)}
-        placeholder="What is this dataset about?"
-        rows={3}
-      />
-    </div>
-  </div>
-))
-
-ProjectStep.displayName = "ProjectStep"
-
-// ── Tab: Labeling Setup (category sidebar + template grid + interface) ────────
-const LabelingStep = memo(
-  ({
-    category,
-    onSelectCategory,
-    templateId,
-    selectedTemplate,
-    customTemplate,
-    configInfo,
-    viewModel,
-    onSelectTemplate,
-  }: {
-    category: string
-    onSelectCategory: (category: string) => void
-    templateId: string
-    selectedTemplate?: LabelingTemplate
-    customTemplate?: LabelingTemplate
-    configInfo: ConfigInfo
-    viewModel: ViewModel
-    onSelectTemplate: (template: LabelingTemplate) => void
-  }) => {
-    const templates = useMemo(
-      () => LABELING_TEMPLATES.filter((t) => t.category === category),
-      [category]
-    )
-    return (
-      <div className="flex h-full">
-        {/* Category sidebar */}
-        <nav className="w-56 shrink-0 overflow-y-auto border-r border-border py-2">
-          {MAIN_CATEGORIES.map((cat) => (
-            <button
-              key={cat}
-              type="button"
-              onClick={() => onSelectCategory(cat)}
-              className={cn(
-                "flex w-full items-center justify-between gap-2 px-4 py-2 text-left text-sm transition-colors",
-                cat === category
-                  ? "bg-muted font-medium text-foreground"
-                  : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-              )}
-            >
-              <span className="truncate">{cat}</span>
-              <ChevronRight className="size-4 shrink-0 opacity-60" />
-            </button>
-          ))}
-          {customTemplate && (
-            <button
-              type="button"
-              onClick={() => {
-                onSelectCategory("Custom")
-                onSelectTemplate(customTemplate)
-              }}
-              className={cn(
-                "mt-1 w-full border-t border-border px-4 py-2 text-left text-sm font-medium text-primary transition-colors hover:bg-muted/50",
-                category === "Custom" && "bg-muted"
-              )}
-            >
-              Custom template
-            </button>
-          )}
-        </nav>
-
-        {/* Template grid + interface editor */}
-        <div className="min-w-0 flex-1 overflow-y-auto p-5">
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4">
-            {templates.map((template) => (
-              <TemplateCard
-                key={template.id}
-                template={template}
-                selected={template.id === templateId}
-                onSelect={onSelectTemplate}
-              />
-            ))}
-          </div>
-
-          {selectedTemplate && (
-            <div className="mt-6 border-t border-border pt-5">
-              <p className="mb-3 text-sm font-semibold">
-                {selectedTemplate.label}{" "}
-                <span className="font-normal text-muted-foreground">
-                  · configure the interface
-                </span>
-              </p>
-              <LabelingInterfaceEditor
-                value={viewModel.labelConfig}
-                onChange={viewModel.setLabelConfig}
-                config={configInfo.config}
-                error={configInfo.error}
-              />
-            </div>
-          )}
-        </div>
-      </div>
-    )
-  }
-)
-
-LabelingStep.displayName = "LabelingStep"
-
-// A template card with an icon "thumbnail" header (Label Studio gallery style).
-const TemplateCard = memo(
-  ({
-    template,
-    selected,
-    onSelect,
-  }: {
-    template: LabelingTemplate
-    selected: boolean
-    onSelect: (template: LabelingTemplate) => void
-  }) => {
-    const available = template.status === "available"
-    return (
-      <button
-        type="button"
-        disabled={!available}
-        onClick={() => onSelect(template)}
-        className={cn(
-          "group flex flex-col overflow-hidden rounded-lg border text-left transition-all",
-          selected
-            ? "border-primary ring-2 ring-primary"
-            : available
-              ? "border-border hover:border-primary/50 hover:shadow-sm"
-              : "cursor-not-allowed border-dashed border-border opacity-60"
-        )}
-      >
-        <div className="aspect-[4/3] overflow-hidden bg-muted">
-          {template.image ? (
-            <img
-              src={template.image}
-              alt={template.label}
-              loading="lazy"
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <TemplateIllustration template={template} className="h-full w-full" />
-          )}
-        </div>
-        <div className="flex items-start gap-1.5 p-3">
-          <p className="min-w-0 flex-1 text-sm font-medium leading-snug">
-            {template.label}
-          </p>
-          {!available && (
-            <Badge
-              variant="secondary"
-              className="gap-1 text-warning"
-            >
-              <Clock className="size-3" />
-              Soon
-            </Badge>
-          )}
-        </div>
-      </button>
-    )
-  }
-)
-
-TemplateCard.displayName = "TemplateCard"
-
-// ── Tab: Data Import (drop zone) ─────────────────────────────────────────────
-// Tells the user exactly what to import for the chosen template — including the
-// spreadsheet columns LLM-eval / tabular templates expect (derived from config).
-const ImportGuideCard = memo(
-  ({
-    template,
-    guide,
-  }: {
-    template?: LabelingTemplate
-    guide: ImportGuide
-  }) => {
-    const Icon = template?.icon
-    return (
-      <div className="rounded-lg border border-border bg-card p-4">
-        <div className="flex items-center gap-2">
-          {Icon && <Icon className="size-4 shrink-0 text-primary" />}
-          <p className="text-sm font-semibold">{guide.title}</p>
-        </div>
-        {template && (
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            for {template.label}
-          </p>
-        )}
-        <p className="mt-2 text-sm text-muted-foreground">{guide.detail}</p>
-
-        {guide.columns.length > 0 && (
-          <div className="mt-3 border-t border-border pt-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Expected columns
-            </p>
-            <div className="mt-1.5 flex flex-wrap gap-1.5">
-              {guide.columns.map((column) => (
-                <span
-                  key={column.key}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted px-2 py-0.5 text-xs"
-                >
-                  <code className="font-mono text-foreground">{column.key}</code>
-                  {column.label !== column.key && (
-                    <span className="text-muted-foreground">{column.label}</span>
-                  )}
-                </span>
-              ))}
-            </div>
-            <p className="mt-1.5 text-xs text-muted-foreground">
-              Your file's header row should include these columns (extra columns
-              are ignored). To use different names, edit the field bindings in
-              Labeling Setup.
-            </p>
-          </div>
-        )}
-
-        {guide.example && (
-          <div className="mt-3 border-t border-border pt-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Example
-            </p>
-            <pre className="mt-1.5 overflow-x-auto rounded-md border border-border bg-muted/50 p-3 text-xs leading-relaxed text-foreground">
-              <code>{guide.example}</code>
-            </pre>
-          </div>
-        )}
-      </div>
-    )
-  }
-)
-
-ImportGuideCard.displayName = "ImportGuideCard"
-
-const DataStep = memo(
-  ({
-    viewModel,
-    selectedTemplate,
-    descriptor,
-    config,
-  }: {
-    viewModel: ViewModel
-    selectedTemplate?: LabelingTemplate
-    descriptor?: ModalityDescriptor
-    config: LabelConfig | null
-  }) => {
-    const isImage = descriptor?.kind === "image"
-    const isFiles = descriptor?.importMode === "files"
-    const isSpreadsheet = descriptor?.importMode === "spreadsheet"
-
-    const handleDrop = useCallback(
-      (paths: string[]) => {
-        if (!descriptor) return
-        const picked = paths.filter(descriptor.accepts)
-        if (descriptor.kind === "image") void viewModel.addImagePaths(picked)
-        else if (descriptor.importMode === "spreadsheet")
-          void viewModel.addSpreadsheetPaths(picked)
-        else if (descriptor.importMode === "files")
-          void viewModel.addDocumentPaths(picked, descriptor.grantScope)
-      },
-      [viewModel, descriptor]
-    )
-    const isOver = useFileDrop(handleDrop, isImage || isFiles || isSpreadsheet)
-
-    // Deferred-import kinds (video): clips are imported inside the studio editor.
-    if (descriptor?.importMode === "none") {
-      return (
-        <div className="mx-auto max-w-2xl">
-          <Alert>
-            <Film className="size-4" />
-            <AlertDescription>
-              Create the project, then import and process your video clips in the
-              studio — it extracts frames, detects scene cuts, and tracks objects
-              across time.
-            </AlertDescription>
-          </Alert>
-        </div>
-      )
-    }
-
-    // Unsupported kind: a roadmap template with no registered descriptor.
-    if (!descriptor) {
-      return (
-        <div className="mx-auto max-w-2xl">
-          <Alert>
-            <Clock className="size-4" />
-            <AlertDescription>
-              {selectedTemplate
-                ? `${DATA_KIND_LABELS[selectedTemplate.dataKind]} import isn't available yet — this template is on the roadmap.`
-                : "Pick a template first."}
-            </AlertDescription>
-          </Alert>
-        </div>
-      )
-    }
-
-    const guide = describeImport(descriptor, config)
-
-    return (
-      <div className="mx-auto flex max-w-2xl flex-col gap-4">
-        <ImportGuideCard template={selectedTemplate} guide={guide} />
-
-        <FileDropZone
-          isOver={isOver}
-          busy={viewModel.isScanning}
-          onBrowse={() => void viewModel.openImport(descriptor)}
-          formats={guide.formats}
-        />
-
-        {isImage && viewModel.folderPath && (
-          <p className="truncate text-xs text-muted-foreground">
-            {viewModel.folderPath}
-          </p>
-        )}
-
-        {isImage && viewModel.images.length > 0 && (
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-2">
-              <ImageIcon className="size-5 text-primary" />
-              <span className="font-semibold">Selected images</span>
-              <Badge variant="secondary">
-                {viewModel.images.length} file
-                {viewModel.images.length !== 1 ? "s" : ""}
-              </Badge>
-            </div>
-            <ImageGrid images={viewModel.images} onRemove={viewModel.removeImage} />
-          </div>
-        )}
-
-        {(isFiles || isSpreadsheet) && viewModel.documents.length > 0 && (
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-2">
-              {descriptor.kind === "video" ? (
-                <Clapperboard className="size-5 text-primary" />
-              ) : isSpreadsheet ? (
-                <Table2 className="size-5 text-primary" />
-              ) : (
-                <FileText className="size-5 text-primary" />
-              )}
-              <span className="font-semibold">
-                {descriptor.kind === "audio"
-                  ? "Selected clips"
-                  : descriptor.kind === "video"
-                    ? "Selected videos"
-                    : isSpreadsheet
-                      ? "Imported rows"
-                      : "Selected documents"}
-              </span>
-              <Badge variant="secondary">
-                {viewModel.documents.length}{" "}
-                {isSpreadsheet ? "row" : "file"}
-                {viewModel.documents.length !== 1 ? "s" : ""}
-              </Badge>
-            </div>
-            <ul className="max-h-72 divide-y divide-border overflow-y-auto rounded-lg border border-border">
-              {viewModel.documents.slice(0, 200).map((doc, index) => (
-                <li
-                  key={doc.id}
-                  className="flex items-center gap-2 px-3 py-2 text-sm"
-                >
-                  {isSpreadsheet ? (
-                    <Table2 className="size-4 shrink-0 text-muted-foreground" />
-                  ) : (
-                    <FileText className="size-4 shrink-0 text-muted-foreground" />
-                  )}
-                  <span className="min-w-0 flex-1 truncate" title={doc.path || doc.name}>
-                    {doc.name}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => viewModel.removeDocument(index)}
-                    className="rounded-full p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                    aria-label={`Remove ${doc.name}`}
-                  >
-                    <X className="size-3.5" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-            {isSpreadsheet && viewModel.documents.length > 200 && (
-              <p className="text-xs text-muted-foreground">
-                Showing the first 200 of {viewModel.documents.length} rows.
-              </p>
-            )}
-          </div>
-        )}
-      </div>
-    )
-  }
-)
-
-DataStep.displayName = "DataStep"
