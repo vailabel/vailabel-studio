@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Annotation, Item, Label, Project } from "@/shared/types/core"
 import { z } from "zod"
-import { v4 as uuidv4 } from "uuid"
 import { useNavigate } from "react-router-dom"
 import { listenToStudioEvents } from "@/shared/ipc/events"
 import { studioCommands } from "@/shared/ipc/studio"
@@ -191,7 +190,7 @@ export const useProjectDetailViewModel = (projectId: string) => {
       await allowImageDirectory(folder)
       const scanned = await scanImageDirectory(folder)
       const preparedImages: UploadImage[] = scanned.map((image) => ({
-        id: uuidv4(),
+        id: crypto.randomUUID(),
         name: image.name,
         path: image.path,
         imagePath: image.name,
@@ -221,7 +220,7 @@ export const useProjectDetailViewModel = (projectId: string) => {
         const seen = new Set(current.map((doc) => doc.path))
         const added = paths
           .filter((path) => !seen.has(path))
-          .map((path) => ({ id: uuidv4(), name: fileBaseName(path), path }))
+          .map((path) => ({ id: crypto.randomUUID(), name: fileBaseName(path), path }))
         return [...current, ...added]
       })
     } finally {
@@ -374,7 +373,7 @@ export const useProjectDetailViewModel = (projectId: string) => {
               await Promise.all(
                 drafts.map((draft) =>
                   services.getAnnotationService().createAnnotation({
-                    id: uuidv4(),
+                    id: crypto.randomUUID(),
                     ...draft,
                   } as Annotation)
                 )
@@ -415,7 +414,7 @@ export const useProjectDetailViewModel = (projectId: string) => {
       setIsCreatingLabel(true)
       try {
         const createdLabel = await services.getLabelService().createLabel({
-          id: uuidv4(),
+          id: crypto.randomUUID(),
           ...labelData,
           projectId,
           project_id: projectId,
