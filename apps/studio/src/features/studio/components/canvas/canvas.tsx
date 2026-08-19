@@ -57,7 +57,7 @@ interface CanvasProps {
 const CanvasImage = memo(({ image }: { image: Item }) => (
   <img
     src={toAssetUrl(image.path)}
-    alt="Canvas"
+    alt={image.name}
     className="pointer-events-none select-none"
     draggable={false}
     width={image.width}
