@@ -79,6 +79,7 @@ export const ToolRail = memo(
                         "border-2 border-primary bg-primary/10 text-primary"
                     )}
                     onClick={() => onSelectTool(tool.id)}
+                    aria-label={tool.name}
                     aria-pressed={selectedTool === tool.id}
                   >
                     <tool.icon className="h-4 w-4" />
