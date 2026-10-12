@@ -11,44 +11,62 @@ built with **Tauri (Rust) + React + TypeScript**. Monorepo; the desktop app is `
 
 ## Stack & commands
 
-- **Frontend**: React + Vite + Tailwind v4 in `apps/studio/src`; UI on `@base-ui/react`.
+- **Frontend**: React 19 + Vite + Tailwind v4 in `apps/studio/src`; UI on `@base-ui/react`
+  (shadcn primitives vendored in `src/shared/ui`).
 - **Backend**: Rust + Tauri + Diesel(SQLite) in `apps/studio/src-tauri`.
-- Scripts (`apps/studio/package.json`): `build` = `tsc --noEmit && vite build`, `typecheck`,
-  `test` = `jest`, `lint` = eslint, `tauri` / `tauri:build`.
-- **Env quirks (Windows)**: the Bash tool runs *bash*, not PowerShell. Local bins are at
-  `apps/studio/node_modules/.bin/*.cmd` — `npx tsc` misresolves, so call `tsc.cmd` / `jest.cmd`
-  directly. Backend: `cargo check` from `apps/studio/src-tauri`.
+- Scripts (`apps/studio/package.json`): `build` = `tsc -b && vite build`, `typecheck` = `tsc -b`,
+  `test` = `vitest run --coverage`, `lint` = eslint, `tauri` / `tauri:build`.
+- Local bins: `apps/studio/node_modules/.bin/{tsc,vitest,eslint,vite}` (on Windows use the
+  `.cmd` variants — `npx tsc` misresolves). Backend: `cargo check` from `apps/studio/src-tauri`.
+
+## Frontend architecture (lint-enforced)
+
+`app ─▶ features/<name> ─▶ shared` — dependencies only point right. Full rules and how-tos:
+`apps/studio/docs/DEVELOPER_FEATURE_GUIDE.md`.
+
+- `src/app` composes: `route-table.ts` (spreads each feature's routes; every page is lazy),
+  `routes.tsx`, `navigation.ts`, `layout/`.
+- `src/features/<name>/{index.ts, routes/, components/, model/}` — `index.ts` exports only the
+  feature's `FeatureRoute[]`. Features never import each other.
+- `src/shared/{ui, components, hooks, services, ipc, lib, model, types}`.
+- Only `shared/ipc` + `shared/lib/desktop.ts` import `@tauri-apps/*`; only `shared/services`
+  issues commands. Feature code uses `services.*`, `useAppEvent` / `useStudioEvents`.
+- Data loading goes through `useResource` (`shared/hooks/use-resource.ts`): loading/error state,
+  stale-response protection, debounced reload on domain events. URLs come from `paths` in
+  `shared/lib/routes.ts`. Errors → text via `toErrorMessage`.
 
 ## Annotation / labeling tools — end-to-end flow
 
 Tools: `box`, `polygon`, `point`, `line`, `linestrip`, `circle`, `freeDraw`, plus `move`/`delete`.
+All paths below are under `src/features/studio/`.
 
-1. **Provider**: `src/pages/studio/page.tsx` wraps `<ImageLabeler>` in `CanvasProvider`.
-2. **UI shell**: `src/components/studio/image-labeler.tsx` → `Toolbar` + `MemoizedCanvas`.
-3. **Canvas**: `src/components/canvas/canvas.tsx`; annotations rendered by
+1. **Provider**: `routes/studio-page.tsx` wraps the labeling screen in `CanvasProvider`.
+2. **UI shell**: `components/labeling-screen.tsx` → editor from `components/editors/editor-registry.ts`
+   (image: `editors/image-editor.tsx` → `toolbar.tsx` / `tool-rail.tsx` + `editors/image/memoized-canvas.tsx`).
+3. **Canvas**: `components/canvas/canvas.tsx`; annotations rendered by
    `annotation-renderer.tsx` → per-type `*-annotation.tsx`; live drawing previews in
    `components/canvas/temp-annotations/`.
-4. **Tools**: `src/tools/handlers/*-handler.ts` (onMouseDown/Move/Up). Dispatched by
-   `src/hooks/use-canvas-handlers-context.tsx` (`createToolHandler`). A box drag creates a temp
+4. **Tools**: `canvas-state/tools/handlers/*-handler.ts` (onMouseDown/Move/Up), registered in
+   `canvas-state/tools/tool-registry.ts` and dispatched by
+   `canvas-state/use-canvas-handlers-context.tsx`. A box drag creates a temp
    annotation → sets `showLabelInput` → `create-annotation.tsx` modal → `onCreateAnnotationDraft`.
-5. **Canvas state**: `src/contexts/canvas-context.tsx` — zoom/pan/tool/selection/toolState.
-   High-frequency **cursor position lives in a separate `CursorProvider`** (writer-only
+5. **Canvas state**: `canvas-state/canvas-context.tsx` — zoom/tool/display toggles, with pan,
+   selection, tool-state and **cursor position in their own providers** (writer-only
    `useSetCanvasCursor()` returns a stable setter) so mouse-move only re-renders the crosshair /
    coordinate overlays, not every annotation.
-6. **Viewmodels**: `src/features/studio/use-studio-screen-viewmodel.ts` composes
-   `src/viewmodels/image-labeler-viewmodel.ts` (data + reload) and
-   `src/features/studio/use-canvas-session.ts` (undo/redo; wraps create/update/delete — this is
-   what the Canvas actually calls).
-7. **Services → IPC**: `src/services/*-service.ts` → `src/ipc/studio.ts` (`studioCommands`, e.g.
-   `annotations_save`, `annotations_list_by_image`) → `src/ipc/invoke.ts`.
+6. **Viewmodels**: `model/use-studio-screen-viewmodel.ts` composes
+   `model/image-labeler-viewmodel.ts` (data + reload) and `model/use-canvas-session.ts`
+   (undo/redo; wraps create/update/delete — this is what the Canvas actually calls).
+7. **Services → IPC**: `src/shared/services/*-service.ts` → `src/shared/ipc/studio.ts`
+   (`studioCommands`, e.g. `annotations_save`, `annotations_list_by_image`) → `src/shared/ipc/invoke.ts`.
 8. **Backend**: organized by vertical feature slice. `src-tauri/src/features/<slice>/commands.rs`
    holds the `#[tauri::command]` handlers (thin dispatchers) next to that slice's adapters
    (`service.rs`, port impls); they call the owning module's app-service / typed Diesel repo (in
    `src-tauri/crates/<module>/`). `src/lib.rs` = composition root (`AppState`/`run()`/`generate_handler!`);
    `src/shared/` = cross-cutting kernel (entity JSON helpers, domain-event emit, keychain).
 
-**Coordinates**: stored in **image space**. `getCanvasCoords` (`src/tools/canvas-utils.ts`) maps
-client→image; annotations render inside a div transformed by `translate(baseOffset) scale(zoom)`.
+**Coordinates**: stored in **image space**. `getCanvasCoords` (`canvas-state/tools/canvas-utils.ts`)
+maps client→image; annotations render inside a div transformed by `translate(baseOffset) scale(zoom)`.
 
 ## Backend persistence (Rust)
 
@@ -72,9 +90,9 @@ client→image; annotations render inside a div transformed by `translate(baseOf
   `#[serde(rename_all = "camelCase")]`.
 - **Domain events**: `emit_domain_event` → `app.emit("studio://domain-event", {entity, action, id,
   projectId, imageId})` (also reachable via the `EventBus` + `TauriEventSubscriber` in
-  `src/composition.rs`). Frontend `src/ipc/events.ts` `listenToStudioEvents` filters by entity and
-  **only fires on desktop** (`isDesktopApp()`). Viewmodels subscribe and call `loadData()` to
-  refetch after a save.
+  `src/composition.rs`). Frontend `src/shared/ipc/events.ts` `listenToStudioEvents` filters by
+  entity and **only fires on desktop** (`isDesktopApp()`). View models react through
+  `useResource({ invalidateOn: [...] })` or `useStudioEvents`.
 
 ## Conventions / preferences
 
@@ -84,4 +102,4 @@ client→image; annotations render inside a div transformed by `translate(baseOf
   `.animate-caret-blink`) is preserved. Don't add decorative motion by default.
 - **Avoid putting high-frequency state in shared context** — split it (see `CursorProvider`) so a
   rapid update doesn't re-render the whole canvas tree.
-- Match surrounding code style; prefer `tsc --noEmit` + `jest` before declaring done.
+- Match surrounding code style; run `tsc -b`, `eslint .` and `vitest run` before declaring done.

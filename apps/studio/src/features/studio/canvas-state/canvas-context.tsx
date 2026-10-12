@@ -18,7 +18,7 @@ type Point = { x: number; y: number }
 // them here re-rendered every annotation (each subscribes via useCanvasZoom /
 // useCanvasTool). What's left changes rarely (zoom, tool, container, display
 // toggles) or is read by few consumers.
-interface ContextMenuState {
+export interface ContextMenuState {
   visible: boolean
   x: number
   y: number

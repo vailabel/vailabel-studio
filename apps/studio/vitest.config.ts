@@ -1,5 +1,5 @@
 import { defineConfig } from "vitest/config"
-import path from "path"
+import { fileURLToPath } from "node:url"
 import react from "@vitejs/plugin-react"
 
 // Vitest config for the studio app. Mirrors the `@` alias from vite.config.ts
@@ -8,7 +8,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
   },
   test: {
