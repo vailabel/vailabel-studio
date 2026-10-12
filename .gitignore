@@ -49,3 +49,4 @@ venv
 .turbo
 .pytest_cache
 .venv
+*.pt
