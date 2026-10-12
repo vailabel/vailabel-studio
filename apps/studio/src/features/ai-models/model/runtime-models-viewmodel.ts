@@ -1,6 +1,10 @@
-import { useCallback, useEffect, useState } from "react"
+import { useResource } from "@/shared/hooks/use-resource"
+import { toErrorMessage } from "@/shared/lib/errors"
 import { aiRuntimeService } from "@/shared/services/ai-runtime-service"
 import type { RuntimeModel } from "@/shared/types/ai-runtime"
+
+const NO_MODELS: RuntimeModel[] = []
+const loadModels = () => aiRuntimeService.listModels()
 
 /**
  * Lists the embedded Python runtime's model catalog (RT-DETR, SAM2, Florence-2,
@@ -9,27 +13,16 @@ import type { RuntimeModel } from "@/shared/types/ai-runtime"
  * Rust-side download step anymore.
  */
 export function useRuntimeModelsViewModel() {
-  const [models, setModels] = useState<RuntimeModel[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data, isLoading, error, reload } = useResource(loadModels, {
+    initialData: NO_MODELS,
+  })
 
-  const load = useCallback(async () => {
-    setIsLoading(true)
-    setError(null)
-    try {
-      setModels(await aiRuntimeService.listModels())
-    } catch (cause) {
-      setError(
-        cause instanceof Error ? cause.message : "Could not load the model catalog."
-      )
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    void load()
-  }, [load])
-
-  return { models, isLoading, error, refresh: load }
+  return {
+    models: data,
+    isLoading,
+    error: error
+      ? toErrorMessage(error, "Could not load the model catalog.")
+      : null,
+    refresh: reload,
+  }
 }

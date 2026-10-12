@@ -1,6 +1,7 @@
 import { useMemo } from "react"
 import { parseLabelConfig } from "@/shared/lib/label-config/parse"
 import type { LabelConfig } from "@/shared/lib/label-config/types"
+import { toErrorMessage } from "@/shared/lib/errors"
 
 export interface ParsedConfig {
   config: LabelConfig | null
@@ -20,7 +21,7 @@ export function useParsedConfig(rawConfig: string | undefined): ParsedConfig {
     } catch (error) {
       return {
         config: null,
-        error: error instanceof Error ? error.message : "Invalid labeling config",
+        error: toErrorMessage(error, "Invalid labeling config"),
       }
     }
   }, [rawConfig])

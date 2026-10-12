@@ -34,11 +34,12 @@ import {
   SettingsSection,
   SettingRow,
   SettingSlider,
-} from "@/features/settings/components/settings-ui"
+} from "@/shared/components/settings-ui"
 import { useProjectSettingsViewModel } from "@/features/projects/model/use-project-settings-viewmodel"
 import { useCloudStorageViewModel } from "@/shared/model/cloud-storage-viewmodel"
 import type { Project } from "@/shared/types/core"
 import { useNavigate } from "react-router-dom"
+import { paths } from "@/shared/lib/routes"
 
 interface ProjectSettingsTabProps {
   project: Project | null
@@ -368,7 +369,7 @@ export function ProjectSettingsTab({
                     <AlertDialogAction
                       onClick={async () => {
                         await vm.deleteProject()
-                        navigate("/projects")
+                        navigate(paths.projects)
                       }}
                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     >

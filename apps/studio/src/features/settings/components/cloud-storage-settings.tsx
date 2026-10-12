@@ -35,7 +35,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/ui/table"
-import { SettingsSection } from "@/features/settings/components/settings-ui"
+import { SettingsSection } from "@/shared/components/settings-ui"
 import { useConfirmDialog } from "@/shared/hooks/use-confirm-dialog"
 import {
   useCloudStorageViewModel,

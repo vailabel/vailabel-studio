@@ -13,6 +13,7 @@ import { Button } from "@/shared/ui/button"
 import { cn } from "@/shared/lib/utils"
 import { exportFormatsFor, type ExportFormat } from "@/features/studio/model/lib/export"
 import type { Modality } from "@/shared/types/modality"
+import { toErrorMessage } from "@/shared/lib/errors"
 
 interface ExportDialogProps {
   isOpen: boolean
@@ -51,7 +52,7 @@ export const ExportDialog = memo(
       } catch (error) {
         toast.error("Export failed", {
           description:
-            error instanceof Error ? error.message : "An unknown error occurred.",
+            toErrorMessage(error, "An unknown error occurred."),
         })
       }
     }

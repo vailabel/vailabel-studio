@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from "react"
 
+import type { Annotation } from "@/shared/types/core"
 import type { ToolState } from "@/features/studio/canvas-state/tools/tool-state"
 import type { CanvasTool } from "@/features/studio/model/types"
 
@@ -17,10 +18,17 @@ type Point = { x: number; y: number }
 // them here re-rendered every annotation (each subscribes via useCanvasZoom /
 // useCanvasTool). What's left changes rarely (zoom, tool, container, display
 // toggles) or is read by few consumers.
+interface ContextMenuState {
+  visible: boolean
+  x: number
+  y: number
+  items: unknown[]
+}
+
 interface CanvasContextType {
   zoom: number
   selectedTool: CanvasTool
-  contextMenu: { visible: boolean; x: number; y: number; items: any[] }
+  contextMenu: ContextMenuState
   container: { width: number; height: number }
   showCrosshair: boolean
   showCoordinates: boolean
@@ -32,12 +40,7 @@ interface CanvasContextType {
   fitSignal: number
   requestFit: () => void
   setSelectedTool: (tool: CanvasTool) => void
-  setContextMenu: (menu: {
-    visible: boolean
-    x: number
-    y: number
-    items: any[]
-  }) => void
+  setContextMenu: (menu: ContextMenuState) => void
   setContainer: (container: { width: number; height: number }) => void
   setShowCrosshair: (showCrosshair: boolean) => void
   setShowCoordinates: (showCoordinates: boolean) => void
@@ -72,8 +75,8 @@ const PanContext = createContext<PanContextType | undefined>(undefined)
 // selection change re-renders only the AnnotationRenderer (which fans `isSelected`
 // out as a prop) and the two affected shapes — not the whole canvas.
 interface SelectionContextType {
-  selectedAnnotation: any
-  setSelectedAnnotation: (annotation: any) => void
+  selectedAnnotation: Annotation | null
+  setSelectedAnnotation: (annotation: Annotation | null) => void
 }
 const SelectionContext = createContext<SelectionContextType | undefined>(
   undefined
@@ -119,15 +122,10 @@ export const CanvasProvider = ({ children }: { children: ReactNode }) => {
   const [panOffset, setPanOffset] = useState<Point>({ x: 0, y: 0 })
   const [selectedTool, setSelectedTool] = useState<CanvasTool>("move")
   const [toolState, setInternalToolState] = useState<ToolState>({})
-  const [selectedAnnotation, setSelectedAnnotation] = useState<any>(null)
+  const [selectedAnnotation, setSelectedAnnotation] = useState<Annotation | null>(null)
   const [isPanning, setIsPanning] = useState(false)
   const [lastPanPoint, setLastPanPoint] = useState<Point | null>(null)
-  const [contextMenu, setContextMenu] = useState<{
-    visible: boolean
-    x: number
-    y: number
-    items: any[]
-  }>({
+  const [contextMenu, setContextMenu] = useState<ContextMenuState>({
     visible: false,
     x: 0,
     y: 0,

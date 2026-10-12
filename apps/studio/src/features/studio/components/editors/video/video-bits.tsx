@@ -121,5 +121,3 @@ export const formatDuration = (seconds: number): string => {
   return `${m}:${s.toString().padStart(2, "0")}`
 }
 
-export const errorMessage = (error: unknown): string =>
-  error instanceof Error ? error.message : String(error)

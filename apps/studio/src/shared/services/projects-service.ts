@@ -1,4 +1,5 @@
 import { Project } from "@/shared/types/core"
+import type { DatasetImportRequest } from "@/shared/types/ai-runtime"
 import { studioCommands } from "@/shared/ipc/studio"
 
 export const projectsService = {
@@ -8,5 +9,8 @@ export const projectsService = {
   update: (projectId: string, updates: Partial<Project>) =>
     studioCommands.projectsSave({ id: projectId, ...updates }),
   delete: (projectId: string) => studioCommands.projectsDelete(projectId),
+  /** Import an on-disk dataset folder (COCO / YOLO / VOC / …) into a project. */
+  importDataset: (request: DatasetImportRequest) =>
+    studioCommands.datasetImport(request),
 }
 

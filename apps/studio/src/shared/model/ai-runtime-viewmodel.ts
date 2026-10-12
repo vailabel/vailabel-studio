@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
-import { listen } from "@tauri-apps/api/event"
 import { isDesktopApp } from "@/shared/lib/desktop"
-import { listenToStudioEvents } from "@/shared/ipc/events"
+import { useAppEvent } from "@/shared/hooks/use-app-event"
+import { useResource } from "@/shared/hooks/use-resource"
 import { aiRuntimeService } from "@/shared/services/ai-runtime-service"
 import type {
   DatasetExportResult,
@@ -12,65 +12,55 @@ import type {
   TrainingJob,
   TrainingReport,
 } from "@/shared/types/ai-runtime"
+import { toErrorMessage } from "@/shared/lib/errors"
 
 const DEFAULT_STATUS: RuntimeStatus = { state: "stopped", restartCount: 0 }
 
+const loadStatus = () => aiRuntimeService.status()
+
 /** Runtime lifecycle + live status/metrics. */
 export function useAiRuntimeViewModel() {
-  const [status, setStatus] = useState<RuntimeStatus>(DEFAULT_STATUS)
+  const {
+    data: status,
+    error: statusError,
+    reload: refreshStatus,
+    mutate: setStatus,
+  } = useResource(loadStatus, { initialData: DEFAULT_STATUS })
   const [metrics, setMetrics] = useState<RuntimeMetrics | null>(null)
   const [logs, setLogs] = useState<string>("")
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  const refreshStatus = useCallback(async () => {
-    try {
-      setStatus(await aiRuntimeService.status())
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
-    }
-  }, [])
-
-  useEffect(() => {
-    void refreshStatus()
-  }, [refreshStatus])
+  const [actionError, setError] = useState<string | null>(null)
+  const error = actionError ?? (statusError ? toErrorMessage(statusError) : null)
 
   // Live status + metrics from the monitor loop.
-  useEffect(() => {
-    if (!isDesktopApp()) return
-    const unsubscribers: Array<() => void> = []
-
-    void listen<RuntimeStatusEvent>("runtime://status", ({ payload }) => {
-      setStatus((prev) => ({
-        ...prev,
-        state: payload.state,
-        lastError: payload.lastError ?? prev.lastError,
-        port: payload.port ?? prev.port,
-        pid: payload.pid ?? prev.pid,
-      }))
-    }).then((u) => unsubscribers.push(u))
-
-    void listen<RuntimeMetrics>("runtime://metrics", ({ payload }) => {
-      setMetrics(payload)
-      setStatus((prev) => ({ ...prev, metrics: payload }))
-    }).then((u) => unsubscribers.push(u))
-
-    return () => unsubscribers.forEach((u) => u())
-  }, [])
+  useAppEvent<RuntimeStatusEvent>("runtime://status", (payload) => {
+    setStatus((prev) => ({
+      ...prev,
+      state: payload.state,
+      lastError: payload.lastError ?? prev.lastError,
+      port: payload.port ?? prev.port,
+      pid: payload.pid ?? prev.pid,
+    }))
+  })
+  useAppEvent<RuntimeMetrics>("runtime://metrics", (payload) => {
+    setMetrics(payload)
+    setStatus((prev) => ({ ...prev, metrics: payload }))
+  })
 
   const run = useCallback(
     async (action: () => Promise<RuntimeStatus>) => {
       setBusy(true)
       setError(null)
       try {
-        setStatus(await action())
+        const next = await action()
+        setStatus(() => next)
       } catch (e) {
-        setError(e instanceof Error ? e.message : String(e))
+        setError(toErrorMessage(e))
       } finally {
         setBusy(false)
       }
     },
-    []
+    [setStatus]
   )
 
   return {
@@ -87,38 +77,29 @@ export function useAiRuntimeViewModel() {
       try {
         setLogs(await aiRuntimeService.logs())
       } catch (e) {
-        setError(e instanceof Error ? e.message : String(e))
+        setError(toErrorMessage(e))
       }
     },
   }
 }
 
+const NO_MODELS: RuntimeModel[] = []
+const loadRuntimeModels = () => aiRuntimeService.listModels()
+
 /** Model Manager: catalog + installed models, install/delete. */
 export function useRuntimeModels() {
-  const [models, setModels] = useState<RuntimeModel[]>([])
-  const [loading, setLoading] = useState(true)
+  const {
+    data: models,
+    isLoading: loading,
+    error: loadError,
+    reload: load,
+  } = useResource(loadRuntimeModels, {
+    initialData: NO_MODELS,
+    invalidateOn: ["runtime_model"],
+  })
   const [installingId, setInstallingId] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  const load = useCallback(async () => {
-    setLoading(true)
-    try {
-      setModels(await aiRuntimeService.listModels())
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    void load()
-    let unlisten: (() => void) | undefined
-    void listenToStudioEvents(() => void load(), ["runtime_model"]).then(
-      (u) => (unlisten = u)
-    )
-    return () => unlisten?.()
-  }, [load])
+  const [actionError, setError] = useState<string | null>(null)
+  const error = actionError ?? (loadError ? toErrorMessage(loadError) : null)
 
   return {
     models,
@@ -132,7 +113,7 @@ export function useRuntimeModels() {
       try {
         await aiRuntimeService.installModel(id)
       } catch (e) {
-        setError(e instanceof Error ? e.message : String(e))
+        setError(toErrorMessage(e))
       } finally {
         setInstallingId(null)
       }
@@ -142,37 +123,28 @@ export function useRuntimeModels() {
         await aiRuntimeService.deleteModel(id)
         await load()
       } catch (e) {
-        setError(e instanceof Error ? e.message : String(e))
+        setError(toErrorMessage(e))
       }
     },
   }
 }
 
+const NO_JOBS: TrainingJob[] = []
+const loadTrainingJobs = () => aiRuntimeService.listTraining()
+
 /** Training jobs list, refreshed on domain events. */
 export function useTrainingJobs() {
-  const [jobs, setJobs] = useState<TrainingJob[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  const load = useCallback(async () => {
-    setLoading(true)
-    try {
-      setJobs(await aiRuntimeService.listTraining())
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    void load()
-    let unlisten: (() => void) | undefined
-    void listenToStudioEvents(() => void load(), ["training_job"]).then(
-      (u) => (unlisten = u)
-    )
-    return () => unlisten?.()
-  }, [load])
+  const {
+    data: jobs,
+    isLoading: loading,
+    error: loadError,
+    reload: load,
+  } = useResource(loadTrainingJobs, {
+    initialData: NO_JOBS,
+    invalidateOn: ["training_job"],
+  })
+  const [actionError, setError] = useState<string | null>(null)
+  const error = actionError ?? (loadError ? toErrorMessage(loadError) : null)
 
   // The runtime owns live progress; poll it to sync (status/metrics/terminal)
   // back into the stored runs while a job is in flight, then stop polling.
@@ -202,7 +174,7 @@ export function useTrainingJobs() {
         await aiRuntimeService.stopTraining(id)
         await load()
       } catch (e) {
-        setError(e instanceof Error ? e.message : String(e))
+        setError(toErrorMessage(e))
       }
     },
   }
@@ -289,7 +261,7 @@ export function useTrainingReport(jobId: string | null) {
           setState({
             report: null,
             loading: false,
-            error: e instanceof Error ? e.message : String(e),
+            error: toErrorMessage(e),
           })
       })
     return () => {
@@ -344,7 +316,7 @@ export function useStartTraining(onStarted?: () => void) {
         onStarted?.()
         return dataset
       } catch (e) {
-        setError(e instanceof Error ? e.message : String(e))
+        setError(toErrorMessage(e))
         return null
       } finally {
         setBusy(false)

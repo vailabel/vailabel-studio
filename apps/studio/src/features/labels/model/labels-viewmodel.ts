@@ -1,82 +1,80 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { toast } from "sonner"
 import { Label, Project } from "@/shared/types/core"
-import { listenToStudioEvents } from "@/shared/ipc/events"
+import { useResource } from "@/shared/hooks/use-resource"
 import { services } from "@/shared/services"
 
+interface LabelLibrary {
+  projects: Project[]
+  labels: Label[]
+  /** Number of annotations referencing each label. */
+  usageByLabelId: Record<string, number>
+}
+
+const EMPTY_LIBRARY: LabelLibrary = {
+  projects: [],
+  labels: [],
+  usageByLabelId: {},
+}
+
+async function loadLabelLibrary(projectId?: string): Promise<LabelLibrary> {
+  const projects = await services.getProjectService().list()
+  const scopedProjects = projectId
+    ? projects.filter((project) => project.id === projectId)
+    : projects
+  const [labelLists, annotationLists] = await Promise.all([
+    Promise.all(
+      scopedProjects.map((project) =>
+        services.getLabelService().getLabelsByProjectId(project.id)
+      )
+    ),
+    Promise.all(
+      scopedProjects.map((project) =>
+        services.getAnnotationService().getAnnotationsByProjectId(project.id)
+      )
+    ),
+  ])
+
+  const usageByLabelId: Record<string, number> = {}
+  for (const annotation of annotationLists.flat()) {
+    const labelId = annotation.labelId ?? annotation.label_id
+    if (labelId) {
+      usageByLabelId[labelId] = (usageByLabelId[labelId] ?? 0) + 1
+    }
+  }
+
+  return { projects, labels: labelLists.flat(), usageByLabelId }
+}
+
 export const useLabelsViewModel = (projectId?: string) => {
-  const [projects, setProjects] = useState<Project[]>([])
-  const [labels, setLabels] = useState<Label[]>([])
-  const [usageByLabelId, setUsageByLabelId] = useState<Record<string, number>>(
-    {}
+  const loadLabels = useCallback(
+    () => loadLabelLibrary(projectId),
+    [projectId]
   )
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<unknown>(null)
+  const {
+    data: { projects, labels, usageByLabelId },
+    isLoading,
+    error,
+    reload,
+    mutate,
+  } = useResource(loadLabels, {
+    initialData: EMPTY_LIBRARY,
+    invalidateOn: ["labels", "projects", "annotations"],
+    shouldInvalidate: (event) => {
+      const eventProjectId = event.projectId || event.project_id
+      return !projectId || !eventProjectId || eventProjectId === projectId
+    },
+  })
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedProject, setSelectedProject] = useState<string | null>(
     projectId ?? null
   )
 
-  const loadLabels = useCallback(async () => {
-    setIsLoading(true)
-    setError(null)
-    try {
-      const nextProjects = await services.getProjectService().list()
-      setProjects(nextProjects)
-      const scopedProjects = projectId
-        ? nextProjects.filter((project) => project.id === projectId)
-        : nextProjects
-      const [labelLists, annotationLists] = await Promise.all([
-        Promise.all(
-          scopedProjects.map((project) =>
-            services.getLabelService().getLabelsByProjectId(project.id)
-          )
-        ),
-        Promise.all(
-          scopedProjects.map((project) =>
-            services.getAnnotationService().getAnnotationsByProjectId(project.id)
-          )
-        ),
-      ])
-      setLabels(labelLists.flat())
-
-      // Real per-label usage = number of annotations referencing each label.
-      const counts: Record<string, number> = {}
-      for (const annotation of annotationLists.flat()) {
-        const labelId = annotation.labelId ?? annotation.label_id
-        if (labelId) {
-          counts[labelId] = (counts[labelId] ?? 0) + 1
-        }
-      }
-      setUsageByLabelId(counts)
-    } catch (nextError) {
-      setError(nextError)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [projectId])
-
-  useEffect(() => {
-    void loadLabels()
-  }, [loadLabels])
-
-  useEffect(() => {
-    let unlisten: (() => void) | undefined
-
-    void listenToStudioEvents((event) => {
-      const eventProjectId = event.projectId || event.project_id
-      if (projectId && eventProjectId && eventProjectId !== projectId) {
-        return
-      }
-      void loadLabels()
-    }, ["labels", "projects", "annotations"]).then((cleanup) => {
-      unlisten = cleanup
-    })
-
-    return () => {
-      unlisten?.()
-    }
-  }, [loadLabels, projectId])
+  const setLabels = useCallback(
+    (update: (current: Label[]) => Label[]) =>
+      mutate((library) => ({ ...library, labels: update(library.labels) })),
+    [mutate]
+  )
 
   const filteredLabels = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
@@ -162,7 +160,7 @@ export const useLabelsViewModel = (projectId?: string) => {
         throw nextError
       }
     },
-    refreshLabels: loadLabels,
+    refreshLabels: reload,
   }
 }
 

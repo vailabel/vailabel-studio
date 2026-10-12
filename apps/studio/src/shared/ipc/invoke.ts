@@ -17,7 +17,11 @@ export const invokeWithLogging = async <T>(
 ): Promise<T> => {
   try {
     const response = await invoke<T>(command, args)
-    console.log("[rust-ipc]", command, getLoggedResponse(command, response))
+    // Dev-only: the console retains every logged object, so tracing responses
+    // in a release build pins large payloads (image / annotation lists) in memory.
+    if (import.meta.env.DEV) {
+      console.log("[rust-ipc]", command, getLoggedResponse(command, response))
+    }
     return response
   } catch (error) {
     console.error("[rust-ipc]", command, error)

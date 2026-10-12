@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { readTextFile } from "@/shared/lib/desktop"
+import { toErrorMessage } from "@/shared/lib/errors"
 
 interface LoadState {
   /** The path the loaded content belongs to (for staleness checks). */
@@ -37,7 +38,7 @@ export function useDocumentText(path?: string, id?: string, inline?: string) {
         setState({
           path,
           text: null,
-          error: nextError instanceof Error ? nextError.message : String(nextError),
+          error: toErrorMessage(nextError),
         })
       })
     return () => {

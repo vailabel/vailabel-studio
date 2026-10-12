@@ -8,8 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react"
-import { listen } from "@tauri-apps/api/event"
-import { isDesktopApp } from "@/shared/lib/desktop"
+import { useAppEvent } from "@/shared/hooks/use-app-event"
 import type { Activity } from "@/shared/types/activity"
 
 const ACTIVITY_EVENT = "studio://activity"
@@ -59,25 +58,14 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
     [clearTimer]
   )
 
-  useEffect(() => {
-    if (!isDesktopApp()) return
-    let unlisten: (() => void) | undefined
-    void listen<Activity>(ACTIVITY_EVENT, ({ payload }) => {
-      setById((prev) => ({ ...prev, [payload.id]: payload }))
-      // Completed tasks fade out on their own; errors stay until dismissed.
-      clearTimer(payload.id)
-      if (payload.phase === "done") {
-        timers.current[payload.id] = setTimeout(() => dismiss(payload.id), DONE_TTL_MS)
-      }
-    })
-      .then((fn) => {
-        unlisten = fn
-      })
-      .catch(() => {
-        // No Tauri event stream (e.g. web build) — activity is desktop-only.
-      })
-    return () => unlisten?.()
-  }, [clearTimer, dismiss])
+  useAppEvent<Activity>(ACTIVITY_EVENT, (payload) => {
+    setById((prev) => ({ ...prev, [payload.id]: payload }))
+    // Completed tasks fade out on their own; errors stay until dismissed.
+    clearTimer(payload.id)
+    if (payload.phase === "done") {
+      timers.current[payload.id] = setTimeout(() => dismiss(payload.id), DONE_TTL_MS)
+    }
+  })
 
   // Drop any pending auto-dismiss timers when the provider unmounts.
   useEffect(() => {

@@ -30,7 +30,7 @@ import {
   SettingsSection,
   SettingRow,
   SettingSlider,
-} from "@/features/settings/components/settings-ui"
+} from "@/shared/components/settings-ui"
 
 const PRESET_COLORS = [
   "#3b82f6",

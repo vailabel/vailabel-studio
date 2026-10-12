@@ -31,7 +31,7 @@ const MAIN_CATEGORIES = TEMPLATE_CATEGORY_ORDER.filter(
   (category) => category !== "Custom"
 )
 
-export const ProjectCreate = memo(() => {
+const ProjectCreate = memo(() => {
   const viewModel = useProjectCreateViewModel()
 
   const [step, setStep] = useState<string>(STEPS[0].value)
@@ -202,3 +202,5 @@ export const ProjectCreate = memo(() => {
 })
 
 ProjectCreate.displayName = "ProjectCreate"
+
+export default ProjectCreate

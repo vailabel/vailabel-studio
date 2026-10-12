@@ -16,7 +16,7 @@ export const TempFreeDrawAnnotation = memo(
     }
 
     // Create smooth SVG path from coordinates
-    let pathData = ""
+    let pathData: string
 
     if (annotation.coordinates.length === 1) {
       const point = annotation.coordinates[0]

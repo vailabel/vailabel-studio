@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
 import type { ReactNode } from "react"
-import { listen } from "@tauri-apps/api/event"
+import { useAppEvent } from "@/shared/hooks/use-app-event"
 import { Cpu, Download, Loader2, Play, RotateCw, ScrollText, Square, Zap } from "lucide-react"
 import { Badge } from "@/shared/ui/badge"
 import { Button } from "@/shared/ui/button"
@@ -86,41 +86,28 @@ export function AiRuntimePanel() {
 
   useEffect(() => {
     let active = true
-    let unlisten: (() => void) | undefined
-
     void refresh().finally(() => {
       if (active) setIsLoading(false)
     })
-
-    void listen<RuntimeStatusEvent>("runtime://status", (event) => {
-      if (!active) return
-      setStatus((prev) =>
-        prev
-          ? {
-              ...prev,
-              state: event.payload.state,
-              lastError: event.payload.lastError ?? null,
-            }
-          : prev
-      )
-      // Python/GPU details only become readable once it's serving — pull them
-      // when it reaches a healthy state.
-      if (event.payload.state === "healthy") void refresh()
-    })
-      .then((fn) => {
-        if (active) unlisten = fn
-        else fn()
-      })
-      .catch(() => {
-        // Not running under Tauri (e.g. web build) — the event stream is absent;
-        // the one-shot refresh above is enough.
-      })
-
     return () => {
       active = false
-      unlisten?.()
     }
   }, [refresh])
+
+  useAppEvent<RuntimeStatusEvent>("runtime://status", (payload) => {
+    setStatus((prev) =>
+      prev
+        ? {
+            ...prev,
+            state: payload.state,
+            lastError: payload.lastError ?? null,
+          }
+        : prev
+    )
+    // Python/GPU details only become readable once it's serving — pull them
+    // when it reaches a healthy state.
+    if (payload.state === "healthy") void refresh()
+  })
 
   // Independent of torch: detect an NVIDIA GPU via nvidia-smi so we can offer
   // one-click GPU acceleration even while the runtime is on CPU-only torch.

@@ -28,6 +28,7 @@ import {
 } from "@/shared/ui/chart"
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts"
 import { useProjectModelVersions } from "@/features/projects/model/project-model-viewmodel"
+import { paths } from "@/shared/lib/routes"
 
 /** The five stages of the active-learning data flywheel. */
 const LOOP_STEPS = [
@@ -112,11 +113,11 @@ export function ModelFlywheel({
   const goLabel = () => onContinueLabeling?.()
   const goReview = () => {
     if (reviewItemId && projectId)
-      navigate(`/projects/${projectId}/studio/${reviewItemId}`)
+      navigate(paths.studio(projectId, reviewItemId))
     else onContinueLabeling?.()
   }
   const goTrain = () => {
-    if (projectId) navigate(`/projects/train/${projectId}`)
+    if (projectId) navigate(paths.projectTraining(projectId))
   }
   const goServe = () => {
     if (latest) void serveVersion(latest.jobId, `v${latest.version}`)
