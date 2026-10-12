@@ -5,17 +5,19 @@ import {
 import type { LabelConfig, ObjectTag, ControlTag } from "@/shared/lib/label-config/types"
 import type { Annotation } from "@/shared/types/core"
 import { colorForChoice, isSpatialControl } from "@/shared/lib/label-config/config-helpers"
-import { isMultiTextJudgement, TEXTUAL_OBJECT_TAGS } from "@/shared/lib/label-config/infer"
+import { isMultiFieldJudgement, TEXTUAL_OBJECT_TAGS } from "@/shared/lib/label-config/infer"
+import { VIEWER_OBJECT_TAGS } from "@/shared/lib/label-config/support"
 import type { RegionInfo, RelationInfo } from "./relations-panel"
 
-const FILE_OBJECT_TAGS = new Set(["image", "text", "audio", "hypertext"])
+const VIEWER_TAGS = new Set<string>(VIEWER_OBJECT_TAGS)
 
 /** The renderable shape of a parsed config + its current results. */
 export interface ConfigLayout {
   /** The interactive viewer object (first file object bound to "$data"). */
   primary: ObjectTag | undefined
-  /** Read-only data-bound text panels shown above the viewer (prompt + model
-   *  responses for LLM-eval tasks, query + candidates for retrieval, …). */
+  /** Read-only data-bound panels shown above the viewer (prompt + model
+   *  responses for LLM-eval tasks, query + candidates for retrieval, the images
+   *  of a multi-image task, …). */
   contextObjects: ObjectTag[]
   /** Literal-value objects rendered as static instruction blocks. */
   staticObjects: ObjectTag[]
@@ -41,24 +43,21 @@ export function deriveConfigLayout(
   config: LabelConfig,
   annotations: Annotation[]
 ): ConfigLayout {
-  // LLM-eval tasks (≥2 text fields, no span labeling) have no single interactive
-  // viewer — every field is a read-only panel — so the primary is suppressed and
-  // all text fields become context panels. Other configs keep one interactive
-  // primary plus any extra text fields as context (e.g. a question above a doc).
-  const judgement = isMultiTextJudgement(config)
-  const dataBoundText = config.objects.filter(
-    (object) =>
-      object.value.startsWith("$") && TEXTUAL_OBJECT_TAGS.has(object.tag)
-  )
+  // Judgement tasks (several text or image fields, no region labeling) have no
+  // single interactive viewer — every field is a read-only panel — so the
+  // primary is suppressed and all fields become context panels. Other configs
+  // keep one interactive primary plus any extra text fields as context (e.g. a
+  // question above an image).
+  const judgement = isMultiFieldJudgement(config)
+  const dataBound = config.objects.filter((object) => object.value.startsWith("$"))
   const primary = judgement
     ? undefined
-    : config.objects.find(
-        (object) =>
-          FILE_OBJECT_TAGS.has(object.tag) && object.value.startsWith("$")
-      )
+    : dataBound.find((object) => VIEWER_TAGS.has(object.tag))
   const contextObjects = judgement
-    ? dataBoundText
-    : dataBoundText.filter((object) => object !== primary)
+    ? dataBound
+    : dataBound.filter(
+        (object) => object !== primary && TEXTUAL_OBJECT_TAGS.has(object.tag)
+      )
   const staticObjects = config.objects.filter(
     (object) => object !== primary && object.value && !object.value.startsWith("$")
   )

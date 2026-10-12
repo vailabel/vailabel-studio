@@ -35,6 +35,17 @@ built with **Tauri (Rust) + React + TypeScript**. Monorepo; the desktop app is `
   stale-response protection, debounced reload on domain events. URLs come from `paths` in
   `shared/lib/routes.ts`. Errors → text via `toErrorMessage`.
 
+## Labeling types (config-driven)
+
+Every project stores a labeling config (`settings.labelConfig`; objects + controls). `inferModalityTask`
+(`shared/lib/label-config/infer.ts`) routes it to a native editor (image canvas / text / audio / video /
+table) or to the config-driven editor (`features/studio/components/editors/custom`), which renders from
+registries: object viewers (`custom/object-viewers.tsx` — image, text, audio, video, hypertext, timeseries,
+pdf) and whole-item controls (`shared/components/label-config/controls/control-registry.ts`). Supported tags
+are listed in `shared/lib/label-config/support.ts`; template availability is derived from
+`isConfigSupported`, never hand-flagged. Results are stored as `annotation.meta` kind `"result"`.
+Sample data for every template: Projects → Samples (`features/projects/model/seed`).
+
 ## Annotation / labeling tools — end-to-end flow
 
 Tools: `box`, `polygon`, `point`, `line`, `linestrip`, `circle`, `freeDraw`, plus `move`/`delete`.

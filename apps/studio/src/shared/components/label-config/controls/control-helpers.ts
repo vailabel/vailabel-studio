@@ -16,3 +16,11 @@ export function useSyncedDraft<T>(value: T): [T, (next: T) => void] {
   }
   return [draft, setDraft]
 }
+
+/** "response_a" → "Response A" for labels derived from field names. */
+export function humanizeName(name: string): string {
+  return name
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+    .trim()
+}

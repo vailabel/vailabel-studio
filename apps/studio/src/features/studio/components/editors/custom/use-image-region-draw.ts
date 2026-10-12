@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { Label } from "@/shared/types/core"
 import type { ControlTag } from "@/shared/lib/label-config/types"
 import {
+  ellipseValue,
   keypointValue,
   polygonValue,
   rectangleValue,
@@ -11,6 +12,7 @@ import type { Pt } from "./region-types"
 
 type PendingGeom =
   | { kind: "rect"; x: number; y: number; width: number; height: number }
+  | { kind: "ellipse"; x: number; y: number; width: number; height: number }
   | { kind: "polygon"; points: Pt[] }
   | { kind: "point"; x: number; y: number }
 
@@ -21,8 +23,9 @@ interface Pending {
   clientY: number
 }
 
-/** A live, un-committed box preview while the pointer is dragging. */
+/** A live, un-committed drag preview (the bounding box of the shape drawn). */
 export interface BoxPreview {
+  shape: "rect" | "ellipse"
   x: number
   y: number
   width: number
@@ -31,6 +34,12 @@ export interface BoxPreview {
 
 interface CreateRegion {
   (control: ControlTag, value: Record<string, unknown>, color: string): void
+}
+
+/** Controls drawn by dragging out a bounding box. */
+const DRAG_SHAPES: Record<string, "rect" | "ellipse"> = {
+  rectanglelabels: "rect",
+  ellipselabels: "ellipse",
 }
 
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n))
@@ -71,14 +80,15 @@ export function useImageRegionDraw(
     setPoly([])
   }, [])
 
-  // Box tool: pointer drag.
+  // Box / ellipse tools: pointer drag.
+  const dragShape = active ? DRAG_SHAPES[active.tag] : undefined
   const onPointerDown = useCallback(
     (event: React.PointerEvent) => {
-      if (active?.tag !== "rectanglelabels") return
+      if (!dragShape) return
       const point = fracOf(event.clientX, event.clientY)
       setBoxDrag({ start: point, current: point })
     },
-    [active, fracOf]
+    [dragShape, fracOf]
   )
 
   useEffect(() => {
@@ -90,7 +100,7 @@ export function useImageRegionDraw(
     const onUp = (event: PointerEvent) => {
       const end = fracOf(event.clientX, event.clientY)
       setBoxDrag((drag) => {
-        if (drag && active) {
+        if (drag && active && dragShape) {
           const x = Math.min(drag.start[0], end[0])
           const y = Math.min(drag.start[1], end[1])
           const width = Math.abs(end[0] - drag.start[0])
@@ -98,7 +108,7 @@ export function useImageRegionDraw(
           if (width >= 1 && height >= 1) {
             setPending({
               control: active,
-              geom: { kind: "rect", x, y, width, height },
+              geom: { kind: dragShape, x, y, width, height },
               clientX: event.clientX,
               clientY: event.clientY,
             })
@@ -113,7 +123,7 @@ export function useImageRegionDraw(
       window.removeEventListener("pointermove", onMove)
       window.removeEventListener("pointerup", onUp)
     }
-  }, [boxDrag, active, fracOf])
+  }, [boxDrag, active, dragShape, fracOf])
 
   // Polygon / keypoint tools: clicks.
   const onClick = useCallback(
@@ -161,7 +171,15 @@ export function useImageRegionDraw(
       const value =
         geom.kind === "rect"
           ? rectangleValue(geom.x, geom.y, geom.width, geom.height, [label.name])
-          : geom.kind === "polygon"
+          : geom.kind === "ellipse"
+            ? ellipseValue(
+                geom.x + geom.width / 2,
+                geom.y + geom.height / 2,
+                geom.width / 2,
+                geom.height / 2,
+                [label.name]
+              )
+            : geom.kind === "polygon"
             ? polygonValue(geom.points, [label.name])
             : keypointValue(geom.x, geom.y, [label.name])
       onCreateRegion(control, value, label.color)
@@ -174,6 +192,7 @@ export function useImageRegionDraw(
 
   const boxPreview: BoxPreview | null = boxDrag
     ? {
+        shape: dragShape ?? "rect",
         x: Math.min(boxDrag.start[0], boxDrag.current[0]),
         y: Math.min(boxDrag.start[1], boxDrag.current[1]),
         width: Math.abs(boxDrag.current[0] - boxDrag.start[0]),

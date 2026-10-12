@@ -1,7 +1,7 @@
 import { memo } from "react"
 import { cn } from "@/shared/lib/utils"
 import { Field } from "./field"
-import { controlTitle } from "./control-helpers"
+import { controlTitle, humanizeName } from "./control-helpers"
 import type { ControlWidgetProps } from "./types"
 
 // A/B preference: pick the better of the two compared objects, or a tie. The two
@@ -12,9 +12,9 @@ export const PairwiseControl = memo(({ control, api }: ControlWidgetProps) => {
   const [left, right] = control.toNames.length >= 2 ? control.toNames : ["A", "B"]
   const selected = value?.selected as string | undefined
   const options = [
-    { key: "left", label: `◀ ${humanize(left)}` },
+    { key: "left", label: `◀ ${humanizeName(left)}` },
     { key: "tie", label: "Tie" },
-    { key: "right", label: `${humanize(right)} ▶` },
+    { key: "right", label: `${humanizeName(right)} ▶` },
   ]
 
   return (
@@ -48,11 +48,3 @@ export const PairwiseControl = memo(({ control, api }: ControlWidgetProps) => {
 })
 
 PairwiseControl.displayName = "PairwiseControl"
-
-/** "response_a" → "Response A" for side labels derived from field names. */
-function humanize(name: string): string {
-  return name
-    .replace(/[_-]+/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase())
-    .trim()
-}

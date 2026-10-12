@@ -12,6 +12,8 @@ import {
   Clock,
   AlertCircle,
   MoreVertical,
+  FlaskConical,
+  Loader2,
 } from "lucide-react"
 import { Button } from "@/shared/ui/button"
 import {
@@ -44,10 +46,14 @@ import {
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu"
 import { useProjectListViewModel } from "@/features/projects/model/project-list-viewmodel"
+import { sampleTemplateId } from "@/features/projects/model/seed/seed-sample-projects"
+import { useSampleProjects } from "@/features/projects/model/seed/use-sample-projects"
 import { cn } from "@/shared/lib/utils"
 
 const ProjectList = memo(() => {
   const viewModel = useProjectListViewModel()
+  const samples = useSampleProjects(viewModel.refreshProjects)
+  const hasSamples = viewModel.allProjects.some(sampleTemplateId)
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -75,6 +81,36 @@ const ProjectList = memo(() => {
               />
               Refresh
             </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button variant="outline" size="sm" disabled={samples.isBusy}>
+                    {samples.isBusy ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <FlaskConical className="mr-2 h-4 w-4" />
+                    )}
+                    {samples.progress && samples.progress.total > 0
+                      ? `Seeding ${samples.progress.done}/${samples.progress.total}`
+                      : "Samples"}
+                  </Button>
+                }
+              />
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => void samples.seed()}>
+                  <FlaskConical className="mr-2 h-4 w-4" />
+                  Create sample projects
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="text-destructive"
+                  disabled={!hasSamples}
+                  onClick={() => void samples.remove()}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Remove sample projects
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button onClick={viewModel.navigateToCreate}>
               <Plus className="mr-2 h-4 w-4" />
               New Project

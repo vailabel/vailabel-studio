@@ -2,7 +2,7 @@ import type { LabelingTemplate } from "@/shared/lib/label-config/labeling-templa
 import type { ControlTag, LabelConfig } from "./types"
 import { parseLabelConfig } from "./parse"
 import { LS_TEMPLATES } from "./ls-gallery"
-import { ch, ctrl, obj } from "./builders"
+import { ch, ctrl, fieldObj, multiCtrl, obj, textObj } from "./builders"
 import { GENAI_CONFIGS } from "./genai-configs"
 
 // Authentic Label Studio configs (converted to our JSON), keyed by template id.
@@ -114,6 +114,123 @@ const CONFIG_BY_ID: Record<string, () => LabelConfig> = {
         ch("Object", "#f97316"),
         ch("Background", "#64748b"),
       ]),
+    ],
+  }),
+
+  ellipse: () => ({
+    objects: [obj("image")],
+    controls: [
+      ctrl("ellipselabels", "ellipse", "image", [
+        ch("Object", "#f97316"),
+        ch("Region", "#6366f1"),
+      ]),
+    ],
+  }),
+
+  // ── Several fields per task (one spreadsheet row each) ────────────────────
+  "multi-image-classification": () => ({
+    objects: [
+      fieldObj("image", "image_1", "Image 1"),
+      fieldObj("image", "image_2", "Image 2"),
+      fieldObj("image", "image_3", "Image 3"),
+    ],
+    controls: [
+      ctrl(
+        "choices",
+        "category",
+        "image_1",
+        [
+          ch("Same subject", "#10b981"),
+          ch("Related", "#f59e0b"),
+          ch("Unrelated", "#ef4444"),
+        ],
+        { title: "How do these images relate?", choice: "single" }
+      ),
+    ],
+  }),
+  "search-ranking": () => ({
+    objects: [
+      textObj("query", "Query"),
+      textObj("result_1", "Result 1"),
+      textObj("result_2", "Result 2"),
+      textObj("result_3", "Result 3"),
+    ],
+    controls: [
+      multiCtrl("ranker", "rank", ["result_1", "result_2", "result_3"], {
+        title: "Order the results, most relevant first",
+      }),
+    ],
+  }),
+
+  // ── HTML / PDF documents ──────────────────────────────────────────────────
+  "website-rating": () => ({
+    objects: [fieldObj("hypertext", "html", "Page")],
+    controls: [
+      ctrl("rating", "quality", "html", [], {
+        title: "Page quality",
+        maxRating: "5",
+      }),
+      ctrl(
+        "choices",
+        "category",
+        "html",
+        [
+          ch("Informative", "#10b981"),
+          ch("Commercial", "#f59e0b"),
+          ch("Spam", "#ef4444"),
+        ],
+        { title: "Category", choice: "single" }
+      ),
+      ctrl("textarea", "notes", "html", [], { title: "Notes" }),
+    ],
+  }),
+  "html-classification": () => ({
+    objects: [fieldObj("hypertext", "html")],
+    controls: [
+      ctrl(
+        "choices",
+        "category",
+        "html",
+        [ch("News"), ch("Blog"), ch("Product"), ch("Other")],
+        { title: "Document type", choice: "single" }
+      ),
+    ],
+  }),
+  "ocr-pdf": () => ({
+    objects: [fieldObj("pdf", "pdf")],
+    controls: [
+      ctrl("textarea", "transcription", "pdf", [], { title: "Transcription" }),
+      ctrl(
+        "choices",
+        "document_type",
+        "pdf",
+        [ch("Invoice"), ch("Receipt"), ch("Contract"), ch("Other")],
+        { title: "Document type", choice: "single" }
+      ),
+    ],
+  }),
+
+  // ── Time series ───────────────────────────────────────────────────────────
+  "timeseries-labeling": () => ({
+    objects: [fieldObj("timeseries", "csv", undefined, { timecolumn: "time" })],
+    controls: [
+      ctrl("timeserieslabels", "label", "csv", [
+        ch("Run", "#ef4444"),
+        ch("Walk", "#10b981"),
+        ch("Rest", "#6366f1"),
+      ]),
+    ],
+  }),
+  "timeseries-classification": () => ({
+    objects: [fieldObj("timeseries", "csv", undefined, { timecolumn: "time" })],
+    controls: [
+      ctrl(
+        "choices",
+        "pattern",
+        "csv",
+        [ch("Normal", "#10b981"), ch("Abnormal", "#ef4444")],
+        { title: "Signal pattern", choice: "single" }
+      ),
     ],
   }),
 

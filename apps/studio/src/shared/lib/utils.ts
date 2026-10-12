@@ -35,18 +35,59 @@ export function getContentBoxColor(color: string, alpha: number): string {
   return rgbToRgba(color, alpha)
 }
 
-export function rgbToRgba(rgb: string | undefined, alpha: number): string {
-  if (!rgb) {
-    return "rgba(0, 0, 0, 0)" // Default to transparent black if rgb is null
+// Named colors ("green", "gold") are resolved by the browser: assigning one to
+// a canvas fill style reads back as "#rrggbb". Cached — configs reuse a handful.
+const namedColorCache = new Map<string, string | null>()
+function resolveNamedColor(color: string): string | null {
+  if (namedColorCache.has(color)) return namedColorCache.get(color) ?? null
+  let resolved: string | null = null
+  try {
+    const context = document.createElement("canvas").getContext("2d")
+    if (context) {
+      context.fillStyle = "#000000"
+      context.fillStyle = color
+      // An unknown name leaves the previous style in place.
+      const value = String(context.fillStyle)
+      resolved = value !== "#000000" || /^black$/i.test(color) ? value : null
+    }
+  } catch {
+    resolved = null
   }
-  // Extract all numbers from the rgb string
-  const rgbValues = rgb.match(/\d+/g)?.map(Number)
+  namedColorCache.set(color, resolved)
+  return resolved
+}
 
-  if (!rgbValues || rgbValues.length !== 3) {
-    // throw new Error("Invalid RGB format. Expected format: 'rgb(r, g, b)'.")
-    return rgb
+/**
+ * The same color at the given opacity. Accepts what label colors actually come
+ * as: "rgb(r, g, b)", "#rgb" / "#rrggbb", or a CSS color name. Anything else is
+ * returned unchanged (opaque) rather than guessed at.
+ */
+export function rgbToRgba(color: string | undefined, alpha: number): string {
+  if (!color) {
+    return "rgba(0, 0, 0, 0)" // Default to transparent black if there is no color
+  }
+  const value = color.trim()
+
+  const hex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(value)?.[1]
+  if (hex) {
+    const full =
+      hex.length === 3 ? [...hex].map((char) => char + char).join("") : hex
+    const channels = [0, 2, 4].map((at) => parseInt(full.slice(at, at + 2), 16))
+    return `rgba(${channels.join(", ")}, ${alpha})`
   }
 
-  const [r, g, b] = rgbValues
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+  if (/^rgba?\(/i.test(value)) {
+    const channels = value
+      .match(/\d+(\.\d+)?/g)
+      ?.slice(0, 3)
+      .map(Number)
+    if (channels?.length === 3) return `rgba(${channels.join(", ")}, ${alpha})`
+    return color
+  }
+
+  if (/^[a-z]+$/i.test(value)) {
+    const resolved = resolveNamedColor(value.toLowerCase())
+    if (resolved && resolved.startsWith("#")) return rgbToRgba(resolved, alpha)
+  }
+  return color
 }

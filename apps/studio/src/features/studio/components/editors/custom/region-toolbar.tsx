@@ -1,10 +1,11 @@
-import { Circle, PenTool, Square } from "lucide-react"
+import { Circle, CircleDashed, PenTool, Square } from "lucide-react"
 import { cn } from "@/shared/lib/utils"
 import type { ControlTag } from "@/shared/lib/label-config/types"
 
 const TOOL_ICON: Record<string, typeof Square> = {
   rectanglelabels: Square,
   polygonlabels: PenTool,
+  ellipselabels: CircleDashed,
   keypointlabels: Circle,
 }
 
