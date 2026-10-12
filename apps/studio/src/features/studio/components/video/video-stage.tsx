@@ -250,7 +250,6 @@ export const VideoStage = React.memo<VideoStageProps>(function VideoStage({
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
       >
-        {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
         <video
           ref={videoRef}
           src={src}

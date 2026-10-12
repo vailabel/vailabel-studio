@@ -1,15 +1,10 @@
-import * as React from "react"
-import {
-  Brain,
-  Folder,
-  Home,
-  ScanSearch,
-  Settings2,
-  ArrowLeft,
-  Menu,
-  Tag,
-} from "lucide-react"
-import { useNavigate, useOutlet, useLocation } from "react-router-dom"
+import { useState } from "react"
+import { ArrowLeft, Menu } from "lucide-react"
+import { Outlet, useLocation, useNavigate } from "react-router-dom"
+import { APP_NAME, navigation } from "@/app/navigation"
+import { preloadRoute } from "@/app/route-table"
+import { isPathActive, paths } from "@/shared/lib/routes"
+import { cn } from "@/shared/lib/utils"
 import { ThemeToggle } from "@/shared/ui/theme-toggle"
 import {
   Sheet,
@@ -19,35 +14,64 @@ import {
 } from "@/shared/ui/sheet"
 import { Button } from "@/shared/ui/button"
 
-type NavigationItem = {
-  name: string
-  href: string
-  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>
+const Brand = ({ className }: { className?: string }) => (
+  <div className={cn("flex items-center gap-2 mb-6", className)}>
+    <img src="/logo.png" alt={`${APP_NAME} logo`} className="h-7 w-7" />
+    <span className="text-xl font-bold">{APP_NAME}</span>
+  </div>
+)
+
+interface NavListProps {
+  className?: string
+  /** Called after a navigation (the mobile sheet uses it to close itself). */
+  onNavigate?: () => void
 }
 
-const navigation: NavigationItem[] = [
-  { name: "Overview", href: "/", icon: Home },
-  { name: "Projects", href: "/projects", icon: Folder },
-  { name: "Labels", href: "/labels", icon: Tag },
-  {
-    name: "Dataset Intelligence",
-    href: "/dataset-intelligence",
-    icon: ScanSearch,
-  },
-  { name: "AI Assistant", href: "/ai-models", icon: Brain },
-  { name: "Settings", href: "/settings", icon: Settings2 },
-]
+// The one rendering of the primary nav — used by the desktop sidebar and the
+// mobile sheet so the two can't drift apart.
+const NavList = ({ className, onNavigate }: NavListProps) => {
+  const navigate = useNavigate()
+  const { pathname } = useLocation()
+
+  return (
+    <nav className={cn("space-y-1", className)}>
+      {navigation.map((item) => {
+        const isActive = isPathActive(pathname, item.href)
+        return (
+          <Button
+            key={item.href}
+            variant={isActive ? "default" : "ghost"}
+            onClick={() => {
+              navigate(item.href)
+              onNavigate?.()
+            }}
+            // Fetch the page chunk on intent so the click renders instantly.
+            onPointerEnter={() => preloadRoute(item.href)}
+            onFocus={() => preloadRoute(item.href)}
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium w-full justify-start h-9"
+            aria-current={isActive ? "page" : undefined}
+          >
+            <item.icon className="h-5 w-5" />
+            <span>{item.name}</span>
+          </Button>
+        )
+      })}
+    </nav>
+  )
+}
 
 const MainLayout = () => {
   const navigate = useNavigate()
-  const outlet = useOutlet()
-  const location = useLocation()
-  const [sheetOpen, setSheetOpen] = React.useState(false)
+  const { pathname } = useLocation()
+  const [sheetOpen, setSheetOpen] = useState(false)
 
   return (
     <div className="flex min-h-screen">
       {/* Sidebar for md+ */}
-      <Aside navigation={navigation} location={location} />
+      <aside className="hidden md:block w-64 bg-muted/30 p-6 sticky top-0 h-screen overflow-y-auto">
+        <Brand />
+        <NavList />
+      </aside>
       {/* Sheet for mobile (only) */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         {/* Menu button in header, only on mobile */}
@@ -64,41 +88,16 @@ const MainLayout = () => {
           className="p-0 w-64 bg-background left-0 top-0 h-full fixed md:hidden"
         >
           <SheetTitle className="sr-only">Main navigation</SheetTitle>
-          <div className="flex items-center gap-2 mb-6 p-6">
-            <img src="/logo.png" alt="ProjectHub Logo" className="h-7 w-7" />
-            <span className="text-xl font-bold">ProjectHub</span>
-          </div>
-          <nav className="space-y-1 p-6">
-            {navigation.map((item) => {
-              const isActive =
-                location.pathname === item.href ||
-                (item.href !== "/" && location.pathname.startsWith(item.href))
-              return (
-                <Button
-                  key={item.name}
-                  variant={isActive ? "default" : "ghost"}
-                  onClick={() => {
-                    navigate(item.href)
-                    setSheetOpen(false)
-                  }}
-                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium w-full justify-start h-9"
-                  aria-current={isActive ? "page" : undefined}
-                >
-                  <item.icon className="h-5 w-5" />
-                  <span>{item.name}</span>
-                </Button>
-              )
-            })}
-          </nav>
+          <Brand className="p-6" />
+          <NavList className="p-6" onNavigate={() => setSheetOpen(false)} />
         </SheetContent>
       </Sheet>
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
-        {/* Header */}
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background px-6">
           <div className="flex items-center gap-3">
             {/* Back button, hidden on root path */}
-            {location.pathname !== "/" && (
+            {pathname !== paths.overview && (
               <Button
                 variant="ghost"
                 size="icon"
@@ -108,60 +107,20 @@ const MainLayout = () => {
                 <ArrowLeft className="h-6 w-6" />
               </Button>
             )}
-            {/* Only show space for menu button on mobile, but button itself is fixed above */}
+            {/* Reserve space for the fixed mobile menu button */}
             <div className="md:hidden w-12" />
-            {/* Removed logo and app name from header */}
           </div>
           <div className="flex items-center gap-4">
             <ThemeToggle />
             <span className="text-sm text-muted-foreground">Local Workspace</span>
           </div>
         </header>
-        <main className="flex-1 p-6">{outlet}</main>
+        <main className="flex-1 p-6">
+          <Outlet />
+        </main>
       </div>
     </div>
   )
 }
 
 export default MainLayout
-
-type AsideProps = {
-  navigation: NavigationItem[]
-  location: ReturnType<typeof useLocation>
-}
-
-const Aside = React.memo(({ navigation, location }: AsideProps) => {
-  const navigate = useNavigate()
-
-  return (
-    <aside className="hidden md:block w-64 bg-muted/30 p-6 sticky top-0 h-screen overflow-y-auto">
-      <div className="flex items-center gap-2 mb-6">
-        <img
-          src="/logo.png"
-          alt="Vision AI Label Studio Logo"
-          className="h-7 w-7"
-        />
-        <span className="text-xl font-bold">VAI Studio</span>
-      </div>
-      <nav className="space-y-1">
-        {navigation.map((item) => {
-          const isActive =
-            location.pathname === item.href ||
-            (item.href !== "/" && location.pathname.startsWith(item.href))
-          return (
-            <Button
-              key={item.name}
-              variant={isActive ? "default" : "ghost"}
-              onClick={() => navigate(item.href)}
-              className="flex items-center gap-2 px-3 py-2 text-sm font-medium w-full justify-start h-9"
-              aria-current={isActive ? "page" : undefined}
-            >
-              <item.icon className="h-5 w-5" />
-              <span>{item.name}</span>
-            </Button>
-          )
-        })}
-      </nav>
-    </aside>
-  )
-})

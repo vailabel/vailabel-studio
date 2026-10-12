@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import type { AIModel, Project } from "@/shared/types/core"
-import { listenToStudioEvents } from "@/shared/ipc/events"
+import { useResource } from "@/shared/hooks/use-resource"
 import { services } from "@/shared/services"
 import { isModelPredictionReady } from "@/shared/lib/ai-model-metadata"
 import { useTrainingJobs } from "@/shared/model/ai-runtime-viewmodel"
+import { paths } from "@/shared/lib/routes"
 
 /** A status / modality distribution slice, ready to render as a labeled bar. */
 export interface DistributionEntry {
@@ -32,65 +33,48 @@ function toDistribution(
     .sort((left, right) => right.count - left.count)
 }
 
+interface OverviewData {
+  projects: Project[]
+  models: AIModel[]
+  loadedAt: Date
+}
+
+const INITIAL_OVERVIEW: OverviewData = {
+  projects: [],
+  models: [],
+  loadedAt: new Date(),
+}
+
+const loadOverview = async (): Promise<OverviewData> => {
+  // Projects are the critical payload; if they load, the dashboard renders.
+  const projects = await services.getProjectService().list()
+  // Installed models are best-effort — a failure here must not blank the page.
+  const models = await services
+    .getAIModelService()
+    .list()
+    .catch((): AIModel[] => [])
+  return { projects, models, loadedAt: new Date() }
+}
+
 // Dashboard view model. Every figure here comes from a cheap, reliable source:
 // projectsService.list() (incl. the live server-computed Project.itemCount),
 // aiModelsService.list(), and the training-job runtime — no fabricated metrics
 // and no per-project annotation loads on the home screen.
 export const useOverviewViewModel = () => {
   const navigate = useNavigate()
-  const [projects, setProjects] = useState<Project[]>([])
-  const [models, setModels] = useState<AIModel[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<unknown>(null)
-  const [lastUpdated, setLastUpdated] = useState(new Date())
+  const {
+    data: { projects, models, loadedAt: lastUpdated },
+    isLoading,
+    error,
+    reload: refreshData,
+  } = useResource(loadOverview, {
+    initialData: INITIAL_OVERVIEW,
+    invalidateOn: ["projects", "ai_models"],
+  })
 
   // Training jobs come from the runtime and auto-refresh on their own events;
   // empty (and harmless) on the web build where there's no runtime.
   const { jobs: trainingJobs } = useTrainingJobs()
-
-  const refreshData = useCallback(async () => {
-    setIsLoading(true)
-    setError(null)
-    try {
-      // Projects are the critical payload; if they load, the dashboard renders.
-      setProjects(await services.getProjectService().list())
-      // Installed models are best-effort — a failure here must not blank the page.
-      try {
-        setModels(await services.getAIModelService().list())
-      } catch {
-        setModels([])
-      }
-      setLastUpdated(new Date())
-    } catch (nextError) {
-      setError(nextError)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
-
-  // Defer the initial load so the synchronous setIsLoading inside refreshData
-  // runs in a microtask, not directly in the effect body.
-  useEffect(() => {
-    let active = true
-    void Promise.resolve().then(() => {
-      if (active) void refreshData()
-    })
-    return () => {
-      active = false
-    }
-  }, [refreshData])
-
-  useEffect(() => {
-    let unlisten: (() => void) | undefined
-    void listenToStudioEvents(() => {
-      void refreshData()
-    }, ["projects", "ai_models"]).then((cleanup) => {
-      unlisten = cleanup
-    })
-    return () => {
-      unlisten?.()
-    }
-  }, [refreshData])
 
   const stats = useMemo(() => {
     const cutoff = new Date()
@@ -161,28 +145,28 @@ export const useOverviewViewModel = () => {
         label: "Create New Project",
         description: "Start a new annotation project",
         icon: "plus",
-        action: () => navigate("/projects/create"),
+        action: () => navigate(paths.projectCreate),
       },
       {
         id: "view-projects",
         label: "View All Projects",
         description: "Browse and open your projects",
         icon: "folder",
-        action: () => navigate("/projects"),
+        action: () => navigate(paths.projects),
       },
       {
         id: "ai-models",
         label: "AI Models",
         description: "Manage auto-label & segmentation models",
         icon: "cpu",
-        action: () => navigate("/ai-models"),
+        action: () => navigate(paths.aiModels),
       },
       {
         id: "labels",
         label: "Manage Labels",
         description: "Review your label library",
         icon: "tag",
-        action: () => navigate("/labels"),
+        action: () => navigate(paths.labels),
       },
     ],
     [navigate]
@@ -203,6 +187,6 @@ export const useOverviewViewModel = () => {
     recentProjects,
     quickActions,
     openProject: (project: Project) =>
-      navigate(`/projects/detail/${project.id}`),
+      navigate(paths.projectDetail(project.id)),
   }
 }

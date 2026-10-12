@@ -20,7 +20,7 @@ import {
 } from "@/shared/ui/table"
 import {
   SettingsSection,
-} from "@/features/settings/components/settings-ui"
+} from "@/shared/components/settings-ui"
 import {
   DEFAULT_KEYBOARD_SHORTCUTS,
   type KeyboardShortcut,

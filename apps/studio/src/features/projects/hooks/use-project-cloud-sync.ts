@@ -1,8 +1,7 @@
 import { useState } from "react"
-import { appDataDir } from "@tauri-apps/api/path"
 import { toast } from "sonner"
 import type { CloudBatchResult, CloudConnectionRef } from "@/shared/ipc/cloud"
-import { allowImageDirectory } from "@/shared/lib/desktop"
+import { allowImageDirectory, getAppDataDir } from "@/shared/lib/desktop"
 import { services } from "@/shared/services"
 import { useCloudStorageViewModel } from "@/shared/model/cloud-storage-viewmodel"
 import type { ProjectStorageConfig } from "@/shared/types/project-config"
@@ -103,7 +102,7 @@ export const useProjectCloudSync = (
     try {
       const images = await services.getItemService().getItemsByProjectId(projectId)
       const cacheDir = toForwardSlashes(
-        `${await appDataDir()}/cloud-cache/${projectId}`
+        `${await getAppDataDir()}/cloud-cache/${projectId}`
       )
       const destinations = images.map((image) => ({
         image,

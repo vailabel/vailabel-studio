@@ -2,6 +2,7 @@ import type { DataKind } from "@/shared/lib/label-config/labeling-templates"
 import type { LabelConfig } from "@/shared/lib/label-config/types"
 import { parseLabelConfig } from "@/shared/lib/label-config/parse"
 import { isMultiTextJudgement } from "@/shared/lib/label-config/infer"
+import { toErrorMessage } from "@/shared/lib/errors"
 
 export interface ConfigInfo {
   ok: boolean
@@ -49,7 +50,7 @@ export function deriveConfigInfo(source: string): ConfigInfo {
       ok: false,
       config: null,
       dataKind: "image",
-      error: error instanceof Error ? error.message : "Invalid config",
+      error: toErrorMessage(error, "Invalid config"),
     }
   }
 }

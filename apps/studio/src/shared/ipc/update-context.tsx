@@ -1,5 +1,5 @@
 import { createContext, useContext, type ReactNode } from "react"
-import { useAutoUpdate, type AutoUpdate } from "@/shared/ipc/useAutoUpdate"
+import { useAutoUpdate, type AutoUpdate } from "@/shared/ipc/use-auto-update"
 
 const UpdateContext = createContext<AutoUpdate | null>(null)
 

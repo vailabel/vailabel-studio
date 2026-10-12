@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { allowImageDirectory, toAssetUrl } from "@/shared/lib/desktop"
+import { toErrorMessage } from "@/shared/lib/errors"
 
 function fileDir(filePath: string): string {
   return filePath.replace(/[\\/][^\\/]*$/, "") || filePath
@@ -83,7 +84,7 @@ export function useAudioBuffer(path?: string, id?: string) {
           path,
           data: null,
           error:
-            nextError instanceof Error ? nextError.message : "Could not decode audio.",
+            toErrorMessage(nextError, "Could not decode audio."),
         })
       })
       .finally(() => {

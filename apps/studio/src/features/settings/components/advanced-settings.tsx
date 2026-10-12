@@ -1,6 +1,6 @@
 import { Trash2 } from "lucide-react"
 import { Button } from "@/shared/ui/button"
-import { SettingsSection } from "@/features/settings/components/settings-ui"
+import { SettingsSection } from "@/shared/components/settings-ui"
 
 export default function AdvancedSettings() {
   return (

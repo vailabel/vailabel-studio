@@ -22,6 +22,7 @@ import { useItemLabelerViewModel } from "@/features/studio/model/image-labeler-v
 import { useSettingsViewModel } from "@/shared/model/settings-viewmodel"
 import { useCanvasSession } from "./use-canvas-session"
 import type { StudioHeaderStats } from "./types"
+import { paths } from "@/shared/lib/routes"
 
 export function useStudioScreenViewModel(projectId?: string, itemId?: string) {
   const navigate = useNavigate()
@@ -232,7 +233,7 @@ export function useStudioScreenViewModel(projectId?: string, itemId?: string) {
   const navigateToItem = useCallback(
     (nextImageId: string | null | undefined) => {
       if (!effectiveProjectId || !nextImageId) return
-      navigate(`/projects/${effectiveProjectId}/studio/${nextImageId}`)
+      navigate(paths.studio(effectiveProjectId, nextImageId))
     },
     [effectiveProjectId, navigate]
   )
@@ -338,7 +339,7 @@ export function useStudioScreenViewModel(projectId?: string, itemId?: string) {
             "Install “Segment Anything (SAM)” on the AI Models page to use click-to-segment.",
           action: {
             label: "Open AI Models",
-            onClick: () => navigate("/ai-models"),
+            onClick: () => navigate(paths.aiModels),
           },
         })
       } else if (outcome.status === "error") {
@@ -547,7 +548,7 @@ export function useStudioScreenViewModel(projectId?: string, itemId?: string) {
     navigateToItem,
     exportProject,
     isExporting,
-    navigateBackToProjects: () => navigate("/projects"),
+    navigateBackToProjects: () => navigate(paths.projects),
   }
 }
 

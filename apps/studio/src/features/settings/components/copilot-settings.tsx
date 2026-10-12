@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/ui/select"
-import { SettingsSection } from "@/features/settings/components/settings-ui"
+import { SettingsSection } from "@/shared/components/settings-ui"
 import { useCopilotSettings } from "@/features/settings/model/copilot-settings-viewmodel"
 import type { CopilotConfig, CopilotVisionPref } from "@/shared/types/ai-assistant"
 

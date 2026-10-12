@@ -3,7 +3,6 @@ import { Annotation, Item, Label, Project } from "@/shared/types/core"
 import { z } from "zod"
 import { useNavigate } from "react-router-dom"
 import { listenToStudioEvents } from "@/shared/ipc/events"
-import { studioCommands } from "@/shared/ipc/studio"
 import { services } from "@/shared/services"
 import type {
   DatasetImportFormat,
@@ -16,6 +15,7 @@ import {
 } from "@/shared/lib/desktop"
 import { importLabelMeSidecar } from "@/features/projects/model/labelme-sidecar"
 import { recordRecentProject } from "@/features/projects/model/recent-projects"
+import { paths } from "@/shared/lib/routes"
 
 export const ProjectEditSchema = z.object({
   name: z.string().min(1).max(100),
@@ -240,7 +240,7 @@ export const useProjectDetailViewModel = (projectId: string) => {
     setIsImporting(true)
     try {
       await allowImageDirectory(folder)
-      const result = await studioCommands.datasetImport({
+      const result = await services.getProjectService().importDataset({
         projectId,
         folder,
         format,
@@ -307,7 +307,7 @@ export const useProjectDetailViewModel = (projectId: string) => {
     deleteProject: async () => {
       if (!project) return
       await services.getProjectService().delete(project.id)
-      navigate("/projects")
+      navigate(paths.projects)
     },
     updateProjectSettings: async (settings: Record<string, unknown>) => {
       if (!project) return
@@ -394,16 +394,16 @@ export const useProjectDetailViewModel = (projectId: string) => {
         setIsSaving(false)
       }
     },
-    navigateBack: () => navigate("/projects"),
+    navigateBack: () => navigate(paths.projects),
     openEditProjectModal: () => setIsEditProjectModalOpen(true),
     closeEditProjectModal: () => setIsEditProjectModalOpen(false),
     refreshData,
     loadProjectData: refreshData,
     navigateToItem: (itemId: string) =>
-      navigate(`/projects/${projectId}/studio/${itemId}`),
+      navigate(paths.studio(projectId, itemId)),
     // Video projects now label inside the unified studio shell (its VideoEditor
     // mounts the clip library + FFmpeg pipeline) — no separate video route.
-    openVideoEditor: () => navigate(`/projects/${projectId}/studio`),
+    openVideoEditor: () => navigate(paths.studio(projectId)),
     deleteItem: async (itemId: string) => {
       await services.getItemService().deleteItem(itemId)
       await reloadItems()

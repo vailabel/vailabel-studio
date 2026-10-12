@@ -92,7 +92,7 @@ describe("listenToStudioEvents", () => {
     const unlisten = await listenToStudioEvents(vi.fn(), ["annotations"])
 
     expect(warnSpy).toHaveBeenCalledWith(
-      "Failed to register studio event listener:",
+      'Failed to register "studio://domain-event" listener:',
       error
     )
     await expect(unlisten()).resolves.toBeUndefined()

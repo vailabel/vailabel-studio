@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { listen } from "@tauri-apps/api/event"
-import { isDesktopApp } from "@/shared/lib/desktop"
+import { useAppEvent } from "@/shared/hooks/use-app-event"
 import { services } from "@/shared/services"
 import type { Activity } from "@/shared/types/activity"
 import type { Label } from "@/shared/types/core"
@@ -18,6 +17,7 @@ import {
   sampleTrackAt,
   upsertKeyframe,
 } from "@/features/studio/model/lib/video/track-engine"
+import { toErrorMessage } from "@/shared/lib/errors"
 
 const ACTIVITY_EVENT = "studio://activity"
 
@@ -67,7 +67,7 @@ export const useVideoAnnotationViewModel = (videoId: string) => {
         setLabels(labelList)
       }
     } catch (nextError) {
-      setError(errorMessage(nextError))
+      setError(toErrorMessage(nextError))
     } finally {
       setIsLoading(false)
     }
@@ -100,18 +100,11 @@ export const useVideoAnnotationViewModel = (videoId: string) => {
     [loadData]
   )
 
-  useEffect(() => {
-    if (!isDesktopApp()) return
-    let unlisten: (() => void) | undefined
-    void listen<Activity<VideoJob>>(ACTIVITY_EVENT, ({ payload }) => {
-      if (payload.kind !== "video-ingest") return
-      const ingestJob = payload.data
-      if (ingestJob && ingestJob.videoId === videoId) handleProgress(ingestJob)
-    }).then((cleanup) => {
-      unlisten = cleanup
-    })
-    return () => unlisten?.()
-  }, [videoId, handleProgress])
+  useAppEvent<Activity<VideoJob>>(ACTIVITY_EVENT, (payload) => {
+    if (payload.kind !== "video-ingest") return
+    const ingestJob = payload.data
+    if (ingestJob && ingestJob.videoId === videoId) handleProgress(ingestJob)
+  })
 
   // Poll fallback so completion is detected even if an event is dropped.
   useEffect(() => {
@@ -139,7 +132,7 @@ export const useVideoAnnotationViewModel = (videoId: string) => {
         setJob(started)
       } catch (nextError) {
         setIsIngesting(false)
-        setError(errorMessage(nextError))
+        setError(toErrorMessage(nextError))
       }
     },
     [video, videoId]
@@ -159,7 +152,7 @@ export const useVideoAnnotationViewModel = (videoId: string) => {
         })
         return saved
       } catch (nextError) {
-        setError(errorMessage(nextError))
+        setError(toErrorMessage(nextError))
         return null
       }
     },
@@ -205,7 +198,7 @@ export const useVideoAnnotationViewModel = (videoId: string) => {
         setTracks((prev) => prev.filter((t) => t.id !== trackId))
         setSelectedTrackId((prev) => (prev === trackId ? null : prev))
       } catch (nextError) {
-        setError(errorMessage(nextError))
+        setError(toErrorMessage(nextError))
       }
     },
     [video]
@@ -289,7 +282,7 @@ export const useVideoAnnotationViewModel = (videoId: string) => {
         "application/json"
       )
     } catch (nextError) {
-      setError(errorMessage(nextError))
+      setError(toErrorMessage(nextError))
     }
   }, [video, videoId, meta])
 
@@ -319,8 +312,6 @@ export const useVideoAnnotationViewModel = (videoId: string) => {
   }
 }
 
-const errorMessage = (error: unknown): string =>
-  error instanceof Error ? error.message : String(error)
 
 function downloadFile(filename: string, content: string, mime: string) {
   const blob = new Blob([content], { type: mime })

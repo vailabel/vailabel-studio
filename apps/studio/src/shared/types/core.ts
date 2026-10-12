@@ -17,8 +17,8 @@ export class Project {
   /** Labeling task within the modality. Derived from `type` for old projects. */
   task?: Task
   status!: string
-  settings?: Record<string, any>
-  metadata?: Record<string, any>
+  settings?: Record<string, unknown>
+  metadata?: Record<string, unknown>
   /** Typed per-project settings (config_json column). Separate from the legacy settings blob. */
   config?: ProjectConfig
   labels?: Label[]

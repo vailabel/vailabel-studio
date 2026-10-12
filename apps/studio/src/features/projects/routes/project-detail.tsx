@@ -28,6 +28,8 @@ import {
 import { useProjectCloudSync } from "@/features/projects/hooks/use-project-cloud-sync"
 import type { DataKind } from "@/shared/lib/label-config/labeling-templates"
 import type { DatasetImportFormat } from "@/shared/types/ai-runtime"
+import { paths } from "@/shared/lib/routes"
+import { toErrorMessage } from "@/shared/lib/errors"
 
 type DetailTab = "images" | "upload" | "labels" | "training" | "settings"
 
@@ -72,7 +74,7 @@ const ProjectDetails = memo(() => {
       }
     } catch (error) {
       toast.error("Import failed", {
-        description: error instanceof Error ? error.message : String(error),
+        description: toErrorMessage(error),
       })
     }
   }
@@ -194,7 +196,9 @@ const ProjectDetails = memo(() => {
                 projectId={projectId}
                 annotatedItems={stats.annotatedImages}
                 totalItems={stats.totalItems}
-                onTrain={() => navigate(`/projects/train/${projectId}`)}
+                onTrain={() => {
+                  if (projectId) navigate(paths.projectTraining(projectId))
+                }}
                 onContinueLabeling={goToNextItem}
               />
             </TabsContent>

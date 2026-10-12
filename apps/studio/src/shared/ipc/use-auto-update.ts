@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { isDesktopApp } from "@/shared/lib/desktop"
+import { toErrorMessage } from "@/shared/lib/errors"
 
 interface UpdateProgress {
   percent: number
@@ -67,7 +68,7 @@ export const useAutoUpdate = (): AutoUpdate => {
         setUpToDate(true)
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      setError(toErrorMessage(e))
     } finally {
       setChecking(false)
     }
@@ -112,7 +113,7 @@ export const useAutoUpdate = (): AutoUpdate => {
       setProgress(null)
       setUpdateDownloaded(true)
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      setError(toErrorMessage(e))
       setProgress(null)
     }
   }, [])
@@ -122,7 +123,7 @@ export const useAutoUpdate = (): AutoUpdate => {
       const { relaunch } = await import("@tauri-apps/plugin-process")
       await relaunch()
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      setError(toErrorMessage(e))
     }
   }, [])
 

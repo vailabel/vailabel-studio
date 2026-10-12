@@ -18,10 +18,10 @@ import {
   ErrorBanner,
   FfmpegBanner,
   StatusBadge,
-  errorMessage,
   formatDuration,
   probeInBrowser,
 } from "./video-bits"
+import { toErrorMessage } from "@/shared/lib/errors"
 
 // The clip library shown by the studio VideoEditor when no clip is open: import,
 // list, and delete a project's video clips. Ported from the dedicated page; the
@@ -50,7 +50,7 @@ export const VideoLibrary = ({
       setVideos(list)
       setFfmpeg(info)
     } catch (nextError) {
-      setError(errorMessage(nextError))
+      setError(toErrorMessage(nextError))
     } finally {
       setIsLoading(false)
     }
@@ -94,7 +94,7 @@ export const VideoLibrary = ({
       await refresh()
       if (lastId) onOpen(lastId)
     } catch (nextError) {
-      setError(errorMessage(nextError))
+      setError(toErrorMessage(nextError))
     } finally {
       setIsImporting(false)
     }

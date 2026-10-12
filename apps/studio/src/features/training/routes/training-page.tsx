@@ -41,6 +41,7 @@ import { projectsService } from "@/shared/services/projects-service"
 import { itemsService } from "@/shared/services/images-service"
 import { toAssetUrl } from "@/shared/lib/desktop"
 import type { DatasetExportResult } from "@/shared/types/ai-runtime"
+import { paths } from "@/shared/lib/routes"
 
 /**
  * Full-page training experience (Roboflow-style): configure the model, duration,
@@ -106,7 +107,7 @@ export default function TrainingPage() {
     setAugPreset("custom")
   }
 
-  const backToProject = () => navigate(`/projects/detail/${projectId}`)
+  const backToProject = () => navigate(paths.projectDetail(projectId))
 
   const submit = async () => {
     if (!projectId) return

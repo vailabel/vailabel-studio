@@ -13,6 +13,7 @@ import { useStudioScreenViewModel } from "@/features/studio/model/use-studio-scr
 import { useLabelHotkeys } from "@/features/studio/hooks/use-label-hotkeys"
 import { resolveCapabilities } from "@/features/studio/model/lib/labeling-config"
 import type { Label } from "@/shared/types/core"
+import { paths } from "@/shared/lib/routes"
 
 interface LabelingScreenProps {
   projectId?: string
@@ -59,7 +60,7 @@ export const LabelingScreen = memo(
               ? {
                   label: "Train",
                   onClick: () =>
-                    navigate(`/projects/train/${viewModel.effectiveProjectId}`),
+                    navigate(paths.projectTraining(viewModel.effectiveProjectId)),
                 }
               : undefined,
           }

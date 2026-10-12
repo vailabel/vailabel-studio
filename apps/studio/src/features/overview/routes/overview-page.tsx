@@ -24,6 +24,7 @@ import {
   RecentProjects,
   type StatCardSpec,
 } from "@/features/overview/components/overview-sections"
+import { toErrorMessage } from "@/shared/lib/errors"
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`
 
@@ -95,7 +96,7 @@ const Overview: React.FC = () => {
           <AlertCircle className="h-4 w-4" />
           <AlertDescription className="flex items-center justify-between gap-4">
             <span>
-              {error instanceof Error ? error.message : String(error)}
+              {toErrorMessage(error)}
             </span>
             <Button variant="outline" size="sm" onClick={refreshData}>
               <RefreshCw className="mr-2 h-4 w-4" />

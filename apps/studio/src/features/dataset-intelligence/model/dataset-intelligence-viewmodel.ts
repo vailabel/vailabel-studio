@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react"
-import { listen } from "@tauri-apps/api/event"
-import { isDesktopApp } from "@/shared/lib/desktop"
+import { useAppEvent } from "@/shared/hooks/use-app-event"
 import { services } from "@/shared/services"
 import type { Activity } from "@/shared/types/activity"
 import type {
@@ -10,6 +9,7 @@ import type {
   ReportSummary,
 } from "@/shared/types/dataset-intelligence"
 import { reportToMarkdown } from "@/features/dataset-intelligence/model/dataset-report"
+import { toErrorMessage } from "@/shared/lib/errors"
 
 const ACTIVITY_EVENT = "studio://activity"
 
@@ -55,7 +55,7 @@ export const useDatasetIntelligenceViewModel = (projectId: string) => {
       setReport(latest)
       setReports(list)
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : String(nextError))
+      setError(toErrorMessage(nextError))
     } finally {
       setIsLoading(false)
     }
@@ -84,18 +84,11 @@ export const useDatasetIntelligenceViewModel = (projectId: string) => {
   )
 
   // Live progress over the unified activity channel (desktop only).
-  useEffect(() => {
-    if (!isDesktopApp()) return
-    let unlisten: (() => void) | undefined
-    void listen<Activity<AnalysisJob>>(ACTIVITY_EVENT, ({ payload }) => {
-      if (payload.kind !== "analysis") return
-      const analysisJob = payload.data
-      if (analysisJob && analysisJob.projectId === projectId) handleProgress(analysisJob)
-    }).then((cleanup) => {
-      unlisten = cleanup
-    })
-    return () => unlisten?.()
-  }, [projectId, handleProgress])
+  useAppEvent<Activity<AnalysisJob>>(ACTIVITY_EVENT, (payload) => {
+    if (payload.kind !== "analysis") return
+    const analysisJob = payload.data
+    if (analysisJob && analysisJob.projectId === projectId) handleProgress(analysisJob)
+  })
 
   // Poll fallback so completion is detected even if an event is dropped.
   useEffect(() => {
@@ -124,7 +117,7 @@ export const useDatasetIntelligenceViewModel = (projectId: string) => {
       } catch (nextError) {
         setIsRunning(false)
         setError(
-          nextError instanceof Error ? nextError.message : String(nextError)
+          toErrorMessage(nextError)
         )
       }
     },

@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react"
+import { useMemo } from "react"
 import { deleteSecret, getSecret, listSecrets, setSecret } from "@/shared/lib/desktop"
+import { useResource } from "@/shared/hooks/use-resource"
 import { services } from "@/shared/services"
 import type { CloudProvider, CloudTestResult } from "@/shared/ipc/cloud"
 
@@ -40,36 +41,37 @@ const stripSecrets = (
   )
 }
 
-export const useCloudStorageViewModel = () => {
-  const [configs, setConfigs] = useState<CloudStorageConfig[]>([])
-  const [activeConfigId, setActiveConfigId] = useState("")
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
+interface CloudStorageState {
+  configs: CloudStorageConfig[]
+  activeConfigId: string
+}
 
-  const loadConfigs = async () => {
-    setIsLoading(true)
-    setError(null)
-    try {
-      const [configSetting, activeSetting] = await Promise.all([
-        services.getSettingsService().getByKey(CONFIGS_KEY),
-        services.getSettingsService().getByKey(ACTIVE_KEY),
-      ])
-      setConfigs(
-        configSetting.value
-          ? (JSON.parse(configSetting.value) as CloudStorageConfig[])
-          : []
-      )
-      setActiveConfigId(activeSetting.value || "")
-    } catch (nextError) {
-      setError(nextError as Error)
-    } finally {
-      setIsLoading(false)
-    }
+const NO_CONFIGS: CloudStorageState = { configs: [], activeConfigId: "" }
+
+const loadCloudStorage = async (): Promise<CloudStorageState> => {
+  const [configSetting, activeSetting] = await Promise.all([
+    services.getSettingsService().getByKey(CONFIGS_KEY),
+    services.getSettingsService().getByKey(ACTIVE_KEY),
+  ])
+  return {
+    configs: configSetting.value
+      ? (JSON.parse(configSetting.value) as CloudStorageConfig[])
+      : [],
+    activeConfigId: activeSetting.value || "",
   }
+}
 
-  useEffect(() => {
-    void loadConfigs()
-  }, [])
+export const useCloudStorageViewModel = () => {
+  const {
+    data: { configs, activeConfigId },
+    isLoading,
+    error,
+    mutate,
+  } = useResource(loadCloudStorage, { initialData: NO_CONFIGS })
+  const setConfigs = (next: CloudStorageConfig[]) =>
+    mutate((state) => ({ ...state, configs: next }))
+  const setActiveConfigId = (next: string) =>
+    mutate((state) => ({ ...state, activeConfigId: next }))
 
   const activeConfig = useMemo(
     () => configs.find((config) => config.id === activeConfigId) || null,
@@ -101,7 +103,7 @@ export const useCloudStorageViewModel = () => {
   return {
     configs,
     isLoading,
-    error,
+    error: (error as Error | null) ?? null,
     activeConfig,
     saveConfig: async (config: CloudStorageConfig) => {
       // Persist secrets to the keychain, then strip them from the config that

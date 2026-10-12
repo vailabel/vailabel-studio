@@ -5,7 +5,7 @@ import { DesktopFileInput } from "@/shared/components/desktop-file"
 import { useSettings } from "@/features/settings/context/settings-context"
 import { useUpdate } from "@/shared/ipc/update-context"
 import { isDesktopApp } from "@/shared/lib/desktop"
-import { SettingsSection, SettingRow } from "@/features/settings/components/settings-ui"
+import { SettingsSection, SettingRow } from "@/shared/components/settings-ui"
 
 export default function GeneralSettings() {
   const { settings, updateSetting } = useSettings()

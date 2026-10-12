@@ -1,4 +1,6 @@
 import { convertFileSrc } from "@tauri-apps/api/core"
+import { appDataDir } from "@tauri-apps/api/path"
+import { getCurrentWebview } from "@tauri-apps/api/webview"
 import { invokeWithLogging } from "@/shared/ipc/invoke"
 
 export interface ScannedImage {
@@ -122,3 +124,32 @@ export const listSecrets = async (namespace: string) =>
 
 export const getUpdaterStatus = async () =>
   invokeWithLogging<UpdaterStatus>("updater_status")
+
+/** Absolute path of the app's per-user data directory. */
+export const getAppDataDir = () => appDataDir()
+
+export type FileDragDropEvent =
+  | { type: "enter" | "over" | "leave" }
+  | { type: "drop"; paths: string[] }
+
+/**
+ * Subscribe to the webview's native file drag-and-drop. HTML5 drop is
+ * suppressed when dragDrop is enabled (the Tauri default), and only the native
+ * event carries absolute paths. Resolves to an unsubscribe; no-op off desktop.
+ */
+export const onFileDragDrop = async (
+  handler: (event: FileDragDropEvent) => void
+): Promise<() => void> => {
+  if (!isDesktopApp()) return () => {}
+  try {
+    return await getCurrentWebview().onDragDropEvent(({ payload }) => {
+      if (payload.type === "drop") {
+        handler({ type: "drop", paths: payload.paths })
+      } else {
+        handler({ type: payload.type })
+      }
+    })
+  } catch {
+    return () => {}
+  }
+}

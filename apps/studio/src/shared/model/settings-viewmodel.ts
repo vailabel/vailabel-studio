@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { Settings } from "@/shared/types/core"
-import { listenToStudioEvents } from "@/shared/ipc/events"
+import { useResource } from "@/shared/hooks/use-resource"
 import { services } from "@/shared/services"
+import { toErrorMessage } from "@/shared/lib/errors"
 
 type SettingValue = string | number | boolean
 
@@ -36,45 +37,27 @@ const DEFAULT_SETTINGS: Record<string, SettingValue> = {
   keyboardShortcuts: JSON.stringify(DEFAULT_KEYBOARD_SHORTCUTS),
 }
 
+const NO_SETTINGS: Settings[] = []
+const loadSettingsList = () => services.getSettingsService().list()
+
 export const useSettingsViewModel = () => {
-  const [settingsArray, setSettingsArray] = useState<Settings[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const {
+    data: settingsArray,
+    isLoading,
+    error: loadError,
+    reload: loadSettings,
+    mutate: mutateSettings,
+  } = useResource(loadSettingsList, {
+    initialData: NO_SETTINGS,
+    invalidateOn: ["settings"],
+  })
   const [isSaving, setIsSaving] = useState(false)
   const [activeTab, setActiveTab] = useState("general")
   const [searchQuery, setSearchQuery] = useState("")
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  const loadSettings = useCallback(async () => {
-    setIsLoading(true)
-    setError(null)
-    try {
-      setSettingsArray(await services.getSettingsService().list())
-    } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : String(nextError))
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    void loadSettings()
-  }, [loadSettings])
-
-  useEffect(() => {
-    let unlisten: (() => void) | undefined
-
-    void listenToStudioEvents(() => {
-      void loadSettings()
-    }, ["settings"]).then((cleanup) => {
-      unlisten = cleanup
-    })
-
-    return () => {
-      unlisten?.()
-    }
-  }, [loadSettings])
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const error = saveError ?? (loadError ? toErrorMessage(loadError) : null)
 
   const settings = useMemo(() => {
     const base = { ...DEFAULT_SETTINGS } as Record<string, SettingValue>
@@ -91,16 +74,16 @@ export const useSettingsViewModel = () => {
 
   const updateSetting = async (key: string, value: SettingValue) => {
     setIsSaving(true)
-    setError(null)
+    setSaveError(null)
     try {
       const savedSetting = await services
         .getSettingsService()
         .update(key, serializeSettingValue(value))
-      setSettingsArray((current) => upsertSetting(current, savedSetting))
+      mutateSettings((current) => upsertSetting(current, savedSetting))
       setHasUnsavedChanges(true)
       return true
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : String(nextError))
+      setSaveError(toErrorMessage(nextError))
       throw nextError
     } finally {
       setIsSaving(false)

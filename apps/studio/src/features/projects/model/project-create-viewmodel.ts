@@ -17,6 +17,7 @@ import {
   annotationTypesForTask,
   type ModalityDescriptor,
 } from "@/features/projects/model/modality-registry"
+import { paths } from "@/shared/lib/routes"
 
 export const PROJECT_TYPES = {
   IMAGE_ANNOTATION: "image_annotation",
@@ -401,7 +402,7 @@ export const useProjectCreateViewModel = () => {
       // straight into the studio shell with no item — the video editor mounts the
       // clip library so the user imports/processes clips there.
       if (deferItems) {
-        navigate(`/projects/${project.id}/studio`)
+        navigate(paths.studio(project.id))
         return
       }
 
@@ -417,7 +418,7 @@ export const useProjectCreateViewModel = () => {
             ...probe,
           })
         }
-        navigate(`/projects/${project.id}/studio`)
+        navigate(paths.studio(project.id))
         return
       }
 
@@ -471,9 +472,9 @@ export const useProjectCreateViewModel = () => {
       // Drop straight into annotating the first item (LabelMe behaviour).
       const firstImage = createdImages[0]
       if (firstImage) {
-        navigate(`/projects/${project.id}/studio/${firstImage.id}`)
+        navigate(paths.studio(project.id, firstImage.id))
       } else {
-        navigate(`/projects/detail/${project.id}`)
+        navigate(paths.projectDetail(project.id))
       }
     } catch (nextError) {
       setError(nextError)
@@ -514,6 +515,6 @@ export const useProjectCreateViewModel = () => {
     removeDocument,
     clearData,
     createProject,
-    cancel: () => navigate("/projects"),
+    cancel: () => navigate(paths.projects),
   }
 }

@@ -1,10 +1,11 @@
 import { useCallback, useState } from "react"
-import { studioCommands } from "@/shared/ipc/studio"
+import { services } from "@/shared/services"
 import {
   type ProjectConfig,
   mergeProjectConfig,
 } from "@/shared/types/project-config"
 import type { Project } from "@/shared/types/core"
+import { toErrorMessage } from "@/shared/lib/errors"
 
 interface UseProjectSettingsViewModelProps {
   project: Project | null
@@ -28,10 +29,10 @@ export function useProjectSettingsViewModel({
       setIsSaving(true)
       setSaveError(null)
       try {
-        await studioCommands.projectsSave({ id: project.id, config: next })
+        await services.getProjectService().update(project.id, { config: next })
         onSaved()
       } catch (err) {
-        setSaveError(err instanceof Error ? err.message : String(err))
+        setSaveError(toErrorMessage(err))
       } finally {
         setIsSaving(false)
       }
@@ -67,7 +68,7 @@ export function useProjectSettingsViewModel({
     if (!project) return
     setIsDeleting(true)
     try {
-      await studioCommands.projectsDelete(project.id)
+      await services.getProjectService().delete(project.id)
     } finally {
       setIsDeleting(false)
     }

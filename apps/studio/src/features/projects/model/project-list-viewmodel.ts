@@ -1,57 +1,38 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Project } from "@/shared/types/core"
-import { listenToStudioEvents } from "@/shared/ipc/events"
 import { toast } from "sonner"
 import { useConfirmDialog } from "@/shared/hooks/use-confirm-dialog"
+import { useResource } from "@/shared/hooks/use-resource"
 import { services } from "@/shared/services"
 import {
   getRecentProjectIds,
   recordRecentProject,
   removeRecentProject,
 } from "@/features/projects/model/recent-projects"
+import { paths } from "@/shared/lib/routes"
+
+const NO_PROJECTS: Project[] = []
+const loadProjectList = () => services.getProjectService().list()
 
 export const useProjectListViewModel = () => {
   const navigate = useNavigate()
   const confirm = useConfirmDialog()
-  const [projects, setProjects] = useState<Project[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<unknown>(null)
+  const {
+    data: projects,
+    isLoading,
+    error,
+    reload: loadProjects,
+    mutate: mutateProjects,
+  } = useResource(loadProjectList, {
+    initialData: NO_PROJECTS,
+    invalidateOn: ["projects"],
+  })
   const [searchQuery, setSearchQuery] = useState("")
   const [sortBy, setSortBy] = useState<"name" | "createdAt" | "updatedAt">(
     "updatedAt"
   )
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc")
-
-  const loadProjects = useCallback(async () => {
-    setIsLoading(true)
-    setError(null)
-    try {
-      setProjects(await services.getProjectService().list())
-    } catch (nextError) {
-      setError(nextError)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    void loadProjects()
-  }, [loadProjects])
-
-  useEffect(() => {
-    let unlisten: (() => void) | undefined
-
-    void listenToStudioEvents(() => {
-      void loadProjects()
-    }, ["projects"]).then((cleanup) => {
-      unlisten = cleanup
-    })
-
-    return () => {
-      unlisten?.()
-    }
-  }, [loadProjects])
 
   const filteredAndSortedProjects = useMemo(() => {
     const filtered = projects.filter((project) => {
@@ -99,7 +80,9 @@ export const useProjectListViewModel = () => {
 
     await services.getProjectService().delete(projectId)
     removeRecentProject(projectId)
-    setProjects((current) => current.filter((entry) => entry.id !== projectId))
+    mutateProjects((current) =>
+      current.filter((entry) => entry.id !== projectId)
+    )
     toast("Project deleted", {
       description: `${project?.name ?? "Project"} was removed from this workspace.`,
     })
@@ -107,7 +90,7 @@ export const useProjectListViewModel = () => {
 
   const navigateToProject = (projectId: string) => {
     recordRecentProject(projectId)
-    navigate(`/projects/detail/${projectId}`)
+    navigate(paths.projectDetail(projectId))
   }
 
   return {
@@ -121,7 +104,7 @@ export const useProjectListViewModel = () => {
     sortOrder,
     refreshProjects: loadProjects,
     loadProjects,
-    navigateToCreate: () => navigate("/projects/create"),
+    navigateToCreate: () => navigate(paths.projectCreate),
     navigateToProject,
     deleteProject,
     setSearchQuery,

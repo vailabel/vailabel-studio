@@ -44,6 +44,7 @@ import { aiRuntimeService } from "@/shared/services/ai-runtime-service"
 import { TrainingStartDialog } from "@/shared/components/training/training-start-dialog"
 import { TrainingReportDialog } from "@/shared/components/training/training-report"
 import type { TrainingJob, TrainingJobStatus } from "@/shared/types/ai-runtime"
+import { toErrorMessage } from "@/shared/lib/errors"
 
 const STATUS_VARIANT: Record<
   TrainingJobStatus,
@@ -115,7 +116,7 @@ export function TrainingMonitor({
     } catch (e) {
       setExportResult({
         ok: false,
-        message: e instanceof Error ? e.message : String(e),
+        message: toErrorMessage(e),
         job,
       })
     } finally {
