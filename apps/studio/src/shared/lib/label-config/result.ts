@@ -105,3 +105,34 @@ export const relationValue = (
   toId: string,
   labels: string[] = []
 ) => ({ from_id: fromId, to_id: toId, labels })
+/** Ellipse region: center + radii, all in % of the image box. */
+export const ellipseValue = (
+  x: number,
+  y: number,
+  radiusX: number,
+  radiusY: number,
+  labels: string[],
+  rotation = 0
+) => ({ x, y, radiusX, radiusY, rotation, ellipselabels: labels })
+/** Time-series range, in the series' own time units. */
+export const timeseriesValue = (
+  start: number,
+  end: number,
+  labels: string[]
+) => ({ start, end, instant: start === end, timeserieslabels: labels })
+/** HTML span, addressed by offsets into the document's rendered text. */
+export const hypertextValue = (
+  start: number,
+  end: number,
+  text: string,
+  labels: string[]
+) => ({ start, end, text, hypertextlabels: labels })
+/** Audio range in seconds. */
+export const audioLabelsValue = (
+  start: number,
+  end: number,
+  labels: string[]
+) => ({ start, end, labels })
+/** Ranked order of the bound objects, best first. */
+export const rankerValue = (ranked: string[]) => ({ ranker: ranked })
+export const datetimeValue = (datetime: string) => ({ datetime })

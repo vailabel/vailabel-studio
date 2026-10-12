@@ -1,7 +1,7 @@
 import type { DataKind } from "@/shared/lib/label-config/labeling-templates"
 import type { LabelConfig } from "@/shared/lib/label-config/types"
 import { parseLabelConfig } from "@/shared/lib/label-config/parse"
-import { isMultiTextJudgement } from "@/shared/lib/label-config/infer"
+import { isMultiFieldJudgement } from "@/shared/lib/label-config/infer"
 import { toErrorMessage } from "@/shared/lib/errors"
 
 export interface ConfigInfo {
@@ -11,8 +11,17 @@ export interface ConfigInfo {
   error: string | null
 }
 
-/** Object tags that map directly onto a data kind. */
-const DATA_OBJECT_TAGS = ["image", "text", "audio", "video", "table"]
+/** The data kind each object tag imports (what the Data step asks for). */
+const OBJECT_DATA_KIND: Record<string, DataKind> = {
+  image: "image",
+  text: "text",
+  audio: "audio",
+  video: "video",
+  table: "tabular",
+  hypertext: "html",
+  timeseries: "timeseries",
+  pdf: "pdf",
+}
 
 /**
  * The labeling config is the single source of truth for validity, the data kind
@@ -23,20 +32,17 @@ export function deriveConfigInfo(source: string): ConfigInfo {
   try {
     const parsed = parseLabelConfig(source)
 
-    // The primary object tag maps to a data kind. For image/text/audio/video
-    // the tag IS the kind; the `table` object maps to the `tabular` kind.
-    const primary = parsed.objects.find((object) =>
-      DATA_OBJECT_TAGS.includes(object.tag)
+    // The first object with a known data kind decides what gets imported.
+    const primary = parsed.objects.find(
+      (object) => OBJECT_DATA_KIND[object.tag]
     )
 
-    // Multi-field LLM-eval tasks (prompt + responses) and explicit `table`
-    // objects are one-row-per-task, so they import via the spreadsheet path
-    // (each row carries its fields inline). Everything else maps the primary
-    // object tag straight to its data kind.
-    const dataKind: DataKind =
-      isMultiTextJudgement(parsed) || primary?.tag === "table"
-        ? "tabular"
-        : ((primary?.tag as DataKind) ?? "image")
+    // Multi-field judgement tasks (prompt + responses, query + candidates,
+    // several images) and `table` objects are one-row-per-task, so they import
+    // via the spreadsheet path (each row carries its fields inline).
+    const dataKind: DataKind = isMultiFieldJudgement(parsed)
+      ? "tabular"
+      : ((primary && OBJECT_DATA_KIND[primary.tag]) ?? "image")
 
     const ok = parsed.objects.length > 0 && parsed.controls.length > 0
     return {

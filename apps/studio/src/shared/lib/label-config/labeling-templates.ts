@@ -35,6 +35,8 @@ import {
 } from "lucide-react"
 import type { Modality, Task } from "@/shared/types/modality"
 import { LS_TEMPLATES } from "@/shared/lib/label-config/ls-gallery"
+import { parseLabelConfig } from "@/shared/lib/label-config/parse"
+import { isConfigSupported } from "@/shared/lib/label-config/support"
 
 // Project types that map to a working editor today. Kept as string literals so
 // this catalog stays decoupled from the create viewmodel (which also exports
@@ -58,6 +60,7 @@ export type DataKind =
   | "tabular"
   | "timeseries"
   | "html"
+  | "pdf"
   | "ranking"
   | "multimodal"
 
@@ -205,7 +208,8 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     category: "Computer Vision",
     dataKind: "image",
     icon: Tags,
-    status: "pending",
+    modality: "custom",
+    status: "available",
   },
   {
     id: "medical-image-classification",
@@ -222,9 +226,10 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     label: "OCR Labeling for PDFs",
     description: "Transcribe text regions across PDF pages",
     category: "Computer Vision",
-    dataKind: "image",
+    dataKind: "pdf",
     icon: ScanText,
-    status: "pending",
+    modality: "custom",
+    status: "available",
   },
   {
     id: "ellipse",
@@ -233,7 +238,8 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     category: "Computer Vision",
     dataKind: "image",
     icon: Circle,
-    status: "pending",
+    modality: "custom",
+    status: "available",
   },
 
   // ── Video ────────────────────────────────────────────────────────────────
@@ -486,7 +492,8 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     category: "Ranking & Scoring",
     dataKind: "ranking",
     icon: Scale,
-    status: "pending",
+    modality: "custom",
+    status: "available",
   },
   {
     id: "document-retrieval",
@@ -495,7 +502,8 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     category: "Ranking & Scoring",
     dataKind: "ranking",
     icon: Search,
-    status: "pending",
+    modality: "custom",
+    status: "available",
   },
   {
     id: "search-ranking",
@@ -504,7 +512,8 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     category: "Ranking & Scoring",
     dataKind: "ranking",
     icon: ListOrdered,
-    status: "pending",
+    modality: "custom",
+    status: "available",
   },
   {
     id: "website-rating",
@@ -513,7 +522,8 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     category: "Ranking & Scoring",
     dataKind: "ranking",
     icon: Scale,
-    status: "pending",
+    modality: "custom",
+    status: "available",
   },
   {
     id: "content-image-retrieval",
@@ -522,7 +532,8 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     category: "Ranking & Scoring",
     dataKind: "ranking",
     icon: Search,
-    status: "pending",
+    modality: "custom",
+    status: "available",
   },
 
   // ── Structured Data ──────────────────────────────────────────────────────
@@ -533,7 +544,8 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     category: "Structured Data",
     dataKind: "html",
     icon: Code2,
-    status: "pending",
+    modality: "custom",
+    status: "available",
   },
   {
     id: "tabular",
@@ -553,16 +565,18 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     category: "Structured Data",
     dataKind: "html",
     icon: Code2,
-    status: "pending",
+    modality: "custom",
+    status: "available",
   },
   {
     id: "pdf-classification",
     label: "PDF Classification",
     description: "Classify PDF documents",
     category: "Structured Data",
-    dataKind: "html",
+    dataKind: "pdf",
     icon: FileText,
-    status: "pending",
+    modality: "custom",
+    status: "available",
   },
 
   // ── Time Series ──────────────────────────────────────────────────────────
@@ -573,7 +587,8 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     category: "Time Series",
     dataKind: "timeseries",
     icon: LineChart,
-    status: "pending",
+    modality: "custom",
+    status: "available",
   },
   {
     id: "change-point",
@@ -582,7 +597,8 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     category: "Time Series",
     dataKind: "timeseries",
     icon: Activity,
-    status: "pending",
+    modality: "custom",
+    status: "available",
   },
   {
     id: "timeseries-classification",
@@ -591,7 +607,8 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     category: "Time Series",
     dataKind: "timeseries",
     icon: LineChart,
-    status: "pending",
+    modality: "custom",
+    status: "available",
   },
   {
     id: "anomaly-detection",
@@ -600,7 +617,8 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     category: "Time Series",
     dataKind: "timeseries",
     icon: Activity,
-    status: "pending",
+    modality: "custom",
+    status: "available",
   },
 
   // ── Generative AI / LLM ──────────────────────────────────────────────────
@@ -727,6 +745,18 @@ const LS_GROUP_ICON: Record<string, LucideIcon> = {
   "Community Contributions": Sparkles,
 }
 
+// Availability is derived from the config itself (can the editors render every
+// object and control in it?) rather than trusted from the generated gallery
+// flag, so new viewers/widgets unlock gallery templates automatically.
+function isLsTemplateSupported(ls: (typeof LS_TEMPLATES)[number]): boolean {
+  if (ls.supported) return true
+  try {
+    return isConfigSupported(parseLabelConfig(ls.config))
+  } catch {
+    return false
+  }
+}
+
 const existingIds = new Set(LABELING_TEMPLATES.map((t) => t.id))
 for (const ls of LS_TEMPLATES) {
   const match = LABELING_TEMPLATES.find((t) => t.id === ls.id)
@@ -746,7 +776,7 @@ for (const ls of LS_TEMPLATES) {
     icon: LS_GROUP_ICON[ls.group] ?? SlidersHorizontal,
     modality: "custom",
     image: ls.image,
-    status: ls.supported ? "available" : "pending",
+    status: isLsTemplateSupported(ls) ? "available" : "pending",
   })
 }
 
@@ -768,6 +798,7 @@ export const DATA_KIND_LABELS: Record<DataKind, string> = {
   tabular: "Tabular data",
   timeseries: "Time series",
   html: "HTML / structured",
+  pdf: "PDF documents",
   ranking: "Ranking",
   multimodal: "Multimodal",
 }

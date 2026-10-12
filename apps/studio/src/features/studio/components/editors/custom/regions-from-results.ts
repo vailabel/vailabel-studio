@@ -5,7 +5,7 @@ import type { Pt, Region } from "./region-types"
 
 /**
  * Normalize stored results for the spatial controls into flat, render-ready
- * regions (rectangles, polygons, keypoints), resolving each region's display
+ * regions (rectangles, ellipses, polygons, keypoints), resolving each region's display
  * label and color from its control. Pure — derives view data from props.
  */
 export function regionsFromResults(
@@ -35,6 +35,17 @@ export function regionsFromResults(
           id: result.id,
           tag: "polygonlabels",
           points: (value.points as Pt[]) ?? [],
+          label: name,
+          color,
+        })
+      } else if (control.tag === "ellipselabels") {
+        out.push({
+          id: result.id,
+          tag: "ellipselabels",
+          x: value.x as number,
+          y: value.y as number,
+          radiusX: value.radiusX as number,
+          radiusY: value.radiusY as number,
           label: name,
           color,
         })

@@ -53,9 +53,9 @@ function descriptor(input: DescriptorInput): ModalityDescriptor {
   return { ...input, accepts: extMatcher(input.extensions) }
 }
 
-// Only the kinds with a working import + editor are registered. Kinds without an
-// entry (timeseries / html / ranking / multimodal) are "roadmap" templates — the
-// Data step shows a pending notice rather than offering a broken import.
+// Every kind a labeling config can resolve to is registered. "ranking" and
+// "multimodal" are catalog groupings rather than file types: their configs are
+// several fields per task, which `deriveConfigInfo` resolves to "tabular".
 export const MODALITY_REGISTRY: Partial<Record<DataKind, ModalityDescriptor>> = {
   image: descriptor({
     kind: "image",
@@ -106,6 +106,38 @@ export const MODALITY_REGISTRY: Partial<Record<DataKind, ModalityDescriptor>> = 
     importMode: "spreadsheet",
     grantScope: false,
     annotationTypes: ["classification"],
+    target: "studio",
+    hasItems: ({ documents }) => documents > 0,
+  }),
+  html: descriptor({
+    kind: "html",
+    label: "HTML",
+    extensions: ["html?", "xhtml"],
+    importMode: "files",
+    grantScope: false,
+    annotationTypes: ["span", "classification"],
+    target: "studio",
+    hasItems: ({ documents }) => documents > 0,
+  }),
+  timeseries: descriptor({
+    kind: "timeseries",
+    label: "Time series",
+    // One file is one series (one task) — unlike "tabular", rows are samples of
+    // the same signal, not separate tasks.
+    extensions: ["csv", "tsv", "json"],
+    importMode: "files",
+    grantScope: false,
+    annotationTypes: ["segment", "classification"],
+    target: "studio",
+    hasItems: ({ documents }) => documents > 0,
+  }),
+  pdf: descriptor({
+    kind: "pdf",
+    label: "PDF",
+    extensions: ["pdf"],
+    importMode: "files",
+    grantScope: true,
+    annotationTypes: ["classification", "transcription"],
     target: "studio",
     hasItems: ({ documents }) => documents > 0,
   }),

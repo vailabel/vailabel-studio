@@ -21,27 +21,32 @@ const OBJECT_MODALITY: Record<string, Modality> = {
 export const TEXTUAL_OBJECT_TAGS = new Set(["text", "hypertext", "paragraphs"])
 
 /**
- * A "judge the text(s)" task: two or more textual data fields (`$`-bound) scored
- * only by whole-item controls (choices / rating / textarea / pairwise — no
- * span/region/relation labeling). These are inherently one-row-per-task (a
- * prompt plus one or more model outputs), so they import as spreadsheet rows and
- * render in the config-driven editor. This is what makes the Generative-AI
- * templates (RLHF, LLM grading, side-by-side, RAG eval) work end-to-end.
+ * A "judge the fields" task: several data fields (`$`-bound) scored only by
+ * whole-item controls (choices / rating / textarea / pairwise / ranker — no
+ * span/region/relation labeling). Two shapes qualify:
+ *
+ * - two or more text fields and no media — a prompt plus model outputs (RLHF,
+ *   LLM grading, RAG eval), or a query plus candidate documents (retrieval,
+ *   search ranking);
+ * - two or more images, optionally with text — image retrieval, multi-image
+ *   classification.
+ *
+ * These are inherently one-row-per-task, so they import as spreadsheet rows
+ * (each column a field) and render in the config-driven editor with every field
+ * as a read-only panel. A single image with text beside it (visual QA) is NOT a
+ * judgement: the image stays the interactive viewer.
  */
-export function isMultiTextJudgement(config: LabelConfig): boolean {
-  const textFields = config.objects.filter(
-    (o) => o.value.startsWith("$") && TEXTUAL_OBJECT_TAGS.has(o.tag)
-  )
-  if (textFields.length < 2) return false
-  // A non-textual data object (image/audio/video) means the normal per-modality
-  // inference should win instead.
-  const hasMediaData = config.objects.some(
-    (o) => o.value.startsWith("$") && !TEXTUAL_OBJECT_TAGS.has(o.tag)
-  )
-  if (hasMediaData) return false
-  return config.controls.every(
-    (c) => !isSpatialControl(c) && c.tag !== "relations"
-  )
+export function isMultiFieldJudgement(config: LabelConfig): boolean {
+  if (config.controls.some((c) => isSpatialControl(c) || c.tag === "relations")) {
+    return false
+  }
+  const fields = config.objects.filter((o) => o.value.startsWith("$"))
+  const textual = fields.filter((o) => TEXTUAL_OBJECT_TAGS.has(o.tag))
+  const images = fields.filter((o) => o.tag === "image")
+  // Audio / video / PDF / time series are file-backed: per-modality rules win.
+  if (textual.length + images.length !== fields.length) return false
+  if (images.length >= 2) return true
+  return images.length === 0 && textual.length >= 2
 }
 
 export function inferModalityTask(config: LabelConfig): {
@@ -50,9 +55,9 @@ export function inferModalityTask(config: LabelConfig): {
 } {
   const primary = config.objects.find((o) => OBJECT_MODALITY[o.tag])
   if (!primary) return { modality: "custom" }
-  // Multi-field LLM-evaluation configs (prompt + responses) route to the
-  // config-driven editor regardless of which control they use.
-  if (isMultiTextJudgement(config)) return { modality: "custom" }
+  // Multi-field judgement configs (prompt + responses, query + candidates,
+  // several images) route to the config-driven editor whatever control they use.
+  if (isMultiFieldJudgement(config)) return { modality: "custom" }
   const base = OBJECT_MODALITY[primary.tag]
 
   const tags = config.controls.map((c) => c.tag)

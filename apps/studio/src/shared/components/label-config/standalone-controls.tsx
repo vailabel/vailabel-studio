@@ -5,10 +5,11 @@ import type { ControlValueApi } from "./controls/types"
 
 export type { ControlValueApi } from "./controls/types"
 
-// Whole-item controls (choices, taxonomy, rating, textarea, number, pairwise)
-// rendered from the config. Each tag resolves to a widget through the control
-// registry, so adding a control type never touches this dispatcher. Each widget
-// maps to exactly one stored result, keyed by the control name.
+// Whole-item controls (choices, taxonomy, rating, textarea, number, pairwise,
+// ranker, datetime) rendered from the config. Each tag resolves to a widget
+// through the control registry, so adding a control type never touches this
+// dispatcher. Each widget maps to exactly one stored result, keyed by the
+// control name.
 export const StandaloneControls = memo(
   ({ controls, api }: { controls: ControlTag[]; api: ControlValueApi }) => {
     if (controls.length === 0) return null

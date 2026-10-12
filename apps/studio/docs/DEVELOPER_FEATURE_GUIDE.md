@@ -89,6 +89,41 @@ features/<name>/
 4. For a new feature, spread its routes into `app/route-table.ts`.
 5. To show it in the sidebar, add an entry to `app/navigation.ts`.
 
+## Adding a labeling type
+
+A project's labeling UI is driven by its labeling config (objects = the data
+shown, controls = how it is labeled). Configs that match a specialized editor
+(image canvas, text, audio, video, table) open there; everything else opens in
+the config-driven editor (`features/studio/components/editors/custom`), which is
+built from three registries. Extend the registry — never add a branch:
+
+| To support… | Add | Then list the tag in (`shared/lib/label-config/support.ts`) |
+| --- | --- | --- |
+| a new data object (`<Chat>`, `<Paragraphs>`, …) | a viewer in `editors/custom/object-viewers.tsx` | `VIEWER_OBJECT_TAGS` |
+| a new whole-item control (`<Ranker>`, `<DateTime>`, …) | a widget in `shared/components/label-config/controls/control-registry.ts` | `STANDALONE_CONTROL_TAGS` |
+| a new region control on an object | drawing support in that object's viewer | `REGION_CONTROLS_BY_OBJECT` |
+
+Tests fail if a registry and its list drift apart. A template is "available"
+exactly when `isConfigSupported(config)` is true, so unlocking a tag makes every
+template waiting on it selectable — there is no per-template flag to flip.
+
+To add a template: one entry in `LABELING_TEMPLATES`
+(`shared/lib/label-config/labeling-templates.ts`) and, unless the generic
+(modality, task) starter fits, a config in `CONFIG_BY_ID` (`generate.ts`). If
+its files are a new kind, add a descriptor to
+`features/projects/model/modality-registry.ts`.
+
+## Sample projects
+
+**Projects → Samples → Create sample projects** seeds one ready-to-label
+project per template (`features/projects/model/seed`). Items are planned from
+each template's config (`plan-sample-items.ts`) and generated in code — images,
+WAV audio, HTML, CSV series and PDFs — into `<app data>/samples/<template id>/`.
+It is safe to re-run (existing samples are skipped) and **Remove sample
+projects** deletes only what it created (projects tagged
+`metadata.sampleTemplateId`). Video samples have no clips: those are imported
+inside the editor.
+
 ## Adding a backend call
 
 1. Add the command to `shared/ipc/studio.ts`.

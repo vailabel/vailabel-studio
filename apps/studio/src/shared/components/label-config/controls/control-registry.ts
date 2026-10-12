@@ -5,6 +5,8 @@ import { RatingControl } from "./rating-control"
 import { NumberControl } from "./number-control"
 import { TextAreaControl } from "./textarea-control"
 import { PairwiseControl } from "./pairwise-control"
+import { RankerControl } from "./ranker-control"
+import { DateTimeControl } from "./datetime-control"
 import { UnsupportedControl } from "./unsupported-control"
 
 // Maps a whole-item control tag to the widget that renders it. Adding a control
@@ -20,6 +22,8 @@ export const CONTROL_WIDGETS: Partial<
   number: NumberControl,
   textarea: TextAreaControl,
   pairwise: PairwiseControl,
+  ranker: RankerControl,
+  datetime: DateTimeControl,
 }
 
 /** The widget for a control tag, falling back to an "unsupported" notice. */

@@ -1,1 +1,1 @@
-{"default":{"identifier":"default","description":"Default desktop capability for the main studio window.","local":true,"windows":["main"],"permissions":["core:event:default","updater:default","process:allow-restart"]}}
+{"default":{"identifier":"default","description":"Default desktop capability for the main studio window.","local":true,"windows":["main"],"permissions":["core:event:default","core:path:allow-resolve-directory","updater:default","process:allow-restart"]}}

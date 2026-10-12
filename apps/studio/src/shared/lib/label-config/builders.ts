@@ -30,6 +30,32 @@ export function textObj(name: string, title: string): ObjectTag {
   return { tag: "text", name, value: `$${name}`, valueKey: name, attrs: { title } }
 }
 
+/** Any object bound to a row field ($name) — e.g. an image or HTML column. */
+export function fieldObj(
+  tag: string,
+  name: string,
+  title?: string,
+  attrs: Record<string, string> = {}
+): ObjectTag {
+  return {
+    tag,
+    name,
+    value: `$${name}`,
+    valueKey: name,
+    attrs: title ? { title, ...attrs } : attrs,
+  }
+}
+
+/** A control bound to several objects (ranker / multi-object judgement). */
+export function multiCtrl(
+  tag: string,
+  name: string,
+  toNames: string[],
+  attrs: Record<string, string> = {}
+): ControlTag {
+  return { tag, name, toName: toNames[0], toNames, choices: [], attrs }
+}
+
 /** A pairwise A/B preference control comparing two objects (left vs. right). */
 export function pairwise(
   name: string,

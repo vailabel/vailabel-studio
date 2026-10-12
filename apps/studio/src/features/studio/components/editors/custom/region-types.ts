@@ -17,3 +17,14 @@ export type Region =
     }
   | { id: string; tag: "polygonlabels"; points: Pt[]; label: string; color: string }
   | { id: string; tag: "keypointlabels"; x: number; y: number; label: string; color: string }
+  | {
+      id: string
+      tag: "ellipselabels"
+      /** Center and radii, in % of the image box. */
+      x: number
+      y: number
+      radiusX: number
+      radiusY: number
+      label: string
+      color: string
+    }

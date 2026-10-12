@@ -16,7 +16,7 @@ interface RegionOverlayProps {
 
 /**
  * Presentational layer drawn over the image: an SVG plane for shape geometry
- * (rectangles, polygons, the box-drag preview, and the in-progress polyline)
+ * (rectangles, ellipses, polygons, the drag preview, and the in-progress polyline)
  * plus an HTML plane for keypoints, label chips, delete buttons, and the
  * in-progress polygon vertices. Stateless — all interaction lives in the host.
  */
@@ -46,6 +46,18 @@ export const RegionOverlay = ({
             strokeWidth={2}
             vectorEffect="non-scaling-stroke"
           />
+        ) : region.tag === "ellipselabels" ? (
+          <ellipse
+            key={region.id}
+            cx={region.x}
+            cy={region.y}
+            rx={region.radiusX}
+            ry={region.radiusY}
+            fill={rgbToRgba(region.color, 0.12)}
+            stroke={region.color}
+            strokeWidth={2}
+            vectorEffect="non-scaling-stroke"
+          />
         ) : region.tag === "polygonlabels" ? (
           <polygon
             key={region.id}
@@ -58,12 +70,24 @@ export const RegionOverlay = ({
         ) : null
       )}
 
-      {boxPreview && boxPreview.width > 0 && (
+      {boxPreview && boxPreview.width > 0 && boxPreview.shape === "rect" && (
         <rect
           x={boxPreview.x}
           y={boxPreview.y}
           width={boxPreview.width}
           height={boxPreview.height}
+          fill="rgba(59,130,246,0.15)"
+          stroke="#3b82f6"
+          strokeWidth={2}
+          vectorEffect="non-scaling-stroke"
+        />
+      )}
+      {boxPreview && boxPreview.width > 0 && boxPreview.shape === "ellipse" && (
+        <ellipse
+          cx={boxPreview.x + boxPreview.width / 2}
+          cy={boxPreview.y + boxPreview.height / 2}
+          rx={boxPreview.width / 2}
+          ry={boxPreview.height / 2}
           fill="rgba(59,130,246,0.15)"
           stroke="#3b82f6"
           strokeWidth={2}
@@ -91,7 +115,9 @@ export const RegionOverlay = ({
         const anchor =
           region.tag === "polygonlabels"
             ? region.points[0] ?? [0, 0]
-            : [region.x, region.y]
+            : region.tag === "ellipselabels"
+              ? [region.x - region.radiusX, region.y - region.radiusY]
+              : [region.x, region.y]
         return (
           <div key={region.id}>
             {region.tag === "keypointlabels" && (
