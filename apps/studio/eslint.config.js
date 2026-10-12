@@ -6,7 +6,7 @@ import reactRefresh from "eslint-plugin-react-refresh"
 import tseslint from "typescript-eslint"
 
 // ---------------------------------------------------------------------------
-// Architecture boundaries (see ARCHITECTURE.md)
+// Architecture boundaries (see docs/DEVELOPER_FEATURE_GUIDE.md)
 //
 //   app  ──▶  features/<name> (public index only)  ──▶  shared
 //

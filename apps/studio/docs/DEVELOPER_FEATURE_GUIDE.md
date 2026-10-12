@@ -1,89 +1,102 @@
 # Studio Developer Feature Guide
 
-This guide provides instructions for developers to add new features, pages, or components to the Studio app. It also covers best practices for modifying existing functionality and following the established folder structure.
+How the Studio frontend (`apps/studio/src`) is organised, and how to add to it
+without breaking the rules that keep it fast and predictable. The rules below
+are enforced by `yarn lint` — if you break one, ESLint tells you which.
 
----
+## The three layers
 
-## 1. Adding New Pages
+```
+app  ──▶  features/<name>  ──▶  shared
+```
 
-- **Location:** Add new pages in `src/pages/`.
-- **Steps:**
-  1. Create a new file or folder for your page in `src/pages/`.
-  2. Implement your page as a React component (e.g., `MyPage.tsx`).
-  3. Export your page and add routing if necessary (see `src/App.tsx` or the router config).
-  4. Use shared components from `src/components/` and hooks from `src/hooks/` as needed.
+Dependencies only point right.
 
----
+| Layer | What lives there | May import |
+| --- | --- | --- |
+| `src/app` | Composition only: providers, router, layout chrome, navigation. | A feature's `index.ts`, `shared` |
+| `src/features/<name>` | One product area (projects, studio, labels, …). | Its own files, `shared` |
+| `src/shared` | Code two or more features need. | `shared` only |
 
-## 2. Adding New Components
+- **Features never import each other.** If two features need the same thing,
+  move it to `shared/`.
+- **Only `shared/ipc` and `shared/lib/desktop.ts` touch Tauri.** Feature code
+  calls `@/shared/services` (commands) and `@/shared/hooks/use-app-event`
+  (events), so it works unchanged in the web build and in tests.
 
-- **Location:** Add reusable UI components in `src/components/`.
-- **Steps:**
-  1. Create a new file or folder in `src/components/` (e.g., `Button.tsx`).
-  2. Write your component using React and TypeScript.
-  3. Add JSDoc comments and prop types for clarity.
-  4. Export your component for use in pages or other components.
+### Inside a feature
 
----
+```
+features/<name>/
+  index.ts        public API — the feature's routes, nothing else
+  routes/         one file per page, default export
+  components/     UI used only by this feature
+  model/          view-model hooks + pure logic (and their tests)
+```
 
-## 3. Adding New Hooks
+### Inside `shared`
 
-- **Location:** Add custom hooks in `src/hooks/`.
-- **Steps:**
-  1. Create a new file in `src/hooks/` (e.g., `useMyFeature.ts`).
-  2. Implement your hook using standard React patterns.
-  3. Document the hook's usage and expected return values.
-  4. Export your hook for use in components and pages.
+| Folder | Contents |
+| --- | --- |
+| `ui/` | shadcn primitives (vendored — regenerate, don't hand-edit) |
+| `components/` | Reusable composed components |
+| `hooks/` | Reusable hooks (`use-resource`, `use-app-event`, …) |
+| `services/` | Backend API, one object per domain. The only callers of IPC. |
+| `ipc/` | Tauri transport: commands, events, updater |
+| `lib/` | Pure helpers (`routes`, `errors`, `utils`, label-config, …) |
+| `model/` | View models used by more than one feature |
+| `types/` | Domain types |
 
----
+## Conventions
 
-## 4. Modifying Existing Functionality
+- **File names are kebab-case.** Hooks start with `use-`.
+- **Imports use the `@/` alias**, not `../../`.
+- **Routes come from `@/shared/lib/routes`.** Use `paths.projectDetail(id)`;
+  never write a URL string by hand.
+- **Load data with `useResource`.** It owns loading / error state, drops stale
+  responses, and reloads when the backend emits a domain event:
 
-- **Find the Relevant File:** Locate the page, component, or hook you want to modify in `src/pages/`, `src/components/`, or `src/hooks/`.
-- **Make Changes:** Refactor, extend, or update the code as needed. Ensure you follow TypeScript and React best practices.
-- **Test Your Changes:** Add or update tests if available. Validate your changes in the development environment.
-- **Document Updates:** Update JSDoc comments and usage instructions if the API or behavior changes.
+  ```ts
+  const loadLabels = useCallback(() => loadLabelLibrary(projectId), [projectId])
+  const { data, isLoading, error, reload, mutate } = useResource(loadLabels, {
+    initialData: EMPTY_LIBRARY,
+    invalidateOn: ["labels", "annotations"],
+  })
+  ```
 
----
+  Don't hand-roll `useState` + `useEffect` + `listenToStudioEvents`.
+- **Subscribe to backend events with `useAppEvent` / `useStudioEvents`.** They
+  handle cleanup (including unmount-before-subscribed) for you.
+- **Turn caught errors into text with `toErrorMessage`** (`@/shared/lib/errors`).
+- **Keep the UI motion-free** and keep high-frequency state (cursor, pan) out
+  of shared context — see the canvas providers for the pattern.
 
-## 5. Folder Structure Best Practices
+## Adding a page
 
-- `src/` — Main source code directory.
-  - `src/pages/` — Application pages and route components.
-  - `src/components/` — Reusable UI components.
-  - `src/hooks/` — Custom React hooks.
-  - `src/utils/` — Utility functions (if applicable).
-  - `src/styles/` — CSS or styling files.
-- Keep code modular and reusable.
-- Use clear and descriptive names for files and folders.
-- Document public APIs and component props.
+1. Create `features/<name>/routes/<page>.tsx` with a default export.
+2. Add its URL to `routePatterns` and `paths` in `shared/lib/routes.ts`.
+3. Add it to the feature's `index.ts`:
 
----
+   ```ts
+   export const labelRoutes: FeatureRoute[] = [
+     { path: routePatterns.labels, load: () => import("./routes/labels-page") },
+   ]
+   ```
 
-## 6. Example: Adding a New Button Component
+   `load` must be a dynamic import — that is what keeps each page in its own
+   chunk and off the startup path. Use `layout: "bare"` for a page that owns
+   the whole window (the editor).
+4. For a new feature, spread its routes into `app/route-table.ts`.
+5. To show it in the sidebar, add an entry to `app/navigation.ts`.
 
-1. **Create the Component:**
-   - `src/components/MyButton.tsx`:
-     ```tsx
-     import React from 'react';
-     type MyButtonProps = { label: string; onClick: () => void };
-     export const MyButton: React.FC<MyButtonProps> = ({ label, onClick }) => (
-       <button onClick={onClick}>{label}</button>
-     );
-     ```
-2. **Use the Component:**
-   - In a page or another component:
-     ```tsx
-     import { MyButton } from '../components/MyButton';
-     // ...
-     <MyButton label="Click Me" onClick={handleClick} />
-     ```
+## Adding a backend call
 
----
+1. Add the command to `shared/ipc/studio.ts`.
+2. Expose it from the matching object in `shared/services/`.
+3. Call the service from a view model.
 
-## 7. References
-- [Studio README.md](../README.md)
-- [Performance Optimization Guide](../PERFORMANCE_OPTIMIZATION.md)
-- [`src/types/core.ts`](../src/types/core.ts)
+## Before you push
 
----
+```bash
+yarn typecheck && yarn lint && yarn test
+```
