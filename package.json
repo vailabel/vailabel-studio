@@ -42,7 +42,7 @@
     "name": "Vichea Nath",
     "email": "nathvichea1@gmail.com"
   },
-  "license": "Apache-2.0",
+  "license": "MIT",
   "config": {
     "commitizen": {
       "path": "./node_modules/cz-conventional-changelog"
