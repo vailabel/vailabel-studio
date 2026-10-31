@@ -1,3 +1,7 @@
+/// <reference types="node" />
+// Reads the bundled files in public/samples straight from disk.
+import { existsSync, readFileSync } from "node:fs"
+import { resolve } from "node:path"
 import { decodeSlice, readSliceInfo } from "@/shared/lib/dicom/dicom"
 import {
   ctrl,
@@ -7,17 +11,25 @@ import {
 } from "@/shared/lib/label-config/builders"
 import { configForTemplate } from "@/shared/lib/label-config/generate"
 import { LABELING_TEMPLATES } from "@/shared/lib/label-config/labeling-templates"
-import { planSampleItems } from "./plan-sample-items"
-import {
-  samplePdf,
-  sampleTimeSeriesCsv,
-  sampleWavDataUrl,
-  samplePointCloudPcd,
-  sampleDicomSeries,
-} from "./sample-content"
+import { planSampleItems, type SampleFile } from "./plan-sample-items"
+import { sampleFieldText } from "./sample-content"
+import { READING_PASSAGES } from "./sample-texts"
+
+const SAMPLES = resolve(__dirname, "../../../../../public/samples")
+const bundled = (asset: string) => readFileSync(resolve(SAMPLES, asset))
+const assets = (files: SampleFile[]) =>
+  files.flatMap((file) => (file.kind === "asset" ? [file.asset] : []))
+
+const templateContext = (id: string) => {
+  const template = LABELING_TEMPLATES.find((entry) => entry.id === id)!
+  return {
+    config: configForTemplate(template),
+    context: [template.id, template.label, template.description].join(" "),
+  }
+}
 
 describe("planSampleItems", () => {
-  it("gives a file-backed config one file per item", () => {
+  it("gives a file-backed config one bundled file per item, with its size", () => {
     const plan = planSampleItems({
       objects: [obj("image")],
       controls: [ctrl("rectanglelabels", "box", "image")],
@@ -27,42 +39,75 @@ describe("planSampleItems", () => {
     expect(plan.files.map((file) => file.path)).toEqual(
       plan.items.map((item) => item.file)
     )
-    expect(plan.items.every((item) => item.isImage && !item.data)).toBe(true)
+    expect(assets(plan.files)).toContain("images/street-new-york.jpg")
+    expect(
+      plan.items.every((item) => item.width! > 0 && item.height! > 0)
+    ).toBe(true)
   })
 
-  it("fills every field of a judgement row, drawing its image fields", () => {
+  it("picks the data that fits the template", () => {
+    const pick = (id: string) => {
+      const { config, context } = templateContext(id)
+      return assets(planSampleItems(config, context).files)
+    }
+
+    expect(pick("ocr")).toContain("images/receipt-switzerland.jpg")
+    expect(pick("medical-image-classification")).toContain(
+      "images/chest-xray-1.jpg"
+    )
+    expect(pick("speaker-segmentation")).toContain(
+      "audio/apollo-13-we-have-a-problem.mp3"
+    )
+    expect(pick("ls-activity-recognition")).toContain(
+      "timeseries/activity-1.csv"
+    )
+    expect(pick("video-timeline")).toContain("video/skateboard-kickflip.mp4")
+  })
+
+  it("fills every field of a judgement row, sharing its photos", () => {
     const plan = planSampleItems({
       objects: [fieldObj("image", "query"), fieldObj("image", "candidate_1")],
       controls: [ctrl("choices", "match", "query")],
     })
 
     expect(plan.items).toHaveLength(3)
-    expect(plan.files).toHaveLength(6)
     expect(plan.items[0].file).toBeUndefined()
+    // The query and its first candidate show the same subject.
     expect(plan.items[0]).toMatchObject({
       data: {
-        query: { file: "task-1-query.png" },
-        candidate_1: { file: "task-1-candidate_1.png" },
+        query: { file: "dog-1.jpg" },
+        candidate_1: { file: "dog-2.jpg" },
       },
     })
+    expect(new Set(plan.files.map((file) => file.path)).size).toBe(
+      plan.files.length
+    )
   })
 
   it("inlines the main document when a text item carries extra fields", () => {
-    const plan = planSampleItems({
-      objects: [obj("text"), textObj("question", "Question")],
-      controls: [
-        ctrl("labels", "answer", "text"),
-        ctrl("choices", "ok", "text"),
-      ],
-    })
+    const plan = planSampleItems(
+      {
+        objects: [obj("text"), textObj("question", "Question")],
+        controls: [
+          ctrl("labels", "answer", "text"),
+          ctrl("choices", "ok", "text"),
+        ],
+      },
+      "question answering"
+    )
 
     expect(Object.keys(plan.items[0].data ?? {}).sort()).toEqual([
       "question",
       "text",
     ])
+    // The question is about the passage it sits beside.
+    expect(plan.items[1].data).toMatchObject({
+      text: READING_PASSAGES[1].context,
+      question: READING_PASSAGES[1].question,
+    })
   })
 
-  it("seeds table rows inline and video with no items", () => {
+  it("seeds table rows inline and video clips with their metadata", () => {
     const table = planSampleItems({
       objects: [obj("table")],
       controls: [ctrl("choices", "label", "table")],
@@ -74,78 +119,92 @@ describe("planSampleItems", () => {
 
     expect(table.items.length).toBeGreaterThan(0)
     expect(table.items.every((item) => item.data && !item.file)).toBe(true)
-    expect(video.items).toEqual([])
-    expect(video.note).toMatch(/video/i)
+    expect(video.items.length).toBeGreaterThan(0)
+    expect(video.items[0].video).toMatchObject({ width: 640, height: 360 })
   })
 
-  it("produces items for every non-video template in the catalog", () => {
-    const empty = LABELING_TEMPLATES.filter((template) => {
-      const config = configForTemplate(template)
-      const isVideo = config.objects.some((object) => object.tag === "video")
-      return !isVideo && planSampleItems(config).items.length === 0
-    }).map((template) => template.id)
+  it("produces items for every template, from files that are bundled", () => {
+    const empty: string[] = []
+    const missing = new Set<string>()
+    for (const template of LABELING_TEMPLATES) {
+      const plan = planSampleItems(
+        configForTemplate(template),
+        [template.id, template.label, template.description].join(" ")
+      )
+      if (plan.items.length === 0) empty.push(template.id)
+      for (const asset of assets(plan.files)) {
+        if (!existsSync(resolve(SAMPLES, asset))) missing.add(asset)
+      }
+    }
 
     expect(empty).toEqual([])
+    expect([...missing]).toEqual([])
   })
 })
 
-describe("sample content", () => {
-  it("writes a DICOM series that decodes slice by slice", () => {
-    const { files, series } = sampleDicomSeries(0, "ct-1")
-    expect(files).toHaveLength(series.slices.length)
-    const bytes = Uint8Array.from(atob(files[7].dataUrl.split(",")[1]), (char) =>
-      char.charCodeAt(0)
+describe("sample row text", () => {
+  it("gives preference rows a real prompt and two different replies", () => {
+    const hint = "human preference (rlhf)"
+    const prompt = sampleFieldText("prompt", 0, hint)
+
+    expect(prompt).toMatch(/polar bears/i)
+    expect(sampleFieldText("response_a", 0, hint)).not.toBe(
+      sampleFieldText("response_b", 0, hint)
     )
-    expect(readSliceInfo(files[7].path, bytes)).toMatchObject({
-      seriesUid: series.uid,
-      instance: 8,
-      rows: 128,
+  })
+
+  it("gives retrieval rows a query and distinct passages", () => {
+    const hint = "document retrieval rank documents"
+    const passages = ["text1", "text2", "text3"].map((name) =>
+      sampleFieldText(name, 0, hint)
+    )
+
+    expect(sampleFieldText("query", 0, hint)).toMatch(/\?$/)
+    expect(new Set(passages).size).toBe(3)
+  })
+})
+
+describe("bundled sample files", () => {
+  it("has CT slices that decode to Hounsfield units", () => {
+    const bytes = new Uint8Array(bundled("dicom/lidc-1/IM0006"))
+    expect(readSliceInfo("IM0006", bytes)).toMatchObject({
+      modality: "CT",
+      rows: 256,
+      columns: 256,
+      instance: 6,
     })
     const pixels = decodeSlice(bytes)
     expect(pixels.min).toBeLessThan(-900)
-    // The lesion (HU ~120) crosses the middle slices.
+    // Soft tissue and the nodule are well above air.
     expect(pixels.max).toBeGreaterThan(100)
   })
 
-  it("writes an ASCII PCD whose header matches its points", () => {
-    const lines = samplePointCloudPcd(0).trim().split("\n")
-    const declared = Number(lines.find((line) => line.startsWith("POINTS"))!.split(" ")[1])
-    const data = lines.slice(lines.indexOf("DATA ascii") + 1)
-    expect(data).toHaveLength(declared)
-    expect(data[0].split(" ")).toHaveLength(4)
+  it("has binary PCD scans whose header matches their size", () => {
+    const raw = bundled("pointcloud/toronto-street-1.pcd")
+    const end = raw.indexOf("DATA binary\n") + "DATA binary\n".length
+    const header = raw.subarray(0, end).toString()
+    const points = Number(/^POINTS (\d+)$/m.exec(header)![1])
+
+    expect(header).toContain("FIELDS x y z intensity")
+    expect(raw.length - end).toBe(points * 16)
   })
 
-  it("writes a WAV whose header matches its length", () => {
-    const base64 = sampleWavDataUrl(0, 1).split(",")[1]
-    const bytes = Uint8Array.from(atob(base64), (char) => char.charCodeAt(0))
-    const view = new DataView(bytes.buffer)
-    const text = (offset: number) =>
-      String.fromCharCode(...bytes.subarray(offset, offset + 4))
+  it("has time series with a time column and numeric channels", () => {
+    for (const name of [
+      "activity-1",
+      "ecg-pvc",
+      "potomac-river-flow",
+      "wti-crude-oil-2024",
+    ]) {
+      const [header, first] = bundled(`timeseries/${name}.csv`)
+        .toString()
+        .split("\n")
+      const cells = first.split(",")
 
-    expect([text(0), text(8), text(36)]).toEqual(["RIFF", "WAVE", "data"])
-    expect(view.getUint32(4, true)).toBe(bytes.length - 8)
-    expect(view.getUint32(40, true)).toBe(bytes.length - 44)
-  })
-
-  it("writes a PDF whose cross-reference offsets point at its objects", () => {
-    const pdf = samplePdf("Title (draft)", ["one", "two"])
-    const xrefAt = Number(/startxref\n(\d+)/.exec(pdf)![1])
-    const offsets = [...pdf.matchAll(/^(\d{10}) 00000 n /gm)].map((match) =>
-      Number(match[1])
-    )
-
-    expect(pdf.startsWith("%PDF-1.4")).toBe(true)
-    expect(pdf.slice(xrefAt, xrefAt + 4)).toBe("xref")
-    offsets.forEach((offset, index) =>
-      expect(pdf.slice(offset, offset + 7)).toBe(`${index + 1} 0 obj`)
-    )
-    expect(pdf).toContain("(Title \\(draft\\)) Tj")
-  })
-
-  it("writes a parseable series with a header and one row per sample", () => {
-    const lines = sampleTimeSeriesCsv(0).trim().split("\n")
-
-    expect(lines[0]).toBe("time,velocity,temperature")
-    expect(lines).toHaveLength(241)
+      expect(header.split(",")[0]).toBe("time")
+      expect(
+        cells.slice(1).every((cell) => Number.isFinite(Number(cell)))
+      ).toBe(true)
+    }
   })
 })
