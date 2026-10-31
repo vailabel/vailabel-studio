@@ -37,6 +37,7 @@ import {
 } from "@/shared/components/settings-ui"
 import { useProjectSettingsViewModel } from "@/features/projects/model/use-project-settings-viewmodel"
 import { useCloudStorageViewModel } from "@/shared/model/cloud-storage-viewmodel"
+import { TrainingSettingsSection } from "@/features/projects/components/training-settings-section"
 import type { Project } from "@/shared/types/core"
 import { useNavigate } from "react-router-dom"
 import { paths } from "@/shared/lib/routes"
@@ -267,6 +268,12 @@ export function ProjectSettingsTab({
           </SettingRow>
         </div>
       </SettingsSection>
+
+      <TrainingSettingsSection
+        config={vm.config.training}
+        disabled={vm.isSaving}
+        onChange={vm.patchTraining}
+      />
 
       {/* ── Cloud storage ────────────────────────────────────────────── */}
       <SettingsSection

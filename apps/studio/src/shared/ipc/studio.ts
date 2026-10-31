@@ -1,3 +1,7 @@
+import type {
+  TrainingAgentInfo,
+  TrainingAgentTestRequest,
+} from "@/shared/types/training-agent"
 import { invokeWithLogging } from "@/shared/ipc/invoke"
 import type { GitHubRelease } from "@/shared/lib/github-releases"
 import type {
@@ -352,6 +356,8 @@ export const studioCommands = {
     call<TrainingJob>("training_stop", { payload: { id } }),
   trainingList: () => call<TrainingJob[]>("training_list"),
   trainingSync: () => call<TrainingJob[]>("training_sync"),
+  trainingAgentTest: (payload: TrainingAgentTestRequest) =>
+    call<TrainingAgentInfo>("training_agent_test", { payload }),
   trainingExportOnnx: (jobId: string) =>
     call<ExportResult>("training_export_onnx", { payload: { id: jobId } }),
   trainingLogs: (jobId: string, offset = 0) =>

@@ -181,6 +181,30 @@ impl TrainingAppService {
         Ok(())
     }
 
+    /// Mark the in-flight runs `should_fail` selects as `failed` with `reason`,
+    /// emitting an updated event per run. Used when one trainer dies and only
+    /// the runs it owned are lost (runs on a remote agent keep going).
+    pub fn fail_in_flight_where(
+        &self,
+        reason: &str,
+        should_fail: impl Fn(&TrainingRun) -> bool,
+    ) -> DomainResult<Vec<TrainingRun>> {
+        let mut changed = Vec::new();
+        for mut run in self.repo.list()? {
+            if !run.status.is_in_flight() || !should_fail(&run) {
+                continue;
+            }
+            run.status = TrainingStatus::failed();
+            run.error = Some(reason.to_string());
+            run.updated_at = now_iso();
+            run.finished_at = Some(now_iso());
+            let saved = self.repo.update(&run)?;
+            self.publish(&saved, &TrainingEvent::Updated { id: saved.id.clone() })?;
+            changed.push(saved);
+        }
+        Ok(changed)
+    }
+
     fn publish(&self, run: &TrainingRun, event: &TrainingEvent) -> DomainResult<()> {
         let payload = to_value(run)?;
         self.events

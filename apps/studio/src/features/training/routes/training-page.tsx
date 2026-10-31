@@ -27,6 +27,9 @@ import {
   SelectValue,
 } from "@/shared/ui/select"
 import { useStartTraining } from "@/shared/model/ai-runtime-viewmodel"
+import { useTrainingAgents } from "@/shared/model/training-agents-viewmodel"
+import { TrainingTarget } from "@/shared/components/training/training-target"
+import { mergeProjectConfig } from "@/shared/types/project-config"
 import { AugmentationControls } from "@/shared/components/training/augmentation-controls"
 import { AugmentationPreview } from "@/features/training/components/augmentation-preview"
 import {
@@ -65,8 +68,11 @@ export default function TrainingPage() {
   const [augPreset, setAugPreset] = useState<AugKey | "custom">("standard")
   const [aug, setAug] = useState<Augmentation>(AUG_PRESETS.standard.values)
   const [result, setResult] = useState<DatasetExportResult | null>(null)
+  const [agentId, setAgentId] = useState<string | undefined>()
+  const [continueFromLast, setContinueFromLast] = useState(true)
 
   const { start, busy, error } = useStartTraining()
+  const { agents } = useTrainingAgents()
 
   // Load the project name + a real sample image to drive the live preview.
   useEffect(() => {
@@ -77,6 +83,11 @@ export default function TrainingPage() {
         const project = await projectsService.getById(projectId)
         if (cancelled) return
         setProjectName(project?.name ?? "")
+        // Start from the project's own training defaults (Project → Settings).
+        const defaults = mergeProjectConfig(project?.config).training
+        setAgentId(defaults.agentId)
+        setContinueFromLast(defaults.continueFromLast)
+        setFamily(defaults.modelFamily)
         if ((project?.modality ?? "image") !== "image") return
         const items = await itemsService.getItemRange(projectId, 0, 12)
         if (cancelled) return
@@ -118,6 +129,8 @@ export default function TrainingPage() {
       epochs: Number(epochs) || undefined,
       imgsz: Number(imgsz) || undefined,
       augmentation: { ...aug } as Record<string, number>,
+      agentId,
+      continueFromLast,
     })
     if (summary) setResult(summary)
   }
@@ -207,6 +220,14 @@ export default function TrainingPage() {
                     onChange={(e) => setName(e.target.value)}
                   />
                 </div>
+                <TrainingTarget
+                  agents={agents}
+                  agentId={agentId}
+                  onAgentChange={setAgentId}
+                  continueFromLast={continueFromLast}
+                  onContinueChange={setContinueFromLast}
+                  disabled={busy}
+                />
               </CardContent>
             </Card>
 

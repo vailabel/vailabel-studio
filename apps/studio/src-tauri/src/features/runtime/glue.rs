@@ -1080,6 +1080,14 @@ fn now_iso() -> String {
 /// `updated` event per changed run.
 pub fn reconcile_jobs_on_crash(app: &tauri::AppHandle) {
     if let Some(state) = app.try_state::<crate::AppState>() {
-        let _ = state.training_service.reconcile_in_flight_failed();
+        // Only runs on the embedded runtime died with it; runs on a training
+        // agent are still going.
+        let _ = state
+            .training_service
+            .fail_in_flight_where("runtime crashed", |run| {
+                crate::features::training::agents::RunMeta::of(&run.config)
+                    .agent_id
+                    .is_none()
+            });
     }
 }

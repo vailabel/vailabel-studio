@@ -44,6 +44,16 @@ pub struct ExportPayload {
     pub opts: Value,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentTestPayload {
+    /// A saved agent (its token is read from the keychain)…
+    pub agent_id: Option<String>,
+    /// …or an address + token not saved yet.
+    pub url: Option<String>,
+    pub token: Option<String>,
+}
+
 // ───────────────────────────── Training ─────────────────────────────
 
 #[tauri::command]
@@ -95,6 +105,14 @@ pub async fn training_logs(
 #[tauri::command]
 pub fn training_report(state: State<'_, AppState>, payload: IdPayload) -> Result<Value, AppError> {
     super::ops::training_report(state.inner(), payload.id)
+}
+
+#[tauri::command]
+pub async fn training_agent_test(
+    state: State<'_, AppState>,
+    payload: AgentTestPayload,
+) -> Result<Value, AppError> {
+    super::ops::training_agent_test(state.inner(), payload).await
 }
 
 // ───────────────────────────── Export ───────────────────────────────

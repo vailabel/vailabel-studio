@@ -35,6 +35,7 @@ pub struct AppState {
     pub runtime_service: Arc<runtime_manager::RuntimeService>,
     pub plugin_registry: Arc<Mutex<vailabel_plugin::PluginRegistry>>,
     pub training_service: Arc<vailabel_training::application::TrainingAppService>,
+    pub agent_resolver: Arc<dyn crate::features::training::agents::AgentResolver>,
     pub copilot_service: Arc<crate::features::copilot::bridge::CopilotBridge>,
     pub settings_service: Arc<vailabel_workspace::application::SettingAppService>,
     pub history_service: Arc<vailabel_workspace::application::HistoryAppService>,
@@ -48,6 +49,7 @@ pub struct AppState {
     /// directly (trained-model registration, project class names).
     pub ai_model_repo: Arc<dyn vailabel_models::domain::AiModelRepository>,
     pub label_repo: Arc<dyn vailabel_annotation::domain::LabelRepository>,
+    pub annotation_repo: Arc<dyn vailabel_annotation::domain::AnnotationRepository>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -264,9 +266,21 @@ pub fn run() {
             let training_repo: Arc<dyn vailabel_training::domain::TrainingRepository> = Arc::new(
                 vailabel_training::infrastructure::DieselTrainingRepository::new(db.clone())?,
             );
+            // Runs train on the embedded runtime or on a registered training
+            // agent; the router picks per run, so the service sees one runtime.
+            let agent_resolver: Arc<dyn crate::features::training::agents::AgentResolver> =
+                Arc::new(crate::features::training::agents::SettingsAgentResolver::new(
+                    settings_repo.clone(),
+                ));
             let training_runtime: Arc<dyn vailabel_training::application::TrainingRuntime> =
-                Arc::new(crate::features::training::runtime_port::BinaryTrainingRuntime::new(
-                    runtime_service.clone(),
+                Arc::new(crate::features::training::remote_port::RoutingTrainingRuntime::new(
+                    Arc::new(
+                        crate::features::training::runtime_port::BinaryTrainingRuntime::new(
+                            runtime_service.clone(),
+                        ),
+                    ),
+                    agent_resolver.clone(),
+                    training_repo.clone(),
                 ));
             let training_service = Arc::new(
                 vailabel_training::application::TrainingAppService::new(
@@ -313,6 +327,7 @@ pub fn run() {
                 runtime_service: runtime_service.clone(),
                 plugin_registry,
                 training_service,
+                agent_resolver,
                 copilot_service,
                 settings_service,
                 history_service,
@@ -322,7 +337,11 @@ pub fn run() {
                 dataset_service,
                 ai_model_repo,
                 label_repo,
+                annotation_repo,
             });
+
+            // Automatic retraining for projects that enable it.
+            crate::features::training::auto_retrain::spawn(app.handle().clone());
 
             // Eager-start the embedded AI runtime in the background so detection,
             // segmentation, and the copilot are ready when the user first needs
@@ -491,6 +510,7 @@ pub fn run() {
             features::training::commands::training_stop,
             features::training::commands::training_list,
             features::training::commands::training_sync,
+            features::training::commands::training_agent_test,
             features::training::commands::training_logs,
             features::training::commands::training_report,
             features::training::commands::export_onnx,

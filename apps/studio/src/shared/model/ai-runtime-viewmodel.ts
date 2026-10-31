@@ -13,6 +13,7 @@ import type {
   TrainingReport,
 } from "@/shared/types/ai-runtime"
 import { toErrorMessage } from "@/shared/lib/errors"
+import { RUN_META_KEY, type TrainingRunMeta } from "@/shared/types/training-agent"
 
 const DEFAULT_STATUS: RuntimeStatus = { state: "stopped", restartCount: 0 }
 
@@ -291,6 +292,10 @@ export function useStartTraining(onStarted?: () => void) {
        *  merged into the training config. ultralytics applies them on the fly
        *  per batch during training — no pre-generated images on disk. */
       augmentation?: Record<string, number>
+      /** Training agent to run on; omit to train on this computer. */
+      agentId?: string
+      /** Fine-tune from the project's last trained model. */
+      continueFromLast?: boolean
     }): Promise<DatasetExportResult | null> => {
       setBusy(true)
       setError(null)
@@ -305,6 +310,11 @@ export function useStartTraining(onStarted?: () => void) {
         if (opts.epochs) config.epochs = opts.epochs
         if (opts.imgsz) config.imgsz = opts.imgsz
         if (opts.augmentation) Object.assign(config, opts.augmentation)
+        // Not trainer options: where the run trains and what it starts from.
+        const meta: TrainingRunMeta = {}
+        if (opts.agentId) meta.agentId = opts.agentId
+        if (opts.continueFromLast) meta.continueFrom = "last"
+        config[RUN_META_KEY] = meta
 
         await aiRuntimeService.startTraining({
           projectId: opts.projectId,

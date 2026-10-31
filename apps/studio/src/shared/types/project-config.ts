@@ -34,11 +34,28 @@ export interface ProjectAiConfig {
   copilotVision: CopilotVision
 }
 
+export type TrainingFamily = "yolo" | "rtdetr"
+
+/** How this project's detector is (re)trained. */
+export interface ProjectTrainingConfig {
+  /** Start a training run automatically once enough new items are labeled. */
+  autoRetrain: boolean
+  /** Newly labeled items (since the last run) that trigger a retrain. */
+  minNewItems: number
+  /** Training agent to run on. undefined = this computer. */
+  agentId?: string
+  modelFamily: TrainingFamily
+  epochs: number
+  /** Fine-tune from the project's last trained model instead of from scratch. */
+  continueFromLast: boolean
+}
+
 export interface ProjectConfig {
   general: ProjectGeneralConfig
   export: ProjectExportConfig
   ai: ProjectAiConfig
   storage: ProjectStorageConfig
+  training: ProjectTrainingConfig
 }
 
 export const DEFAULT_PROJECT_CONFIG: ProjectConfig = {
@@ -62,6 +79,14 @@ export const DEFAULT_PROJECT_CONFIG: ProjectConfig = {
     connectionId: undefined,
     prefix: undefined,
   },
+  training: {
+    autoRetrain: false,
+    minNewItems: 50,
+    agentId: undefined,
+    modelFamily: "yolo",
+    epochs: 50,
+    continueFromLast: true,
+  },
 }
 
 /** Merge a partial config over the defaults, section by section. */
@@ -72,5 +97,6 @@ export function mergeProjectConfig(partial?: Partial<ProjectConfig> | null): Pro
     export: { ...DEFAULT_PROJECT_CONFIG.export, ...partial.export },
     ai: { ...DEFAULT_PROJECT_CONFIG.ai, ...partial.ai },
     storage: { ...DEFAULT_PROJECT_CONFIG.storage, ...partial.storage },
+    training: { ...DEFAULT_PROJECT_CONFIG.training, ...partial.training },
   }
 }

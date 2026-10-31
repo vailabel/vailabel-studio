@@ -64,6 +64,12 @@ export function useProjectSettingsViewModel({
     [config, saveConfig]
   )
 
+  const patchTraining = useCallback(
+    (patch: Partial<ProjectConfig["training"]>) =>
+      saveConfig({ ...config, training: { ...config.training, ...patch } }),
+    [config, saveConfig]
+  )
+
   const deleteProject = useCallback(async () => {
     if (!project) return
     setIsDeleting(true)
@@ -83,6 +89,7 @@ export function useProjectSettingsViewModel({
     patchExport,
     patchAi,
     patchStorage,
+    patchTraining,
     deleteProject,
   }
 }

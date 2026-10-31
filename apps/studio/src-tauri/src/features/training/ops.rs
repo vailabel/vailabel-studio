@@ -13,8 +13,64 @@ use runtime_manager::ExportRequest;
 use vailabel_training::application::{StartTrainingCommand, SyncTrainingUpdate};
 use vailabel_training::domain::parse_results_csv;
 
-use super::commands::{ExportPayload, JobLogsPayload, TrainingStartPayload};
+use vailabel_training::domain::TrainingRun;
+
+use super::agents::RunMeta;
+use super::commands::{AgentTestPayload, ExportPayload, JobLogsPayload, TrainingStartPayload};
+use super::remote_sync;
 use crate::{emit_activity, emit_domain_event, ActivityEvent, AppError, AppState};
+
+/// Where a finished run's best weights are on this machine, if it has any:
+/// the trainer-reported path, else the deterministic
+/// `<training-logs>/<job_id>/weights/best.pt` layout.
+pub fn run_weights(run: &TrainingRun) -> Option<std::path::PathBuf> {
+    run.metrics
+        .get("weights")
+        .and_then(Value::as_str)
+        .map(std::path::PathBuf::from)
+        .filter(|path| path.is_file())
+        .or_else(|| {
+            remote_sync::local_run_dir(run)
+                .map(|dir| dir.join("weights").join("best.pt"))
+                .filter(|path| path.is_file())
+        })
+}
+
+/// Which trainer family produced a run: recorded on runs Studio started since
+/// agents existed; for older runs, read from the trainer's own `args.yaml`.
+fn run_family(run: &TrainingRun, weights: &std::path::Path) -> String {
+    if let Some(family) = RunMeta::of(&run.config).model_family {
+        return family.to_lowercase();
+    }
+    let args = weights
+        .parent()
+        .and_then(|dir| dir.parent())
+        .map(|dir| dir.join("args.yaml"))
+        .and_then(|path| std::fs::read_to_string(path).ok())
+        .unwrap_or_default()
+        .to_lowercase();
+    if args.contains("rtdetr") { "rtdetr" } else { "yolo" }.to_string()
+}
+
+/// The project's most recent finished run of `family` that still has weights
+/// on disk — what "continue training" fine-tunes from.
+pub fn latest_weights(
+    state: &AppState,
+    project_id: &str,
+    family: &str,
+) -> Result<Option<(String, std::path::PathBuf)>, AppError> {
+    let mut runs: Vec<TrainingRun> = state
+        .training_service
+        .list()?
+        .into_iter()
+        .filter(|run| run.project_id == project_id && run.status.as_str() == "completed")
+        .collect();
+    runs.sort_by(|a, b| b.finished_at.cmp(&a.finished_at));
+    Ok(runs.into_iter().find_map(|run| {
+        let weights = run_weights(&run)?;
+        (run_family(&run, &weights) == family.to_lowercase()).then_some((run.id, weights))
+    }))
+}
 
 /// `training_start`: the binary owns the filesystem — mint the job id and its
 /// log path, then hand off to the training app-service.
@@ -31,6 +87,30 @@ pub async fn training_start(
         .to_string_lossy()
         .to_string();
 
+    // Studio's bookkeeping rides in `config._studio`; trainer options are
+    // everything else. Resolve "continue from the last model" to real weights
+    // now, so the run records exactly what it started from.
+    let mut meta = RunMeta::of(&payload.config);
+    meta.model_family = Some(payload.model_family.clone());
+    // The baseline automatic retraining measures "new labels" against.
+    meta.labeled_items =
+        super::auto_retrain::count_labeled_items(state, &payload.project_id).ok();
+    let mut config = payload.config;
+    if meta.continue_from.as_deref() == Some("last") {
+        // No earlier model yet (the project's first run) → train from the stock
+        // base weights; the run simply has no `baseRunId`.
+        if let Some((run_id, weights)) =
+            latest_weights(state, &payload.project_id, &payload.model_family)?
+        {
+            if !config.is_object() {
+                config = json!({});
+            }
+            config["weights"] = json!(weights.to_string_lossy());
+            meta.base_run_id = Some(run_id);
+        }
+    }
+    let config = meta.write_into(config);
+
     let run = state
         .training_service
         .start(StartTrainingCommand {
@@ -40,16 +120,16 @@ pub async fn training_start(
             model_family: payload.model_family,
             dataset_path: payload.dataset_path,
             name: payload.name,
-            config: payload.config,
+            config,
             log_path,
         })
         .await?;
     Ok(serde_json::to_value(run)?)
 }
 
-/// `training_sync`: pull live job snapshots from the runtime and reconcile them
-/// into the stored runs (progress/metrics/terminal status). A no-op when the
-/// runtime isn't running. Every *changed* run is mirrored to the unified
+/// `training_sync`: pull live job snapshots — from the embedded runtime and from
+/// any training agents with runs in flight — and reconcile them into the stored
+/// runs (progress/metrics/terminal status). A no-op when nothing is training. Every *changed* run is mirrored to the unified
 /// `studio://activity` channel so the global indicator shows live training
 /// progress alongside downloads — `sync` returns only changed runs, so a
 /// terminal run is emitted exactly once (no re-add after it auto-dismisses).
@@ -57,24 +137,44 @@ pub async fn training_sync(
     app: &tauri::AppHandle,
     state: &AppState,
 ) -> Result<Vec<Value>, AppError> {
-    let svc = state.runtime_service.clone();
-    let Some(client) = svc.try_client() else {
-        return Ok(Vec::new());
-    };
-    let jobs = match client.training_jobs().await {
-        Ok(jobs) => jobs,
-        Err(_) => return Ok(Vec::new()),
-    };
-    let updates = jobs
-        .into_iter()
-        .map(|j| SyncTrainingUpdate {
-            job_id: j.job_id,
-            status: j.status,
-            progress: j.progress,
-            metrics: j.metrics,
-            error: j.error,
-        })
-        .collect();
+    let mut updates: Vec<SyncTrainingUpdate> = Vec::new();
+
+    // Runs on this computer: snapshots from the embedded runtime, when it's up.
+    if let Some(client) = state.runtime_service.try_client() {
+        if let Ok(jobs) = client.training_jobs().await {
+            updates.extend(jobs.into_iter().map(|j| SyncTrainingUpdate {
+                job_id: j.job_id,
+                status: j.status,
+                progress: j.progress,
+                metrics: j.metrics,
+                error: j.error,
+            }));
+        }
+    }
+
+    // Runs on a training agent. One sync at a time: the UI polls every couple
+    // of seconds, and a weights download can easily outlast that — a second
+    // overlapping sync would download the same artifacts over the first.
+    static REMOTE_SYNC: std::sync::OnceLock<tokio::sync::Mutex<()>> = std::sync::OnceLock::new();
+    if let Ok(_guard) = REMOTE_SYNC
+        .get_or_init(|| tokio::sync::Mutex::new(()))
+        .try_lock()
+    {
+        let remote: Vec<TrainingRun> = state
+            .training_service
+            .list()?
+            .into_iter()
+            .filter(|run| {
+                run.status.is_in_flight() && RunMeta::of(&run.config).agent_id.is_some()
+            })
+            .collect();
+        if !remote.is_empty() {
+            updates.extend(
+                remote_sync::collect_updates(state.agent_resolver.as_ref(), remote).await,
+            );
+        }
+    }
+
     let changed = state.training_service.sync(updates)?;
     let mut out = Vec::with_capacity(changed.len());
     for run in &changed {
@@ -117,6 +217,19 @@ fn emit_training_activity(app: &tauri::AppHandle, run: &Value) {
 /// `training_logs`: stream per-job logs from the runtime, falling back to the
 /// on-disk log file when the runtime isn't serving them.
 pub async fn training_logs(state: &AppState, payload: JobLogsPayload) -> Result<Value, AppError> {
+    // A run still training on an agent: its log is there, not here. (Once it
+    // finishes, sync copies the log locally and the fallback below serves it.)
+    if let Some(run) = state.training_service.get(&payload.job_id)? {
+        if let (true, Some(agent_id)) =
+            (run.status.is_in_flight(), RunMeta::of(&run.config).agent_id)
+        {
+            if let Ok(client) = state.agent_resolver.client_for(&agent_id) {
+                if let Ok(chunk) = client.logs(&payload.job_id, payload.offset).await {
+                    return Ok(serde_json::to_value(chunk)?);
+                }
+            }
+        }
+    }
     let svc = state.runtime_service.clone();
     if let Some(client) = svc.try_client() {
         if let Ok(chunk) = client.training_logs(&payload.job_id, payload.offset).await {
@@ -232,20 +345,7 @@ pub async fn training_export_onnx(
         return Ok(json!({ "ok": true, "reused": true, "outputPath": output_path }));
     }
 
-    let weights = run
-        .metrics
-        .get("weights")
-        .and_then(Value::as_str)
-        .map(std::path::PathBuf::from)
-        .filter(|p| p.exists())
-        .or_else(|| {
-            run.log_path.as_ref().and_then(|lp| {
-                std::path::Path::new(lp)
-                    .parent()
-                    .map(|dir| dir.join(&job_id).join("weights").join("best.pt"))
-                    .filter(|p| p.exists())
-            })
-        })
+    let weights = run_weights(&run)
         .ok_or_else(|| {
             AppError::Message(
                 "No trained weights found for this job. Train with the embedded runtime \
@@ -404,4 +504,29 @@ fn report_dir(metrics: &Value, log_path: Option<&str>) -> Option<std::path::Path
         }
     }
     None
+}
+
+/// `training_agent_test`: reach an agent and report who answered. Takes either
+/// a saved agent's id (token from the keychain) or an address + token being
+/// typed into the "add agent" form.
+pub async fn training_agent_test(
+    state: &AppState,
+    payload: AgentTestPayload,
+) -> Result<Value, AppError> {
+    let client = match (payload.agent_id, payload.url, payload.token) {
+        (_, Some(url), Some(token)) if !token.trim().is_empty() => {
+            super::agents::client(&url, &token)?
+        }
+        (Some(agent_id), _, _) => state.agent_resolver.client_for(&agent_id)?,
+        _ => {
+            return Err(AppError::Message(
+                "Enter the agent's address and access token.".into(),
+            ))
+        }
+    };
+    let info = client
+        .info()
+        .await
+        .map_err(|error| AppError::Message(error.to_string()))?;
+    Ok(serde_json::to_value(info)?)
 }
