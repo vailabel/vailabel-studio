@@ -11,6 +11,14 @@ export interface ControlValueApi {
   valueFor: (controlName: string) => Record<string, unknown> | undefined
   onSet: (control: ControlTag, value: Record<string, unknown>) => void
   onClear: (control: ControlTag) => void
+  /** Entries a Ranker orders when it targets a List object (rather than the
+   *  control's own `toNames`); `bucket` keys the stored order. */
+  rankItems?: (control: ControlTag) => RankItems | undefined
+}
+
+export interface RankItems {
+  bucket: string
+  items: Array<{ id: string; label: string; detail?: string }>
 }
 
 /** Props every whole-item control widget receives. */

@@ -29,20 +29,32 @@ describe("isConfigSupported", () => {
   it("rejects a region control its object can't draw", () => {
     expect(
       isConfigSupported({
+        objects: [fieldObj("audio", "audio")],
+        controls: [
+          ctrl("rectanglelabels", "box", "audio"),
+          ctrl("choices", "c", "audio"),
+        ],
+      })
+    ).toBe(false)
+  })
+
+  it("accepts regions on PDF pages", () => {
+    expect(
+      isConfigSupported({
         objects: [fieldObj("pdf", "pdf")],
         controls: [
           ctrl("rectanglelabels", "box", "pdf"),
           ctrl("choices", "c", "pdf"),
         ],
       })
-    ).toBe(false)
+    ).toBe(true)
   })
 
   it("rejects objects and controls with no renderer", () => {
     expect(
       isConfigSupported({
-        objects: [fieldObj("chat", "chat")],
-        controls: [ctrl("choices", "c", "chat")],
+        objects: [fieldObj("hologram", "h")],
+        controls: [ctrl("choices", "c", "h")],
       })
     ).toBe(false)
     expect(
@@ -51,6 +63,36 @@ describe("isConfigSupported", () => {
         controls: [ctrl("magicwand", "m", "html")],
       })
     ).toBe(false)
+  })
+
+  it("accepts dialogue, chat, list and the extra image tools", () => {
+    expect(
+      isConfigSupported({
+        objects: [fieldObj("paragraphs", "dialogue")],
+        controls: [
+          ctrl("paragraphlabels", "intent", "dialogue"),
+          ctrl("choices", "c", "dialogue"),
+        ],
+      })
+    ).toBe(true)
+    expect(
+      isConfigSupported({
+        objects: [fieldObj("chat", "chat")],
+        controls: [ctrl("rating", "r", "chat")],
+      })
+    ).toBe(true)
+    expect(
+      isConfigSupported({
+        objects: [textObj("query", "Query"), fieldObj("list", "results")],
+        controls: [ctrl("ranker", "rank", "results")],
+      })
+    ).toBe(true)
+    expect(
+      isConfigSupported({
+        objects: [obj("image")],
+        controls: [ctrl("brushlabels", "m", "image"), ctrl("rectangle", "r", "image")],
+      })
+    ).toBe(true)
   })
 
   it("rejects a config with nothing to label", () => {

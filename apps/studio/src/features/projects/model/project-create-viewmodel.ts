@@ -1,3 +1,4 @@
+import { scanDicomFolder, seriesFolder } from "@/shared/lib/dicom/scan"
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { services } from "@/shared/services"
@@ -162,6 +163,36 @@ export const useProjectCreateViewModel = () => {
     }
   }
 
+  // DICOM: pick a folder, read every file's header and stage one task per
+  // series (slices ordered along the patient axis), referenced in place.
+  const openDicomFolder = async () => {
+    const [folder] = await openPathDialog({ directory: true })
+    if (!folder) return
+    setIsScanning(true)
+    setError(null)
+    try {
+      const series = await scanDicomFolder(folder)
+      if (series.length === 0) {
+        setError(new Error("No readable DICOM images were found in that folder."))
+        return
+      }
+      setDocuments(
+        series.map((entry) => ({
+          id: crypto.randomUUID(),
+          name: `${entry.description} (${entry.slices.length} slices)`,
+          path: seriesFolder(entry, folder),
+          data: { series: JSON.stringify(entry) },
+        }))
+      )
+      setFolderPath(folder)
+      setName((current) => current.trim() || folderBaseName(folder))
+    } catch (nextError) {
+      setError(nextError)
+    } finally {
+      setIsScanning(false)
+    }
+  }
+
   const removeImage = (index: number) =>
     setImages((current) => current.filter((_, itemIndex) => itemIndex !== index))
 
@@ -268,6 +299,7 @@ export const useProjectCreateViewModel = () => {
       return openMediaFiles(descriptor.extensions, descriptor.grantScope)
     if (descriptor.importMode === "spreadsheet")
       return openSpreadsheetFiles(descriptor.extensions)
+    if (descriptor.importMode === "series") return openDicomFolder()
     // "none" → clips are imported later, in the editor; nothing to do here.
   }
 

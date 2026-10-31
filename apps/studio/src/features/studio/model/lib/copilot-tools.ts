@@ -29,6 +29,8 @@ const ALL_MODALITIES: Modality[] = [
   "tabular",
   "audio",
   "video",
+  "pointcloud",
+  "medical",
   "custom",
 ]
 

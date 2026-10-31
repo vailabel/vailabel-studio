@@ -1,12 +1,19 @@
 import {
+  inferModalityTask,
   isMultiFieldJudgement,
   TEXTUAL_OBJECT_TAGS,
 } from "@/shared/lib/label-config/infer"
 import { VIEWER_OBJECT_TAGS } from "@/shared/lib/label-config/support"
 import type { LabelConfig, ObjectTag } from "@/shared/lib/label-config/types"
+import type { DicomSeries } from "@/shared/lib/dicom/dicom"
 import {
+  SAMPLE_CHATS,
+  SAMPLE_DIALOGUES,
   SAMPLE_HTML,
+  SAMPLE_LISTS,
   SAMPLE_PDFS,
+  sampleDicomSeries,
+  samplePointCloudPcd,
   SAMPLE_TABLE_ROWS,
   SAMPLE_TEXTS,
   sampleFieldText,
@@ -22,9 +29,12 @@ export type SampleFile =
   | { path: string; kind: "text"; content: string }
   | { path: string; kind: "image"; variant: number; caption?: string }
   | { path: string; kind: "audio"; variant: number }
+  /** Arbitrary bytes, as a data URL (DICOM slices). */
+  | { path: string; kind: "binary"; dataUrl: string }
 
-/** A row field: literal text, or a reference to one of the plan's files. */
-export type SampleValue = string | { file: string }
+/** A row field: literal text, a reference to one of the plan's files, or a
+ *  DICOM series whose slice paths are relative to the sample folder. */
+export type SampleValue = string | { file: string } | { series: DicomSeries }
 
 export interface SampleItem {
   name: string
@@ -107,6 +117,39 @@ const FILE_KINDS: Record<string, FileKind> = {
   },
 }
 
+/** A structured text kind: one JSON document per item. */
+function jsonKind(name: string, samples: string[]): FileKind {
+  return {
+    count: samples.length,
+    file: (index) => ({
+      path: `${name}-${index + 1}.json`,
+      kind: "text",
+      content: samples[index],
+    }),
+    inline: (index) => samples[index],
+  }
+}
+
+FILE_KINDS.pointcloud = {
+  count: 2,
+  file: (index) => ({
+    path: `scan-${index + 1}.pcd`,
+    kind: "text",
+    content: samplePointCloudPcd(index),
+  }),
+}
+FILE_KINDS.paragraphs = jsonKind("dialogue", SAMPLE_DIALOGUES)
+FILE_KINDS.chat = jsonKind("chat", SAMPLE_CHATS)
+FILE_KINDS.list = jsonKind("results", SAMPLE_LISTS)
+
+const STRUCTURED_TAGS = new Set(["paragraphs", "chat", "list"])
+
+/** Text for a row field: structured objects get their own sample shape. */
+function fieldText(field: ObjectTag, row: number): string {
+  const kind = STRUCTURED_TAGS.has(field.tag) ? FILE_KINDS[field.tag] : undefined
+  return kind?.inline ? kind.inline(row % kind.count) : sampleFieldText(field.name, row)
+}
+
 /** The objects that need data. Normally those bound to a `$field`; a config
  *  whose only object binds another way (e.g. a page list) still needs a file. */
 function dataFields(config: LabelConfig): ObjectTag[] {
@@ -125,7 +168,7 @@ function planRows(fields: ObjectTag[]): SamplePlan {
     const data: Record<string, SampleValue> = {}
     fields.forEach((field, column) => {
       if (field.tag !== "image") {
-        data[field.valueKey] = sampleFieldText(field.name, row)
+        data[field.valueKey] = fieldText(field, row)
         return
       }
       const path = `task-${row + 1}-${field.name}.png`
@@ -158,7 +201,11 @@ export function planSampleItems(config: LabelConfig): SamplePlan {
     }
   }
 
-  const primary = fields.find((field) => VIEWER_TAGS.has(field.tag))
+  // A config-editor viewer, or an object with its own editor and sample files
+  // (point clouds).
+  const primary = fields.find(
+    (field) => VIEWER_TAGS.has(field.tag) || FILE_KINDS[field.tag] || field.tag === "dicom"
+  )
   if (!primary) {
     return {
       files: [],
@@ -166,11 +213,32 @@ export function planSampleItems(config: LabelConfig): SamplePlan {
       note: "This config has no data object to fill.",
     }
   }
+  if (primary.tag === "dicom") {
+    // One task per series; each series is a folder of slice files.
+    const files: SampleFile[] = []
+    const items: SampleItem[] = []
+    for (let variant = 0; variant < 2; variant++) {
+      const folder = `ct-${variant + 1}`
+      const sample = sampleDicomSeries(variant, folder)
+      for (const file of sample.files) files.push({ kind: "binary", ...file })
+      items.push({
+        name: `${sample.series.description} (${sample.series.slices.length} slices)`,
+        file: folder,
+        data: { series: { series: sample.series } },
+      })
+    }
+    return { files, items }
+  }
   if (primary.tag === "video") {
     return {
       files: [],
       items: [],
-      note: "Video clips are imported inside the editor.",
+      // Tracking projects import clips in the video editor (FFmpeg pipeline);
+      // config-driven video projects take files from the Data tab.
+      note:
+        inferModalityTask(config).modality === "video"
+          ? "Video clips are imported inside the editor."
+          : "Add video files from the project's Data tab.",
     }
   }
 
@@ -191,10 +259,7 @@ export function planSampleItems(config: LabelConfig): SamplePlan {
     }
     if (extras.length > 0) {
       item.data = Object.fromEntries(
-        extras.map((field) => [
-          field.valueKey,
-          sampleFieldText(field.name, index),
-        ])
+        extras.map((field) => [field.valueKey, fieldText(field, index)])
       )
       // An item with row data reads every text field from the row, so the main
       // document has to ride along inline too.

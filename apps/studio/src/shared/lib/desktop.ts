@@ -87,6 +87,13 @@ export const scanImageDirectory = async (directory: string) =>
     payload: { directory },
   })
 
+/** Every (non-hidden) file in a folder, optionally recursing — no extension
+ *  filter, for formats like DICOM whose files often have none. */
+export const listFiles = async (directory: string, recursive = false) =>
+  invokeWithLogging<string[]>("fs_list_files", {
+    payload: { directory, recursive },
+  })
+
 /** Parse a CSV / TSV / Excel file into `{ headers, rows }` for structured-data
  *  import. Parsing runs in Rust (calamine/csv), so `.xlsx` works without a
  *  webview parser. */

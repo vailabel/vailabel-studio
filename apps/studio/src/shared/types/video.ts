@@ -137,4 +137,6 @@ export interface IngestOptions {
 export interface SampledShape {
   shape: VideoPoint[]
   keyframe: boolean
+  /** Held from the keyframe at or before the sampled frame. */
+  occluded: boolean
 }

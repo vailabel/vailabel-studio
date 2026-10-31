@@ -41,10 +41,21 @@ Every project stores a labeling config (`settings.labelConfig`; objects + contro
 (`shared/lib/label-config/infer.ts`) routes it to a native editor (image canvas / text / audio / video /
 table) or to the config-driven editor (`features/studio/components/editors/custom`), which renders from
 registries: object viewers (`custom/object-viewers.tsx` — image, text, audio, video, hypertext, timeseries,
-pdf) and whole-item controls (`shared/components/label-config/controls/control-registry.ts`). Supported tags
+pdf, paragraphs, chat) and whole-item controls (`shared/components/label-config/controls/control-registry.ts`). Supported tags
 are listed in `shared/lib/label-config/support.ts`; template availability is derived from
 `isConfigSupported`, never hand-flagged. Results are stored as `annotation.meta` kind `"result"`.
 Sample data for every template: Projects → Samples (`features/projects/model/seed`).
+
+- **Raster regions** (image, PDF pages, DICOM slices) all go through `custom/region-surface.tsx`
+  (`use-image-region-draw` + `use-brush-draw`, tool state from `region-tools.ts`); unlabeled LS shapes
+  (`rectangle`, `brush`, …) share their labeled twin's geometry (`shapeTagOf` / `valueForControl` in
+  `result.ts`). Brush masks use Label Studio RLE (`model/lib/brush-rle.ts`, `@thi.ng/rle-pack`).
+- **Point clouds** (`pointcloud` object + `cuboidlabels`, modality `pointcloud`) and **DICOM** (`dicom`
+  object, modality `medical`) have their own lazily loaded editors (`editors/pointcloud-editor.tsx`,
+  `editors/dicom-editor.tsx`). A DICOM item is one series: `path` = folder, `item.data.series` = JSON slice
+  list (`shared/lib/dicom`), imported by the `"series"` import mode via the `fs_list_files` command.
+- **Export** formats live in `model/lib/export/index.ts` (`EXPORT_FORMATS` filtered by modality + task,
+  one writer per format).
 
 ## Annotation / labeling tools — end-to-end flow
 

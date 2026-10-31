@@ -8,6 +8,10 @@ import { ObjectHyperText } from "./object-hypertext"
 import { ObjectTimeSeries } from "./object-timeseries"
 import { ObjectAudio } from "./object-audio"
 import { ObjectPdf, ObjectVideo } from "./object-media"
+import { ObjectParagraphs } from "./object-paragraphs"
+import { ObjectChat } from "./object-chat"
+import { ObjectVideoRegions } from "./object-video-regions"
+import { ObjectPdfPages } from "./object-pdf-pages"
 
 /** What every interactive object viewer receives from the editor body. */
 export interface ObjectViewerProps {
@@ -29,6 +33,12 @@ export interface ObjectViewerProps {
     label: Label
   ) => void
   onDeleteRegion: (annotationId: string) => void
+  /** Replace a stored region's value (tracks gaining keyframes, …). */
+  onUpdateRegion: (
+    annotationId: string,
+    control: ControlTag,
+    value: Record<string, unknown>
+  ) => void
 }
 
 const resultsOf = (annotations: Annotation[], control?: ControlTag) =>
@@ -114,8 +124,57 @@ export const OBJECT_VIEWERS: Partial<
       onDeleteRegion={onDeleteRegion}
     />
   ),
-  video: ({ object, doc }) => (
-    <ObjectVideo doc={doc} valueKey={object.valueKey} />
+  video: ({
+    object,
+    doc,
+    controls,
+    annotations,
+    onCreateRegion,
+    onUpdateRegion,
+    onDeleteRegion,
+  }) =>
+    controls.length > 0 ? (
+      <ObjectVideoRegions
+        object={object}
+        doc={doc}
+        controls={controls}
+        annotations={annotations}
+        onCreateRegion={onCreateRegion}
+        onUpdateRegion={onUpdateRegion}
+        onDeleteRegion={onDeleteRegion}
+      />
+    ) : (
+      <ObjectVideo doc={doc} valueKey={object.valueKey} />
+    ),
+  pdf: ({ object, doc, controls, annotations, onCreateRegion, onDeleteRegion }) =>
+    controls.length > 0 ? (
+      <ObjectPdfPages
+        object={object}
+        doc={doc}
+        controls={controls}
+        annotations={annotations}
+        onCreateRegion={onCreateRegion}
+        onDeleteRegion={onDeleteRegion}
+      />
+    ) : (
+      <ObjectPdf doc={doc} valueKey={object.valueKey} />
+    ),
+  paragraphs: ({
+    object,
+    doc,
+    controls,
+    annotations,
+    onCreateRegion,
+    onDeleteRegion,
+  }) => (
+    <ObjectParagraphs
+      object={object}
+      doc={doc}
+      control={controls[0]}
+      spanResults={resultsOf(annotations, controls[0])}
+      onCreateRegion={onCreateRegion}
+      onDeleteRegion={onDeleteRegion}
+    />
   ),
-  pdf: ({ object, doc }) => <ObjectPdf doc={doc} valueKey={object.valueKey} />,
+  chat: ({ object, doc }) => <ObjectChat object={object} doc={doc} />,
 }

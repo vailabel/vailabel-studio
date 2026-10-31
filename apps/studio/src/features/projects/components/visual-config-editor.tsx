@@ -35,6 +35,14 @@ const CONTROL_LABELS: Record<string, string> = {
   number: "Number",
   relations: "Relations",
   pairwise: "Pairwise (A/B)",
+  ranker: "Ranker",
+  datetime: "Date / time",
+  rectangle: "Boxes (unlabeled)",
+  polygon: "Polygons (unlabeled)",
+  keypoint: "Keypoints (unlabeled)",
+  ellipse: "Ellipses (unlabeled)",
+  brush: "Brush (unlabeled)",
+  videorectangle: "Video tracks",
 }
 
 const OBJECT_OPTIONS = [

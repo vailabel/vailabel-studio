@@ -2,6 +2,9 @@
 // HTML pages, time-series CSVs, and byte-accurate WAV / PDF files are built
 // from code, so the seeder needs no bundled binaries.
 
+import { encodeDicom } from "@/shared/lib/dicom/write-dicom"
+import type { DicomSeries } from "@/shared/lib/dicom/dicom"
+
 export const SAMPLE_TEXTS = [
   "Maria Lopez joined Acme Robotics in Berlin last spring. The company, founded by Daniel Cho, plans to open a second office in Toronto next year.",
   "The city council of Lisbon approved a new tram line on Tuesday. Mayor Ana Ribeiro said construction, led by Metro Norte, should finish by 2028.",
@@ -274,3 +277,210 @@ export const SAMPLE_PDFS = [
     "Budget review postponed to the April session.",
   ]),
 ]
+
+// ── Structured text fields (Paragraphs / Chat / List objects) ────────────────
+/** Support dialogues, Label Studio Paragraphs shape. */
+export const SAMPLE_DIALOGUES = [
+  [
+    { author: "Customer", text: "Hi, my Aero 2 headphones stopped charging yesterday." },
+    { author: "Agent", text: "Sorry to hear that! Does the light turn on when you plug them in?" },
+    { author: "Customer", text: "No light at all, even with a different cable." },
+    { author: "Agent", text: "Thanks. I've started a free replacement under your warranty." },
+  ],
+  [
+    { author: "Customer", text: "I was charged twice for my March subscription." },
+    { author: "Agent", text: "I can see the duplicate payment of 12.99 on your account." },
+    { author: "Agent", text: "I've refunded it; it should arrive within five business days." },
+  ],
+  [
+    { author: "Customer", text: "How do I cancel my Pro plan before it renews?" },
+    { author: "Agent", text: "Go to Settings, then Billing, and choose Cancel plan." },
+    { author: "Customer", text: "Done, thank you!" },
+  ],
+].map((dialogue) => JSON.stringify(dialogue, null, 2))
+
+/** Assistant chats, as {role, content} messages. */
+export const SAMPLE_CHATS = [
+  [
+    { role: "user", content: "Can you help me write a polite reminder about an unpaid invoice?" },
+    { role: "assistant", content: "Of course. Here's a short draft: \"Hi Sam, a friendly reminder that invoice 0142 was due on May 3. Could you let me know when we can expect payment? Thanks!\"" },
+    { role: "user", content: "Make it a bit firmer." },
+    { role: "assistant", content: "\"Hi Sam, invoice 0142 is now two weeks overdue. Please arrange payment by Friday or let me know if there's an issue.\"" },
+  ],
+  [
+    { role: "user", content: "What's the boiling point of water at the top of Everest?" },
+    { role: "assistant", content: "Around 70 °C, because the air pressure there is about a third of sea level." },
+  ],
+  [
+    { role: "user", content: "My Python script says ModuleNotFoundError: requests." },
+    { role: "assistant", content: "Install it with `pip install requests` in the same environment you run the script from." },
+    { role: "user", content: "Still failing." },
+    { role: "assistant", content: "Check `python -m pip --version` matches the interpreter in your script's shebang or IDE." },
+  ],
+].map((chat) => JSON.stringify(chat, null, 2))
+
+/** Search result lists to rank, as {id, title, body} entries. */
+export const SAMPLE_LISTS = [
+  [
+    { id: "r1", title: "How to clean wireless earbuds safely", body: "Use a dry brush and isopropyl wipes; avoid liquids in the mesh." },
+    { id: "r2", title: "Best earbuds of the year", body: "Our picks across budgets, tested for sound and battery." },
+    { id: "r3", title: "Earbud cases and accessories", body: "Shop silicone covers, ear tips and charging docks." },
+  ],
+  [
+    { id: "r1", title: "Sourdough starter in 7 days", body: "Feed flour and water daily; discard half each time." },
+    { id: "r2", title: "Quick yeast bread recipe", body: "Ready in two hours with instant yeast." },
+    { id: "r3", title: "History of bread", body: "From ancient Egypt to modern bakeries." },
+  ],
+  [
+    { id: "r1", title: "Reset your router password", body: "Hold the reset button for 10 seconds, then sign in with the default." },
+    { id: "r2", title: "Router buying guide", body: "Wi-Fi 6 vs Wi-Fi 7 and what range you need." },
+    { id: "r3", title: "Speed up slow Wi-Fi", body: "Move the router, change channels and update firmware." },
+  ],
+].map((list) => JSON.stringify(list, null, 2))
+
+// ── Point clouds ─────────────────────────────────────────────────────────────
+/** Deterministic pseudo-random numbers in [0, 1) (seeded LCG). */
+function seeded(seed: number) {
+  let state = seed >>> 0
+  return () => {
+    state = (Math.imul(state, 1664525) + 1013904223) >>> 0
+    return state / 2 ** 32
+  }
+}
+
+/**
+ * A small synthetic LiDAR scan as ASCII PCD (x y z intensity, sensor frame:
+ * x forward, y left, z up): a ground plane plus box-shaped objects to label —
+ * a car and a pedestrian, placed differently per variant.
+ */
+export function samplePointCloudPcd(variant: number): string {
+  const random = seeded(variant + 7)
+  const points: number[][] = []
+  for (let x = -20; x <= 20; x += 0.5) {
+    for (let y = -15; y <= 15; y += 0.5) {
+      points.push([x + random() * 0.2, y + random() * 0.2, random() * 0.05, 0.2])
+    }
+  }
+  const objects = [
+    // center x, y; length, width, height; intensity
+    [6 + variant * 4, -3, 4.2, 1.8, 1.5, 0.8],
+    [-5, 4 - variant * 3, 0.6, 0.6, 1.8, 0.6],
+    [12, 6 + variant, 1.8, 0.6, 1.6, 0.7],
+  ]
+  for (const [cx, cy, length, width, height, intensity] of objects) {
+    const count = Math.round(length * width * height * 120)
+    for (let i = 0; i < count; i++) {
+      // Points on the object's surface, as a scanner would see them.
+      const face = Math.floor(random() * 3)
+      const u = random() - 0.5
+      const v = random() - 0.5
+      const side = random() < 0.5 ? -0.5 : 0.5
+      const local =
+        face === 0 ? [side, u, v + 0.5] : face === 1 ? [u, side, v + 0.5] : [u, v, 1]
+      points.push([
+        cx + local[0] * length,
+        cy + local[1] * width,
+        local[2] * height,
+        intensity,
+      ])
+    }
+  }
+  const header = [
+    "# .PCD v0.7 - VaiLabel sample scan",
+    "VERSION 0.7",
+    "FIELDS x y z intensity",
+    "SIZE 4 4 4 4",
+    "TYPE F F F F",
+    "COUNT 1 1 1 1",
+    `WIDTH ${points.length}`,
+    "HEIGHT 1",
+    "VIEWPOINT 0 0 0 1 0 0 0",
+    `POINTS ${points.length}`,
+    "DATA ascii",
+  ]
+  return [...header, ...points.map((p) => p.map((n) => n.toFixed(3)).join(" "))].join("\n") + "\n"
+}
+
+// ── DICOM ────────────────────────────────────────────────────────────────────
+const CT_IMAGE_STORAGE = "1.2.840.10008.5.1.4.1.1.2"
+const SAMPLE_UID_ROOT = "1.2.826.0.1.3680043.10.2"
+const CT_SIZE = 128
+const CT_SLICES = 16
+
+/** A generated CT series: slice files (relative paths) + the series record. */
+export interface SampleDicomSeries {
+  files: Array<{ path: string; dataUrl: string }>
+  series: DicomSeries
+}
+
+/**
+ * A small synthetic chest-CT-like series (int16, Hounsfield units via a -1024
+ * rescale): an elliptical body, two lungs and a spherical "lesion" whose
+ * position differs per variant — something to segment or box.
+ */
+export function sampleDicomSeries(variant: number, folder: string): SampleDicomSeries {
+  const seriesUid = `${SAMPLE_UID_ROOT}.${variant + 1}`
+  const lesion = { x: 40 + variant * 40, y: 58, z: 7.5, r: 9 }
+  const files: SampleDicomSeries["files"] = []
+  const slices: DicomSeries["slices"] = []
+  for (let z = 0; z < CT_SLICES; z++) {
+    const values = new Int16Array(CT_SIZE * CT_SIZE)
+    for (let y = 0; y < CT_SIZE; y++) {
+      for (let x = 0; x < CT_SIZE; x++) {
+        const nx = (x - 64) / 56
+        const ny = (y - 64) / 44
+        let hu = -1000
+        if (nx * nx + ny * ny <= 1) hu = 40
+        for (const cx of [40, 88]) {
+          const lx = (x - cx) / 18
+          const ly = (y - 60) / 28
+          if (lx * lx + ly * ly <= 1) hu = -820
+        }
+        const d = Math.hypot(x - lesion.x, y - lesion.y, (z - lesion.z) * 2)
+        if (d <= lesion.r) hu = 120
+        values[y * CT_SIZE + x] = hu + 1024 + ((x * 31 + y * 17 + z * 7) % 9) - 4
+      }
+    }
+    const sopUid = `${seriesUid}.${z + 1}`
+    const bytes = encodeDicom(CT_IMAGE_STORAGE, sopUid, [
+      { tag: "0008,0016", vr: "UI", value: CT_IMAGE_STORAGE },
+      { tag: "0008,0018", vr: "UI", value: sopUid },
+      { tag: "0008,0060", vr: "CS", value: "CT" },
+      { tag: "0008,103E", vr: "LO", value: `Sample chest CT ${variant + 1}` },
+      { tag: "0010,0010", vr: "PN", value: "SAMPLE^PHANTOM" },
+      { tag: "0020,000D", vr: "UI", value: `${SAMPLE_UID_ROOT}.0` },
+      { tag: "0020,000E", vr: "UI", value: seriesUid },
+      { tag: "0020,0013", vr: "IS", value: String(z + 1) },
+      { tag: "0020,0032", vr: "DS", value: `-64\\-64\\${z * 2.5}` },
+      { tag: "0020,0037", vr: "DS", value: "1\\0\\0\\0\\1\\0" },
+      { tag: "0028,0002", vr: "US", value: 1 },
+      { tag: "0028,0004", vr: "CS", value: "MONOCHROME2" },
+      { tag: "0028,0010", vr: "US", value: CT_SIZE },
+      { tag: "0028,0011", vr: "US", value: CT_SIZE },
+      { tag: "0028,0030", vr: "DS", value: "1\\1" },
+      { tag: "0028,0100", vr: "US", value: 16 },
+      { tag: "0028,0101", vr: "US", value: 16 },
+      { tag: "0028,0102", vr: "US", value: 15 },
+      { tag: "0028,0103", vr: "US", value: 1 },
+      { tag: "0028,1050", vr: "DS", value: "40" },
+      { tag: "0028,1051", vr: "DS", value: "400" },
+      { tag: "0028,1052", vr: "DS", value: "-1024" },
+      { tag: "0028,1053", vr: "DS", value: "1" },
+      { tag: "7FE0,0010", vr: "OW", value: new Uint8Array(values.buffer) },
+    ])
+    const path = `${folder}/IM${String(z + 1).padStart(4, "0")}`
+    files.push({ path, dataUrl: `data:application/dicom;base64,${base64(bytes)}` })
+    slices.push({ path, frame: 0, sopUid })
+  }
+  return {
+    files,
+    series: {
+      uid: seriesUid,
+      description: `Sample chest CT ${variant + 1}`,
+      modality: "CT",
+      rows: CT_SIZE,
+      columns: CT_SIZE,
+      slices,
+    },
+  }
+}

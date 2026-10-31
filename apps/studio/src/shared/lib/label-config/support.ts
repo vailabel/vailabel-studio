@@ -21,18 +21,30 @@ export const STANDALONE_CONTROL_TAGS = [
   "datetime",
 ] as const
 
+/** Shape tools of the raster region surface (images, PDF pages). */
+const RASTER_REGION_CONTROLS = [
+  "rectanglelabels",
+  "polygonlabels",
+  "keypointlabels",
+  "ellipselabels",
+  "brushlabels",
+  "rectangle",
+  "polygon",
+  "keypoint",
+  "ellipse",
+  "brush",
+] as const
+
 /** Region controls the config-driven editor can draw, per object tag. */
 export const REGION_CONTROLS_BY_OBJECT: Record<string, readonly string[]> = {
-  image: [
-    "rectanglelabels",
-    "polygonlabels",
-    "keypointlabels",
-    "ellipselabels",
-  ],
+  image: RASTER_REGION_CONTROLS,
+  pdf: RASTER_REGION_CONTROLS,
   text: ["labels"],
   audio: ["labels"],
   hypertext: ["hypertextlabels", "labels"],
   timeseries: ["timeserieslabels"],
+  paragraphs: ["paragraphlabels"],
+  video: ["videorectangle"],
 }
 
 /** Object tags with an interactive viewer in the config-driven editor (see
@@ -45,14 +57,13 @@ export const VIEWER_OBJECT_TAGS = [
   "hypertext",
   "timeseries",
   "pdf",
+  "paragraphs",
+  "chat",
 ] as const
 
 /** Data objects the config-driven editor can display — the viewers above, plus
  *  tags that only ever render as read-only context panels. */
-export const CUSTOM_OBJECT_TAGS = new Set<string>([
-  ...VIEWER_OBJECT_TAGS,
-  "paragraphs",
-])
+export const CUSTOM_OBJECT_TAGS = new Set<string>([...VIEWER_OBJECT_TAGS, "list"])
 
 const standalone = new Set<string>(STANDALONE_CONTROL_TAGS)
 

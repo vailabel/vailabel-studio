@@ -31,6 +31,8 @@ import {
   Sparkles,
   ShieldAlert,
   SlidersHorizontal,
+  Box,
+  ScanLine,
   type LucideIcon,
 } from "lucide-react"
 import type { Modality, Task } from "@/shared/types/modality"
@@ -61,6 +63,8 @@ export type DataKind =
   | "timeseries"
   | "html"
   | "pdf"
+  | "pointcloud"
+  | "dicom"
   | "ranking"
   | "multimodal"
 
@@ -166,9 +170,7 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     category: "Computer Vision",
     dataKind: "image",
     icon: Brush,
-    projectType: "segmentation",
-    modality: "image",
-    task: "segmentation",
+    modality: "custom",
     status: "available",
   },
   {
@@ -241,6 +243,16 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     modality: "custom",
     status: "available",
   },
+  {
+    id: "region-marking",
+    label: "Region Marking",
+    description: "Outline areas with unlabeled boxes and polygons",
+    category: "Computer Vision",
+    dataKind: "image",
+    icon: SquareDashed,
+    modality: "custom",
+    status: "available",
+  },
 
   // ── Video ────────────────────────────────────────────────────────────────
   {
@@ -250,9 +262,7 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     category: "Video",
     dataKind: "video",
     icon: Clapperboard,
-    projectType: "video_annotation",
-    modality: "video",
-    task: "classification",
+    modality: "custom",
     status: "available",
   },
   {
@@ -274,9 +284,52 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     category: "Video",
     dataKind: "video",
     icon: Film,
-    projectType: "video_annotation",
-    modality: "video",
-    task: "tracking",
+    modality: "custom",
+    status: "available",
+  },
+  {
+    id: "video-tracking-attributes",
+    label: "Video Tracking with Attributes",
+    description: "Track boxes across frames and tag the clip",
+    category: "Video",
+    dataKind: "video",
+    icon: Video,
+    modality: "custom",
+    status: "available",
+  },
+
+  // ── 3D & Medical ─────────────────────────────────────────────────────────
+  {
+    id: "lidar-detection",
+    label: "3D Object Detection (LiDAR)",
+    description: "Place cuboids around objects in point clouds",
+    category: "3D & Medical",
+    dataKind: "pointcloud",
+    icon: Box,
+    modality: "pointcloud",
+    task: "detection_3d",
+    status: "available",
+  },
+  {
+    id: "dicom-segmentation",
+    label: "Medical Image Segmentation (DICOM)",
+    description: "Paint masks slice by slice through a DICOM series",
+    category: "3D & Medical",
+    dataKind: "dicom",
+    icon: ScanLine,
+    modality: "medical",
+    task: "segmentation",
+    status: "available",
+  },
+  {
+    id: "dicom-lesion-detection",
+    label: "Lesion Detection (DICOM)",
+    description: "Box findings on CT / MR slices and grade the study",
+    category: "3D & Medical",
+    dataKind: "dicom",
+    icon: ScanLine,
+    modality: "medical",
+    task: "detection",
     status: "available",
   },
 
@@ -483,6 +536,16 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     task: "relation_extraction",
     status: "available",
   },
+  {
+    id: "dialogue-analysis",
+    label: "Dialogue Analysis",
+    description: "Tag spans across speaker turns and classify intent",
+    category: "Conversational AI",
+    dataKind: "text",
+    icon: MessagesSquare,
+    modality: "custom",
+    status: "available",
+  },
 
   // ── Ranking & Scoring ────────────────────────────────────────────────────
   {
@@ -535,6 +598,16 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     modality: "custom",
     status: "available",
   },
+  {
+    id: "ranked-list",
+    label: "Ranked Result List",
+    description: "Reorder a list of results for a query",
+    category: "Ranking & Scoring",
+    dataKind: "ranking",
+    icon: ListOrdered,
+    modality: "custom",
+    status: "available",
+  },
 
   // ── Structured Data ──────────────────────────────────────────────────────
   {
@@ -572,6 +645,16 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     id: "pdf-classification",
     label: "PDF Classification",
     description: "Classify PDF documents",
+    category: "Structured Data",
+    dataKind: "pdf",
+    icon: FileText,
+    modality: "custom",
+    status: "available",
+  },
+  {
+    id: "pdf-regions",
+    label: "PDF Region Labeling",
+    description: "Draw regions on every page of a document",
     category: "Structured Data",
     dataKind: "pdf",
     icon: FileText,
@@ -704,6 +787,16 @@ export const LABELING_TEMPLATES: LabelingTemplate[] = [
     modality: "custom",
     status: "available",
   },
+  {
+    id: "chat-rating",
+    label: "Chat Conversation Rating",
+    description: "Rate a chat transcript shown as message bubbles",
+    category: "Generative AI / LLM",
+    dataKind: "text",
+    icon: MessagesSquare,
+    modality: "custom",
+    status: "available",
+  },
 ]
 
 // Category display order (Label Studio groups templates the same way).
@@ -711,6 +804,7 @@ export const TEMPLATE_CATEGORY_ORDER = [
   "Custom",
   "Computer Vision",
   "Video",
+  "3D & Medical",
   "Natural Language",
   "Audio & Speech",
   "Conversational AI",
@@ -799,6 +893,8 @@ export const DATA_KIND_LABELS: Record<DataKind, string> = {
   timeseries: "Time series",
   html: "HTML / structured",
   pdf: "PDF documents",
+  pointcloud: "Point clouds",
+  dicom: "DICOM series",
   ranking: "Ranking",
   multimodal: "Multimodal",
 }

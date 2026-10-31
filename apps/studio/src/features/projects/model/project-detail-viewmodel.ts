@@ -1,3 +1,4 @@
+import { scanDicomFolder, seriesFolder } from "@/shared/lib/dicom/scan"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Annotation, Item, Label, Project } from "@/shared/types/core"
 import { z } from "zod"
@@ -42,6 +43,8 @@ interface DocumentFile {
   id: string
   name: string
   path: string
+  /** Inline item data (a DICOM series' slice list). */
+  data?: Record<string, string>
 }
 
 function fileBaseName(filePath: string): string {
@@ -228,6 +231,27 @@ export const useProjectDetailViewModel = (projectId: string) => {
     }
   }
 
+  // DICOM projects: scan a folder and stage one item per series.
+  const addDicomSeries = async () => {
+    const [folder] = await openPathDialog({ directory: true })
+    if (!folder) return
+    setIsUploading(true)
+    try {
+      const series = await scanDicomFolder(folder)
+      setNewDocuments((current) => [
+        ...current,
+        ...series.map((entry) => ({
+          id: crypto.randomUUID(),
+          name: `${entry.description} (${entry.slices.length} slices)`,
+          path: seriesFolder(entry, folder),
+          data: { series: JSON.stringify(entry) },
+        })),
+      ])
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
   // Import an annotated dataset folder (YOLO data.yaml+labels, or COCO
   // _annotations.coco.json) — classes, images, and boxes are created in the
   // backend (format auto-detected unless forced), then we reload.
@@ -330,6 +354,7 @@ export const useProjectDetailViewModel = (projectId: string) => {
       labels.find((label) => label.id === annotation.label_id),
     addImagesFromFolder,
     addDocumentFiles,
+    addDicomSeries,
     importDataset,
     handleRemoveImage: (index: number) =>
       setNewImages((current) => current.filter((_, itemIndex) => itemIndex !== index)),
@@ -347,6 +372,7 @@ export const useProjectDetailViewModel = (projectId: string) => {
               imagePath: doc.name,
               width: 0,
               height: 0,
+              ...(doc.data ? { data: doc.data } : {}),
               projectId,
               project_id: projectId,
             })

@@ -517,6 +517,7 @@ pub fn run() {
             features::system::commands::fs_read_text_file,
             features::system::commands::images_scan_directory,
             features::system::commands::allow_image_directory,
+            features::system::commands::fs_list_files,
             features::system::commands::updater_status,
         ])
         .run(tauri::generate_context!())

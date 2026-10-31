@@ -1,3 +1,4 @@
+import { decodeSlice, readSliceInfo } from "@/shared/lib/dicom/dicom"
 import {
   ctrl,
   fieldObj,
@@ -11,6 +12,8 @@ import {
   samplePdf,
   sampleTimeSeriesCsv,
   sampleWavDataUrl,
+  samplePointCloudPcd,
+  sampleDicomSeries,
 } from "./sample-content"
 
 describe("planSampleItems", () => {
@@ -87,6 +90,31 @@ describe("planSampleItems", () => {
 })
 
 describe("sample content", () => {
+  it("writes a DICOM series that decodes slice by slice", () => {
+    const { files, series } = sampleDicomSeries(0, "ct-1")
+    expect(files).toHaveLength(series.slices.length)
+    const bytes = Uint8Array.from(atob(files[7].dataUrl.split(",")[1]), (char) =>
+      char.charCodeAt(0)
+    )
+    expect(readSliceInfo(files[7].path, bytes)).toMatchObject({
+      seriesUid: series.uid,
+      instance: 8,
+      rows: 128,
+    })
+    const pixels = decodeSlice(bytes)
+    expect(pixels.min).toBeLessThan(-900)
+    // The lesion (HU ~120) crosses the middle slices.
+    expect(pixels.max).toBeGreaterThan(100)
+  })
+
+  it("writes an ASCII PCD whose header matches its points", () => {
+    const lines = samplePointCloudPcd(0).trim().split("\n")
+    const declared = Number(lines.find((line) => line.startsWith("POINTS"))!.split(" ")[1])
+    const data = lines.slice(lines.indexOf("DATA ascii") + 1)
+    expect(data).toHaveLength(declared)
+    expect(data[0].split(" ")).toHaveLength(4)
+  })
+
   it("writes a WAV whose header matches its length", () => {
     const base64 = sampleWavDataUrl(0, 1).split(",")[1]
     const bytes = Uint8Array.from(atob(base64), (char) => char.charCodeAt(0))

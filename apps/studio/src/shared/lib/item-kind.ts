@@ -1,4 +1,6 @@
 import {
+  Box,
+  ScanLine,
   FileText,
   ImageIcon,
   Music,
@@ -13,15 +15,25 @@ import type { Item } from "@/shared/types/core"
 // assume an image. We classify by file extension (or inline `data` for tabular
 // rows, which have no file on disk) to pick the right thumbnail/icon.
 
-export type ItemKind = "image" | "audio" | "video" | "tabular" | "text"
+export type ItemKind =
+  | "image"
+  | "audio"
+  | "video"
+  | "tabular"
+  | "pointcloud"
+  | "medical"
+  | "text"
 
 const IMAGE_EXTENSIONS = /\.(jpe?g|png|gif|bmp|webp|svg|tiff?|avif)$/i
 const AUDIO_EXTENSIONS = /\.(wav|mp3|ogg|flac|m4a|aac)$/i
 const VIDEO_EXTENSIONS = /\.(mp4|mov|mkv|webm|avi|m4v)$/i
 const TABULAR_EXTENSIONS = /\.(csv|tsv|xlsx?|ods)$/i
+const POINT_CLOUD_EXTENSIONS = /\.(pcd|ply|bin)$/i
 
 /** Classify an item into a modality kind for preview/icon purposes. */
 export function itemKind(item: Item): ItemKind {
+  // A DICOM series: a folder path plus its slice list inline.
+  if (typeof item.data?.series === "string") return "medical"
   // Tabular rows carry inline `data` and have no real file path.
   if (item.data && (!item.path || TABULAR_EXTENSIONS.test(item.path))) {
     return "tabular"
@@ -31,6 +43,7 @@ export function itemKind(item: Item): ItemKind {
   if (AUDIO_EXTENSIONS.test(ref)) return "audio"
   if (VIDEO_EXTENSIONS.test(ref)) return "video"
   if (TABULAR_EXTENSIONS.test(ref)) return "tabular"
+  if (POINT_CLOUD_EXTENSIONS.test(ref)) return "pointcloud"
   return "text"
 }
 
@@ -44,6 +57,8 @@ const KIND_ICONS: Record<ItemKind, LucideIcon> = {
   audio: Music,
   video: Video,
   tabular: Table2,
+  pointcloud: Box,
+  medical: ScanLine,
   text: FileText,
 }
 

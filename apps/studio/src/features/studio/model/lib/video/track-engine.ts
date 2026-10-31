@@ -12,6 +12,7 @@
  *  - On/after the last keyframe → hold the last shape (unless `outside`).
  *  - Between keyframes a→b → if `a.outside`, gone until `b`; else interpolate.
  *  - Interpolation needs equal point counts; otherwise hold `a`.
+ *  - `occluded` holds from the keyframe at or before `frame`.
  */
 
 import type {
@@ -59,7 +60,11 @@ export const sampleTrackAt = (
   const last = kfs[kfs.length - 1]
   if (frame >= last.frame) {
     if (last.outside) return null
-    return { shape: cloneShape(last.shape), keyframe: frame === last.frame }
+    return {
+      shape: cloneShape(last.shape),
+      keyframe: frame === last.frame,
+      occluded: last.occluded,
+    }
   }
 
   for (let i = 0; i < kfs.length - 1; i++) {
@@ -67,10 +72,17 @@ export const sampleTrackAt = (
     const b = kfs[i + 1]
     if (frame < a.frame || frame >= b.frame) continue
     if (a.outside) return null
-    if (frame === a.frame) return { shape: cloneShape(a.shape), keyframe: true }
+    if (frame === a.frame) {
+      return { shape: cloneShape(a.shape), keyframe: true, occluded: a.occluded }
+    }
     const span = b.frame - a.frame
     const t = span > 0 ? (frame - a.frame) / span : 0
-    return { shape: lerpShape(a.shape, b.shape, t), keyframe: false }
+    // Occlusion is a keyframe attribute, not interpolated: it holds from `a`.
+    return {
+      shape: lerpShape(a.shape, b.shape, t),
+      keyframe: false,
+      occluded: a.occluded,
+    }
   }
 
   return null

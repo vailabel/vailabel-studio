@@ -56,6 +56,16 @@ describe("track-engine interpolation", () => {
     expect(sampleTrackAt(track, 99)).not.toBeNull()
   })
 
+  it("carries occluded from the keyframe at or before the frame", () => {
+    const hidden = { ...boxKf(5, 50, 25), occluded: true }
+    const track = makeTrack([boxKf(0, 0, 0), hidden, boxKf(10, 100, 50)])
+    expect(sampleTrackAt(track, 2)!.occluded).toBe(false)
+    expect(sampleTrackAt(track, 5)!.occluded).toBe(true)
+    expect(sampleTrackAt(track, 7)!.occluded).toBe(true)
+    expect(sampleTrackAt(track, 10)!.occluded).toBe(false)
+    expect(sampleTrackAt(makeTrack([hidden]), 99)!.occluded).toBe(true)
+  })
+
   it("hides an outside span until the next keyframe", () => {
     const gone = { ...boxKf(5, 0, 0), outside: true }
     const track = makeTrack([boxKf(0, 0, 0), gone, boxKf(10, 100, 50)])

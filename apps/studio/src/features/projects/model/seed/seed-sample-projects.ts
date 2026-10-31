@@ -69,7 +69,8 @@ async function writeSampleFile(directory: string, file: SampleFile) {
   if (file.kind === "text") await writeTextFile(path, file.content)
   else if (file.kind === "image") {
     await saveImageFile(path, sampleImageDataUrl(file.variant, file.caption))
-  } else await saveImageFile(path, sampleWavDataUrl(file.variant))
+  } else if (file.kind === "binary") await saveImageFile(path, file.dataUrl)
+  else await saveImageFile(path, sampleWavDataUrl(file.variant))
 }
 
 async function seedTemplate(template: LabelingTemplate, samplesRoot: string) {
@@ -119,8 +120,18 @@ async function seedTemplate(template: LabelingTemplate, samplesRoot: string) {
     })
   }
 
-  const resolve = (value: SampleValue) =>
-    typeof value === "string" ? value : joinPath(directory, value.file)
+  const resolve = (value: SampleValue) => {
+    if (typeof value === "string") return value
+    if ("file" in value) return joinPath(directory, value.file)
+    // A DICOM series: stored as JSON with absolute slice paths.
+    return JSON.stringify({
+      ...value.series,
+      slices: value.series.slices.map((slice) => ({
+        ...slice,
+        path: joinPath(directory, slice.path),
+      })),
+    })
+  }
   for (const item of plan.items) {
     await services.getItemService().createItem({
       id: crypto.randomUUID(),

@@ -13,6 +13,8 @@ export type ImportMode =
   | "files"
   // Pick CSV/TSV/Excel files, then expand each row into its own task.
   | "spreadsheet"
+  // Scan a folder for DICOM files and group them into series (one task each).
+  | "series"
   // Items are imported later, inside the editor (video clips in the studio).
   | "none"
 
@@ -70,7 +72,8 @@ export const MODALITY_REGISTRY: Partial<Record<DataKind, ModalityDescriptor>> = 
   text: descriptor({
     kind: "text",
     label: "Text",
-    extensions: ["txt", "md", "text"],
+    // JSON carries structured fields (dialogues, chats, result lists).
+    extensions: ["txt", "md", "text", "json"],
     importMode: "files",
     grantScope: false,
     annotationTypes: ["span", "classification", "relation", "translation"],
@@ -128,6 +131,29 @@ export const MODALITY_REGISTRY: Partial<Record<DataKind, ModalityDescriptor>> = 
     importMode: "files",
     grantScope: false,
     annotationTypes: ["segment", "classification"],
+    target: "studio",
+    hasItems: ({ documents }) => documents > 0,
+  }),
+  pointcloud: descriptor({
+    kind: "pointcloud",
+    label: "Point clouds",
+    // PCD (ASCII / binary), PLY and KITTI velodyne .bin scans.
+    extensions: ["pcd", "ply", "bin"],
+    importMode: "files",
+    grantScope: true,
+    annotationTypes: ["cuboid", "classification"],
+    target: "studio",
+    hasItems: ({ documents }) => documents > 0,
+  }),
+  dicom: descriptor({
+    kind: "dicom",
+    label: "DICOM series",
+    // Shown in the import guide; the folder scan reads every file's header
+    // regardless of extension.
+    extensions: ["dcm"],
+    importMode: "series",
+    grantScope: true,
+    annotationTypes: ["bbox", "polygon", "mask"],
     target: "studio",
     hasItems: ({ documents }) => documents > 0,
   }),
