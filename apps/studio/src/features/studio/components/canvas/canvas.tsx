@@ -5,7 +5,14 @@ import { PositionCoordinates } from "@/features/studio/components/canvas/positio
 import { useCanvasHandlers } from "@/features/studio/canvas-state/use-canvas-handlers-context"
 import { type Annotation, type Item, type Label } from "@/shared/types/core"
 import { Crosshair } from "@/features/studio/components/canvas/crosshair-context"
-import { CreateAnnotation } from "@/features/studio/components/canvas/create-annotation"
+import {
+  CreateAnnotation,
+  type CreateAnnotationSubmitOptions,
+} from "@/features/studio/components/canvas/create-annotation"
+import {
+  boundsOf,
+  suggestClassesForShape,
+} from "@/features/studio/model/lib/label-palette"
 import { ToolStatus } from "@/features/studio/components/canvas/tool-status"
 import { Ruler } from "@/features/studio/components/canvas/ruler"
 import {
@@ -48,6 +55,8 @@ interface CanvasProps {
   onRedo?: () => Promise<void> | void
   /** Smart-segment (SAM) runner for the smartSegment tool. */
   onSmartSegment?: (prompt: PipelinePrompt) => void | Promise<void>
+  /** Arm a class as the active class ("keep using this class" in the picker). */
+  onActivateLabel?: (labelId: string) => void
   /** Accept/reject an AI prediction inline on the canvas (the ✓/✗ on each box). */
   onAcceptPrediction?: (predictionId: string) => void | Promise<unknown>
   onRejectPrediction?: (predictionId: string) => void | Promise<unknown>
@@ -100,6 +109,7 @@ export const Canvas = memo(
     onUndo,
     onRedo,
     onSmartSegment,
+    onActivateLabel,
     onAcceptPrediction,
     onRejectPrediction,
   }: CanvasProps) => {
@@ -316,17 +326,22 @@ export const Canvas = memo(
     ])
 
     const handleCreateAnnotation = useCallback(
-      async (name: string, color: string, labelId?: string) => {
+      async (
+        name: string,
+        color: string,
+        labelId?: string,
+        options?: CreateAnnotationSubmitOptions
+      ) => {
         if (!tempAnnotation) return
 
         try {
-          await onCreateAnnotationDraft({
+          const created = (await onCreateAnnotationDraft({
             name: name,
             type: tempAnnotation.type ?? "box",
             coordinates: tempAnnotation.coordinates ?? [],
             color,
             labelId,
-          })
+          })) as Partial<Annotation> | undefined
 
           // Clear tool state after successful creation
           setToolState({
@@ -338,8 +353,13 @@ export const Canvas = memo(
             polygonPoints: [], // Clear polygon points for fresh start
           })
 
-          // Select the newly created annotation so it can be moved immediately
           setSelectedAnnotation(null)
+
+          // "Keep using this class": arm it so the next shapes skip the picker.
+          const createdLabelId = labelId || created?.labelId || created?.label_id
+          if (options?.remember && createdLabelId) {
+            onActivateLabel?.(createdLabelId)
+          }
         } catch (error) {
           console.error("Failed to create annotation:", error)
         }
@@ -349,8 +369,43 @@ export const Canvas = memo(
         onCreateAnnotationDraft,
         setToolState,
         setSelectedAnnotation,
+        onActivateLabel,
       ]
     )
+
+    // AI help for the class picker: predictions that overlap the shape just
+    // drawn are offered first ("AI suggests: car 87%").
+    const classSuggestions = useMemo(
+      () =>
+        showLabelInput && tempAnnotation
+          ? suggestClassesForShape(tempAnnotation.coordinates, predictions, labels)
+          : [],
+      [showLabelInput, tempAnnotation, predictions, labels]
+    )
+
+    // Anchor the picker beside the drawn shape (right side, or left when there's
+    // no room), clamped inside the canvas — so the eye doesn't jump to a corner.
+    const pickerPosition = useMemo(() => {
+      if (!showLabelInput || !tempAnnotation) return null
+      const bounds = boundsOf(tempAnnotation.coordinates)
+      if (!bounds || !container.width || !container.height) return null
+      const PICKER_W = 288
+      const PICKER_H = 380
+      const GAP = 12
+      const right = bounds.maxX * zoom + baseOffset.x + GAP
+      const left = bounds.minX * zoom + baseOffset.x - GAP - PICKER_W
+      const x =
+        right + PICKER_W <= container.width
+          ? right
+          : left >= 0
+            ? left
+            : container.width - PICKER_W - 8
+      const y = bounds.minY * zoom + baseOffset.y
+      return {
+        left: Math.max(8, Math.min(x, container.width - PICKER_W - 8)),
+        top: Math.max(8, Math.min(y, container.height - PICKER_H - 8)),
+      }
+    }, [showLabelInput, tempAnnotation, container.width, container.height, zoom, baseOffset.x, baseOffset.y])
 
     // Fast path (Roboflow-style): with an active class selected, a finished
     // shape is created immediately with that class — the naming modal is skipped
@@ -363,7 +418,8 @@ export const Canvas = memo(
         void handleCreateAnnotation(
           activeLabel.name,
           activeLabel.color,
-          activeLabel.id
+          activeLabel.id,
+          { remember: false }
         ).finally(() => {
           autoCreateRef.current = false
         })
@@ -510,6 +566,9 @@ export const Canvas = memo(
           onSubmit={handleCreateAnnotation}
           isOpen={!!showLabelInput && !activeLabel}
           onClose={handleCloseCreateAnnotationModal}
+          suggestions={classSuggestions}
+          shapeType={tempAnnotation?.type}
+          position={pickerPosition}
         />
       </>
     )

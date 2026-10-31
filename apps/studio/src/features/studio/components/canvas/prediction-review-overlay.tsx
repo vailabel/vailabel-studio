@@ -62,9 +62,10 @@ export const PredictionReviewOverlay = memo(
               onMouseDown={(event) => event.stopPropagation()}
               onClick={(event) => event.stopPropagation()}
             >
+              <PredictionTag prediction={prediction} />
               <button
                 type="button"
-                title="Accept this prediction"
+                title="Accept — save as a label"
                 aria-label="Accept prediction"
                 onClick={() => onAccept(prediction.id)}
                 className="flex h-6 w-6 items-center justify-center rounded-full text-success hover:bg-success/15"
@@ -73,7 +74,7 @@ export const PredictionReviewOverlay = memo(
               </button>
               <button
                 type="button"
-                title="Reject this prediction"
+                title="Reject — remove this suggestion"
                 aria-label="Reject prediction"
                 onClick={() => onReject(prediction.id)}
                 className="flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground hover:bg-destructive/15 hover:text-destructive"
@@ -89,3 +90,25 @@ export const PredictionReviewOverlay = memo(
 )
 
 PredictionReviewOverlay.displayName = "PredictionReviewOverlay"
+
+/** "car 87%" chip so the user knows what they're accepting before clicking ✓. */
+function PredictionTag({ prediction }: { prediction: Prediction }) {
+  const name = prediction.labelName || prediction.label_name || prediction.name
+  const color = prediction.labelColor || prediction.label_color || prediction.color
+  const confidence =
+    typeof prediction.confidence === "number" && prediction.confidence > 0
+      ? Math.round(prediction.confidence * 100)
+      : null
+  if (!name && confidence === null) return null
+  return (
+    <span className="flex max-w-32 items-center gap-1 pl-1.5 pr-0.5 text-[11px] font-medium text-foreground">
+      {color ? (
+        <span className="size-2 flex-shrink-0 rounded-full" style={{ backgroundColor: color }} />
+      ) : null}
+      {name ? <span className="truncate">{name}</span> : null}
+      {confidence !== null ? (
+        <span className="tabular-nums text-muted-foreground">{confidence}%</span>
+      ) : null}
+    </span>
+  )
+}

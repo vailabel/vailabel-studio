@@ -24,6 +24,7 @@ interface MemoizedCanvasProps {
   onUndo: () => Promise<void> | void
   onRedo: () => Promise<void> | void
   onSmartSegment: (prompt: PipelinePrompt) => void | Promise<void>
+  onActivateLabel?: (labelId: string) => void
   onAcceptPrediction: (predictionId: string) => void | Promise<unknown>
   onRejectPrediction: (predictionId: string) => void | Promise<unknown>
 }
@@ -43,6 +44,7 @@ export const MemoizedCanvas = memo(
     onUndo,
     onRedo,
     onSmartSegment,
+    onActivateLabel,
     onAcceptPrediction,
     onRejectPrediction,
   }: MemoizedCanvasProps) => (
@@ -58,6 +60,7 @@ export const MemoizedCanvas = memo(
       onUndo={onUndo}
       onRedo={onRedo}
       onSmartSegment={onSmartSegment}
+      onActivateLabel={onActivateLabel}
       onAcceptPrediction={onAcceptPrediction}
       onRejectPrediction={onRejectPrediction}
     />

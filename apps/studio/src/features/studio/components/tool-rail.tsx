@@ -1,18 +1,5 @@
-import { memo } from "react"
-import {
-  Square,
-  OctagonIcon as Polygon,
-  Move,
-  Trash2,
-  Pencil,
-  Dot,
-  Slash,
-  Spline,
-  Circle,
-  Wand2,
-} from "lucide-react"
+import { Fragment, memo } from "react"
 import { cn } from "@/shared/lib/utils"
-import { Button } from "@/shared/ui/button"
 import {
   Tooltip,
   TooltipContent,
@@ -20,30 +7,11 @@ import {
   TooltipTrigger,
 } from "@/shared/ui/tooltip"
 import type { CanvasTool } from "@/features/studio/model/types"
+import { TOOL_CATALOG } from "@/features/studio/components/tool-catalog"
 
 // Tooltip keycap — see toolbar.tsx for why these specific classes are used.
 const KBD_CLASS =
   "ml-2 rounded border border-background/30 bg-background/20 px-1.5 text-xs text-background"
-
-interface ToolConfig {
-  id: CanvasTool
-  name: string
-  icon: React.ElementType
-  shortcut: string
-}
-
-const annotationTools: ToolConfig[] = [
-  { id: "move", name: "Move", icon: Move, shortcut: "M" },
-  { id: "box", name: "Draw Box", icon: Square, shortcut: "B" },
-  { id: "polygon", name: "Draw Polygon", icon: Polygon, shortcut: "P" },
-  { id: "freeDraw", name: "Free Draw", icon: Pencil, shortcut: "F" },
-  { id: "point", name: "Point", icon: Dot, shortcut: "O" },
-  { id: "line", name: "Line", icon: Slash, shortcut: "L" },
-  { id: "linestrip", name: "Line Strip", icon: Spline, shortcut: "S" },
-  { id: "circle", name: "Circle", icon: Circle, shortcut: "C" },
-  { id: "smartSegment", name: "Smart Segment (SAM)", icon: Wand2, shortcut: "G" },
-  { id: "delete", name: "Delete", icon: Trash2, shortcut: "D" },
-]
 
 interface ToolRailProps {
   /** Tools to expose for the current project template. Omit to show all. */
@@ -53,47 +21,74 @@ interface ToolRailProps {
 }
 
 // The vertical drawing-tool rail hugging the left edge of the canvas (Label
-// Studio style). View + history controls stay in the top toolbar; this rail is
-// only the shape tools, so picking a tool reads like a paint program.
+// Studio style). Tools are grouped (select · draw · AI · erase) with a divider
+// between groups; each button shows its shortcut letter, and the tooltip says
+// in one line how to use it — so a first-time user can pick the right tool
+// without reading docs.
 export const ToolRail = memo(
   ({ allowedTools, selectedTool, onSelectTool }: ToolRailProps) => {
     const tools = allowedTools
-      ? annotationTools.filter((tool) => allowedTools.includes(tool.id))
-      : annotationTools
+      ? TOOL_CATALOG.filter((tool) => allowedTools.includes(tool.id))
+      : TOOL_CATALOG
 
     if (tools.length === 0) return null
 
     return (
-      <div className="flex w-11 shrink-0 flex-col items-center gap-1 border-r border-border bg-background py-2">
+      <div
+        role="toolbar"
+        aria-orientation="vertical"
+        aria-label="Drawing tools"
+        className="flex w-12 shrink-0 flex-col items-center gap-1 overflow-y-auto border-r border-border bg-background py-2"
+      >
         <TooltipProvider>
-          {tools.map((tool) => (
-            <Tooltip key={tool.id}>
-              <TooltipTrigger
-                render={
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      "h-8 w-8",
-                      selectedTool === tool.id &&
-                        "border-2 border-primary bg-primary/10 text-primary"
-                    )}
-                    onClick={() => onSelectTool(tool.id)}
-                    aria-label={tool.name}
-                    aria-pressed={selectedTool === tool.id}
-                  >
-                    <tool.icon className="h-4 w-4" />
-                  </Button>
-                }
-              />
-              <TooltipContent side="right">
-                <div className="flex items-center">
-                  <span>{tool.name}</span>
-                  <kbd className={KBD_CLASS}>{tool.shortcut}</kbd>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          ))}
+          {tools.map((tool, index) => {
+            const isSelected = selectedTool === tool.id
+            const startsGroup = index > 0 && tools[index - 1].group !== tool.group
+            const isAi = tool.group === "ai"
+            return (
+              <Fragment key={tool.id}>
+                {startsGroup ? (
+                  <div className="my-1 h-px w-6 bg-border" aria-hidden="true" />
+                ) : null}
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <button
+                        type="button"
+                        className={cn(
+                          "relative flex h-9 w-9 items-center justify-center rounded-md text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                          isAi && "text-success",
+                          isSelected &&
+                            "bg-primary/10 text-primary ring-2 ring-primary hover:bg-primary/15"
+                        )}
+                        onClick={() => onSelectTool(tool.id)}
+                        aria-label={`${tool.name} (${tool.shortcut})`}
+                        aria-pressed={isSelected}
+                      >
+                        <tool.icon className="h-4 w-4" />
+                        <span
+                          aria-hidden="true"
+                          className={cn(
+                            "absolute bottom-0.5 right-0.5 text-[8px] font-semibold leading-none",
+                            isSelected ? "text-primary" : "text-muted-foreground/80"
+                          )}
+                        >
+                          {tool.shortcut}
+                        </span>
+                      </button>
+                    }
+                  />
+                  <TooltipContent side="right" className="max-w-60 flex-col items-start gap-0.5">
+                    <div className="flex items-center font-medium">
+                      <span>{tool.name}</span>
+                      <kbd className={KBD_CLASS}>{tool.shortcut}</kbd>
+                    </div>
+                    <p className="text-xs opacity-80">{tool.description}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </Fragment>
+            )
+          })}
         </TooltipProvider>
       </div>
     )
