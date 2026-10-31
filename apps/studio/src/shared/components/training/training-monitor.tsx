@@ -45,6 +45,8 @@ import { TrainingStartDialog } from "@/shared/components/training/training-start
 import { TrainingReportDialog } from "@/shared/components/training/training-report"
 import type { TrainingJob, TrainingJobStatus } from "@/shared/types/ai-runtime"
 import { toErrorMessage } from "@/shared/lib/errors"
+import { useTrainingAgents } from "@/shared/model/training-agents-viewmodel"
+import { runMetaOf, type TrainingAgent } from "@/shared/types/training-agent"
 
 const STATUS_VARIANT: Record<
   TrainingJobStatus,
@@ -57,6 +59,32 @@ const STATUS_VARIANT: Record<
   canceled: "outline",
 }
 
+/** Where a run trains and how it started, when that is not the default
+ *  ("this computer, started by hand"). */
+function RunOrigin({
+  config,
+  agents,
+}: {
+  config: unknown
+  agents: TrainingAgent[]
+}) {
+  const meta = runMetaOf(config)
+  const agentName = meta.agentId
+    ? (agents.find((agent) => agent.id === meta.agentId)?.name ?? "removed agent")
+    : null
+  const parts = [
+    agentName && `on ${agentName}`,
+    meta.baseRunId && "fine-tuned",
+    meta.auto && "automatic",
+  ].filter(Boolean)
+  if (parts.length === 0) return null
+  return (
+    <span className="block text-xs font-normal text-muted-foreground">
+      {parts.join(" · ")}
+    </span>
+  )
+}
+
 export function TrainingMonitor({
   projectId,
   onUseForLabeling,
@@ -67,6 +95,7 @@ export function TrainingMonitor({
   onUseForLabeling?: (job: TrainingJob) => void
 } = {}) {
   const { jobs: allJobs, loading, error, reload, stop } = useTrainingJobs()
+  const { agents } = useTrainingAgents()
   const jobs = projectId
     ? allJobs.filter((j) => j.projectId === projectId)
     : allJobs
@@ -130,7 +159,7 @@ export function TrainingMonitor({
         <div>
           <CardTitle>Training jobs</CardTitle>
           <CardDescription>
-            Jobs run in the embedded runtime. Progress and logs update live.
+            Jobs run on this computer or a training agent. Progress and logs update live.
           </CardDescription>
         </div>
         <div className="flex items-center gap-2">
@@ -177,7 +206,10 @@ export function TrainingMonitor({
             <TableBody>
               {jobs.map((job) => (
                 <TableRow key={job.id}>
-                  <TableCell className="font-medium">{job.name}</TableCell>
+                  <TableCell className="font-medium">
+                    {job.name}
+                    <RunOrigin config={job.config} agents={agents} />
+                  </TableCell>
                   <TableCell>
                     <Badge variant={STATUS_VARIANT[job.status] ?? "outline"}>
                       {job.status}

@@ -21,6 +21,8 @@ import { Label } from "@/shared/ui/label"
 import { Loader2, Play, Wand2 } from "lucide-react"
 import { projectsService } from "@/shared/services/projects-service"
 import { useStartTraining } from "@/shared/model/ai-runtime-viewmodel"
+import { useTrainingAgents } from "@/shared/model/training-agents-viewmodel"
+import { TrainingTarget } from "./training-target"
 import { AugmentationControls } from "@/shared/components/training/augmentation-controls"
 import {
   AUG_PRESETS,
@@ -65,6 +67,9 @@ export function TrainingStartDialog({
   const [augPreset, setAugPreset] = useState<AugKey | "custom">("standard")
   const [aug, setAug] = useState<Augmentation>(AUG_PRESETS.standard.values)
   const [result, setResult] = useState<DatasetExportResult | null>(null)
+  const [agentId, setAgentId] = useState<string | undefined>()
+  const [continueFromLast, setContinueFromLast] = useState(true)
+  const { agents } = useTrainingAgents()
 
   // Picking a preset fills the hyperparameters; editing them flips to "custom".
   const applyPreset = (key: PresetKey) => {
@@ -117,6 +122,8 @@ export function TrainingStartDialog({
       epochs: Number(epochs) || undefined,
       imgsz: Number(imgsz) || undefined,
       augmentation: { ...aug } as Record<string, number>,
+      agentId,
+      continueFromLast,
     })
     if (summary) {
       setResult(summary)
@@ -132,7 +139,8 @@ export function TrainingStartDialog({
           <DialogTitle>New training job</DialogTitle>
           <DialogDescription>
             Exports this project&apos;s annotations to a YOLO dataset, then trains
-            in the embedded runtime. Progress shows below once it starts.
+            on this computer or a training agent. Progress shows below once it
+            starts.
           </DialogDescription>
         </DialogHeader>
 
@@ -200,6 +208,15 @@ export function TrainingStartDialog({
                 onChange={(e) => setName(e.target.value)}
               />
             </div>
+
+            <TrainingTarget
+              agents={agents}
+              agentId={agentId}
+              onAgentChange={setAgentId}
+              continueFromLast={continueFromLast}
+              onContinueChange={setContinueFromLast}
+              disabled={busy}
+            />
 
             <div className="space-y-2">
               <Label>Training preset</Label>

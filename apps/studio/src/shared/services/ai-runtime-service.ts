@@ -4,6 +4,7 @@ import type {
   ExportRequest,
   TrainingStartRequest,
 } from "@/shared/types/ai-runtime"
+import type { TrainingAgentTestRequest } from "@/shared/types/training-agent"
 
 // Thin wrapper over the embedded-runtime IPC surface so viewmodels never call
 // Tauri commands directly. The runtime is an internal Python/FastAPI service —
@@ -37,6 +38,9 @@ export const aiRuntimeService = {
   stopTraining: (id: string) => studioCommands.trainingStop(id),
   listTraining: () => studioCommands.trainingList(),
   syncTraining: () => studioCommands.trainingSync(),
+  /** Reach a training agent and report who answered. */
+  testTrainingAgent: (request: TrainingAgentTestRequest) =>
+    studioCommands.trainingAgentTest(request),
   exportTrainedModel: (jobId: string) =>
     studioCommands.trainingExportOnnx(jobId),
   trainingLogs: (jobId: string, offset = 0) =>

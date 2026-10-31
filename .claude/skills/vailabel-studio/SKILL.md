@@ -116,6 +116,24 @@ maps client→image; annotations render inside a div transformed by `translate(b
   entity and **only fires on desktop** (`isDesktopApp()`). View models react through
   `useResource({ invalidateOn: [...] })` or `useStudioEvents`.
 
+## Training: local runtime and remote agents
+
+- Training goes through the `TrainingRuntime` port (`crates/training`). The binary wires a
+  `RoutingTrainingRuntime` (`src/features/training/remote_port.rs`): per run it uses the embedded
+  Python runtime (`runtime_port.rs`) or a **training agent** — `vailabel-agent`, a standalone
+  service in `crates/agent` (protocol + client in `crates/agent-client`; install guide in
+  `crates/agent/README.md`). Studio connects to the agent, never the reverse.
+- A run's `config._studio` (`RunMeta` in `features/training/agents.rs`) holds Studio's bookkeeping
+  (`agentId`, `continueFrom`, `baseRunId`, `labeledItems`, `auto`). Every other config key is
+  forwarded to ultralytics verbatim, so non-trainer data MUST go under `_studio`.
+- `training_sync` (`ops.rs` + `remote_sync.rs`) polls agents; a finished remote run's artifacts are
+  unpacked into the local layout `<app-data>/runtime/training-logs/<job_id>/`, so report / ONNX
+  export / serve work unchanged. Agents are registered in the `trainingAgents` setting; tokens live
+  in the keychain (`training-agent` namespace).
+- "Continue training" = fine-tune from the project's latest weights (`ops::latest_weights`).
+  Automatic retraining (`auto_retrain.rs`, policy `vailabel_training::domain::should_retrain`)
+  runs while the app is open, per project via `ProjectConfig.training`.
+
 ## Conventions / preferences
 
 - **Keep the UI fast and motion-free.** Decorative animation (animate-in / fade-in / slide-in /

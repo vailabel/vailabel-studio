@@ -88,6 +88,43 @@ pub struct ProjectStorageConfig {
     pub prefix: Option<String>,
 }
 
+/// How a project's detector is (re)trained. Drives the training dialog's
+/// defaults and, when `auto_retrain` is on, automatic retraining.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectTrainingConfig {
+    /// Start a training run automatically once enough new items are labeled.
+    #[serde(default)]
+    pub auto_retrain: bool,
+    /// Newly labeled items (since the last run) that trigger a retrain.
+    #[serde(default = "default_min_new_items")]
+    pub min_new_items: u32,
+    /// Training agent to run on. None = this computer.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent_id: Option<String>,
+    /// "yolo" | "rtdetr"
+    #[serde(default = "default_model_family")]
+    pub model_family: String,
+    #[serde(default = "default_epochs")]
+    pub epochs: u32,
+    /// Fine-tune from the project's last trained model instead of from scratch.
+    #[serde(default = "default_true")]
+    pub continue_from_last: bool,
+}
+
+impl Default for ProjectTrainingConfig {
+    fn default() -> Self {
+        Self {
+            auto_retrain: false,
+            min_new_items: default_min_new_items(),
+            agent_id: None,
+            model_family: default_model_family(),
+            epochs: default_epochs(),
+            continue_from_last: true,
+        }
+    }
+}
+
 /// Typed per-project configuration. Stored in `config_json`, separate from the
 /// legacy unstructured `settings_json` blob.
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -101,8 +138,19 @@ pub struct ProjectConfig {
     pub ai: ProjectAiConfig,
     #[serde(default)]
     pub storage: ProjectStorageConfig,
+    #[serde(default)]
+    pub training: ProjectTrainingConfig,
 }
 
+fn default_min_new_items() -> u32 {
+    50
+}
+fn default_model_family() -> String {
+    "yolo".to_string()
+}
+fn default_epochs() -> u32 {
+    50
+}
 fn default_true() -> bool {
     true
 }

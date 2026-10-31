@@ -1,0 +1,31 @@
+[package]
+name = "vailabel-agent"
+version = "0.1.0"
+edition = "2021"
+description = "Self-hosted training agent for Vailabel Studio"
+
+[[bin]]
+name = "vailabel-agent"
+path = "src/main.rs"
+
+[lib]
+name = "vailabel_agent"
+
+[dependencies]
+vailabel-agent-client.workspace = true
+runtime-manager = { path = "../runtime-manager" }
+async-trait.workspace = true
+chrono.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio = { workspace = true, features = ["signal", "net"] }
+uuid.workspace = true
+axum = { version = "0.8", default-features = false, features = ["http1", "json", "query", "tokio"] }
+tokio-util = { version = "0.7", features = ["io"] }
+futures-util = "0.3"
+include_dir = "0.7"
+
+[dev-dependencies]
+tempfile = "3"
+tower = { version = "0.5", features = ["util"] }
+http-body-util = "0.1"

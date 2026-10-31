@@ -23,6 +23,10 @@ members = [
     "crates/workspace",
     "crates/arch-tests",
     "crates/db",
+    # Self-hosted training agent: the shared protocol/client (used by Studio)
+    # and the agent service binary (installed on the training machine).
+    "crates/agent-client",
+    "crates/agent",
 ]
 
 [workspace.dependencies]
@@ -59,6 +63,7 @@ vailabel-search = { path = "crates/search" }
 vailabel-training = { path = "crates/training" }
 vailabel-workspace = { path = "crates/workspace" }
 vailabel-db = { path = "crates/db" }
+vailabel-agent-client = { path = "crates/agent-client" }
 
 [package]
 name = "vailabel-studio"
@@ -113,6 +118,10 @@ vailabel-models = { workspace = true }
 vailabel-plugin = { workspace = true }
 vailabel-training = { workspace = true }
 vailabel-workspace = { workspace = true }
+vailabel-agent-client = { workspace = true }
+# Agent uploads/downloads use tokio fs + a sync guard directly (the same
+# runtime Tauri already drives).
+tokio = { workspace = true }
 async-trait = { workspace = true }
 diesel = { workspace = true }
 diesel_migrations = { workspace = true }
@@ -133,6 +142,12 @@ uuid = { version = "1", features = ["v4", "serde"] }
 # AI inference (detection / segmentation / copilot vision) runs in the embedded
 # Python runtime (crate `runtime-manager`), not in Rust — so there is no ONNX
 # Runtime (`ort`) or image/array processing stack here anymore.
+
+[dev-dependencies]
+tempfile = "3"
+# The real agent, run in-process by the Studio ↔ agent contract test.
+vailabel-agent = { path = "crates/agent" }
+tokio = { workspace = true, features = ["net"] }
 
 [features]
 default = []

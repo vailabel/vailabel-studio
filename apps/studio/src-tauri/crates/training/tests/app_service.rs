@@ -177,3 +177,28 @@ async fn reconcile_marks_in_flight_failed() {
     assert_eq!(repo.list().unwrap()[0].status.as_str(), "failed");
     assert_eq!(events.calls.lock().unwrap().len(), 1);
 }
+
+#[tokio::test]
+async fn fail_in_flight_where_only_fails_the_selected_runs() {
+    let (svc, repo, events) = service(false);
+    svc.start(start_cmd()).await.unwrap();
+    let mut other = start_cmd();
+    other.job_id = "remote-job".into();
+    svc.start(other).await.unwrap();
+    events.calls.lock().unwrap().clear();
+
+    let changed = svc
+        .fail_in_flight_where("runtime crashed", |run| run.id != "remote-job")
+        .unwrap();
+
+    assert_eq!(changed.len(), 1);
+    let runs = repo.list().unwrap();
+    let status_of = |id: &str| {
+        runs.iter()
+            .find(|run| run.id == id)
+            .map(|run| run.status.as_str().to_string())
+    };
+    assert_eq!(status_of("remote-job").as_deref(), Some("running"));
+    assert_eq!(status_of(&changed[0].id).as_deref(), Some("failed"));
+    assert_eq!(events.calls.lock().unwrap().len(), 1);
+}

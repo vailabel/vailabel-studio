@@ -1,0 +1,13 @@
+# Python packages the training agent needs. A trimmed copy of the desktop
+# runtime's requirements: the API server plus the ultralytics trainer. The
+# runtime's other adapters (captioning, OCR, copilot) import lazily, so leaving
+# their packages out only disables features the agent never uses.
+fastapi==0.115.*
+uvicorn[standard]==0.32.*
+pydantic==2.*
+torch==2.*
+pillow
+numpy
+ultralytics
+opencv-python-headless
+onnx
