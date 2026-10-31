@@ -23,6 +23,15 @@ interface StudioRightPanelProps {
   isLoading: boolean
   onLabelSelect: (label: Label) => void
   onLabelAssign: (label: Label) => void
+  onClearActive?: () => void
+  onCreateLabel?: (input: { name: string; color: string }) => Promise<unknown>
+  onUpdateLabel?: (
+    labelId: string,
+    updates: Pick<Partial<Label>, "name" | "color" | "category">
+  ) => Promise<unknown>
+  onDeleteLabel?: (labelId: string) => Promise<unknown>
+  /** Shapes per class on the current item, keyed by label id. */
+  shapeCounts?: Map<string, number>
   // Regions
   annotations: Annotation[]
   selectedAnnotationId: string | null
@@ -50,6 +59,11 @@ export const StudioRightPanel = memo((props: StudioRightPanelProps) => {
     <LabelListPanel
       onLabelSelect={props.onLabelSelect}
       onLabelAssign={props.onLabelAssign}
+      onClearActive={props.onClearActive}
+      onCreateLabel={props.onCreateLabel}
+      onUpdateLabel={props.onUpdateLabel}
+      onDeleteLabel={props.onDeleteLabel}
+      shapeCounts={props.isImageEditor ? props.shapeCounts : undefined}
       selectedLabelId={props.selectedLabelId}
       hasSelectedShape={props.hasSelectedShape}
       labels={props.labels}

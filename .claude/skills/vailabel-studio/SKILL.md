@@ -71,7 +71,13 @@ All paths below are under `src/features/studio/`.
 4. **Tools**: `canvas-state/tools/handlers/*-handler.ts` (onMouseDown/Move/Up), registered in
    `canvas-state/tools/tool-registry.ts` and dispatched by
    `canvas-state/use-canvas-handlers-context.tsx`. A box drag creates a temp
-   annotation → sets `showLabelInput` → `create-annotation.tsx` modal → `onCreateAnnotationDraft`.
+   annotation → sets `showLabelInput` → `create-annotation.tsx` class picker (anchored beside the
+   shape; offers AI suggestions from overlapping predictions) → `onCreateAnnotationDraft`. With an
+   active class (toolbar picker / 1–9) the picker is skipped. Tool names, keys and help text live in
+   `components/tool-catalog.ts` (rail + `?` shortcuts sheet); class ordering / colors / IoU
+   suggestions in `model/lib/label-palette.ts`. Classes are created/renamed/deleted inline in
+   `label-list-panel.tsx` (viewmodel `createLabel`/`updateLabel`/`deleteLabel`; rename pushes the
+   new name to every shape of that class). Toolbar "Auto-label" runs `generatePredictions`.
 5. **Canvas state**: `canvas-state/canvas-context.tsx` — zoom/tool/display toggles, with pan,
    selection, tool-state and **cursor position in their own providers** (writer-only
    `useSetCanvasCursor()` returns a stable setter) so mouse-move only re-renders the crosshair /

@@ -8,7 +8,14 @@ import {
   Minus,
   RefreshCcw,
   Ruler,
+  Keyboard,
 } from "lucide-react"
+import type { Label } from "@/shared/types/core"
+import { ActiveClassPicker } from "@/features/studio/components/classes/active-class-picker"
+import {
+  AutoLabelButton,
+  type DetectorChoice,
+} from "@/features/studio/components/ai/auto-label-button"
 import { cn } from "@/shared/lib/utils"
 import { Button } from "@/shared/ui/button"
 import {
@@ -41,6 +48,17 @@ interface ToolbarProps {
   canRedo: boolean
   onUndo: () => void | Promise<void>
   onRedo: () => void | Promise<void>
+  /** Active-class picker (omit `labels` to hide it). */
+  labels?: Label[]
+  activeLabelId?: string | null
+  onActiveLabelChange?: (labelId: string | null) => void
+  /** AI auto-label (omit `onAutoLabel` to hide it). */
+  detectors?: DetectorChoice[]
+  isAutoLabeling?: boolean
+  canAutoLabel?: boolean
+  onAutoLabel?: (modelId: string, threshold: number) => void | Promise<void>
+  /** Opens the keyboard-shortcuts sheet. */
+  onShowShortcuts?: () => void
 }
 
 interface UtilityButtonConfig {
@@ -53,8 +71,9 @@ interface UtilityButtonConfig {
   onClick: () => void | Promise<void>
 }
 
-// The studio's view + history bar. The drawing tools live in the left ToolRail;
-// this top bar holds undo/redo, zoom, and the canvas display toggles.
+// The studio's top bar. The drawing tools live in the left ToolRail; this bar
+// holds undo/redo, the class new shapes get, AI auto-label, zoom, the canvas
+// display toggles, and the shortcuts sheet.
 export const Toolbar = memo(
   ({
     zoom,
@@ -71,6 +90,14 @@ export const Toolbar = memo(
     canRedo,
     onUndo,
     onRedo,
+    labels,
+    activeLabelId = null,
+    onActiveLabelChange,
+    detectors = [],
+    isAutoLabeling = false,
+    canAutoLabel = true,
+    onAutoLabel,
+    onShowShortcuts,
   }: ToolbarProps) => {
     const utilityButtons = useMemo<UtilityButtonConfig[]>(
       () => [
@@ -144,6 +171,7 @@ export const Toolbar = memo(
                       size="sm"
                       disabled={tool.disabled}
                       className="relative h-8 w-8 hover:bg-muted"
+                      aria-label={tool.name}
                       onClick={() => {
                         void tool.onClick()
                       }}
@@ -161,6 +189,26 @@ export const Toolbar = memo(
               </Tooltip>
             ))}
           </TooltipProvider>
+
+          {labels && onActiveLabelChange ? (
+            <>
+              <Separator orientation="vertical" className="mx-1 h-6" />
+              <ActiveClassPicker
+                labels={labels}
+                activeLabelId={activeLabelId}
+                onChange={onActiveLabelChange}
+              />
+            </>
+          ) : null}
+
+          {onAutoLabel ? (
+            <AutoLabelButton
+              models={detectors}
+              isRunning={isAutoLabeling}
+              disabled={!canAutoLabel}
+              onRun={onAutoLabel}
+            />
+          ) : null}
         </div>
 
         <div className="flex items-center space-x-1">
@@ -168,23 +216,33 @@ export const Toolbar = memo(
             <Tooltip>
               <TooltipTrigger
                 render={
-                  <Button variant="outline" size="sm" className="h-8 w-8" onClick={onZoomOut}>
+                  <Button variant="outline" size="sm" className="h-8 w-8" onClick={onZoomOut} aria-label="Zoom out">
                     <Minus className="h-4 w-4" />
                   </Button>
                 }
               />
-              <TooltipContent side="bottom">Zoom Out</TooltipContent>
+              <TooltipContent side="bottom">
+                <div className="flex items-center">
+                  <span>Zoom out</span>
+                  <kbd className={KBD_CLASS}>−</kbd>
+                </div>
+              </TooltipContent>
             </Tooltip>
-            <p className="text-sm text-foreground">{(zoom * 100).toFixed(0)}%</p>
+            <p className="w-11 text-center text-sm tabular-nums text-foreground">{(zoom * 100).toFixed(0)}%</p>
             <Tooltip>
               <TooltipTrigger
                 render={
-                  <Button variant="outline" size="sm" className="h-8 w-8" onClick={onZoomIn}>
+                  <Button variant="outline" size="sm" className="h-8 w-8" onClick={onZoomIn} aria-label="Zoom in">
                     <Plus className="h-4 w-4" />
                   </Button>
                 }
               />
-              <TooltipContent side="bottom">Zoom In</TooltipContent>
+              <TooltipContent side="bottom">
+                <div className="flex items-center">
+                  <span>Zoom in</span>
+                  <kbd className={KBD_CLASS}>+</kbd>
+                </div>
+              </TooltipContent>
             </Tooltip>
           </TooltipProvider>
 
@@ -192,12 +250,12 @@ export const Toolbar = memo(
             <Tooltip>
               <TooltipTrigger
                 render={
-                  <Button variant="ghost" size="sm" className="h-8 w-8" onClick={onResetView}>
+                  <Button variant="ghost" size="sm" className="h-8 w-8" onClick={onResetView} aria-label="Fit image to screen">
                     <RefreshCcw className="h-4 w-4" />
                   </Button>
                 }
               />
-              <TooltipContent side="bottom">Reset Zoom</TooltipContent>
+              <TooltipContent side="bottom">Fit image to screen</TooltipContent>
             </Tooltip>
           </TooltipProvider>
 
@@ -221,6 +279,7 @@ export const Toolbar = memo(
                         void tool.onClick()
                       }}
                       aria-pressed={tool.active}
+                      aria-label={tool.name}
                     >
                       <tool.icon className="h-4 w-4" />
                     </Button>
@@ -235,6 +294,32 @@ export const Toolbar = memo(
               </Tooltip>
             ))}
           </TooltipProvider>
+
+          {onShowShortcuts ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 hover:bg-muted"
+                      onClick={onShowShortcuts}
+                      aria-label="Keyboard shortcuts"
+                    >
+                      <Keyboard className="h-4 w-4" />
+                    </Button>
+                  }
+                />
+                <TooltipContent side="bottom">
+                  <div className="flex items-center">
+                    <span>Keyboard shortcuts</span>
+                    <kbd className={KBD_CLASS}>?</kbd>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : null}
         </div>
       </div>
     )

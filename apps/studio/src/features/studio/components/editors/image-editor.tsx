@@ -1,23 +1,55 @@
-import { memo } from "react"
+import { memo, useEffect, useState } from "react"
 import { Loader2 } from "lucide-react"
 import { Toolbar } from "@/features/studio/components/toolbar"
 import { ToolRail } from "@/features/studio/components/tool-rail"
 import { ClassificationPanel } from "@/features/studio/components/classification-panel"
 import { ContextMenu } from "@/features/studio/components/context-menu"
 import { useClassification } from "@/features/studio/components/common/use-classification"
+import { ShortcutsDialog } from "@/features/studio/components/common/shortcuts-dialog"
+import { PredictionReviewBar } from "@/features/studio/components/ai/prediction-review-bar"
+import { usePredictionBatchActions } from "@/features/studio/components/ai/use-prediction-batch-actions"
 import type { EditorProps } from "./types"
 import { MemoizedCanvas } from "./image/memoized-canvas"
 import { EmptyImageState } from "./image/empty-image-state"
 import { useImageEditorActions } from "./image/use-image-editor-actions"
 
-// Image editor body: the canvas plus its toolbar, the context menu, and (for
-// image-classification projects) the whole-image class bar. AI auto-label,
-// prediction review, and the Copilot now live as docked tabs in the studio's
-// right panel — they no longer float over the canvas. Mounted by the shell for
-// the "canvas" and "classification" editor kinds.
+// Image editor body: the canvas plus its toolbar (active class, AI auto-label,
+// shortcuts), the tool rail, the context menu, the AI review bar shown while
+// suggestions are waiting, and (for image-classification projects) the
+// whole-image class bar. The Copilot lives as a docked tab in the right panel.
+// Mounted by the shell for the "canvas" and "classification" editor kinds.
 export const ImageEditor = memo(({ viewModel, capabilities }: EditorProps) => {
   const classification = useClassification(viewModel)
   const actions = useImageEditorActions(viewModel)
+  const batch = usePredictionBatchActions(viewModel)
+  const [showShortcuts, setShowShortcuts] = useState(false)
+  // Class picker only matters when shapes can be drawn; the detector draws
+  // boxes, so auto-label is offered where boxes are a valid answer.
+  const hasDrawingTools = capabilities.tools.some(
+    (tool) => tool !== "move" && tool !== "delete"
+  )
+  const supportsBoxes = capabilities.tools.includes("box")
+
+  // `?` opens the shortcuts sheet (skipped while typing in a field).
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "?" || event.ctrlKey || event.metaKey || event.altKey) return
+      const target = event.target as HTMLElement | null
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable)
+      ) {
+        return
+      }
+      event.preventDefault()
+      setShowShortcuts((open) => !open)
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [])
 
   return (
     <div
@@ -42,6 +74,14 @@ export const ImageEditor = memo(({ viewModel, capabilities }: EditorProps) => {
         canRedo={viewModel.canRedo}
         onUndo={viewModel.undo}
         onRedo={viewModel.redo}
+        labels={hasDrawingTools ? viewModel.data.labels : undefined}
+        activeLabelId={viewModel.activeLabelId}
+        onActiveLabelChange={viewModel.setActiveLabelId}
+        detectors={viewModel.data.aiModels}
+        isAutoLabeling={viewModel.isGeneratingPredictions}
+        canAutoLabel={!!viewModel.data.item}
+        onAutoLabel={supportsBoxes ? actions.autoLabel : undefined}
+        onShowShortcuts={() => setShowShortcuts(true)}
       />
 
       <div className="flex min-h-0 flex-1">
@@ -64,6 +104,7 @@ export const ImageEditor = memo(({ viewModel, capabilities }: EditorProps) => {
             onUndo={viewModel.undo}
             onRedo={viewModel.redo}
             onSmartSegment={viewModel.smartSegment}
+            onActivateLabel={viewModel.setActiveLabelId}
             onAcceptPrediction={viewModel.acceptPrediction}
             onRejectPrediction={viewModel.rejectPrediction}
           />
@@ -71,12 +112,20 @@ export const ImageEditor = memo(({ viewModel, capabilities }: EditorProps) => {
           <EmptyImageState />
         )}
 
-        {viewModel.isSegmenting && (
-          <div className="pointer-events-none absolute left-1/2 top-4 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-card/95 px-3 py-1.5 text-sm font-medium shadow-lg backdrop-blur">
+        {viewModel.isSegmenting || viewModel.isGeneratingPredictions ? (
+          <div className="pointer-events-none absolute left-1/2 top-3 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-card/95 px-3 py-1.5 text-sm font-medium shadow-lg backdrop-blur">
             <Loader2 className="h-4 w-4 animate-spin text-primary" />
-            <span>Segmenting…</span>
+            <span>
+              {viewModel.isSegmenting ? "AI is tracing the object…" : "AI is labeling this image…"}
+            </span>
           </div>
-        )}
+        ) : viewModel.data.item ? (
+          <PredictionReviewBar
+            predictions={viewModel.data.predictions}
+            onAcceptAll={batch.acceptAll}
+            onRejectAll={batch.rejectAll}
+          />
+        ) : null}
 
         {capabilities.allowsClassification && viewModel.data.item ? (
           <ClassificationPanel
@@ -104,6 +153,12 @@ export const ImageEditor = memo(({ viewModel, capabilities }: EditorProps) => {
         ) : null}
         </div>
       </div>
+
+      <ShortcutsDialog
+        open={showShortcuts}
+        onOpenChange={setShowShortcuts}
+        allowedTools={capabilities.tools}
+      />
     </div>
   )
 })

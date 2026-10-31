@@ -1,7 +1,6 @@
 import { createElement, Fragment, memo, Suspense, useCallback, useMemo, useState } from "react"
 import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
-import { useNavigate } from "react-router-dom"
 import { StudioRightPanel } from "@/features/studio/components/right-panel/studio-right-panel"
 import { FileListPanel } from "@/features/studio/components/file-list-panel"
 import { ResizablePanel } from "@/features/studio/components/common/resizable-panel"
@@ -12,9 +11,10 @@ import { StudioBottomBar } from "@/features/studio/components/common/studio-bott
 import { editorFor } from "@/features/studio/components/editors/editor-registry"
 import { useStudioScreenViewModel } from "@/features/studio/model/use-studio-screen-viewmodel"
 import { useLabelHotkeys } from "@/features/studio/hooks/use-label-hotkeys"
+import { usePredictionBatchActions } from "@/features/studio/components/ai/use-prediction-batch-actions"
+import { orderLabelsForPalette } from "@/features/studio/model/lib/label-palette"
 import { resolveCapabilities } from "@/features/studio/model/lib/labeling-config"
 import type { Label } from "@/shared/types/core"
-import { paths } from "@/shared/lib/routes"
 
 interface LabelingScreenProps {
   projectId?: string
@@ -36,7 +36,6 @@ const EditorLoading = () => (
 export const LabelingScreen = memo(
   ({ projectId, itemId }: LabelingScreenProps) => {
     const [showExportDialog, setShowExportDialog] = useState(false)
-    const navigate = useNavigate()
     const viewModel = useStudioScreenViewModel(projectId, itemId)
 
     const capabilities = useMemo(
@@ -53,36 +52,8 @@ export const LabelingScreen = memo(
       ]
     )
 
-    // Batch review: accept every prediction at once, then nudge toward retraining
-    // — the corrections only improve the model on the next training version. The
-    // toast's action jumps straight to this project's training page.
-    const handleAcceptAllPredictions = useCallback(async () => {
-      const count = await viewModel.acceptAllPredictions()
-      if (count > 0) {
-        toast.success(
-          `Accepted ${count} prediction${count === 1 ? "" : "s"} as labels.`,
-          {
-            description: "Retrain to fold these into the next model version.",
-            action: viewModel.effectiveProjectId
-              ? {
-                  label: "Train",
-                  onClick: () =>
-                    navigate(paths.projectTraining(viewModel.effectiveProjectId)),
-                }
-              : undefined,
-          }
-        )
-      }
-      return count
-    }, [viewModel.acceptAllPredictions, viewModel.effectiveProjectId, navigate])
-
-    const handleRejectAllPredictions = useCallback(async () => {
-      const count = await viewModel.rejectAllPredictions()
-      if (count > 0) {
-        toast.info(`Dismissed ${count} prediction${count === 1 ? "" : "s"}.`)
-      }
-      return count
-    }, [viewModel.rejectAllPredictions])
+    // Batch review (Copilot tab + the canvas review bar share the same toasts).
+    const batch = usePredictionBatchActions(viewModel)
 
     // Submit/Update (Label Studio task completion). Work already autosaves, so
     // this is a UI-only "mark done & advance": confirm, then move to the next
@@ -107,7 +78,7 @@ export const LabelingScreen = memo(
         const selected = viewModel.selectedAnnotation
         if (!selected) {
           toast.info(
-            "Select a shape first, then double-click a class to relabel it."
+            "Select a shape first (M), then choose a class to change it."
           )
           return
         }
@@ -119,7 +90,7 @@ export const LabelingScreen = memo(
             labelId: label.id,
             label_id: label.id,
           })
-          .then(() => toast.success(`Relabeled to “${label.name}”.`))
+          .then(() => toast.success(`Changed to “${label.name}”.`))
           .catch(() => toast.error("Couldn't relabel the shape."))
       },
       [
@@ -141,9 +112,47 @@ export const LabelingScreen = memo(
       )
     }, [viewModel.selectedAnnotation, viewModel.data.labels])
 
-    // ←/→ navigate items, 1–9 arm the Nth class, Esc/0 clears it.
+    // Class management from the palette. Deleting the armed class disarms it.
+    const handleDeleteLabel = useCallback(
+      async (labelId: string) => {
+        await viewModel.deleteLabel(labelId)
+        if (viewModel.activeLabelId === labelId) viewModel.setActiveLabelId(null)
+      },
+      [viewModel.deleteLabel, viewModel.activeLabelId, viewModel.setActiveLabelId]
+    )
+    const handleClearActive = useCallback(
+      () => viewModel.setActiveLabelId(null),
+      [viewModel.setActiveLabelId]
+    )
+
+    // Shapes per class on this item (by label id, falling back to name), shown
+    // as "×3" in the palette so progress is visible at a glance.
+    const shapeCounts = useMemo(() => {
+      const idByName = new Map(
+        viewModel.data.labels.map((label) => [label.name, label.id])
+      )
+      const counts = new Map<string, number>()
+      for (const annotation of viewModel.data.annotations) {
+        const id =
+          annotation.labelId || annotation.label_id || idByName.get(annotation.name)
+        if (id) counts.set(id, (counts.get(id) ?? 0) + 1)
+      }
+      return counts
+    }, [viewModel.data.annotations, viewModel.data.labels])
+
+    // Hotkeys index classes in palette display order so "3" is the class
+    // showing "3" in the panel.
+    const paletteLabels = useMemo(
+      () => orderLabelsForPalette(viewModel.data.labels),
+      [viewModel.data.labels]
+    )
+
+    // ←/→ navigate items, 1–9 arm the Nth class, Shift+1–9 relabels the
+    // selected shape, Esc/0 clears the active class.
     useLabelHotkeys({
-      labels: viewModel.data.labels,
+      labels: paletteLabels,
+      onRelabelSelected: viewModel.selectedAnnotation ? handleLabelAssign : undefined,
+      isShapeSelected: !!viewModel.selectedAnnotation,
       activeLabelId: viewModel.activeLabelId,
       setActiveLabelId: viewModel.setActiveLabelId,
       onNextImage: viewModel.goToNextItem,
@@ -237,13 +246,18 @@ export const LabelingScreen = memo(
                 isLoading={viewModel.data.isLoading}
                 onLabelSelect={handleLabelSelect}
                 onLabelAssign={handleLabelAssign}
+                onClearActive={handleClearActive}
+                onCreateLabel={viewModel.createLabel}
+                onUpdateLabel={viewModel.updateLabel}
+                onDeleteLabel={handleDeleteLabel}
+                shapeCounts={shapeCounts}
                 annotations={viewModel.data.annotations}
                 selectedAnnotationId={viewModel.selectedAnnotation?.id ?? null}
                 onSelectAnnotation={viewModel.setSelectedAnnotation}
                 onDeleteAnnotation={(id) => void viewModel.deleteAnnotation(id)}
                 predictions={viewModel.data.predictions}
-                onAcceptAllPredictions={handleAcceptAllPredictions}
-                onRejectAllPredictions={handleRejectAllPredictions}
+                onAcceptAllPredictions={batch.acceptAll}
+                onRejectAllPredictions={batch.rejectAll}
                 projectId={viewModel.effectiveProjectId}
                 itemId={viewModel.data.item?.id}
                 itemName={viewModel.data.item?.name}

@@ -150,7 +150,8 @@ export const useItemLabelerViewModel = (
       const createdLabel = await services.getLabelService().createLabel({
         name,
         color,
-        isAIGenerated: true,
+        // Typed by the user in the class picker — not an AI-proposed class.
+        isAIGenerated: false,
         projectId: effectiveProjectId,
         project_id: effectiveProjectId,
       })
@@ -159,6 +160,122 @@ export const useItemLabelerViewModel = (
     },
     [image?.projectId, image?.project_id, labels, projectId]
   )
+
+  // ── Class (label) management from inside the labeler ──────────────────────
+  // Creating, renaming, recoloring, and deleting classes right where you label,
+  // instead of detouring through the project's Classes page.
+
+  const createLabel = useCallback(
+    async (input: { name: string; color: string; category?: string }) => {
+      const name = input.name.trim()
+      if (!name) throw new Error("Class name is required.")
+      const existing = labels.find(
+        (entry) => entry.name.trim().toLowerCase() === name.toLowerCase()
+      )
+      if (existing) return existing
+      const effectiveProjectId =
+        projectId || image?.projectId || image?.project_id || ""
+      if (!effectiveProjectId) throw new Error("No project is loaded.")
+
+      const created = await services.getLabelService().createLabel({
+        name,
+        color: input.color,
+        category: input.category?.trim() || undefined,
+        isAIGenerated: false,
+        projectId: effectiveProjectId,
+        project_id: effectiveProjectId,
+      })
+      setLabels((current) => [...current, created])
+      return created
+    },
+    [image?.projectId, image?.project_id, labels, projectId]
+  )
+
+  // Rename / recolor a class. Shapes store their own name + color, so the change
+  // is pushed to every shape of this class in the project — otherwise exports
+  // and the canvas would keep showing the old name.
+  const updateLabel = useCallback(
+    async (
+      labelId: string,
+      updates: Pick<Partial<Label>, "name" | "color" | "category">
+    ) => {
+      const current = labels.find((entry) => entry.id === labelId)
+      if (!current) throw new Error("Class not found.")
+      const nextName = updates.name?.trim() ?? current.name
+      if (!nextName) throw new Error("Class name is required.")
+      const clash = labels.find(
+        (entry) =>
+          entry.id !== labelId &&
+          entry.name.trim().toLowerCase() === nextName.toLowerCase()
+      )
+      if (clash) throw new Error(`A class named “${clash.name}” already exists.`)
+
+      // Snapshot before saving — compare against this, not the live record.
+      const previousName = current.name
+      const previousColor = current.color
+
+      // Send the whole record (minus relations): labels_save is a full upsert.
+      const {
+        annotations: _annotations,
+        project: _project,
+        ...base
+      } = current
+      const updated = await services.getLabelService().updateLabel(labelId, {
+        ...base,
+        ...updates,
+        name: nextName,
+      })
+      setLabels((list) =>
+        list.map((entry) => (entry.id === labelId ? updated : entry))
+      )
+
+      const nameChanged = updated.name !== previousName
+      const colorChanged = updated.color !== previousColor
+      if (!nameChanged && !colorChanged) return updated
+
+      const belongs = (annotation: Annotation) => {
+        const id = annotation.labelId || annotation.label_id
+        return id ? id === labelId : annotation.name === previousName
+      }
+      const patch = {
+        name: updated.name,
+        color: updated.color,
+        labelId,
+        label_id: labelId,
+      }
+      const effectiveProjectId =
+        projectId || image?.projectId || image?.project_id || ""
+      const projectAnnotations = effectiveProjectId
+        ? await services
+            .getAnnotationService()
+            .getAnnotationsByProjectId(effectiveProjectId)
+        : annotations
+      await Promise.all(
+        projectAnnotations
+          .filter(belongs)
+          .map((annotation) =>
+            services.getAnnotationService().updateAnnotation(annotation.id, {
+              ...annotation,
+              ...patch,
+            })
+          )
+      )
+      setAnnotations((list) =>
+        list.map((annotation) =>
+          belongs(annotation) ? { ...annotation, ...patch } : annotation
+        )
+      )
+      return updated
+    },
+    [annotations, image?.projectId, image?.project_id, labels, projectId]
+  )
+
+  // Delete a class. Existing shapes keep their name (they're just detached), so
+  // nothing already labeled is lost.
+  const deleteLabel = useCallback(async (labelId: string) => {
+    await services.getLabelService().deleteLabel(labelId)
+    setLabels((list) => list.filter((entry) => entry.id !== labelId))
+  }, [])
 
   const refreshAnnotations = useCallback(async () => {
     await loadData()
@@ -321,6 +438,9 @@ export const useItemLabelerViewModel = (
     error,
     createAnnotationFromDraft,
     createAnnotation,
+    createLabel,
+    updateLabel,
+    deleteLabel,
     updateAnnotation,
     deleteAnnotation,
     generatePredictions,
