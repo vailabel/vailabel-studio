@@ -12,7 +12,7 @@ import {
 import { Button } from "@/shared/ui/button"
 import { cn } from "@/shared/lib/utils"
 import { exportFormatsFor, type ExportFormat } from "@/features/studio/model/lib/export"
-import type { Modality } from "@/shared/types/modality"
+import type { Modality, Task } from "@/shared/types/modality"
 import { toErrorMessage } from "@/shared/lib/errors"
 
 interface ExportDialogProps {
@@ -22,26 +22,38 @@ interface ExportDialogProps {
     format: ExportFormat
   ) => Promise<{ count: number; outputDir: string } | null>
   isExporting: boolean
-  /** Project modality — picks the applicable export formats. */
+  /** Project modality + task — pick the applicable export formats. */
   modality?: Modality
+  task?: Task
 }
 
 export const ExportDialog = memo(
-  ({ isOpen, onClose, onExport, isExporting, modality }: ExportDialogProps) => {
-    const formats = useMemo(() => exportFormatsFor(modality), [modality])
-    const [format, setFormat] = useState<ExportFormat>(
-      () => exportFormatsFor(modality)[0]?.id ?? "labelme"
+  ({
+    isOpen,
+    onClose,
+    onExport,
+    isExporting,
+    modality,
+    task,
+  }: ExportDialogProps) => {
+    const formats = useMemo(
+      () => exportFormatsFor(modality, task),
+      [modality, task]
+    )
+    const [format, setFormat] = useState<ExportFormat | null>(
+      () => exportFormatsFor(modality, task)[0]?.id ?? null
     )
 
-    // Keep the selection valid when the modality (and thus the format list)
-    // resolves after the dialog has mounted.
+    // Keep the selection valid when the modality/task (and thus the format
+    // list) resolves after the dialog has mounted.
     useEffect(() => {
       if (!formats.some((meta) => meta.id === format)) {
-        setFormat(formats[0]?.id ?? "labelme")
+        setFormat(formats[0]?.id ?? null)
       }
     }, [formats, format])
 
     const handleExport = async () => {
+      if (!format) return
       try {
         const result = await onExport(format)
         if (!result) return // cancelled folder picker
@@ -69,6 +81,11 @@ export const ExportDialog = memo(
           </DialogHeader>
 
           <div className="space-y-2">
+            {formats.length === 0 && (
+              <p className="rounded-lg border p-3 text-sm text-muted-foreground">
+                No export formats are available for this project type.
+              </p>
+            )}
             {formats.map((meta) => (
               <button
                 key={meta.id}
@@ -93,7 +110,10 @@ export const ExportDialog = memo(
             <Button variant="outline" onClick={onClose} disabled={isExporting}>
               Cancel
             </Button>
-            <Button onClick={() => void handleExport()} disabled={isExporting}>
+            <Button
+              onClick={() => void handleExport()}
+              disabled={isExporting || !format}
+            >
               {isExporting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

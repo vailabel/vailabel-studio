@@ -25,6 +25,8 @@ export type EditorKind =
   | "audio"
   | "video"
   | "table"
+  | "pointcloud"
+  | "dicom"
   | "custom"
 
 /**
@@ -131,6 +133,8 @@ function normalizeModality(modality?: string): Modality {
     case "text":
     case "audio":
     case "tabular":
+    case "pointcloud":
+    case "medical":
     case "custom":
       return modality
     default:
@@ -226,6 +230,38 @@ export function resolveCapabilities(input: {
       task,
       editor: "text",
       chrome: DEFAULT_CHROME,
+    }
+  }
+
+  // Point clouds: a 3D viewer with a cuboid tool; the config's controls drive
+  // the labels, so the shell's image label palette is hidden.
+  if (modality === "pointcloud") {
+    return {
+      mode: "regions",
+      tools: [],
+      defaultTool: "move",
+      allowsRegions: true,
+      allowsClassification: false,
+      modality,
+      task,
+      editor: "pointcloud",
+      chrome: { ...DEFAULT_CHROME, showLabelPalette: false },
+    }
+  }
+
+  // Medical (DICOM): a slice viewer with window / level, drawing regions per
+  // slice with the config's controls.
+  if (modality === "medical") {
+    return {
+      mode: "regions",
+      tools: [],
+      defaultTool: "move",
+      allowsRegions: true,
+      allowsClassification: false,
+      modality,
+      task,
+      editor: "dicom",
+      chrome: { ...DEFAULT_CHROME, showLabelPalette: false },
     }
   }
 

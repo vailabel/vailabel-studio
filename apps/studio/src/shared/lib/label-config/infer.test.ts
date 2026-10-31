@@ -24,6 +24,27 @@ describe("inferModalityTask", () => {
     ).toEqual({ modality: "image", task: "segmentation" })
   })
 
+  it("keeps single-control video tracking native and renders the rest from the config", () => {
+    const video = { tag: "video", name: "v", value: "$video" }
+    expect(
+      infer(JSON.stringify({ objects: [video], controls: [{ tag: "videorectangle", name: "box", toName: "v", labels: ["Car"] }] }))
+    ).toEqual({ modality: "video", task: "tracking" })
+    expect(
+      infer(JSON.stringify({ objects: [video], controls: [{ tag: "choices", name: "c", toName: "v", choices: ["A"] }] }))
+    ).toEqual({ modality: "custom" })
+  })
+
+  it("routes brush masks to the config-driven editor", () => {
+    expect(
+      infer(
+        JSON.stringify({
+          objects: [{ tag: "image", name: "image", value: "$image" }],
+          controls: [{ tag: "brushlabels", name: "m", toName: "image", labels: ["Road"] }],
+        })
+      )
+    ).toEqual({ modality: "custom" })
+  })
+
   it("routes single-task text configs to the text editor", () => {
     expect(
       infer(

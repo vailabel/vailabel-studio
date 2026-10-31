@@ -34,6 +34,8 @@ export const LABEL_BEARING_TAGS = new Set([
   "keypointlabels",
   "ellipselabels",
   "brushlabels",
+  "videorectangle",
+  "cuboidlabels",
   "labels",
   "hypertextlabels",
   "paragraphlabels",
@@ -114,6 +116,139 @@ const CONFIG_BY_ID: Record<string, () => LabelConfig> = {
         ch("Object", "#f97316"),
         ch("Background", "#64748b"),
       ]),
+    ],
+  }),
+
+  "lidar-detection": () => ({
+    objects: [obj("pointcloud")],
+    controls: [
+      ctrl("cuboidlabels", "box", "pointcloud", [
+        ch("Car", "#f97316"),
+        ch("Pedestrian", "#2563eb"),
+        ch("Cyclist", "#10b981"),
+      ]),
+      ctrl(
+        "choices",
+        "weather",
+        "pointcloud",
+        [ch("Clear"), ch("Rain"), ch("Fog")],
+        { title: "Weather", choice: "single" }
+      ),
+    ],
+  }),
+  "dicom-segmentation": () => ({
+    objects: [obj("dicom")],
+    controls: [
+      ctrl("brushlabels", "mask", "dicom", [
+        ch("Lesion", "#ef4444"),
+        ch("Lung", "#06b6d4"),
+        ch("Body", "#f59e0b"),
+      ]),
+      ctrl("polygonlabels", "outline", "dicom", [ch("Lesion", "#ef4444")]),
+    ],
+  }),
+  "dicom-lesion-detection": () => ({
+    objects: [obj("dicom")],
+    controls: [
+      ctrl("rectanglelabels", "finding", "dicom", [
+        ch("Nodule", "#ef4444"),
+        ch("Mass", "#8b5cf6"),
+      ]),
+      ctrl(
+        "choices",
+        "assessment",
+        "dicom",
+        [ch("Normal"), ch("Benign"), ch("Suspicious"), ch("Malignant")],
+        { title: "Overall assessment", choice: "single" }
+      ),
+      ctrl("textarea", "report", "dicom", [], { title: "Findings" }),
+    ],
+  }),
+  "region-marking": () => ({
+    objects: [obj("image")],
+    controls: [
+      ctrl("rectangle", "boxes", "image", [], { strokecolor: "#f97316" }),
+      ctrl("polygon", "outlines", "image", [], { strokecolor: "#6366f1" }),
+      ctrl(
+        "choices",
+        "quality",
+        "image",
+        [ch("Usable", "#10b981"), ch("Needs review", "#f59e0b")],
+        { title: "Image quality", choice: "single" }
+      ),
+    ],
+  }),
+  "video-tracking-attributes": () => ({
+    objects: [fieldObj("video", "video", undefined, { framerate: "25" })],
+    controls: [
+      ctrl("videorectangle", "box", "video", [
+        ch("Person", "#2563eb"),
+        ch("Vehicle", "#f97316"),
+      ]),
+      ctrl(
+        "choices",
+        "scene",
+        "video",
+        [ch("Day"), ch("Night"), ch("Indoor")],
+        { title: "Scene", choice: "single" }
+      ),
+    ],
+  }),
+  "dialogue-analysis": () => ({
+    objects: [fieldObj("paragraphs", "dialogue", "Dialogue")],
+    controls: [
+      ctrl("paragraphlabels", "entities", "dialogue", [
+        ch("Product", "#6366f1"),
+        ch("Issue", "#ef4444"),
+        ch("Resolution", "#10b981"),
+      ]),
+      ctrl(
+        "choices",
+        "intent",
+        "dialogue",
+        [ch("Billing"), ch("Technical support"), ch("Cancellation"), ch("Other")],
+        { title: "Conversation intent", choice: "single" }
+      ),
+    ],
+  }),
+  "ranked-list": () => ({
+    objects: [textObj("query", "Query"), fieldObj("list", "results", "Results")],
+    controls: [
+      ctrl("ranker", "rank", "results", [], {
+        title: "Order the results, most relevant first",
+      }),
+    ],
+  }),
+  "pdf-regions": () => ({
+    objects: [fieldObj("pdf", "pdf")],
+    controls: [
+      ctrl("rectanglelabels", "region", "pdf", [
+        ch("Title", "#6366f1"),
+        ch("Table", "#f97316"),
+        ch("Figure", "#10b981"),
+        ch("Signature", "#ef4444"),
+      ]),
+      ctrl(
+        "choices",
+        "document_type",
+        "pdf",
+        [ch("Invoice"), ch("Receipt"), ch("Contract"), ch("Other")],
+        { title: "Document type", choice: "single" }
+      ),
+    ],
+  }),
+  "chat-rating": () => ({
+    objects: [fieldObj("chat", "chat", "Conversation")],
+    controls: [
+      ctrl("rating", "helpfulness", "chat", [], { title: "Helpfulness", maxRating: "5" }),
+      ctrl(
+        "choices",
+        "resolved",
+        "chat",
+        [ch("Yes", "#10b981"), ch("Partially", "#f59e0b"), ch("No", "#ef4444")],
+        { title: "Was the user's problem resolved?", choice: "single" }
+      ),
+      ctrl("textarea", "feedback", "chat", [], { title: "Feedback" }),
     ],
   }),
 

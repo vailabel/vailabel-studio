@@ -3,9 +3,14 @@ import { Loader2 } from "lucide-react"
 import { cn } from "@/shared/lib/utils"
 import type { Item } from "@/shared/types/core"
 import type { ObjectTag } from "@/shared/lib/label-config/types"
+import {
+  parseListEntries,
+  parseUtterances,
+} from "@/features/studio/model/lib/structured-fields"
 import { useDocumentText } from "../text/use-document-text"
 import { inlineFieldText } from "./field-text"
 import { useMediaUrl } from "./media-source"
+import { ChatView, DialogueView, ListView } from "./dialogue-views"
 
 /**
  * Read-only data-bound panels rendered above the interactive viewer — the
@@ -56,6 +61,24 @@ const PanelTitle = ({ object }: { object: ObjectTag }) => (
   </span>
 )
 
+/** Structured fields render with their own view; plain text as-is. */
+function renderField(object: ObjectTag, text: string) {
+  switch (object.tag) {
+    case "paragraphs":
+      return (
+        <DialogueView
+          utterances={parseUtterances(text, object.attrs.namekey, object.attrs.textkey)}
+        />
+      )
+    case "chat":
+      return <ChatView messages={parseUtterances(text, "role", "content")} />
+    case "list":
+      return <ListView entries={parseListEntries(text)} />
+    default:
+      return text
+  }
+}
+
 const ContextField = memo(
   ({ object, doc }: { object: ObjectTag; doc: Item }) => {
     const { text, error } = useDocumentText(
@@ -78,7 +101,7 @@ const ContextField = memo(
           ) : text.trim() === "" ? (
             <span className="italic text-muted-foreground">(empty)</span>
           ) : (
-            text
+            renderField(object, text)
           )}
         </div>
       </div>

@@ -53,6 +53,8 @@ export const OBJECT_TAGS = new Set([
   "video",
   "pdf",
   "chat",
+  "pointcloud",
+  "dicom",
 ])
 
 /** Control tags recognized by the parser. */
@@ -66,6 +68,13 @@ export const CONTROL_TAGS = new Set([
   "ellipselabels",
   "keypointlabels",
   "brushlabels",
+  "rectangle",
+  "polygon",
+  "keypoint",
+  "ellipse",
+  "brush",
+  "videorectangle",
+  "cuboidlabels",
   "choices",
   "taxonomy",
   "rating",

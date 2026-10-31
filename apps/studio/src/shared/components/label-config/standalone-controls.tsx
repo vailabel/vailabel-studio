@@ -3,7 +3,7 @@ import type { ControlTag } from "@/shared/lib/label-config/types"
 import { controlWidgetFor } from "./controls/control-registry"
 import type { ControlValueApi } from "./controls/types"
 
-export type { ControlValueApi } from "./controls/types"
+export type { ControlValueApi, RankItems } from "./controls/types"
 
 // Whole-item controls (choices, taxonomy, rating, textarea, number, pairwise,
 // ranker, datetime) rendered from the config. Each tag resolves to a widget

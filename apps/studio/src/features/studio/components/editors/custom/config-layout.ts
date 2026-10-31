@@ -10,6 +10,9 @@ import { VIEWER_OBJECT_TAGS } from "@/shared/lib/label-config/support"
 import type { RegionInfo, RelationInfo } from "./relations-panel"
 
 const VIEWER_TAGS = new Set<string>(VIEWER_OBJECT_TAGS)
+/** Viewers that become the primary object only when a region control targets
+ *  them; otherwise they render as read-only context. */
+const CONTEXT_FIRST_TAGS = new Set(["paragraphs"])
 
 /** The renderable shape of a parsed config + its current results. */
 export interface ConfigLayout {
@@ -50,14 +53,33 @@ export function deriveConfigLayout(
   // question above an image).
   const judgement = isMultiFieldJudgement(config)
   const dataBound = config.objects.filter((object) => object.value.startsWith("$"))
-  const primary = judgement
-    ? undefined
-    : dataBound.find((object) => VIEWER_TAGS.has(object.tag))
-  const contextObjects = judgement
-    ? dataBound
-    : dataBound.filter(
-        (object) => object !== primary && TEXTUAL_OBJECT_TAGS.has(object.tag)
-      )
+  const labeled = (object: ObjectTag) =>
+    config.controls.some(
+      (control) => isSpatialControl(control) && control.toName === object.name
+    )
+  // A dialogue is only the viewer when spans are labeled on it; otherwise it is
+  // read-only context like any other text field.
+  // The object regions are drawn on wins over an earlier unlabeled viewer
+  // (e.g. the audio track of a video timeline).
+  const viewers = dataBound.filter(
+    (object) =>
+      VIEWER_TAGS.has(object.tag) &&
+      (!CONTEXT_FIRST_TAGS.has(object.tag) || labeled(object))
+  )
+  const primary = judgement ? undefined : (viewers.find(labeled) ?? viewers[0])
+  // A list a ranker orders is shown by the ranker itself.
+  const ranked = new Set(
+    config.controls
+      .filter((control) => control.tag === "ranker")
+      .flatMap((control) => control.toNames)
+  )
+  const contextObjects = (
+    judgement
+      ? dataBound
+      : dataBound.filter(
+          (object) => object !== primary && TEXTUAL_OBJECT_TAGS.has(object.tag)
+        )
+  ).filter((object) => !(object.tag === "list" && ranked.has(object.name)))
   const staticObjects = config.objects.filter(
     (object) => object !== primary && object.value && !object.value.startsWith("$")
   )

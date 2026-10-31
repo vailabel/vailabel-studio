@@ -14,11 +14,20 @@ const OBJECT_MODALITY: Record<string, Modality> = {
   audio: "audio",
   video: "video",
   table: "tabular",
+  pointcloud: "pointcloud",
+  dicom: "medical",
 }
 
 /** Object tags that carry textual content (rendered as read-only panels by the
- *  config-driven editor). */
-export const TEXTUAL_OBJECT_TAGS = new Set(["text", "hypertext", "paragraphs"])
+ *  config-driven editor) — plain text, HTML, and the structured dialogue / chat
+ *  / list fields. */
+export const TEXTUAL_OBJECT_TAGS = new Set([
+  "text",
+  "hypertext",
+  "paragraphs",
+  "chat",
+  "list",
+])
 
 /**
  * A "judge the fields" task: several data fields (`$`-bound) scored only by
@@ -66,8 +75,9 @@ export function inferModalityTask(config: LabelConfig): {
 
   if (base === "image") {
     if (only("rectanglelabels")) return { modality: "image", task: "detection" }
-    if (only("polygonlabels") || only("brushlabels"))
-      return { modality: "image", task: "segmentation" }
+    if (only("polygonlabels")) return { modality: "image", task: "segmentation" }
+    // Brush masks are raster regions, drawn by the config-driven editor (the
+    // canvas's free-draw tool is vector-only).
     if (only("keypointlabels")) return { modality: "image", task: "keypoints" }
     if (only("choices")) return { modality: "image", task: "classification" }
     return { modality: "custom" }
@@ -85,8 +95,26 @@ export function inferModalityTask(config: LabelConfig): {
   }
 
   if (base === "video") {
-    // Video projects run in the studio's video editor (FFmpeg pipeline).
-    return { modality: "video", task: "tracking" }
+    // One box-tracking control is classic tracking: the studio's video editor
+    // (FFmpeg pipeline, keyframe tracks). Anything else — clip classification,
+    // timeline labels, tracks plus attributes — is rendered from the config.
+    if (only("videorectangle") || only("rectanglelabels"))
+      return { modality: "video", task: "tracking" }
+    return { modality: "custom" }
+  }
+
+  if (base === "pointcloud") {
+    // 3D boxes (cuboids) plus any whole-scene controls, in the point cloud editor.
+    return { modality: "pointcloud", task: "detection_3d" }
+  }
+
+  if (base === "medical") {
+    // DICOM series in the slice viewer; the task names what is drawn.
+    if (has("brushlabels") || has("polygonlabels"))
+      return { modality: "medical", task: "segmentation" }
+    if (has("rectanglelabels") || has("keypointlabels") || has("ellipselabels"))
+      return { modality: "medical", task: "detection" }
+    return { modality: "medical", task: "classification" }
   }
 
   if (base === "tabular") {

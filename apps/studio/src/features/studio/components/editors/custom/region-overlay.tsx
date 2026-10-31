@@ -2,6 +2,7 @@ import { X } from "lucide-react"
 import { rgbToRgba } from "@/shared/lib/utils"
 import type { BoxPreview } from "./use-image-region-draw"
 import type { Pt, Region } from "./region-types"
+import { MaskLayer } from "./mask-layer"
 
 interface RegionOverlayProps {
   regions: Region[]
@@ -15,7 +16,7 @@ interface RegionOverlayProps {
 }
 
 /**
- * Presentational layer drawn over the image: an SVG plane for shape geometry
+ * Presentational layer drawn over the image: brush-mask canvases, an SVG plane for shape geometry
  * (rectangles, ellipses, polygons, the drag preview, and the in-progress polyline)
  * plus an HTML plane for keypoints, label chips, delete buttons, and the
  * in-progress polygon vertices. Stateless — all interaction lives in the host.
@@ -28,6 +29,17 @@ export const RegionOverlay = ({
   onDeleteRegion,
 }: RegionOverlayProps) => (
   <>
+    {regions.map((region) =>
+      region.tag === "brushlabels" ? (
+        <MaskLayer
+          key={region.id}
+          mask={region.mask}
+          width={region.width}
+          height={region.height}
+          color={region.color}
+        />
+      ) : null
+    )}
     <svg
       viewBox="0 0 100 100"
       preserveAspectRatio="none"
@@ -117,7 +129,9 @@ export const RegionOverlay = ({
             ? region.points[0] ?? [0, 0]
             : region.tag === "ellipselabels"
               ? [region.x - region.radiusX, region.y - region.radiusY]
-              : [region.x, region.y]
+              : region.tag === "brushlabels"
+                ? region.anchor
+                : [region.x, region.y]
         return (
           <div key={region.id}>
             {region.tag === "keypointlabels" && (

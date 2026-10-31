@@ -88,6 +88,22 @@ export function useConfigResults(
     [viewModel]
   )
 
+  // Replace a region's value in place (e.g. a video track gaining a keyframe).
+  const updateRegion = useCallback(
+    (annotationId: string, control: ControlTag, value: Record<string, unknown>) => {
+      void viewModel.updateAnnotation(annotationId, {
+        meta: {
+          kind: "result",
+          fromName: control.name,
+          toName: control.toName,
+          resultType: control.tag,
+          value,
+        },
+      })
+    },
+    [viewModel]
+  )
+
   const createRelation = useCallback(
     (control: ControlTag, fromId: string, toId: string) => {
       void viewModel.createAnnotationFromDraft({
@@ -124,6 +140,7 @@ export function useConfigResults(
     setControlValue,
     clearControlValue,
     addRegion,
+    updateRegion,
     createRelation,
     createSpan,
   }

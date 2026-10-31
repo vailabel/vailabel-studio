@@ -1,4 +1,5 @@
-import { Fragment, memo, useCallback, useMemo, useState } from "react"
+import { createElement, Fragment, memo, Suspense, useCallback, useMemo, useState } from "react"
+import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { useNavigate } from "react-router-dom"
 import { StudioRightPanel } from "@/features/studio/components/right-panel/studio-right-panel"
@@ -24,6 +25,14 @@ interface LabelingScreenProps {
 // lays out the shared chrome (header, file list, label palette, bottom bar), and
 // mounts the editor body for the resolved editor kind. Each editor owns the
 // center pane; everything around it is reused across templates.
+/** Shown while a lazily loaded editor body downloads. */
+const EditorLoading = () => (
+  <div className="flex flex-1 items-center justify-center gap-2 text-sm text-muted-foreground">
+    <Loader2 className="size-4 animate-spin" />
+    Loading editor…
+  </div>
+)
+
 export const LabelingScreen = memo(
   ({ projectId, itemId }: LabelingScreenProps) => {
     const [showExportDialog, setShowExportDialog] = useState(false)
@@ -43,8 +52,6 @@ export const LabelingScreen = memo(
         viewModel.project?.type,
       ]
     )
-
-    const EditorBody = editorFor(capabilities.editor)
 
     // Batch review: accept every prediction at once, then nudge toward retraining
     // — the corrections only improve the model on the next training version. The
@@ -190,7 +197,11 @@ export const LabelingScreen = memo(
               and panels still fully update to the new item. */}
           <Fragment key={itemId}>
           <div className="relative flex flex-1 flex-col overflow-hidden">
-            <EditorBody viewModel={viewModel} capabilities={capabilities} />
+            <Suspense fallback={<EditorLoading />}>
+              {/* Registry entries are module-level components (some lazy), so
+                  the element type is stable across renders. */}
+              {createElement(editorFor(capabilities.editor), { viewModel, capabilities })}
+            </Suspense>
             {capabilities.chrome.showBottomBar && (
               <StudioBottomBar
                 currentItemIndex={viewModel.currentItemIndex}
@@ -251,6 +262,7 @@ export const LabelingScreen = memo(
           onExport={viewModel.exportProject}
           isExporting={viewModel.isExporting}
           modality={capabilities.modality}
+          task={capabilities.task}
         />
       </div>
     )

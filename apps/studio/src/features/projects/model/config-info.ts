@@ -21,6 +21,11 @@ const OBJECT_DATA_KIND: Record<string, DataKind> = {
   hypertext: "html",
   timeseries: "timeseries",
   pdf: "pdf",
+  pointcloud: "pointcloud",
+  dicom: "dicom",
+  paragraphs: "text",
+  chat: "text",
+  list: "text",
 }
 
 /**

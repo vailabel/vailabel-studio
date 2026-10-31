@@ -124,6 +124,15 @@ export function describeImport(
             ? csvExample(columns)
             : `id,text\n1,${csvCell("First row to label")}\n2,${csvCell("Second row to label")}`,
       }
+    case "series":
+      return {
+        title: "Select a folder of DICOM files",
+        detail:
+          "We read every file's header (any extension), group slices into series — one labeling task per series — and order them along the patient axis. Files are referenced in place. Compressed transfer syntaxes (JPEG, JPEG 2000) aren't supported yet.",
+        formats,
+        columns: [],
+        example: `study/\n  series-1/\n    IM00001\n    IM00002\n  series-2/\n    IM00001.dcm`,
+      }
     case "none":
       return {
         title: "Import clips in the studio",

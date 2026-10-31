@@ -272,6 +272,64 @@ pub fn images_scan_directory(payload: DirectoryPayload) -> Result<Vec<ScannedIma
     Ok(images)
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ListFilesPayload {
+    directory: String,
+    #[serde(default)]
+    recursive: bool,
+}
+
+/// Upper bound on files listed from one folder, so a mistaken pick of a huge
+/// tree can't stall the app.
+const MAX_LISTED_FILES: usize = 50_000;
+
+/// Every regular, non-hidden file under `directory` (sorted), optionally
+/// descending into sub-folders. Unlike the image scan this does not filter by
+/// extension — DICOM files, for one, often have none.
+fn list_files(directory: &Path, recursive: bool) -> std::io::Result<Vec<PathBuf>> {
+    let mut files = Vec::new();
+    let mut pending = vec![directory.to_path_buf()];
+    while let Some(dir) = pending.pop() {
+        for entry in fs::read_dir(&dir)? {
+            let path = entry?.path();
+            let hidden = path
+                .file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name.starts_with('.'));
+            if hidden {
+                continue;
+            }
+            if path.is_dir() {
+                if recursive {
+                    pending.push(path);
+                }
+            } else if path.is_file() {
+                files.push(path);
+                if files.len() >= MAX_LISTED_FILES {
+                    files.sort();
+                    return Ok(files);
+                }
+            }
+        }
+    }
+    files.sort();
+    Ok(files)
+}
+
+/// List the files in a folder (see `list_files`), as absolute paths.
+#[tauri::command]
+pub fn fs_list_files(payload: ListFilesPayload) -> Result<Vec<String>, AppError> {
+    let directory = PathBuf::from(&payload.directory);
+    if !directory.is_dir() {
+        return Ok(Vec::new());
+    }
+    Ok(list_files(&directory, payload.recursive)?
+        .into_iter()
+        .map(|path| path.to_string_lossy().to_string())
+        .collect())
+}
+
 /// Grant the asset protocol read access to a directory the user just opened so
 /// `convertFileSrc` can render its images. Lets us keep the configured scope
 /// tight while still supporting arbitrary "reference in place" folders.
@@ -293,4 +351,35 @@ pub fn updater_status() -> Value {
       "status": "unavailable",
       "message": "Tauri updater is not configured for this local build yet."
     })
+}
+
+#[cfg(test)]
+mod list_files_tests {
+    use super::list_files;
+    use std::fs;
+
+    #[test]
+    fn lists_files_skipping_hidden_and_respecting_recursion() {
+        let root = std::env::temp_dir().join(format!("vailabel-list-files-{}", std::process::id()));
+        let nested = root.join("series");
+        fs::create_dir_all(&nested).unwrap();
+        fs::write(root.join("IM0001"), b"a").unwrap();
+        fs::write(root.join(".DS_Store"), b"x").unwrap();
+        fs::write(nested.join("IM0002"), b"b").unwrap();
+
+        let flat = list_files(&root, false).unwrap();
+        let deep = list_files(&root, true).unwrap();
+        fs::remove_dir_all(&root).unwrap();
+
+        let names = |paths: Vec<std::path::PathBuf>| {
+            paths
+                .iter()
+                .map(|path| path.file_name().unwrap().to_string_lossy().to_string())
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(names(flat), vec!["IM0001"]);
+        let mut deep = names(deep);
+        deep.sort();
+        assert_eq!(deep, vec!["IM0001", "IM0002"]);
+    }
 }

@@ -1,5 +1,5 @@
 import { memo, useCallback } from "react"
-import { Clapperboard, Clock, FileText, Film, ImageIcon, Table2 } from "lucide-react"
+import { Box, Clapperboard, Clock, FileText, Film, ImageIcon, Table2 } from "lucide-react"
 import {
   DATA_KIND_LABELS,
   type LabelingTemplate,
@@ -33,6 +33,12 @@ function documentPresentation(descriptor: ModalityDescriptor) {
   if (isSpreadsheet) {
     return { icon: Table2, rowIcon: Table2, title: "Imported rows", noun: "row" }
   }
+  if (descriptor.importMode === "series") {
+    return { icon: Box, rowIcon: FileText, title: "Found series", noun: "volume" }
+  }
+  if (descriptor.kind === "pointcloud") {
+    return { icon: Box, rowIcon: Box, title: "Selected scans", noun: "file" }
+  }
   if (descriptor.kind === "audio") {
     return { icon: FileText, rowIcon: FileText, title: "Selected clips", noun: "file" }
   }
@@ -55,6 +61,7 @@ export const DataStep = memo(
     const isImage = descriptor?.kind === "image"
     const isFiles = descriptor?.importMode === "files"
     const isSpreadsheet = descriptor?.importMode === "spreadsheet"
+    const isSeries = descriptor?.importMode === "series"
 
     const handleDrop = useCallback(
       (paths: string[]) => {
@@ -116,7 +123,7 @@ export const DataStep = memo(
           formats={guide.formats}
         />
 
-        {isImage && viewModel.folderPath && (
+        {(isImage || isSeries) && viewModel.folderPath && (
           <p className="truncate text-xs text-muted-foreground">
             {viewModel.folderPath}
           </p>
@@ -132,7 +139,7 @@ export const DataStep = memo(
           </StagedPanel>
         )}
 
-        {(isFiles || isSpreadsheet) && viewModel.documents.length > 0 && (
+        {(isFiles || isSpreadsheet || isSeries) && viewModel.documents.length > 0 && (
           <StagedPanel
             icon={documents.icon}
             title={documents.title}

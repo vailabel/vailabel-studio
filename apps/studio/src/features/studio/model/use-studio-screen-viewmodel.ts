@@ -17,7 +17,14 @@ import { services } from "@/shared/services"
 import type { Annotation, Item, Label, Project } from "@/shared/types/core"
 import { openPathDialog } from "@/shared/lib/desktop"
 import { simplifyPolyline } from "@/features/studio/model/lib/canvas-utils"
-import { exportDataset, type ExportFormat } from "@/features/studio/model/lib/export"
+import {
+  exportDataset,
+  type ExportFormat,
+  type ExportVideo,
+} from "@/features/studio/model/lib/export"
+import { resolveCapabilities } from "@/features/studio/model/lib/labeling-config"
+import { parseLabelConfig } from "@/shared/lib/label-config/parse"
+import type { LabelConfig } from "@/shared/lib/label-config/types"
 import { useItemLabelerViewModel } from "@/features/studio/model/image-labeler-viewmodel"
 import { useSettingsViewModel } from "@/shared/model/settings-viewmodel"
 import { useCanvasSession } from "./use-canvas-session"
@@ -456,9 +463,25 @@ export function useStudioScreenViewModel(projectId?: string, itemId?: string) {
           else annotationsByImage.set(id, [annotation])
         }
 
+        const { modality, task } = resolveCapabilities({
+          modality: project?.modality,
+          task: project?.task,
+          projectType: project?.type,
+        })
+        const videos =
+          modality === "video"
+            ? await loadExportVideos(effectiveProjectId)
+            : undefined
+
         const count = await exportDataset(
           format,
-          { images, annotationsByImage, labels: labels as Label[] },
+          {
+            images,
+            annotationsByImage,
+            labels: labels as Label[],
+            project: { task, labelConfig: projectLabelConfig(project) },
+            videos,
+          },
           outputDir
         )
         return { count, outputDir }
@@ -466,7 +489,7 @@ export function useStudioScreenViewModel(projectId?: string, itemId?: string) {
         setIsExporting(false)
       }
     },
-    [effectiveProjectId]
+    [effectiveProjectId, project]
   )
 
   return {
@@ -553,3 +576,27 @@ export function useStudioScreenViewModel(projectId?: string, itemId?: string) {
 }
 
 export type StudioScreenViewModel = ReturnType<typeof useStudioScreenViewModel>
+
+// The project's parsed labeling config, or undefined when it has none (or it
+// no longer parses — the export then falls back to config-free output).
+function projectLabelConfig(project: Project | null): LabelConfig | undefined {
+  const raw = project?.settings?.labelConfig
+  if (typeof raw !== "string" || !raw.trim()) return undefined
+  try {
+    return parseLabelConfig(raw)
+  } catch {
+    return undefined
+  }
+}
+
+// Every clip of a video project with its keyframe tracks.
+async function loadExportVideos(projectId: string): Promise<ExportVideo[]> {
+  const videoService = services.getVideoService()
+  const metas = await videoService.list(projectId)
+  return Promise.all(
+    metas.map(async (meta) => ({
+      meta,
+      tracks: await videoService.listTracks(meta.id),
+    }))
+  )
+}

@@ -13,6 +13,8 @@ export type Modality =
   | "text"
   | "audio"
   | "tabular"
+  | "pointcloud"
+  | "medical"
   | "custom"
 
 export type Task =
@@ -33,6 +35,8 @@ export type Task =
   | "transcription"
   | "audio_classification"
   | "diarization"
+  // point cloud
+  | "detection_3d"
 
 /** Non-spatial payload carried by an annotation, discriminated by `kind`. */
 export type AnnotationMeta =
@@ -97,5 +101,7 @@ export const MODALITY_LABELS: Record<Modality, string> = {
   text: "Text",
   audio: "Audio",
   tabular: "Tabular",
+  pointcloud: "Point cloud",
+  medical: "Medical (DICOM)",
   custom: "Custom",
 }

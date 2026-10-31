@@ -84,6 +84,10 @@ function emptyStateHint(modality?: string): string {
       return "I run on-device — suggest label names and help you plan this clip's labels."
     case "video":
       return "I run on-device — suggest label names and help you plan this clip's tracks."
+    case "pointcloud":
+      return "I run on-device — suggest class names and help you plan this scan's cuboids."
+    case "medical":
+      return "I run on-device — suggest finding names and help you plan this series' labels."
     case "custom":
       return "I run on-device — suggest labels and answer questions about this item."
     default:

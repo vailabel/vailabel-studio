@@ -11,6 +11,7 @@ import { StaticObjects } from "./custom/static-objects"
 import { deriveConfigLayout } from "./custom/config-layout"
 import { useConfigResults } from "./custom/use-config-results"
 import { useParsedConfig } from "./custom/use-parsed-config"
+import { useRankLists } from "./custom/use-rank-lists"
 
 function fileDir(filePath: string): string {
   return filePath.replace(/[\\/][^\\/]*$/, "") || filePath
@@ -26,6 +27,7 @@ export const CustomEditor = memo(({ viewModel }: EditorProps) => {
 
   const parsed = useParsedConfig(rawConfig)
   const results = useConfigResults(annotations, viewModel)
+  const rankItems = useRankLists(parsed.config, doc)
 
   // Ensure asset access for media objects (image/audio) on reopen.
   useEffect(() => {
@@ -94,6 +96,7 @@ export const CustomEditor = memo(({ viewModel }: EditorProps) => {
           onCreateRegion={results.addRegion}
           onCreateSpan={results.createSpan}
           onDeleteRegion={viewModel.deleteAnnotation}
+          onUpdateRegion={results.updateRegion}
         />
       )}
 
@@ -103,6 +106,7 @@ export const CustomEditor = memo(({ viewModel }: EditorProps) => {
           valueFor: results.valueFor,
           onSet: results.setControlValue,
           onClear: results.clearControlValue,
+          rankItems,
         }}
       />
 

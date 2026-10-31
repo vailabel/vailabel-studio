@@ -28,3 +28,15 @@ export type Region =
       label: string
       color: string
     }
+  | {
+      id: string
+      tag: "brushlabels"
+      /** Coverage mask (one byte per pixel) at the raster size it was drawn. */
+      mask: Uint8Array
+      width: number
+      height: number
+      /** Top-left of the mask's bounding box, in % — where the chip sits. */
+      anchor: Pt
+      label: string
+      color: string
+    }

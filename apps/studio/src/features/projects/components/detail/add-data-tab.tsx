@@ -48,11 +48,15 @@ export function AddDataTab({
           <DocumentImportPanel
             documents={viewModel.newDocuments}
             kindLabel={descriptor.label}
-            fileLabel={modality === "audio" ? "clips" : "files"}
+            fileLabel={
+              modality === "audio" ? "clips" : descriptor.importMode === "series" ? "series" : "files"
+            }
             isUploading={viewModel.isUploading}
             isSaving={viewModel.isSaving}
             onSelectFiles={() =>
-              void viewModel.addDocumentFiles(descriptor.extensions)
+              void (descriptor.importMode === "series"
+                ? viewModel.addDicomSeries()
+                : viewModel.addDocumentFiles(descriptor.extensions))
             }
             onRemove={viewModel.handleRemoveDocument}
             onSave={() => void viewModel.saveDocuments()}

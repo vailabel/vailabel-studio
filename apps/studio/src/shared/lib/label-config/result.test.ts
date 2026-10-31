@@ -9,6 +9,10 @@ import {
   polygonValue,
   keypointValue,
   relationValue,
+  brushValue,
+  paragraphLabelsValue,
+  shapeTagOf,
+  valueForControl,
 } from "./result"
 
 const annotations = [
@@ -118,5 +122,61 @@ describe("toLabelStudioResults (relations)", () => {
     expect(toLabelStudioResults(annotations)).toEqual([
       { type: "relation", from_id: "r1", to_id: "r2", labels: [] },
     ])
+  })
+})
+
+describe("unlabeled shapes", () => {
+  it("maps an unlabeled control to its labeled twin", () => {
+    expect(shapeTagOf("rectangle")).toBe("rectanglelabels")
+    expect(shapeTagOf("polygonlabels")).toBe("polygonlabels")
+  })
+
+  it("drops the label key only for unlabeled controls", () => {
+    const value = rectangleValue(1, 2, 3, 4, ["Car"])
+    expect(valueForControl("rectanglelabels", value)).toBe(value)
+    expect(valueForControl("rectangle", value)).toEqual({
+      x: 1,
+      y: 2,
+      width: 3,
+      height: 4,
+      rotation: 0,
+    })
+  })
+})
+
+describe("paragraphLabelsValue", () => {
+  it("addresses paragraphs by string index", () => {
+    expect(paragraphLabelsValue(0, 4, 1, 2, "hi there", ["Greeting"])).toEqual({
+      start: "0",
+      end: "1",
+      startOffset: 4,
+      endOffset: 2,
+      text: "hi there",
+      paragraphlabels: ["Greeting"],
+    })
+  })
+})
+
+describe("brush results in Label Studio export", () => {
+  it("hoists the raster size onto the envelope", () => {
+    const [result] = toLabelStudioResults([
+      {
+        id: "b1",
+        name: "mask",
+        meta: {
+          kind: "result",
+          fromName: "mask",
+          toName: "img",
+          resultType: "brushlabels",
+          value: brushValue([1, 2, 3], 64, 32, ["Road"]),
+        },
+      },
+    ] as unknown as Annotation[])
+    expect(result).toMatchObject({
+      original_width: 64,
+      original_height: 32,
+      value: { format: "rle", rle: [1, 2, 3], brushlabels: ["Road"] },
+    })
+    expect(result.value).not.toHaveProperty("original_width")
   })
 })
